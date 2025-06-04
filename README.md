@@ -48,11 +48,38 @@ episodic/
 ├── state.py
 └── ...
 
+LLM Integration
+
+Episodic now integrates with OpenAI's chat completion API, allowing you to:
+	•	Query an LLM and store both the query and response in the conversation DAG
+	•	Chat with an LLM using conversation history as context
+
+To use these features, you need to set your OpenAI API key as an environment variable:
+
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
+
+Example usage:
+
+```bash
+# Send a one-off query to the LLM
+episodic query "What is the capital of France?"
+
+# Continue a conversation with context from previous messages
+episodic chat "Tell me more about its history."
+
+# Specify a different model
+episodic query --model gpt-4 "Explain quantum computing."
+
+# Customize the system message
+episodic query --system "You are a helpful coding assistant." "How do I write a Python function?"
+```
+
 Next Steps
-	•	Integrate with OpenAI’s chat completion API
-	•	Automate message submission and response storage
 	•	Implement state summarization
 	•	Build a basic TUI or web UI for visual graph traversal
+	•	Add support for other LLM providers
 
 License
 

@@ -72,10 +72,10 @@ def get_head():
     return None
 
 def resolve_node_ref(ref):
-    if ref == "@head":
+    if ref == "@head" or ref.upper() == "HEAD" or ref.lower() == "head":
         return get_head()
 
-    if ref.startswith("head~"):
+    if ref.startswith("head~") or ref.startswith("HEAD~"):
         try:
             steps_back = int(ref[len("head~"):])
         except ValueError:
@@ -90,4 +90,3 @@ def resolve_node_ref(ref):
         return current_id
 
     return ref
-

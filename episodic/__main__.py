@@ -1,8 +1,10 @@
 import argparse
 import uuid
 import os
+import webbrowser
 from episodic.db import insert_node, get_node, get_ancestry, initialize_db, resolve_node_ref, get_head, set_head
 from episodic.llm import query_llm, query_with_context
+from episodic.visualization import visualize_dag
 
 # This comment was added to demonstrate file editing capabilities
 
@@ -35,6 +37,11 @@ def main():
     chat_parser.add_argument("--model", help="LLM model to use", default="gpt-3.5-turbo")
     chat_parser.add_argument("--system", help="System message for the LLM", default="You are a helpful assistant.")
     chat_parser.add_argument("--context-depth", help="Number of ancestor nodes to include as context", type=int, default=5)
+
+    # Add new command for visualizing the conversation DAG
+    visualize_parser = subparsers.add_parser("visualize")
+    visualize_parser.add_argument("--output", help="Path to save the HTML visualization", default=None)
+    visualize_parser.add_argument("--no-browser", help="Don't open the visualization in a browser", action="store_true")
 
     args = parser.parse_args()
 
@@ -133,6 +140,16 @@ def main():
 
         except Exception as e:
             print(f"Error: {str(e)}")
+    elif args.command == "visualize":
+        try:
+            output_path = visualize_dag(args.output)
+            if output_path and not args.no_browser:
+                print(f"Opening visualization in browser: {output_path}")
+                webbrowser.open(f"file://{os.path.abspath(output_path)}")
+            elif output_path:
+                print(f"Visualization saved to: {output_path}")
+        except Exception as e:
+            print(f"Error generating visualization: {str(e)}")
     else:
         parser.print_help()
 

@@ -114,6 +114,7 @@ The interactive shell provides several advantages over the command-line interfac
 - **Auto-completion**: Suggests commands and arguments as you type (press Tab)
 - **Syntax Highlighting**: Makes commands more readable
 - **Help System**: Built-in documentation for all commands
+- **No Quotation Marks Required**: Arguments are automatically parsed based on command flags (--)
 
 Example usage in the shell:
 
@@ -121,7 +122,7 @@ Example usage in the shell:
 episodic> init
 Database initialized.
 
-episodic> add "Hello, world."
+episodic> add Hello, world.
 Added node 1234-5678-90ab-cdef
 
 episodic> show
@@ -129,7 +130,7 @@ Node ID: 1234-5678-90ab-cdef
 Parent: None
 Message: Hello, world.
 
-episodic> query "What is the capital of France?" --model gpt-4
+episodic> query What is the capital of France? --model gpt-4
 Added query node 2345-6789-0abc-defg
 Added response node 3456-7890-abcd-efgh
 
@@ -158,4 +159,4 @@ Next Steps
 
 License
 
-MIT (or TBD)
+MIT

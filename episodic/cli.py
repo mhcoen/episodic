@@ -24,8 +24,9 @@ import os
 import sys
 import shlex
 import webbrowser
+import re
 from pathlib import Path
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -42,6 +43,69 @@ from episodic.db import (
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
+
+
+def parse_command_line(text: str) -> List[str]:
+    """
+    Parse a command line without requiring quotation marks.
+
+    This function splits the input by command and flags (--), treating everything
+    between flags (or after the command until the first flag) as a single argument,
+    regardless of spaces.
+
+    Args:
+        text: The command line text to parse
+
+    Returns:
+        A list of arguments, with the first element being the command
+    """
+    # Strip leading/trailing whitespace
+    text = text.strip()
+
+    if not text:
+        return []
+
+    # Split by whitespace to get the command
+    parts = text.split(None, 1)
+    command = parts[0]
+
+    # If there's no additional text, return just the command
+    if len(parts) == 1:
+        return [command]
+
+    # Get the rest of the text
+    rest = parts[1].strip()
+
+    # Initialize the result with the command
+    result = [command]
+
+    # Find all flag positions
+    flag_positions = [(m.start(), m.group()) for m in re.finditer(r'\s--[\w-]+', rest)]
+
+    # If there are no flags, the entire rest is one argument
+    if not flag_positions:
+        result.append(rest)
+        return result
+
+    # Process the text before the first flag
+    if flag_positions[0][0] > 0:
+        result.append(rest[:flag_positions[0][0]].strip())
+
+    # Process each flag and the text until the next flag
+    for i, (pos, flag) in enumerate(flag_positions):
+        # Add the flag
+        flag = flag.strip()
+        result.append(flag)
+
+        # Calculate the start and end of the text after this flag
+        start = pos + len(flag)
+        end = flag_positions[i+1][0] if i+1 < len(flag_positions) else len(rest)
+
+        # Add the text after this flag and before the next flag (or end)
+        if start < end:
+            result.append(rest[start:end].strip())
+
+    return result
 
 
 class EpisodicCompleter(Completer):
@@ -106,8 +170,8 @@ class EpisodicCompleter(Completer):
         # Get the text before the cursor
         text_before_cursor = document.text_before_cursor
 
-        # Split the input into words
-        words = shlex.split(text_before_cursor) if text_before_cursor else []
+        # Split the input using our custom parser
+        words = parse_command_line(text_before_cursor) if text_before_cursor else []
 
         # If we're at the start of a new word or there are no words yet
         if not text_before_cursor or text_before_cursor[-1].isspace():
@@ -220,8 +284,8 @@ class EpisodicShell:
                 if not text.strip():
                     continue
 
-                # Parse the input
-                args = shlex.split(text)
+                # Parse the input without requiring quotation marks
+                args = parse_command_line(text)
                 command = args[0].lower() if args else ""
 
                 # Execute the command

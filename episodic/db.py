@@ -7,7 +7,30 @@ DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "episodi
 def get_connection():
     return sqlite3.connect(DB_PATH)
 
-def initialize_db():
+def database_exists():
+    """Check if the database file exists and has tables."""
+    if not os.path.exists(DB_PATH):
+        return False
+
+    try:
+        with get_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='nodes'")
+            return c.fetchone() is not None
+    except sqlite3.Error:
+        return False
+
+def initialize_db(erase=False):
+    """
+    Initialize the database.
+
+    Args:
+        erase (bool): If True and the database exists, it will be erased.
+                     If False and the database exists, it will not be modified.
+    """
+    if erase and os.path.exists(DB_PATH):
+        os.remove(DB_PATH)
+
     with get_connection() as conn:
         c = conn.cursor()
         c.execute("""

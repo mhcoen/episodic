@@ -2,7 +2,8 @@ import argparse
 import uuid
 import os
 import webbrowser
-from episodic.db import insert_node, get_node, get_ancestry, initialize_db, resolve_node_ref, get_head, set_head
+import sys
+from episodic.db import insert_node, get_node, get_ancestry, initialize_db, resolve_node_ref, get_head, set_head, database_exists
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
 
@@ -46,7 +47,17 @@ def main():
     args = parser.parse_args()
 
     if args.command == "init":
-        initialize_db()
+        if database_exists():
+            print("Database already exists. Do you want to erase it? (yes/no)")
+            response = input().strip().lower()
+            if response in ["yes", "y"]:
+                initialize_db(erase=True)
+                print("Database has been reinitialized.")
+            else:
+                print("Database initialization cancelled.")
+        else:
+            initialize_db()
+            print("Database initialized.")
     elif args.command == "add":
         parent_id = resolve_node_ref(args.parent) if args.parent else None
         node_id = insert_node(args.content, parent_id)

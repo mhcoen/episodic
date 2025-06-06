@@ -39,7 +39,7 @@ from pygments.lexers import BashLexer
 
 from episodic.db import (
     insert_node, get_node, get_ancestry, initialize_db, 
-    resolve_node_ref, get_head, set_head
+    resolve_node_ref, get_head, set_head, database_exists
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
@@ -309,8 +309,21 @@ class EpisodicShell:
 
     def handle_init(self, args):
         """Initialize the database."""
-        initialize_db()
-        print("Database initialized.")
+        if database_exists():
+            try:
+                # Print the question and use input() instead of self.session.prompt()
+                print("The database already exists.\nDo you want to erase it? (yes/no): ", end="", flush=True)
+                response = input().strip().lower()
+                if response in ["yes", "y"]:
+                    initialize_db(erase=True)
+                    print("Database has been reinitialized.")
+                else:
+                    print("Database initialization cancelled.")
+            except (KeyboardInterrupt, EOFError):
+                print("\nDatabase initialization cancelled.")
+        else:
+            initialize_db()
+            print("Database initialized.")
 
     def handle_add(self, args):
         """Add a new node with content."""
@@ -457,8 +470,15 @@ class EpisodicShell:
             # Get the current head node
             head_id = self.current_node_id or get_head()
             if not head_id:
-                print("No conversation history found. Use 'init' to initialize the database and 'add' to add a message.")
-                return
+                # If there's no head node, we need to check if the database exists
+                if database_exists():
+                    # Database exists but no messages yet
+                    print("No conversation history found. Use 'add' to add a message first.")
+                    return
+                else:
+                    # Database doesn't exist yet
+                    print("No conversation history found. Use 'init' to initialize the database and 'add' to add a message.")
+                    return
 
             # Get the ancestry of the head node to use as context
             ancestry = get_ancestry(head_id)

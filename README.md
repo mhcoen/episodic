@@ -27,17 +27,47 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 
+## Running Episodic Commands
+
+There are two ways to run Episodic commands:
+
+### Before Installation (or without installation)
+
+Use the Python module syntax:
+
+```bash
+python -m episodic <command> [arguments]
+```
+
+### After Installation
+
+After installing the package with pip (as shown above), you can use the direct command:
+
+```bash
+episodic <command> [arguments]
+```
+
+This works because pip automatically creates executable wrapper scripts for the entry points defined in setup.py.
+
+## Basic Usage
+
 Initialize the database:
 
+```bash
 python -m episodic init
+```
 
 Add a message:
 
+```bash
 python -m episodic add "Hello, world."
+```
 
 Show a message:
 
+```bash
 python -m episodic show HEAD
+```
 
 Project Structure
 
@@ -102,9 +132,18 @@ The visualization allows you to:
 
 Episodic now includes an interactive shell for a more fluid user experience:
 
+### After Installation
+
 ```bash
-# Launch the interactive shell
+# Launch the interactive shell (after installing with pip)
 episodic-shell
+```
+
+### Before Installation (or without installation)
+
+```bash
+# Launch the interactive shell using the Python module syntax
+python -m episodic.cli
 ```
 
 The interactive shell provides several advantages over the command-line interface:
@@ -117,6 +156,8 @@ The interactive shell provides several advantages over the command-line interfac
 - **No Quotation Marks Required**: Arguments are automatically parsed based on command flags (--)
 
 Example usage in the shell:
+
+The following examples show what you'll see after launching the interactive shell. The `episodic>` prompt is displayed by the shell itself, and you only need to type the commands that follow it:
 
 ```
 episodic> init

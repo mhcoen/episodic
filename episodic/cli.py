@@ -53,6 +53,15 @@ def parse_command_line(text: str) -> List[str]:
     between flags (or after the command until the first flag) as a single argument,
     regardless of spaces.
 
+    The function is designed to handle flags that appear in the middle of text without
+    requiring proper whitespace separation. For example, the command:
+    "chat Tell me my name --context-depth 10"
+    will be correctly parsed as:
+    ["chat", "Tell me my name", "--context-depth", "10"]
+
+    This allows users to type natural language queries without worrying about
+    quoting arguments that contain spaces.
+
     Args:
         text: The command line text to parse
 
@@ -80,7 +89,15 @@ def parse_command_line(text: str) -> List[str]:
     result = [command]
 
     # Find all flag positions
-    flag_positions = [(m.start(), m.group()) for m in re.finditer(r'\s--[\w-]+', rest)]
+    # Use a more robust regex that looks for '--' followed by word characters or hyphens
+    # This will match flags even if they appear in the middle of text without proper whitespace
+    flag_positions = []
+    for m in re.finditer(r'(^|\s)--[\w-]+', rest):
+        # We want to capture just the flag part (including the --), not any preceding whitespace
+        start = m.start()
+        if rest[start:start+1].isspace():
+            start += 1  # Skip the whitespace
+        flag_positions.append((start, rest[start:m.end()]))
 
     # If there are no flags, the entire rest is one argument
     if not flag_positions:
@@ -93,8 +110,7 @@ def parse_command_line(text: str) -> List[str]:
 
     # Process each flag and the text until the next flag
     for i, (pos, flag) in enumerate(flag_positions):
-        # Add the flag
-        flag = flag.strip()
+        # Add the flag (no need to strip as we've already handled whitespace)
         result.append(flag)
 
         # Calculate the start and end of the text after this flag
@@ -103,7 +119,10 @@ def parse_command_line(text: str) -> List[str]:
 
         # Add the text after this flag and before the next flag (or end)
         if start < end:
-            result.append(rest[start:end].strip())
+            # Extract and clean the text between this flag and the next one
+            between_text = rest[start:end].strip()
+            if between_text:
+                result.append(between_text)
 
     return result
 
@@ -178,8 +197,12 @@ class EpisodicCompleter(Completer):
             word_before_cursor = ''
             words.append('')
         else:
-            word_before_cursor = words[-1]
-            words[-1] = ''  # For checking the command context
+            # The last word might be incomplete, so we need to get it from the original text
+            # rather than from the parsed words (which might have been split differently)
+            word_before_cursor = text_before_cursor.split()[-1]
+            # For checking the command context, we need to remove the last word
+            if len(words) > 0:
+                words[-1] = ''  # For checking the command context
 
         # If we're completing the command itself
         if len(words) == 1:
@@ -315,15 +338,23 @@ class EpisodicShell:
                 print("The database already exists.\nDo you want to erase it? (yes/no): ", end="", flush=True)
                 response = input().strip().lower()
                 if response in ["yes", "y"]:
-                    initialize_db(erase=True)
-                    print("Database has been reinitialized.")
+                    root_node_id = initialize_db(erase=True)
+                    if root_node_id:
+                        self.current_node_id = root_node_id
+                        print(f"Database has been reinitialized with a default root node (ID: {root_node_id}).")
+                    else:
+                        print("Database has been reinitialized.")
                 else:
                     print("Database initialization cancelled.")
             except (KeyboardInterrupt, EOFError):
                 print("\nDatabase initialization cancelled.")
         else:
-            initialize_db()
-            print("Database initialized.")
+            root_node_id = initialize_db()
+            if root_node_id:
+                self.current_node_id = root_node_id
+                print(f"Database initialized with a default root node (ID: {root_node_id}).")
+            else:
+                print("Database initialized.")
 
     def handle_add(self, args):
         """Add a new node with content."""
@@ -472,12 +503,14 @@ class EpisodicShell:
             if not head_id:
                 # If there's no head node, we need to check if the database exists
                 if database_exists():
-                    # Database exists but no messages yet
-                    print("No conversation history found. Use 'add' to add a message first.")
+                    # Database exists but no messages yet - this should be rare now with the implicit root node
+                    print("No conversation history found. This is unusual since initialization should create a root node.")
+                    print("Try reinitializing the database with 'init' or add a message with 'add'.")
                     return
                 else:
                     # Database doesn't exist yet
-                    print("No conversation history found. Use 'init' to initialize the database and 'add' to add a message.")
+                    print("No database found. Please initialize the database with 'init' command first.")
+                    print("Initialization will create a default root node that can be used for conversation.")
                     return
 
             # Get the ancestry of the head node to use as context
@@ -593,5 +626,55 @@ def main():
     shell.run()
 
 
+def test_parse_command_line():
+    """
+    Test the parse_command_line function with various inputs.
+    This function is for development and testing purposes only.
+    """
+    test_cases = [
+        # Basic command with no arguments
+        ("init", ["init"]),
+
+        # Command with a simple argument
+        ("add Hello", ["add", "Hello"]),
+
+        # Command with a quoted argument (should be handled by shlex)
+        ("add \"Hello, world!\"", ["add", "Hello, world!"]),
+
+        # Command with a flag
+        ("add --parent HEAD", ["add", "--parent", "HEAD"]),
+
+        # Command with text and a flag
+        ("add Hello --parent HEAD", ["add", "Hello", "--parent", "HEAD"]),
+
+        # Command with text containing a flag-like pattern
+        ("add Hello--world", ["add", "Hello--world"]),
+
+        # Command with text and multiple flags
+        ("add Hello --parent HEAD --model gpt-4", ["add", "Hello", "--parent", "HEAD", "--model", "gpt-4"]),
+
+        # Command with text, a flag, more text, and another flag
+        ("chat Tell me about Paris --model gpt-4 and its history --context-depth 10", 
+         ["chat", "Tell me about Paris", "--model", "gpt-4 and its history", "--context-depth", "10"]),
+
+        # The problematic case from the issue
+        ("chat Tell me my name --context-depth 10", 
+         ["chat", "Tell me my name", "--context-depth", "10"]),
+    ]
+
+    for i, (input_text, expected_output) in enumerate(test_cases):
+        result = parse_command_line(input_text)
+        if result == expected_output:
+            print(f"Test {i+1} passed: {input_text}")
+        else:
+            print(f"Test {i+1} failed: {input_text}")
+            print(f"  Expected: {expected_output}")
+            print(f"  Got:      {result}")
+
+
 if __name__ == "__main__":
-    main()
+    # Run tests if the --test flag is provided
+    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+        test_parse_command_line()
+    else:
+        main()

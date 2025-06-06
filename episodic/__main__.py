@@ -51,13 +51,19 @@ def main():
             print("Database already exists. Do you want to erase it? (yes/no)")
             response = input().strip().lower()
             if response in ["yes", "y"]:
-                initialize_db(erase=True)
-                print("Database has been reinitialized.")
+                root_node_id = initialize_db(erase=True)
+                if root_node_id:
+                    print(f"Database has been reinitialized with a default root node (ID: {root_node_id}).")
+                else:
+                    print("Database has been reinitialized.")
             else:
                 print("Database initialization cancelled.")
         else:
-            initialize_db()
-            print("Database initialized.")
+            root_node_id = initialize_db()
+            if root_node_id:
+                print(f"Database initialized with a default root node (ID: {root_node_id}).")
+            else:
+                print("Database initialized.")
     elif args.command == "add":
         parent_id = resolve_node_ref(args.parent) if args.parent else None
         node_id = insert_node(args.content, parent_id)
@@ -109,7 +115,14 @@ def main():
             # Get the current head node
             head_id = get_head()
             if not head_id:
-                print("No conversation history found. Initialize with 'episodic init' and add a message with 'episodic add'.")
+                if database_exists():
+                    # Database exists but no messages yet - this should be rare now with the implicit root node
+                    print("No conversation history found. This is unusual since initialization should create a root node.")
+                    print("Try reinitializing the database with 'episodic init' or add a message with 'episodic add'.")
+                else:
+                    # Database doesn't exist yet
+                    print("No database found. Please initialize the database with 'episodic init' command first.")
+                    print("Initialization will create a default root node that can be used for conversation.")
                 return
 
             # Get the ancestry of the head node to use as context

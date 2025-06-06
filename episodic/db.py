@@ -20,13 +20,14 @@ def database_exists():
     except sqlite3.Error:
         return False
 
-def initialize_db(erase=False):
+def initialize_db(erase=False, create_root_node=True):
     """
     Initialize the database.
 
     Args:
         erase (bool): If True and the database exists, it will be erased.
                      If False and the database exists, it will not be modified.
+        create_root_node (bool): If True, creates a default root node if no nodes exist.
     """
     if erase and os.path.exists(DB_PATH):
         os.remove(DB_PATH)
@@ -48,6 +49,29 @@ def initialize_db(erase=False):
             )
         """)
         conn.commit()
+
+        # Check if we should create a root node and if there are no existing nodes
+        if create_root_node:
+            c.execute("SELECT COUNT(*) FROM nodes")
+            node_count = c.fetchone()[0]
+
+            if node_count == 0:
+                # Create a default root node with an empty string
+                root_node_id = str(uuid.uuid4())
+                c.execute(
+                    "INSERT INTO nodes (id, content, parent_id) VALUES (?, ?, ?)",
+                    (root_node_id, "", None)
+                )
+
+                # Set this as the head node
+                c.execute(
+                    "INSERT INTO meta (key, value) VALUES ('head', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                    (root_node_id,)
+                )
+                conn.commit()
+                return root_node_id
+
+    return None
 
 def insert_node(content, parent_id=None):
     node_id = str(uuid.uuid4())

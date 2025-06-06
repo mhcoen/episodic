@@ -299,7 +299,12 @@ class EpisodicShell:
         try:
             self.current_node_id = get_head()
             if self.current_node_id:
-                print(f"Current node: {self.current_node_id}")
+                # Get the node to access its short ID
+                node = get_node(self.current_node_id)
+                if node:
+                    print(f"Current node: {node['short_id']} (UUID: {node['id']})")
+                else:
+                    print(f"Current node: {self.current_node_id}")
         except:
             print("No database found. Use 'init' to create a new database.")
 

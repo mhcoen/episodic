@@ -7,7 +7,7 @@ import os
 import networkx as nx
 from pyvis.network import Network
 import tempfile
-from episodic.db import get_connection
+from episodic.db import get_connection, get_head
 
 def get_all_nodes():
     """
@@ -56,6 +56,9 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
         print("No nodes found in the database. Add some messages first.")
         return None
 
+    # Get the current head node
+    current_node_id = get_head()
+
     # Create a directed graph
     G = nx.DiGraph()
 
@@ -66,7 +69,14 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
         display_content = content_str[:50] + "..." if len(content_str) > 50 else content_str
         # Include short ID in parentheses before the content
         display_content = f"({node['short_id']}) {display_content}"
-        G.add_node(node["id"], title=content_str, label=display_content)
+
+        # Set different color and border for current node
+        if node["id"] == current_node_id:
+            G.add_node(node["id"], title=content_str, label=display_content, 
+                      color="#FFA500", borderWidth=3, borderWidthSelected=5)
+        else:
+            G.add_node(node["id"], title=content_str, label=display_content)
+
         if node["parent_id"]:
             G.add_edge(node["parent_id"], node["id"])
 

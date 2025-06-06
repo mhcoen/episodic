@@ -25,6 +25,10 @@ def main():
     ancestry_parser = subparsers.add_parser("ancestry")
     ancestry_parser.add_argument("node_id", help="Node ID to trace ancestry")
 
+    # Add new command for changing the current node
+    goto_parser = subparsers.add_parser("goto")
+    goto_parser.add_argument("node_id", help="Node ID to make current")
+
     # Add new command for querying the LLM
     query_parser = subparsers.add_parser("query")
     query_parser.add_argument("prompt", help="Query to send to the LLM")
@@ -91,6 +95,21 @@ def main():
         ancestry = get_ancestry(node_id)
         for ancestor in ancestry:
             print(f"{ancestor['short_id']} (UUID: {ancestor['id']}): {ancestor['content']}")
+    elif args.command == "goto":
+        # Resolve the node ID
+        node_id = resolve_node_ref(args.node_id)
+
+        # Verify that the node exists
+        node = get_node(node_id)
+        if not node:
+            print(f"Error: Node not found: {args.node_id}")
+            return
+
+        # Update the current node
+        set_head(node_id)
+
+        # Display confirmation
+        print(f"Current node changed to: {node['short_id']} (UUID: {node['id']})")
     elif args.command == "query":
         try:
             # Resolve parent ID if provided

@@ -70,6 +70,12 @@ Show a message:
 python -m episodic show HEAD
 ```
 
+Change the current node:
+
+```bash
+python -m episodic goto 01
+```
+
 ## Short Node IDs
 
 Episodic now uses short, human-readable IDs for nodes in addition to the traditional UUIDs. These short IDs:
@@ -221,6 +227,9 @@ Node ID: 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
 Parent: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 Message: Hello, world.
 
+episodic> goto 01
+Current node changed to: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
+
 episodic> query What is the capital of France? --model gpt-4
 Added query node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
 Added response node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
@@ -234,6 +243,7 @@ Available commands:
   ancestry    - Show the ancestry of a node
   chat        - Chat with an LLM using conversation history
   exit        - Exit the shell
+  goto        - Change the current node
   help        - Show help for a command or list all commands
   init        - Initialize the database
   query       - Query an LLM and store the result

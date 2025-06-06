@@ -145,6 +145,10 @@ class EpisodicCompleter(Completer):
                 'help': 'Add a new node with content',
                 'args': ['--parent']
             },
+            'goto': {
+                'help': 'Change the current node',
+                'args': []  # Node ID is a positional argument
+            },
             'show': {
                 'help': 'Show a specific node',
                 'args': []  # Node ID is a positional argument
@@ -275,6 +279,7 @@ class EpisodicShell:
         self.handlers = {
             'init': self.handle_init,
             'add': self.handle_add,
+            'goto': self.handle_goto,
             'show': self.handle_show,
             'ancestry': self.handle_ancestry,
             'query': self.handle_query,
@@ -402,6 +407,28 @@ class EpisodicShell:
             print(f"Message: {node['content']}")
         else:
             print("Node not found.")
+
+    def handle_goto(self, args):
+        """Change the current node."""
+        if not args:
+            print("Error: Node ID required")
+            return
+
+        # Resolve the node ID
+        node_id = resolve_node_ref(args[0])
+
+        # Verify that the node exists
+        node = get_node(node_id)
+        if not node:
+            print(f"Error: Node not found: {args[0]}")
+            return
+
+        # Update the current node
+        self.current_node_id = node_id
+        set_head(node_id)
+
+        # Display confirmation
+        print(f"Current node changed to: {node['short_id']} (UUID: {node['id']})")
 
     def handle_ancestry(self, args):
         """Show the ancestry of a node."""

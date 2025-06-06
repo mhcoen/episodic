@@ -14,12 +14,12 @@ def get_all_nodes():
     Retrieve all nodes from the database.
 
     Returns:
-        List of dictionaries containing node data (id, content, parent_id)
+        List of dictionaries containing node data (id, short_id, content, parent_id)
     """
     try:
         with get_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT id, content, parent_id FROM nodes")
+            c.execute("SELECT id, short_id, content, parent_id FROM nodes")
 
             # Get column names from cursor description
             columns = [desc[0] for desc in c.description]
@@ -64,6 +64,8 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
         # Ensure content is a string and truncate for display
         content_str = str(node["content"])
         display_content = content_str[:50] + "..." if len(content_str) > 50 else content_str
+        # Include short ID in parentheses before the content
+        display_content = f"({node['short_id']}) {display_content}"
         G.add_node(node["id"], title=content_str, label=display_content)
         if node["parent_id"]:
             G.add_edge(node["parent_id"], node["id"])

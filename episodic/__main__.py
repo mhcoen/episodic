@@ -3,7 +3,7 @@ import uuid
 import os
 import webbrowser
 import sys
-from episodic.db import insert_node, get_node, get_ancestry, initialize_db, resolve_node_ref, get_head, set_head, database_exists
+from episodic.db import insert_node, get_node, get_ancestry, initialize_db, resolve_node_ref, get_head, set_head, database_exists, get_recent_nodes
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
 
@@ -47,6 +47,10 @@ def main():
     visualize_parser = subparsers.add_parser("visualize")
     visualize_parser.add_argument("--output", help="Path to save the HTML visualization", default=None)
     visualize_parser.add_argument("--no-browser", help="Don't open the visualization in a browser", action="store_true")
+
+    # Add new command for listing recent nodes
+    list_parser = subparsers.add_parser("list")
+    list_parser.add_argument("--count", help="Number of recent nodes to list", type=int, default=5)
 
     args = parser.parse_args()
 
@@ -200,6 +204,26 @@ def main():
                 print(f"Visualization saved to: {output_path}")
         except Exception as e:
             print(f"Error generating visualization: {str(e)}")
+    elif args.command == "list":
+        try:
+            # Get recent nodes
+            nodes = get_recent_nodes(args.count)
+
+            if not nodes:
+                print("No nodes found in the database.")
+                return
+
+            print(f"Recent nodes (showing {len(nodes)} of {args.count} requested):")
+            for node in nodes:
+                # Truncate content for display
+                content = node['content']
+                if len(content) > 50:
+                    content = content[:47] + "..."
+
+                # Display node information
+                print(f"{node['short_id']} (UUID: {node['id']}): {content}")
+        except Exception as e:
+            print(f"Error retrieving recent nodes: {str(e)}")
     else:
         parser.print_help()
 

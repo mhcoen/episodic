@@ -76,6 +76,13 @@ Change the current node:
 python -m episodic goto 01
 ```
 
+List recent nodes:
+
+```bash
+python -m episodic list
+python -m episodic list --count 10
+```
+
 ## Short Node IDs
 
 Episodic now uses short, human-readable IDs for nodes in addition to the traditional UUIDs. These short IDs:
@@ -237,6 +244,19 @@ Added response node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
 LLM Response:
 The capital of France is Paris. It's one of the world's major global cities and...
 
+episodic> list
+Recent nodes (showing 5 of 5 requested):
+04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc): The capital of France is Paris. It's one of the world...
+03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb): What is the capital of France?
+02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da): Hello, world.
+01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9): 
+
+episodic> list --count 3
+Recent nodes (showing 3 of 3 requested):
+04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc): The capital of France is Paris. It's one of the world...
+03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb): What is the capital of France?
+02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da): Hello, world.
+
 episodic> help
 Available commands:
   add         - Add a new node with content
@@ -246,6 +266,7 @@ Available commands:
   goto        - Change the current node
   help        - Show help for a command or list all commands
   init        - Initialize the database
+  list        - List recent nodes
   query       - Query an LLM and store the result
   quit        - Exit the shell
   show        - Show a specific node

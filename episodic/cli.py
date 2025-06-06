@@ -39,7 +39,8 @@ from pygments.lexers import BashLexer
 
 from episodic.db import (
     insert_node, get_node, get_ancestry, initialize_db, 
-    resolve_node_ref, get_head, set_head, database_exists
+    resolve_node_ref, get_head, set_head, database_exists,
+    get_recent_nodes
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
@@ -180,6 +181,10 @@ class EpisodicCompleter(Completer):
             'quit': {
                 'help': 'Exit the shell',
                 'args': []
+            },
+            'list': {
+                'help': 'List recent nodes',
+                'args': ['--count']
             }
         }
 
@@ -288,6 +293,7 @@ class EpisodicShell:
             'help': self.handle_help,
             'exit': self.handle_exit,
             'quit': self.handle_exit,
+            'list': self.handle_list,
         }
 
     def run(self):
@@ -648,6 +654,45 @@ class EpisodicShell:
                         print(f"  {arg}")
             else:
                 print(f"Unknown command: {command}")
+
+    def handle_list(self, args):
+        """List recent nodes."""
+        # Default count is 5
+        count = 5
+
+        # Parse arguments
+        i = 0
+        while i < len(args):
+            if args[i] == "--count" and i + 1 < len(args):
+                try:
+                    count = int(args[i + 1])
+                    i += 2
+                except ValueError:
+                    print(f"Error: Invalid count value: {args[i + 1]}")
+                    return
+            else:
+                i += 1
+
+        # Get recent nodes
+        try:
+            nodes = get_recent_nodes(count)
+
+            if not nodes:
+                print("No nodes found in the database.")
+                return
+
+            print(f"Recent nodes (showing {len(nodes)} of {count} requested):")
+            for node in nodes:
+                # Truncate content for display
+                content = node['content']
+                if len(content) > 50:
+                    content = content[:47] + "..."
+
+                # Display node information
+                print(f"{node['short_id']} (UUID: {node['id']}): {content}")
+
+        except Exception as e:
+            print(f"Error retrieving recent nodes: {str(e)}")
 
     def handle_exit(self, args):
         """Exit the shell."""

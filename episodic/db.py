@@ -207,6 +207,39 @@ def migrate_to_short_ids():
         conn.commit()
         return count
 
+def get_recent_nodes(limit=5):
+    """
+    Get the most recent nodes added to the database.
+
+    Args:
+        limit (int): Maximum number of nodes to retrieve
+
+    Returns:
+        List of node dictionaries, ordered by recency (most recent first)
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT id, short_id, content, parent_id
+            FROM nodes
+            ORDER BY ROWID DESC
+            LIMIT ?
+        """, (limit,))
+
+        # Get column names from cursor description
+        columns = [desc[0] for desc in c.description]
+        rows = c.fetchall()
+
+    # Create a list of dictionaries with column names as keys
+    result = []
+    for row in rows:
+        node = {}
+        for i, column in enumerate(columns):
+            node[column] = row[i]
+        result.append(node)
+
+    return result
+
 def resolve_node_ref(ref):
     """
     Resolve a node reference to its UUID.

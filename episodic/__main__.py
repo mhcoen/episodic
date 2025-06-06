@@ -51,30 +51,37 @@ def main():
             print("Database already exists. Do you want to erase it? (yes/no)")
             response = input().strip().lower()
             if response in ["yes", "y"]:
-                root_node_id = initialize_db(erase=True)
-                if root_node_id:
-                    print(f"Database has been reinitialized with a default root node (ID: {root_node_id}).")
+                result = initialize_db(erase=True)
+                if result:
+                    root_node_id, root_short_id = result
+                    print(f"Database has been reinitialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
                 else:
                     print("Database has been reinitialized.")
             else:
                 print("Database initialization cancelled.")
         else:
-            root_node_id = initialize_db()
-            if root_node_id:
-                print(f"Database initialized with a default root node (ID: {root_node_id}).")
+            result = initialize_db()
+            if result:
+                root_node_id, root_short_id = result
+                print(f"Database initialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
             else:
                 print("Database initialized.")
     elif args.command == "add":
         parent_id = resolve_node_ref(args.parent) if args.parent else None
-        node_id = insert_node(args.content, parent_id)
+        node_id, short_id = insert_node(args.content, parent_id)
         set_head(node_id)
-        print(f"Added node {node_id}")
+        print(f"Added node {short_id} (UUID: {node_id})")
     elif args.command == "show":
         node_id = resolve_node_ref(args.node_id)
         node = get_node(node_id)
         if node:
-            print(f"Node ID: {node['id']}")
-            print(f"Parent: {node['parent_id']}")
+            print(f"Node ID: {node['short_id']} (UUID: {node['id']})")
+            if node['parent_id']:
+                parent = get_node(node['parent_id'])
+                parent_short_id = parent['short_id'] if parent else "Unknown"
+                print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+            else:
+                print(f"Parent: None")
             print(f"Message: {node['content']}")
         else:
             print("Node not found.")
@@ -83,15 +90,15 @@ def main():
         node = get_node(node_id)
         ancestry = get_ancestry(node_id)
         for ancestor in ancestry:
-            print(f"{ancestor['id']}: {ancestor['content']}")
+            print(f"{ancestor['short_id']} (UUID: {ancestor['id']}): {ancestor['content']}")
     elif args.command == "query":
         try:
             # Resolve parent ID if provided
             parent_id = resolve_node_ref(args.parent) if args.parent else None
 
             # Store the user query as a node
-            query_node_id = insert_node(args.prompt, parent_id)
-            print(f"Added query node {query_node_id}")
+            query_node_id, query_short_id = insert_node(args.prompt, parent_id)
+            print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM
             response = query_llm(
@@ -101,8 +108,8 @@ def main():
             )
 
             # Store the LLM response as a node with the query as its parent
-            response_node_id = insert_node(response, query_node_id)
-            print(f"Added response node {response_node_id}")
+            response_node_id, response_short_id = insert_node(response, query_node_id)
+            print(f"Added response node {response_short_id} (UUID: {response_node_id})")
 
             # Display the response
             print("\nLLM Response:")
@@ -143,8 +150,8 @@ def main():
                 context_messages.append({"role": role, "content": node['content']})
 
             # Store the user query as a node
-            query_node_id = insert_node(args.prompt, head_id)
-            print(f"Added query node {query_node_id}")
+            query_node_id, query_short_id = insert_node(args.prompt, head_id)
+            print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM with context
             response = query_with_context(
@@ -155,8 +162,8 @@ def main():
             )
 
             # Store the LLM response as a node with the query as its parent
-            response_node_id = insert_node(response, query_node_id)
-            print(f"Added response node {response_node_id}")
+            response_node_id, response_short_id = insert_node(response, query_node_id)
+            print(f"Added response node {response_short_id} (UUID: {response_node_id})")
 
             # Display the response
             print("\nLLM Response:")

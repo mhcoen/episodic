@@ -7,6 +7,7 @@ Episodic is a prototype for a persistent, navigable memory system for interactin
 Features
 	•	Persistent storage of conversations using SQLite
 	•	CLI tool for adding and inspecting conversation nodes
+	•	Short, human-readable node IDs for easy reference
 	•	Unique ID referencing and human-friendly aliases for navigation
 	•	Ability to show ancestry (thread history) of any conversational node
 	•	Designed to support eventual LLM integration
@@ -69,7 +70,48 @@ Show a message:
 python -m episodic show HEAD
 ```
 
-Project Structure
+## Short Node IDs
+
+Episodic now uses short, human-readable IDs for nodes in addition to the traditional UUIDs. These short IDs:
+
+- Are 2-3 characters long (alphanumeric, base-36 encoding)
+- Are sequential, making it easy to understand the order of creation
+- Can be used anywhere a node ID is required (show, ancestry, parent references)
+- Make it much easier to reference nodes in the command line
+
+### Migrating Existing Databases
+
+If you have an existing database created with a previous version of Episodic, you can migrate it to use short IDs by running the following Python code:
+
+```python
+from episodic.db import migrate_to_short_ids
+
+# Migrate existing nodes to use short IDs
+count = migrate_to_short_ids()
+print(f"Migrated {count} nodes to use short IDs")
+```
+
+This will add short IDs to all existing nodes in your database.
+
+Example:
+
+```bash
+# Adding a node shows both the short ID and UUID
+$ python -m episodic add "Hello, world."
+Added node 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
+
+# You can reference nodes using the short ID
+$ python -m episodic show 01
+Node ID: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
+Parent: None
+Message: Hello, world.
+
+# Short IDs are also shown in ancestry
+$ python -m episodic ancestry 01
+01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9): Hello, world.
+```
+
+## Project Structure
 
 episodic/
 ├── __init__.py
@@ -95,15 +137,23 @@ Example usage:
 ```bash
 # Send a one-off query to the LLM
 python -m episodic query "What is the capital of France?"
+Added query node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
+Added response node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
 
 # Continue a conversation with context from previous messages
 python -m episodic chat "Tell me more about its history."
+Added query node 05 (UUID: 7eb28a0d-cf42-6e5e-e3e4-c28f7eb28a0d)
+Added response node 06 (UUID: 8fc39b1e-d053-7f6f-f4f5-d3908fc39b1e)
 
 # Specify a different model
 python -m episodic query --model gpt-4 "Explain quantum computing."
+Added query node 07 (UUID: 90d4ac2f-e164-8g7g-g5g6-e4a190d4ac2f)
+Added response node 08 (UUID: a1e5bd30-f275-9h8h-h6h7-f5b2a1e5bd30)
 
 # Customize the system message
 python -m episodic query --system "You are a helpful coding assistant." "How do I write a Python function?"
+Added query node 09 (UUID: b2f6ce41-g386-ai9i-i7i8-g6c3b2f6ce41)
+Added response node 0a (UUID: c3g7df52-h497-bj0j-j8j9-h7d4c3g7df52)
 ```
 
 ## Visualization
@@ -161,19 +211,19 @@ The following examples show what you'll see after launching the interactive shel
 
 ```
 episodic> init
-Database initialized.
+Database initialized with a default root node (ID: 01, UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9).
 
 episodic> add Hello, world.
-Added node 1234-5678-90ab-cdef
+Added node 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
 
 episodic> show
-Node ID: 1234-5678-90ab-cdef
-Parent: None
+Node ID: 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
+Parent: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 Message: Hello, world.
 
 episodic> query What is the capital of France? --model gpt-4
-Added query node 2345-6789-0abc-defg
-Added response node 3456-7890-abcd-efgh
+Added query node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
+Added response node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
 
 LLM Response:
 The capital of France is Paris. It's one of the world's major global cities and...

@@ -338,10 +338,11 @@ class EpisodicShell:
                 print("The database already exists.\nDo you want to erase it? (yes/no): ", end="", flush=True)
                 response = input().strip().lower()
                 if response in ["yes", "y"]:
-                    root_node_id = initialize_db(erase=True)
-                    if root_node_id:
+                    result = initialize_db(erase=True)
+                    if result:
+                        root_node_id, root_short_id = result
                         self.current_node_id = root_node_id
-                        print(f"Database has been reinitialized with a default root node (ID: {root_node_id}).")
+                        print(f"Database has been reinitialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
                     else:
                         print("Database has been reinitialized.")
                 else:
@@ -349,10 +350,11 @@ class EpisodicShell:
             except (KeyboardInterrupt, EOFError):
                 print("\nDatabase initialization cancelled.")
         else:
-            root_node_id = initialize_db()
-            if root_node_id:
+            result = initialize_db()
+            if result:
+                root_node_id, root_short_id = result
                 self.current_node_id = root_node_id
-                print(f"Database initialized with a default root node (ID: {root_node_id}).")
+                print(f"Database initialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
             else:
                 print("Database initialized.")
 
@@ -371,10 +373,10 @@ class EpisodicShell:
             parent = resolve_node_ref(args[2])
 
         # Insert the node
-        node_id = insert_node(content, parent)
+        node_id, short_id = insert_node(content, parent)
         set_head(node_id)
         self.current_node_id = node_id
-        print(f"Added node {node_id}")
+        print(f"Added node {short_id} (UUID: {node_id})")
 
     def handle_show(self, args):
         """Show a specific node."""
@@ -390,8 +392,13 @@ class EpisodicShell:
         # Get and display the node
         node = get_node(node_id)
         if node:
-            print(f"Node ID: {node['id']}")
-            print(f"Parent: {node['parent_id']}")
+            print(f"Node ID: {node['short_id']} (UUID: {node['id']})")
+            if node['parent_id']:
+                parent = get_node(node['parent_id'])
+                parent_short_id = parent['short_id'] if parent else "Unknown"
+                print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+            else:
+                print(f"Parent: None")
             print(f"Message: {node['content']}")
         else:
             print("Node not found.")
@@ -410,7 +417,7 @@ class EpisodicShell:
         # Get and display the ancestry
         ancestry = get_ancestry(node_id)
         for ancestor in ancestry:
-            print(f"{ancestor['id']}: {ancestor['content']}")
+            print(f"{ancestor['short_id']} (UUID: {ancestor['id']}): {ancestor['content']}")
 
     def handle_query(self, args):
         """Query an LLM and store the result."""
@@ -445,8 +452,8 @@ class EpisodicShell:
                 parent = self.current_node_id
 
             # Store the user query as a node
-            query_node_id = insert_node(prompt, parent)
-            print(f"Added query node {query_node_id}")
+            query_node_id, query_short_id = insert_node(prompt, parent)
+            print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM
             response = query_llm(
@@ -456,8 +463,8 @@ class EpisodicShell:
             )
 
             # Store the LLM response as a node with the query as its parent
-            response_node_id = insert_node(response, query_node_id)
-            print(f"Added response node {response_node_id}")
+            response_node_id, response_short_id = insert_node(response, query_node_id)
+            print(f"Added response node {response_short_id} (UUID: {response_node_id})")
 
             # Update the current node
             self.current_node_id = response_node_id
@@ -531,8 +538,8 @@ class EpisodicShell:
                 context_messages.append({"role": role, "content": node['content']})
 
             # Store the user query as a node
-            query_node_id = insert_node(prompt, head_id)
-            print(f"Added query node {query_node_id}")
+            query_node_id, query_short_id = insert_node(prompt, head_id)
+            print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM with context
             response = query_with_context(
@@ -543,8 +550,8 @@ class EpisodicShell:
             )
 
             # Store the LLM response as a node with the query as its parent
-            response_node_id = insert_node(response, query_node_id)
-            print(f"Added response node {response_node_id}")
+            response_node_id, response_short_id = insert_node(response, query_node_id)
+            print(f"Added response node {response_short_id} (UUID: {response_node_id})")
 
             # Update the current node
             self.current_node_id = response_node_id

@@ -77,8 +77,27 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
         else:
             G.add_node(node["id"], title=content_str, label=display_content)
 
+    # Add edges after all nodes are created
+    # Keep track of root nodes (nodes without parents)
+    root_nodes = []
+
+    for node in nodes:
         if node["parent_id"]:
             G.add_edge(node["parent_id"], node["id"])
+        else:
+            # This is a root node
+            root_nodes.append(node["id"])
+
+    # If there are multiple root nodes, connect them to a virtual root
+    # This ensures all nodes are connected in the visualization
+    if len(root_nodes) > 1:
+        # Create a virtual root node
+        virtual_root_id = "virtual_root"
+        G.add_node(virtual_root_id, label="(root)", title="Virtual root node", shape="dot", size=10, color="#CCCCCC")
+
+        # Connect all root nodes to the virtual root
+        for root_id in root_nodes:
+            G.add_edge(virtual_root_id, root_id)
 
     # Create interactive visualization
     net = Network(height=height, width=width, directed=True, notebook=False)
@@ -108,7 +127,25 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
         },
         "interaction": {
             "navigationButtons": True,
-            "keyboard": True
+            "keyboard": True,
+            "hover": True,  # Enable hover interactions
+            "tooltipDelay": 200  # Show tooltips after 200ms hover
+        },
+        "nodes": {
+            "font": {
+                "size": 14,  # Larger font size for better readability
+                "face": "arial"
+            },
+            "shape": "box",  # Box shape to better display text
+            "margin": 10     # Margin around text
+        },
+        "edges": {
+            "arrows": {
+                "to": {
+                    "enabled": True,
+                    "scaleFactor": 0.5  # Smaller arrows
+                }
+            }
         }
     }
 

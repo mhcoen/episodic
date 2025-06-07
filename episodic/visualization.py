@@ -37,7 +37,7 @@ def get_all_nodes():
         print(f"Error retrieving nodes from database: {str(e)}")
         return []
 
-def visualize_dag(output_path=None, height="800px", width="100%"):
+def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None):
     """
     Create an interactive visualization of the conversation DAG.
 
@@ -45,10 +45,15 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
         output_path: Path to save the HTML file (default: temporary file)
         height: Height of the visualization (default: 800px)
         width: Width of the visualization (default: 100%)
+        interactive: Whether to include interactive features like double-click to set current node
+        server_url: URL of the server for interactive features (default: http://localhost:5000)
 
     Returns:
         Path to the generated HTML file
     """
+    # Set default server URL if not provided
+    if interactive and server_url is None:
+        server_url = "http://localhost:5000"
     # Get all nodes from the database
     nodes = get_all_nodes()
 
@@ -72,10 +77,41 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
 
         # Set different color and border for current node
         if node["id"] == current_node_id:
+            # For current node, use orange color and thicker border
             G.add_node(node["id"], title=content_str, label=display_content, 
-                      color="#FFA500", borderWidth=3, borderWidthSelected=5)
+                      # Use a more explicit color format
+                      color={
+                          "background": "#FFA500",  # Orange background
+                          "border": "#FF8C00",      # Darker orange border
+                          "highlight": {
+                              "background": "#FFA500",
+                              "border": "#FF8C00"
+                          },
+                          "hover": {
+                              "background": "#FFA500",
+                              "border": "#FF8C00"
+                          }
+                      },
+                      borderWidth=3, borderWidthSelected=5,
+                      # Add a custom attribute to identify this as the current node
+                      is_current=True)
         else:
-            G.add_node(node["id"], title=content_str, label=display_content)
+            # For non-current nodes, use default color
+            G.add_node(node["id"], title=content_str, label=display_content, 
+                      # Use a more explicit color format
+                      color={
+                          "background": "#97c2fc",  # Light blue background
+                          "border": "#7c9fc9",      # Darker blue border
+                          "highlight": {
+                              "background": "#97c2fc",
+                              "border": "#7c9fc9"
+                          },
+                          "hover": {
+                              "background": "#97c2fc",
+                              "border": "#7c9fc9"
+                          }
+                      },
+                      is_current=False)
 
     # Add edges after all nodes are created
     # Keep track of root nodes (nodes without parents)
@@ -93,7 +129,19 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
     if len(root_nodes) > 1:
         # Create a virtual root node
         virtual_root_id = "virtual_root"
-        G.add_node(virtual_root_id, label="(root)", title="Virtual root node", shape="dot", size=10, color="#CCCCCC")
+        G.add_node(virtual_root_id, label="(root)", title="Virtual root node", shape="dot", size=10, 
+                  color={
+                      "background": "#CCCCCC",  # Light gray background
+                      "border": "#AAAAAA",      # Darker gray border
+                      "highlight": {
+                          "background": "#CCCCCC",
+                          "border": "#AAAAAA"
+                      },
+                      "hover": {
+                          "background": "#CCCCCC",
+                          "border": "#AAAAAA"
+                      }
+                  })
 
         # Connect all root nodes to the virtual root
         for root_id in root_nodes:
@@ -154,6 +202,129 @@ def visualize_dag(output_path=None, height="800px", width="100%"):
     import json
     options_str = json.dumps(options)
     net.set_options(options_str)
+
+    # Add custom JavaScript for interactive features if requested
+    if interactive:
+        # JavaScript for double-click to set current node
+        custom_js = """
+        // Add double-click event handler
+        network.on("doubleClick", function(params) {
+            if (params.nodes.length > 0) {
+                var nodeId = params.nodes[0];
+
+                // Skip the virtual root node
+                if (nodeId === "virtual_root") {
+                    return;
+                }
+
+                // Show loading indicator
+                document.body.style.cursor = 'wait';
+
+                // Make AJAX call to set current node
+                fetch('""" + server_url + """/set_current_node?id=' + nodeId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Show success message
+                    alert(data.message || 'Current node updated');
+
+                    // Instead of reloading the page, update the node color directly
+                    // First, reset all nodes to their default color
+                    var allNodes = nodes.get({ returnType: "Object" });
+                    for (var id in allNodes) {
+                        if (allNodes[id].is_current) {
+                            // Reset previously current node
+                            allNodes[id].color = {
+                                background: "#97c2fc",
+                                border: "#7c9fc9",
+                                highlight: {
+                                    background: "#97c2fc",
+                                    border: "#7c9fc9"
+                                },
+                                hover: {
+                                    background: "#97c2fc",
+                                    border: "#7c9fc9"
+                                }
+                            };
+                            allNodes[id].is_current = false;
+                        }
+                    }
+
+                    // Set the new current node color
+                    var currentNode = allNodes[nodeId];
+                    if (currentNode) {
+                        currentNode.color = {
+                            background: "#FFA500",
+                            border: "#FF8C00",
+                            highlight: {
+                                background: "#FFA500",
+                                border: "#FF8C00"
+                            },
+                            hover: {
+                                background: "#FFA500",
+                                border: "#FF8C00"
+                            }
+                        };
+                        currentNode.is_current = true;
+
+                        // Update the nodes in the network
+                        nodes.update(Object.values(allNodes));
+
+                        console.log("Updated current node color: " + nodeId);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error setting current node: ' + error);
+                })
+                .finally(() => {
+                    // Reset cursor
+                    document.body.style.cursor = 'default';
+                });
+            }
+        });
+
+        // Add title to the page and ensure current node is highlighted
+        document.addEventListener('DOMContentLoaded', function() {
+            var header = document.createElement('h1');
+            header.textContent = 'Episodic Conversation Visualization';
+            header.style.textAlign = 'center';
+            header.style.marginBottom = '20px';
+
+            var instructions = document.createElement('p');
+            instructions.innerHTML = '<strong>Instructions:</strong> Double-click on a node to make it the current node. The current node is highlighted in orange.';
+            instructions.style.textAlign = 'center';
+            instructions.style.marginBottom = '20px';
+
+            document.body.insertBefore(instructions, document.body.firstChild);
+            document.body.insertBefore(header, document.body.firstChild);
+
+            // Ensure current node is highlighted
+            setTimeout(function() {
+                // Find the current node (the one with is_current=true)
+                var allNodes = nodes.get({ returnType: "Object" });
+                for (var nodeId in allNodes) {
+                    if (allNodes[nodeId].is_current) {
+                        // Force the color to be orange
+                        allNodes[nodeId].color = "#FFA500";
+                        // Update the node in the network
+                        nodes.update([allNodes[nodeId]]);
+                        console.log("Highlighted current node: " + nodeId);
+                        break;
+                    }
+                }
+            }, 500);
+        });
+        """
+
+        # Add the custom JavaScript to the visualization
+        # Instead of trying to update options, we'll use a different approach
+        # to add the custom JavaScript directly to the HTML
+        net.html += f"<script>{custom_js}</script>"
 
     # Save to file
     if output_path is None:

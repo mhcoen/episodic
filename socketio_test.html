@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="events"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const eventsDiv = document.getElementById('events');
+
+        function logEvent(event, data) {
+            const timestamp = new Date().toISOString();
+            const message = `${timestamp} - ${event}: ${JSON.stringify(data)}`;
+            console.log(message);
+            
+            const p = document.createElement('p');
+            p.textContent = message;
+            eventsDiv.prepend(p);
+        }
+
+        // Connect to the Socket.IO server
+        const socket = io('http://127.0.0.1:5001', {
+            transports: ['websocket', 'polling'],  // Try WebSocket first, fall back to polling
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+            timeout: 20000
+        });
+
+        socket.on('connect', () => {
+            statusDiv.textContent = 'Connected';
+            statusDiv.style.color = 'green';
+            logEvent('connect', {});
+        });
+
+        socket.on('disconnect', (reason) => {
+            statusDiv.textContent = `Disconnected: ${reason}`;
+            statusDiv.style.color = 'red';
+            logEvent('disconnect', reason);
+        });
+
+        socket.on('connect_error', (error) => {
+            statusDiv.textContent = `Connection Error: ${error.message}`;
+            statusDiv.style.color = 'red';
+            logEvent('connect_error', error.message);
+        });
+
+        socket.on('graph_update', (data) => {
+            logEvent('graph_update', data);
+        });
+
+        // Send a ping every 5 seconds
+        setInterval(() => {
+            socket.emit('ping', { clientTime: new Date().toISOString() }, (response) => {
+                logEvent('ping_response', response);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

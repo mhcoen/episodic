@@ -201,11 +201,17 @@ The visualization allows you to:
   - Changes to the graph (setting current node, deleting nodes) are pushed to all connected clients
   - The visualization updates automatically without page reloads
   - Multiple users can view the same visualization and see changes in real-time
+  - Fallback to HTTP polling if WebSocket is unavailable, ensuring updates still occur
 - **Interactive Features**: The visualization includes enhanced interactive features:
   - Double-click on a node to make it the current node
   - Right-click on a node to access a context menu for node deletion
   - Hover over nodes to see the full content
   - Pan and zoom to explore large conversation graphs
+- **Robust Connectivity**: The visualization includes several features to ensure reliable operation:
+  - Automatic reconnection if the WebSocket connection is lost
+  - Fallback to HTTP polling if WebSocket is unavailable
+  - Visual notifications of connection status and updates
+  - Detailed error handling and logging for troubleshooting
 - **Server Port**: If you encounter an "Address already in use" error (common on macOS where AirPlay uses port 5000), you can specify a different port:
   ```bash
   # Start the visualization server on port 5001
@@ -296,7 +302,43 @@ Available commands:
 Type 'help <command>' for more information on a specific command.
 ```
 
-Next Steps
+## Testing
+
+Episodic includes a comprehensive test suite to ensure code quality and reliability. The tests include:
+
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test the interaction between components
+- **Manual Tests**: Interactive tests that require human verification
+- **WebSocket Tests**: Test real-time updates via WebSocket communication
+
+### Running Tests
+
+For general information on running tests and test coverage, see [TESTING.md](TESTING.md).
+
+### WebSocket Testing
+
+To test the WebSocket functionality for real-time updates, you can use the following test scripts:
+
+```bash
+# Run automated WebSocket integration tests
+python -m unittest episodic.test_websocket_integration
+
+# Run an interactive browser-based WebSocket test
+python -m episodic.test_websocket_browser
+```
+
+The integration tests verify that:
+- Clients can connect to the WebSocket server
+- Updates are properly broadcast when changes are made
+- Clients receive these updates in real-time
+
+The browser-based test provides a more interactive experience:
+- Opens the visualization in a browser
+- Performs automated changes to the graph
+- Allows you to verify that updates appear in real-time without page reloads
+- Helps identify any browser-specific issues
+
+## Next Steps
 	•	Implement state summarization
 	•	Add support for other LLM providers
 

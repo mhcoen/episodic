@@ -19,6 +19,7 @@ import os
 import threading
 import webbrowser
 import json
+import time
 from flask import Flask, request, jsonify, send_file, Response, send_from_directory
 from flask_socketio import SocketIO, emit
 
@@ -28,8 +29,18 @@ from episodic.visualization import visualize_dag
 # Create Flask application
 app = Flask(__name__)
 
-# Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Initialize SocketIO with simplified configuration
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='threading',
+    logger=False,  # Disable detailed Socket.IO logging
+    engineio_logger=False,  # Disable detailed Engine.IO logging
+    ping_timeout=20,
+    ping_interval=10,
+    always_connect=True,
+    manage_session=False
+)
 
 # Global variables
 server_thread = None
@@ -82,15 +93,71 @@ def handle_disconnect():
     """Handle client disconnection."""
     print("Client disconnected")
 
+@socketio.on('ping')
+def handle_ping(data):
+    """Handle ping messages from clients."""
+    print(f"Received ping from client: {data}")
+    # Send a response back to the client
+    return {
+        'serverTime': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'receivedClientTime': data.get('clientTime', 'No client time provided'),
+        'status': 'ok'
+    }
+
 def broadcast_graph_update():
     """Broadcast graph update to all connected clients."""
-    socketio.emit('graph_update', get_graph_data())
+    # Get the graph data
+    graph_data = get_graph_data()
+
+    # Log the data being sent
+    print("\n=== BROADCASTING GRAPH UPDATE ===")
+    print(f"Graph data contains {len(graph_data['nodes'])} nodes and {len(graph_data['edges'])} edges")
+
+    # Check if there's a current node
+    current_node = None
+    for node in graph_data['nodes']:
+        if node['is_current']:
+            current_node = node
+            break
+
+    if current_node:
+        print(f"Current node: {current_node['short_id']} (ID: {current_node['id']})")
+    else:
+        print("Warning: No current node found in the graph data")
+
+    # Print connected clients
+    if hasattr(socketio, 'server'):
+        connected_clients = len(socketio.server.eio.sockets)
+        print(f"Number of connected clients: {connected_clients}")
+
+        # If no clients are connected, there's no point in broadcasting
+        if connected_clients == 0:
+            print("No clients connected, skipping broadcast")
+            print("=== END OF BROADCAST (SKIPPED) ===\n")
+            return
+    else:
+        print("Unable to determine number of connected clients")
+
+    # Emit the event with a callback to verify delivery
+    def ack_callback(data):
+        print(f"Broadcast acknowledged by client: {data if data else 'No data'}")
+
+    try:
+        socketio.emit('graph_update', graph_data, callback=ack_callback)
+        print("Graph update broadcast sent successfully")
+    except Exception as e:
+        print(f"Error broadcasting graph update: {str(e)}")
+
+    print("=== END OF BROADCAST ===\n")
 
 @app.route('/')
 def index():
     """Serve the visualization."""
     # Generate a new visualization with interactive features
-    output_path = visualize_dag(interactive=True, server_url=f"http://{host}:{port}")
+    # Use the actual server URL with the current port
+    server_url = f"http://{host}:{port}"
+    print(f"Generating visualization with server URL: {server_url}")
+    output_path = visualize_dag(interactive=True, server_url=server_url)
     return send_file(output_path)
 
 @app.route('/set_current_node', methods=['POST'])
@@ -179,6 +246,22 @@ def serve_static(filename):
     # Get the root directory of the project
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return send_from_directory(os.path.join(root_dir, 'lib'), filename)
+
+@app.route('/get_graph_data')
+def get_graph_data_endpoint():
+    """Get the current graph data for HTTP polling fallback."""
+    try:
+        # Get the graph data using the same function used for WebSocket updates
+        graph_data = get_graph_data()
+
+        # Log the request
+        print(f"HTTP polling request for graph data received. Returning data with {len(graph_data['nodes'])} nodes.")
+
+        # Return the data as JSON
+        return jsonify(graph_data)
+    except Exception as e:
+        print(f"Error handling get_graph_data request: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/favicon.ico')
 def favicon():

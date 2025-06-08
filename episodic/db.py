@@ -1,15 +1,69 @@
 import sqlite3
 import uuid
 import os
+import threading
+import contextlib
 
-DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "episodic.db"))
+# Default database path
+DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "episodic.db"))
 
+# Thread-local storage for database connections
+_local = threading.local()
+
+def get_db_path():
+    """Get the database path from the environment variable or use the default."""
+    return os.environ.get("EPISODIC_DB_PATH", DEFAULT_DB_PATH)
+
+@contextlib.contextmanager
 def get_connection():
-    return sqlite3.connect(DB_PATH)
+    """
+    Get a connection to the database.
+
+    This function returns a context manager that ensures the connection
+    is properly closed when the context exits.
+
+    Returns:
+        A SQLite database connection.
+    """
+    # Always create a new connection to avoid issues with thread-local storage
+    # in multi-threaded environments like WebSocket tests
+    connection = sqlite3.connect(get_db_path())
+
+    try:
+        # Yield the connection to the caller
+        yield connection
+    except Exception as e:
+        # If an exception occurs, rollback and close the connection, then re-raise
+        connection.rollback()
+        connection.close()
+        raise
+    finally:
+        # Commit any pending changes and close the connection
+        try:
+            connection.commit()
+        except Exception:
+            # If commit fails, try to rollback
+            try:
+                connection.rollback()
+            except Exception:
+                pass
+        finally:
+            connection.close()
+
+def close_connection():
+    """
+    Close the database connection for the current thread.
+
+    This function is maintained for backward compatibility but is no longer needed
+    since connections are now closed automatically when the context manager exits.
+    """
+    # This function is now a no-op since connections are closed automatically
+    pass
 
 def database_exists():
     """Check if the database file exists and has tables."""
-    if not os.path.exists(DB_PATH):
+    db_path = get_db_path()
+    if not os.path.exists(db_path):
         return False
 
     try:
@@ -58,8 +112,9 @@ def initialize_db(erase=False, create_root_node=True):
                      If False and the database exists, it will not be modified.
         create_root_node (bool): If True, creates a default root node if no nodes exist.
     """
-    if erase and os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
+    db_path = get_db_path()
+    if erase and os.path.exists(db_path):
+        os.remove(db_path)
 
     with get_connection() as conn:
         c = conn.cursor()
@@ -239,6 +294,34 @@ def get_recent_nodes(limit=5):
         result.append(node)
 
     return result
+
+def get_all_nodes():
+    """
+    Retrieve all nodes from the database.
+
+    Returns:
+        List of dictionaries containing node data (id, short_id, content, parent_id)
+    """
+    try:
+        with get_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT id, short_id, content, parent_id FROM nodes")
+
+            # Get column names from cursor description
+            columns = [desc[0] for desc in c.description]
+            rows = c.fetchall()
+
+        # Create a list of dictionaries with column names as keys
+        result = []
+        for row in rows:
+            node = {}
+            for i, column in enumerate(columns):
+                node[column] = row[i]
+            result.append(node)
+        return result
+    except Exception as e:
+        print(f"Error retrieving nodes from database: {str(e)}")
+        return []
 
 def get_descendants(node_id):
     """

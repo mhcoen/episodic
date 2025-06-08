@@ -92,7 +92,7 @@ def get_all_nodes():
         print(f"Error retrieving nodes from database: {str(e)}")
         return []
 
-def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None, websocket=True):
+def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None, websocket=False):
     """
     Create an interactive visualization of the conversation DAG using Plotly.
 
@@ -101,15 +101,15 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         height: Height of the visualization (default: 800px)
         width: Width of the visualization (default: 100%)
         interactive: Whether to include interactive features like double-click to set current node
-        server_url: URL of the server for interactive features (default: http://localhost:5000)
-        websocket: Whether to enable WebSocket for real-time updates (default: True)
+        server_url: URL of the server for interactive features (default: http://127.0.0.1:5000)
+        websocket: Whether to enable WebSocket for real-time updates (default: False)
 
     Returns:
         Path to the generated HTML file
     """
     # Set default server URL if not provided
     if interactive and server_url is None:
-        server_url = "http://localhost:5000"
+        server_url = "http://127.0.0.1:5000"
 
     # Get all nodes from the database
     nodes = get_all_nodes()
@@ -293,34 +293,328 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         <script>
         // Wait for the plot to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Connect to WebSocket server if enabled
+            // Connect to WebSocket server if enabled, otherwise use polling
             var socket = null;
-            if (""" + str(websocket).lower() + """) {
-                // Extract the server URL from the current page
-                var serverUrl = '""" + server_url + """';
+            var pollingInterval = null;
+            var serverUrl = '""" + server_url + """';
+            var cleanUrl = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
 
-                // Connect to the Socket.IO server
-                socket = io(serverUrl);
+            console.log('WebSocket enabled:', """ + str(websocket).lower() + """);
+            console.log('Server URL:', serverUrl);
+            console.log('Cleaned server URL:', cleanUrl);
 
-                // Handle connection event
-                socket.on('connect', function() {
-                    console.log('Connected to WebSocket server');
-                });
+            // Primary polling mechanism for when WebSockets are disabled
+            function startPolling() {
+                console.log('Initializing HTTP polling mechanism');
 
-                // Handle graph update event
-                socket.on('graph_update', function(data) {
-                    console.log('Received graph update:', data);
-                    updateVisualization(data);
-                });
+                // Show a notification to the user
+                var notification = document.createElement('div');
+                notification.style.position = 'fixed';
+                notification.style.bottom = '10px';
+                notification.style.right = '10px';
+                notification.style.backgroundColor = '#2196F3';
+                notification.style.color = 'white';
+                notification.style.padding = '10px';
+                notification.style.borderRadius = '5px';
+                notification.style.zIndex = '1000';
+                notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                notification.textContent = 'Using HTTP polling for live updates';
+                document.body.appendChild(notification);
 
-                // Handle disconnection event
-                socket.on('disconnect', function() {
-                    console.log('Disconnected from WebSocket server');
-                });
+                // Remove the notification after 3 seconds
+                setTimeout(function() {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.5s';
+
+                    setTimeout(function() {
+                        notification.remove();
+                    }, 500);
+                }, 3000);
+
+                // Set up polling interval (every 5 seconds)
+                pollingInterval = setInterval(function() {
+                    console.log('Polling for updates...');
+
+                    // Make a request to get the current graph data
+                    fetch(cleanUrl + '/get_graph_data')
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Received update from polling:', data);
+
+                            // Update the visualization with the new data
+                            try {
+                                updateVisualization(data);
+                            } catch (error) {
+                                console.error('Error updating visualization from polling:', error);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error polling for updates:', error);
+                        });
+                }, 5000);
+            }
+
+            // Start polling immediately if WebSocket is disabled
+            if (!""" + str(websocket).lower() + """) {
+                console.log('WebSocket disabled, using HTTP polling for updates');
+                startPolling();
+            } else {
+                try {
+                    console.log('Connecting to WebSocket server at:', serverUrl);
+
+                    // Check if Socket.IO is loaded
+                    if (typeof io === 'undefined') {
+                        console.error('Socket.IO client not loaded. Check if the script tag is included correctly.');
+                        alert('WebSocket functionality not available. Socket.IO client not loaded.');
+                    } else {
+                        // Connect to the Socket.IO server
+                        // cleanUrl is already defined above, no need to redefine it
+                        console.log('Using cleaned server URL for WebSocket:', cleanUrl);
+
+                        // Initialize Socket.IO with both WebSocket and polling transports
+                        socket = io(cleanUrl, {
+                            transports: ['websocket', 'polling'],  // Try WebSocket first, fall back to polling
+                            reconnection: true,
+                            reconnectionAttempts: 10,
+                            reconnectionDelay: 1000,
+                            timeout: 20000
+                        });
+                        console.log('Socket.IO connection initialized with path:', socket.io.opts.path);
+
+                        // Handle connection event
+                        socket.on('connect', function() {
+                            console.log('%c WebSocket connected successfully!', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;');
+
+                            // Display a notification to the user
+                            var notification = document.createElement('div');
+                            notification.style.position = 'fixed';
+                            notification.style.top = '10px';
+                            notification.style.right = '10px';
+                            notification.style.backgroundColor = '#4CAF50';
+                            notification.style.color = 'white';
+                            notification.style.padding = '10px';
+                            notification.style.borderRadius = '5px';
+                            notification.style.zIndex = '1000';
+                            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                            notification.textContent = 'WebSocket connected successfully!';
+                            document.body.appendChild(notification);
+
+                            // Remove the notification after 3 seconds
+                            setTimeout(function() {
+                                notification.style.opacity = '0';
+                                notification.style.transition = 'opacity 0.5s';
+
+                                setTimeout(function() {
+                                    notification.remove();
+                                }, 500);
+                            }, 3000);
+
+                            // Send a test message to the server to verify the connection
+                            socket.emit('ping', { clientTime: new Date().toISOString() }, function(response) {
+                                console.log('Server acknowledged ping:', response);
+                            });
+                        });
+
+                        // Handle connection error
+                        var connectionErrorShown = false;
+                        var pollingInterval = null;
+
+                        socket.on('connect_error', function(error) {
+                            console.error('%c WebSocket connection error!', 'background: #F44336; color: white; padding: 2px 5px; border-radius: 2px;');
+                            console.error('Error details:', error);
+
+                            // Only show the alert once to avoid annoying the user
+                            if (!connectionErrorShown) {
+                                console.log('Showing connection error alert (will only show once)');
+
+                                // Create a more detailed error message
+                                var errorMessage = 'WebSocket connection error. Falling back to periodic updates.\\n\\n';
+                                errorMessage += 'Error details: ' + error + '\\n\\n';
+                                errorMessage += 'The visualization will still update, but you will need to refresh manually or wait for the automatic update.';
+
+                                alert(errorMessage);
+                                connectionErrorShown = true;
+
+                                // Start polling for updates as a fallback
+                                if (!pollingInterval) {
+                                    console.log('Starting polling fallback mechanism');
+                                    startPollingFallback();
+                                }
+                            }
+
+                            // Try to reconnect after a delay
+                            setTimeout(function() {
+                                console.log('Attempting to reconnect...');
+                                socket.connect();
+                            }, 5000);
+                        });
+
+                        // Fallback mechanism: poll for updates using regular HTTP requests
+                        function startPollingFallback() {
+                            console.log('Initializing polling fallback mechanism');
+
+                            // Show a notification to the user
+                            var notification = document.createElement('div');
+                            notification.style.position = 'fixed';
+                            notification.style.bottom = '10px';
+                            notification.style.right = '10px';
+                            notification.style.backgroundColor = '#FF9800';
+                            notification.style.color = 'white';
+                            notification.style.padding = '10px';
+                            notification.style.borderRadius = '5px';
+                            notification.style.zIndex = '1000';
+                            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                            notification.textContent = 'WebSocket unavailable. Using fallback update mechanism.';
+                            document.body.appendChild(notification);
+
+                            // Set up polling interval (every 5 seconds)
+                            pollingInterval = setInterval(function() {
+                                console.log('Polling for updates...');
+
+                                // Make a request to get the current graph data
+                                fetch(cleanUrl + '/get_graph_data')
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        console.log('Received update from polling:', data);
+
+                                        // Update the visualization with the new data
+                                        try {
+                                            updateVisualization(data);
+                                        } catch (error) {
+                                            console.error('Error updating visualization from polling:', error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error polling for updates:', error);
+                                    });
+                            }, 5000);
+
+                            // Stop polling if WebSocket connects successfully
+                            socket.on('connect', function() {
+                                if (pollingInterval) {
+                                    console.log('WebSocket connected, stopping polling fallback');
+                                    clearInterval(pollingInterval);
+                                    pollingInterval = null;
+
+                                    // Remove the notification
+                                    notification.remove();
+                                }
+                            });
+                        }
+
+
+                        // Handle graph update event
+                        socket.on('graph_update', function(data) {
+                            console.log('%c Received graph_update event from server', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;');
+
+                            // Verify the data contains what we need
+                            if (!data || !data.nodes || !data.edges) {
+                                console.error('Invalid graph data received:', data);
+                                return;
+                            }
+
+                            console.log('Graph data contains ' + data.nodes.length + ' nodes and ' + 
+                                        data.edges.length + ' edges');
+
+                            // Check if there's a current node
+                            var currentNodeFound = false;
+                            var currentNodeId = null;
+                            for (var i = 0; i < data.nodes.length; i++) {
+                                if (data.nodes[i].is_current) {
+                                    console.log('Current node found:', data.nodes[i]);
+                                    currentNodeFound = true;
+                                    currentNodeId = data.nodes[i].id;
+                                    break;
+                                }
+                            }
+
+                            if (!currentNodeFound) {
+                                console.warn('No current node found in the graph data');
+                            } else {
+                                console.log('Current node ID:', currentNodeId);
+                            }
+
+                            // Display a notification to the user
+                            var notification = document.createElement('div');
+                            notification.style.position = 'fixed';
+                            notification.style.top = '10px';
+                            notification.style.right = '10px';
+                            notification.style.backgroundColor = '#4CAF50';
+                            notification.style.color = 'white';
+                            notification.style.padding = '10px';
+                            notification.style.borderRadius = '5px';
+                            notification.style.zIndex = '1000';
+                            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+
+                            if (currentNodeFound) {
+                                notification.textContent = 'Graph updated! Current node: ' + 
+                                    data.nodes.find(n => n.id === currentNodeId).short_id;
+                            } else {
+                                notification.textContent = 'Graph updated!';
+                            }
+
+                            document.body.appendChild(notification);
+
+                            // Remove any existing notifications after a short delay
+                            setTimeout(function() {
+                                var oldNotifications = document.querySelectorAll('div[style*="position: fixed"][style*="top: 10px"][style*="right: 10px"]');
+                                oldNotifications.forEach(function(notif, index) {
+                                    if (index < oldNotifications.length - 1) {
+                                        notif.remove();
+                                    }
+                                });
+                            }, 100);
+
+                            // Call updateVisualization with the data immediately
+                            console.log('Calling updateVisualization...');
+                            try {
+                                updateVisualization(data);
+                            } catch (error) {
+                                console.error('Error in updateVisualization:', error);
+                                console.error('Stack trace:', error.stack);
+
+                                // Show error notification instead of forcing reload
+                                var errorNotification = document.createElement('div');
+                                errorNotification.style.position = 'fixed';
+                                errorNotification.style.top = '10px';
+                                errorNotification.style.right = '10px';
+                                errorNotification.style.backgroundColor = '#F44336';
+                                errorNotification.style.color = 'white';
+                                errorNotification.style.padding = '10px';
+                                errorNotification.style.borderRadius = '5px';
+                                errorNotification.style.zIndex = '1000';
+                                errorNotification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                                errorNotification.textContent = 'Error updating visualization: ' + error.message;
+                                document.body.appendChild(errorNotification);
+
+                                // Remove the notification after a delay
+                                setTimeout(function() {
+                                    errorNotification.style.opacity = '0';
+                                    errorNotification.style.transition = 'opacity 0.5s';
+
+                                    setTimeout(function() {
+                                        errorNotification.remove();
+                                    }, 500);
+                                }, 5000);
+                            }
+                        });
+
+                        // Handle disconnection event
+                        socket.on('disconnect', function(reason) {
+                            console.log('Disconnected from WebSocket server. Reason:', reason);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error setting up WebSocket connection:', error);
+                    alert('Error setting up WebSocket connection: ' + error);
+                }
             }
 
             // Function to update the visualization with new graph data
             function updateVisualization(data) {
+                console.log('%c Updating visualization with data', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;');
+                console.log('Data contains', data.nodes.length, 'nodes and', data.edges.length, 'edges');
+
                 // Get the plot div
                 var plotDiv = document.querySelector('.plotly-graph-div');
                 if (!plotDiv) {
@@ -328,37 +622,364 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     return;
                 }
 
-                // Get the node trace (index 1 in the data array)
-                var nodeTrace = plotDiv._fullData[1];
-                if (!nodeTrace) {
-                    console.error('Node trace not found');
-                    return;
+                try {
+                    // Get the node trace (index 1 in the data array)
+                    var nodeTrace = plotDiv._fullData[1];
+                    if (!nodeTrace) {
+                        console.error('Node trace not found in plot data');
+                        return;
+                    }
+
+                    console.log('Current node trace has', nodeTrace.x.length, 'nodes');
+                    console.log('New data has', data.nodes.length, 'nodes');
+
+                    // If the node count is different, completely redraw the visualization
+                    if (nodeTrace.x.length !== data.nodes.length) {
+                        console.warn('Node count mismatch. Completely redrawing the visualization...');
+                        console.log('Current node trace has', nodeTrace.x.length, 'nodes, but data has', data.nodes.length, 'nodes');
+
+                        // Completely redraw the visualization with the new data
+                        redrawVisualization(data, plotDiv);
+                        return;
+                    }
+
+                    // If node count is the same, just update properties
+                    // Create a map of node IDs to their indices in the data
+                    var nodeIdToIndex = {};
+                    for (var i = 0; i < data.nodes.length; i++) {
+                        nodeIdToIndex[data.nodes[i].id] = i;
+                    }
+
+                    // Create arrays for the new colors and customdata
+                    var newColors = [];
+                    var newCustomdata = [];
+                    var updatedNodes = 0;
+
+                    // Update the colors based on whether each node is current
+                    for (var i = 0; i < nodeTrace.customdata.length; i++) {
+                        var nodeId = nodeTrace.customdata[i][0];
+                        var dataIndex = nodeIdToIndex[nodeId];
+
+                        if (dataIndex !== undefined) {
+                            var node = data.nodes[dataIndex];
+                            var isCurrentNode = node.is_current;
+                            var wasCurrentNode = nodeTrace.customdata[i][1];
+
+                            // Set color based on current status
+                            var newColor = isCurrentNode ? "#FFA500" : "#97c2fc";
+                            newColors.push(newColor);
+
+                            // Update customdata with current status
+                            newCustomdata.push([nodeId, isCurrentNode]);
+
+                            // Log if the node's current status changed
+                            if (isCurrentNode !== wasCurrentNode) {
+                                console.log('Node', nodeId, 'current status changed from', wasCurrentNode, 'to', isCurrentNode);
+                                updatedNodes++;
+                            }
+                        } else {
+                            console.warn('Node', nodeId, 'not found in new data');
+                            // This shouldn't happen if node counts match, but handle it just in case
+                            newColors.push(nodeTrace.marker.color[i]);
+                            newCustomdata.push(nodeTrace.customdata[i]);
+                        }
+                    }
+
+                    console.log('Updating', updatedNodes, 'nodes with new properties');
+
+                    // Update the node trace with new colors and customdata
+                    Plotly.restyle(plotDiv, {
+                        'marker.color': [newColors],
+                        'customdata': [newCustomdata]
+                    }, [1]);
+
+                    console.log('%c Visualization updated successfully', 'background: #2196F3; color: white; padding: 2px 5px; border-radius: 2px;');
+
+                    // Show a notification about the update
+                    showUpdateNotification();
+                } catch (error) {
+                    console.error('Error updating visualization:', error);
+                    console.error('Error stack:', error.stack);
+
+                    // Show error notification
+                    showErrorNotification('Error updating visualization: ' + error.message);
                 }
 
-                // Update node colors based on current node
-                var colors = [];
-                var isCurrentArray = [];
+                // Function to completely redraw the visualization with new data
+                function redrawVisualization(data, plotDiv) {
+                    console.log('Completely redrawing visualization with new data');
 
-                for (var i = 0; i < data.nodes.length; i++) {
-                    var node = data.nodes[i];
-                    if (node.is_current) {
-                        colors.push("#FFA500");  // Orange for current node
-                        isCurrentArray.push(true);
-                    } else {
-                        colors.push("#97c2fc");  // Light blue for other nodes
-                        isCurrentArray.push(false);
+                    try {
+                        // Extract node and edge data from the provided data
+                        var nodes = data.nodes;
+                        var edges = data.edges;
+                        var currentNodeId = data.current_node_id;
+
+                        // Prepare node data for Plotly
+                        var nodeIds = [];
+                        var nodeLabels = {};
+                        var nodeHoverTexts = [];
+                        var nodeColors = [];
+                        var isCurrentNode = [];
+                        var nodeX = [];
+                        var nodeY = [];
+
+                        // Find root nodes (nodes without parents)
+                        var root_nodes = [];
+                        var nodeIdToNode = {};
+
+                        // Create a map of node IDs to nodes for quick lookup
+                        for (var i = 0; i < nodes.length; i++) {
+                            nodeIdToNode[nodes[i].id] = nodes[i];
+                        }
+
+                        // Find nodes that have no parents (root nodes)
+                        for (var i = 0; i < nodes.length; i++) {
+                            var isRoot = true;
+                            for (var j = 0; j < edges.length; j++) {
+                                var targetId = edges[j].target || edges[j].to;
+                                if (targetId === nodes[i].id) {
+                                    isRoot = false;
+                                    break;
+                                }
+                            }
+                            if (isRoot) {
+                                root_nodes.push(nodes[i].id);
+                            }
+                        }
+
+                        // If there are multiple root nodes, add a virtual root node
+                        if (root_nodes.length > 1) {
+                            // Create a virtual root node
+                            var virtual_root_id = "virtual_root";
+
+                            // Add virtual root to our lists
+                            nodeIds.push(virtual_root_id);
+                            nodeLabels[virtual_root_id] = "(root)";
+                            nodeHoverTexts.push("Virtual root node");
+                            nodeColors.push("#CCCCCC");  // Light gray
+                            isCurrentNode.push(false);
+
+                            // Position the virtual root node
+                            nodeX.push(0);  // Center position
+                            nodeY.push(0);  // Top position
+
+                            // Add edges from virtual root to all root nodes
+                            for (var i = 0; i < root_nodes.length; i++) {
+                                var root_id = root_nodes[i];
+                                // We'll add the edges later when processing all edges
+                                edges.push({
+                                    source: virtual_root_id,
+                                    target: root_id
+                                });
+                            }
+                        }
+
+                        // Process nodes
+                        for (var i = 0; i < nodes.length; i++) {
+                            var node = nodes[i];
+
+                            // Skip if this node ID is already in the nodeIds array (avoid duplicates)
+                            if (nodeIds.indexOf(node.id) !== -1) {
+                                continue;
+                            }
+
+                            // Add node ID to the array
+                            nodeIds.push(node.id);
+
+                            // Format the display content like in the original visualization
+                            // Ensure we use node.content even if it's empty, only fall back to node.id if content is undefined
+                            var content_str = node.content !== undefined ? node.content : (node.title || node.id);
+                            // Convert content to string to handle non-string content
+                            content_str = String(content_str);
+                            var display_content = content_str.length > 50 ? content_str.substring(0, 50) + "..." : content_str;
+
+                            // Use short_id if available, otherwise use a shortened version of the full ID
+                            var short_id = node.short_id;
+                            // First convert to string to handle numeric short_ids like "01"
+                            if (short_id !== undefined && short_id !== null && short_id !== "") {
+                                short_id = String(short_id);
+                            } else if (node.id) {
+                                // Create a shortened version of the ID if short_id is not available
+                                short_id = node.id.substring(0, 8);
+                            } else {
+                                short_id = "unknown";
+                            }
+
+                            display_content = "(" + short_id + ") " + display_content;
+
+                            nodeLabels[node.id] = display_content;
+                            // Ensure we use node.content even if it's empty, only fall back to node.id if content is undefined
+                            var hoverText = node.content !== undefined ? node.content : (node.title || node.id);
+                            // Convert to string to handle non-string content
+                            nodeHoverTexts.push(String(hoverText));
+
+                            // Set color based on whether this is the current node
+                            if (node.is_current || node.id === currentNodeId) {
+                                nodeColors.push("#FFA500");  // Orange for current node
+                                isCurrentNode.push(true);
+                            } else {
+                                nodeColors.push("#97c2fc");  // Light blue for other nodes
+                                isCurrentNode.push(false);
+                            }
+
+                            // Use the node's position if available, otherwise use a default
+                            if (node.x !== undefined && node.y !== undefined) {
+                                nodeX.push(node.x);
+                                nodeY.push(node.y);
+                            } else {
+                                // Get position from existing visualization if possible
+                                var found = false;
+                                if (plotDiv._fullData && plotDiv._fullData[1]) {
+                                    var existingNodeTrace = plotDiv._fullData[1];
+                                    for (var j = 0; j < existingNodeTrace.customdata.length; j++) {
+                                        if (existingNodeTrace.customdata[j][0] === node.id) {
+                                            nodeX.push(existingNodeTrace.x[j]);
+                                            nodeY.push(existingNodeTrace.y[j]);
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (!found) {
+                                    // Use a simple layout algorithm
+                                    nodeX.push(i);
+                                    nodeY.push(Math.floor(i / 5));
+                                }
+                            }
+                        }
+
+                        // Prepare edge data for Plotly
+                        var edgeX = [];
+                        var edgeY = [];
+
+                        // Process edges
+                        for (var i = 0; i < edges.length; i++) {
+                            var edge = edges[i];
+                            // Handle both source/target and from/to edge formats
+                            var sourceId = edge.source || edge.from;
+                            var targetId = edge.target || edge.to;
+                            var sourceIndex = nodeIds.indexOf(sourceId);
+                            var targetIndex = nodeIds.indexOf(targetId);
+
+                            if (sourceIndex !== -1 && targetIndex !== -1) {
+                                var x0 = nodeX[sourceIndex];
+                                var y0 = nodeY[sourceIndex];
+                                var x1 = nodeX[targetIndex];
+                                var y1 = nodeY[targetIndex];
+
+                                // Add None to create a break in the line
+                                edgeX.push(x0, x1, null);
+                                edgeY.push(y0, y1, null);
+                            }
+                        }
+
+                        // Create edge trace
+                        var edgeTrace = {
+                            x: edgeX,
+                            y: edgeY,
+                            mode: 'lines',
+                            line: {
+                                width: 1,
+                                color: '#888'
+                            },
+                            hoverinfo: 'none',
+                            showlegend: false
+                        };
+
+                        // Create node trace
+                        var nodeTrace = {
+                            x: nodeX,
+                            y: nodeY,
+                            mode: 'markers+text',
+                            text: nodeIds.map(id => nodeLabels[id]),
+                            textposition: "bottom center",
+                            hovertext: nodeHoverTexts,
+                            hoverinfo: 'text',
+                            marker: {
+                                showscale: false,
+                                color: nodeColors,
+                                size: 20,
+                                line: {
+                                    width: 2,
+                                    color: '#888'
+                                }
+                            },
+                            customdata: nodeIds.map((id, index) => [id, isCurrentNode[index]]),
+                            showlegend: false
+                        };
+
+                        // Create the new data array
+                        var newData = [edgeTrace, nodeTrace];
+
+                        // Update the plot with the new data
+                        Plotly.react(plotDiv, newData, plotDiv.layout);
+
+                        console.log('%c Visualization completely redrawn successfully', 'background: #2196F3; color: white; padding: 2px 5px; border-radius: 2px;');
+
+                        // Show a notification about the update
+                        showUpdateNotification();
+                    } catch (error) {
+                        console.error('Error redrawing visualization:', error);
+                        console.error('Error stack:', error.stack);
+
+                        // Show error notification
+                        showErrorNotification('Error redrawing visualization: ' + error.message);
                     }
                 }
 
-                // Update the node trace
-                Plotly.restyle(plotDiv, {
-                    'marker.color': [colors],
-                    'customdata': [data.nodes.map(function(node, i) {
-                        return [node.id, isCurrentArray[i]];
-                    })]
-                }, [1]);
+                // Helper function to show update notification
+                function showUpdateNotification() {
+                    var notification = document.createElement('div');
+                    notification.style.position = 'fixed';
+                    notification.style.top = '10px';
+                    notification.style.right = '10px';
+                    notification.style.backgroundColor = '#4CAF50';
+                    notification.style.color = 'white';
+                    notification.style.padding = '10px';
+                    notification.style.borderRadius = '5px';
+                    notification.style.zIndex = '1000';
+                    notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                    notification.textContent = 'Graph updated!';
+                    document.body.appendChild(notification);
 
-                console.log('Visualization updated');
+                    // Remove the notification after a delay
+                    setTimeout(function() {
+                        notification.style.opacity = '0';
+                        notification.style.transition = 'opacity 0.5s';
+
+                        setTimeout(function() {
+                            notification.remove();
+                        }, 500);
+                    }, 3000);
+                }
+
+                // Helper function to show error notification
+                function showErrorNotification(message) {
+                    var errorNotification = document.createElement('div');
+                    errorNotification.style.position = 'fixed';
+                    errorNotification.style.top = '10px';
+                    errorNotification.style.right = '10px';
+                    errorNotification.style.backgroundColor = '#F44336';
+                    errorNotification.style.color = 'white';
+                    errorNotification.style.padding = '10px';
+                    errorNotification.style.borderRadius = '5px';
+                    errorNotification.style.zIndex = '1000';
+                    errorNotification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                    errorNotification.textContent = message;
+                    document.body.appendChild(errorNotification);
+
+                    // Remove the notification after a delay
+                    setTimeout(function() {
+                        errorNotification.style.opacity = '0';
+                        errorNotification.style.transition = 'opacity 0.5s';
+
+                        setTimeout(function() {
+                            errorNotification.remove();
+                        }, 500);
+                    }, 5000);
+                }
             }
             // Get the plot div
             var plotDiv = document.querySelector('.plotly-graph-div');
@@ -429,13 +1050,19 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                     // Make AJAX call to set current node
                     fetch('""" + server_url + """/set_current_node?id=' + nodeId, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
+                        method: 'POST'
+                        // No Content-Type header since we're not sending a request body
                     })
                     .then(response => {
                         console.log("Response received");
+                        // Check if response is OK before trying to parse JSON
+                        if (!response.ok) {
+                            throw new Error('Server returned ' + response.status + ': ' + response.statusText);
+                        }
+                        // Check if response has content before trying to parse JSON
+                        if (response.headers.get('content-length') === '0') {
+                            throw new Error('Empty response from server');
+                        }
                         return response.json();
                     })
                     .then(data => {
@@ -443,9 +1070,29 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                         // Show success message
                         alert(data.message || 'Current node updated');
 
-                        // If WebSocket is not enabled, reload the page to refresh the visualization
+                        // If WebSocket is not enabled, poll for updates immediately
                         if (!""" + str(websocket).lower() + """) {
-                            window.location.reload();
+                            console.log('WebSocket disabled, polling for updates immediately');
+                            // Make a request to get the current graph data
+                            fetch(cleanUrl + '/get_graph_data')
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log('Received update from immediate polling:', data);
+
+                                    // Update the visualization with the new data
+                                    try {
+                                        updateVisualization(data);
+                                    } catch (error) {
+                                        console.error('Error updating visualization from immediate polling:', error);
+                                        // If update fails, fall back to page reload
+                                        window.location.reload();
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error polling for updates:', error);
+                                    // If polling fails, fall back to page reload
+                                    window.location.reload();
+                                });
                         }
                         // Otherwise, the visualization will be updated via WebSocket
                     })
@@ -465,17 +1112,19 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                 evt.preventDefault();
                 evt.stopPropagation();  // Stop event propagation
 
+                console.log("Right-click event detected");
+
                 // Get the event data from Plotly
                 var eventData = plotDiv._fullData[1];
                 if (!eventData || !eventData.customdata) {
-                    console.log("No event data or customdata available");
+                    console.error("No event data or customdata available");
                     return;
                 }
 
                 // Find the closest point
                 var pointIndex = getClosestPoint(evt, plotDiv);
                 if (pointIndex === -1) {
-                    console.log("No point found near click location");
+                    console.log("No point found near right-click location");
                     return;
                 }
 
@@ -493,10 +1142,26 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                 selectedNode = nodeId;
 
                 // Position and show the context menu
-                contextMenu.style.left = evt.clientX + "px";
-                contextMenu.style.top = evt.clientY + "px";
+                // Ensure the menu is within the viewport
+                var menuX = evt.clientX;
+                var menuY = evt.clientY;
+
+                // Calculate menu dimensions
+                var menuWidth = 200; // Approximate width
+                var menuHeight = 30; // Approximate height
+
+                // Adjust position if menu would go off-screen
+                if (menuX + menuWidth > window.innerWidth) {
+                    menuX = window.innerWidth - menuWidth;
+                }
+                if (menuY + menuHeight > window.innerHeight) {
+                    menuY = window.innerHeight - menuHeight;
+                }
+
+                contextMenu.style.left = menuX + "px";
+                contextMenu.style.top = menuY + "px";
                 contextMenu.style.display = "block";
-                console.log("Context menu displayed at: " + evt.clientX + ", " + evt.clientY);
+                console.log("Context menu displayed at: " + menuX + ", " + menuY);
             });
 
             // Add click handler for delete option
@@ -512,13 +1177,19 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                         // Make AJAX call to delete node
                         fetch('""" + server_url + """/delete_node?id=' + selectedNode, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
+                            method: 'POST'
+                            // No Content-Type header since we're not sending a request body
                         })
                         .then(response => {
                             console.log("Response received from delete_node endpoint");
+                            // Check if response is OK before trying to parse JSON
+                            if (!response.ok) {
+                                throw new Error('Server returned ' + response.status + ': ' + response.statusText);
+                            }
+                            // Check if response has content before trying to parse JSON
+                            if (response.headers.get('content-length') === '0') {
+                                throw new Error('Empty response from server');
+                            }
                             return response.json();
                         })
                         .then(data => {
@@ -526,9 +1197,29 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                             // Show success message
                             alert(data.message || 'Node deleted');
 
-                            // If WebSocket is not enabled, reload the page to refresh the visualization
+                            // If WebSocket is not enabled, poll for updates immediately
                             if (!""" + str(websocket).lower() + """) {
-                                window.location.reload();
+                                console.log('WebSocket disabled, polling for updates immediately');
+                                // Make a request to get the current graph data
+                                fetch(cleanUrl + '/get_graph_data')
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        console.log('Received update from immediate polling:', data);
+
+                                        // Update the visualization with the new data
+                                        try {
+                                            updateVisualization(data);
+                                        } catch (error) {
+                                            console.error('Error updating visualization from immediate polling:', error);
+                                            // If update fails, fall back to page reload
+                                            window.location.reload();
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error polling for updates:', error);
+                                        // If polling fails, fall back to page reload
+                                        window.location.reload();
+                                    });
                             }
                             // Otherwise, the visualization will be updated via WebSocket
                         })
@@ -567,17 +1258,40 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
             // Helper function to find the closest point to a click event
             function getClosestPoint(evt, plotDiv) {
                 try {
+                    console.log("Finding closest point to click at: " + evt.clientX + ", " + evt.clientY);
+
+                    // First, check if we can use the Plotly event data directly
+                    var eventData = plotDiv._fullData[1];
+                    if (!eventData) {
+                        console.error("No event data available");
+                        return -1;
+                    }
+
+                    // Get the plot's position on the page
+                    var plotRect = plotDiv.getBoundingClientRect();
+                    console.log("Plot rect: " + JSON.stringify({
+                        left: plotRect.left,
+                        top: plotRect.top,
+                        width: plotRect.width,
+                        height: plotRect.height
+                    }));
+
+                    // Check if click is within the plot area
+                    if (evt.clientX < plotRect.left || evt.clientX > plotRect.right ||
+                        evt.clientY < plotRect.top || evt.clientY > plotRect.bottom) {
+                        console.log("Click outside plot area");
+                        return -1;
+                    }
+
                     // Get the axis objects from the plot layout
                     var xaxis = plotDiv._fullLayout.xaxis;
                     var yaxis = plotDiv._fullLayout.yaxis;
 
                     if (!xaxis || !yaxis) {
                         console.error("Could not get axis objects from plot layout");
-                        return -1;
+                        // Fall back to screen coordinates if we can't get data coordinates
+                        return findClosestPointByScreenCoordinates(evt, plotDiv, eventData);
                     }
-
-                    // Get the plot's position on the page
-                    var plotRect = plotDiv.getBoundingClientRect();
 
                     // Convert from screen coordinates to data coordinates
                     var x = xaxis.p2d(evt.clientX - plotRect.left);
@@ -585,10 +1299,9 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                     console.log("Click position in data coordinates: (" + x + ", " + y + ")");
 
-                    // Get the node data
-                    var eventData = plotDiv._fullData[1];
-                    if (!eventData || !eventData.x || !eventData.y) {
-                        console.error("Node data not available");
+                    // Check if we have node positions
+                    if (!eventData.x || !eventData.y) {
+                        console.error("Node position data not available");
                         return -1;
                     }
 
@@ -601,6 +1314,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                         var dy = eventData.y[i] - y;
                         var distance = Math.sqrt(dx*dx + dy*dy);
 
+                        console.log("Node " + i + " distance: " + distance);
+
                         if (distance < minDistance) {
                             minDistance = distance;
                             closestPoint = i;
@@ -610,7 +1325,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     console.log("Closest point: " + closestPoint + " at distance: " + minDistance);
 
                     // Only return a point if it's close enough (within a threshold)
-                    var threshold = 50;  // Adjust this value as needed
+                    // Use a larger threshold for touch devices
+                    var threshold = ('ontouchstart' in window) ? 100 : 50;
                     if (minDistance < threshold) {
                         return closestPoint;
                     } else {
@@ -619,6 +1335,68 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     }
                 } catch (error) {
                     console.error("Error in getClosestPoint: " + error);
+                    console.error("Stack trace: " + error.stack);
+                    // Fall back to screen coordinates method
+                    return findClosestPointByScreenCoordinates(evt, plotDiv, eventData);
+                }
+            }
+
+            // Fallback function to find closest point using screen coordinates
+            function findClosestPointByScreenCoordinates(evt, plotDiv, eventData) {
+                try {
+                    console.log("Using screen coordinates fallback method");
+
+                    if (!eventData || !eventData.customdata) {
+                        console.error("No event data or customdata available for fallback method");
+                        return -1;
+                    }
+
+                    // Get node positions in screen coordinates
+                    var nodePositions = [];
+                    var plotRect = plotDiv.getBoundingClientRect();
+
+                    // Find all node markers in the DOM
+                    var nodeElements = plotDiv.querySelectorAll('.point');
+
+                    if (nodeElements.length === 0) {
+                        console.error("No node elements found in DOM");
+                        return -1;
+                    }
+
+                    console.log("Found " + nodeElements.length + " node elements");
+
+                    // Calculate distances to each node
+                    var minDistance = Infinity;
+                    var closestPoint = -1;
+
+                    for (var i = 0; i < nodeElements.length; i++) {
+                        var rect = nodeElements[i].getBoundingClientRect();
+                        var centerX = rect.left + rect.width / 2;
+                        var centerY = rect.top + rect.height / 2;
+
+                        var dx = centerX - evt.clientX;
+                        var dy = centerY - evt.clientY;
+                        var distance = Math.sqrt(dx*dx + dy*dy);
+
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestPoint = i;
+                        }
+                    }
+
+                    console.log("Closest point by screen coordinates: " + closestPoint + " at distance: " + minDistance);
+
+                    // Only return a point if it's close enough
+                    var threshold = ('ontouchstart' in window) ? 100 : 50;
+                    if (minDistance < threshold) {
+                        return closestPoint;
+                    } else {
+                        console.log("No point within threshold distance (screen coordinates)");
+                        return -1;
+                    }
+                } catch (error) {
+                    console.error("Error in findClosestPointByScreenCoordinates: " + error);
+                    console.error("Stack trace: " + error.stack);
                     return -1;
                 }
             }
@@ -627,32 +1405,42 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         """
 
     # Save to file
-    if output_path is None:
-        # Create a temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
-            output_path = tmp.name
+    try:
+        if output_path is None:
+            # Create a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
+                output_path = tmp.name
 
-    # Write the figure to HTML with the custom JavaScript
-    with open(output_path, 'w') as f:
-        html_content = pio.to_html(
-            fig, 
-            full_html=True,
-            include_plotlyjs=True,
-            config={'responsive': True}
-        )
+        # Write the figure to HTML with the custom JavaScript
+        with open(output_path, 'w') as f:
+            html_content = pio.to_html(
+                fig, 
+                full_html=True,
+                include_plotlyjs=True,
+                config={'responsive': True}
+            )
 
-        # Add Socket.IO client library and custom JavaScript if interactive
-        if interactive:
-            # Add Socket.IO client library if WebSocket is enabled
-            socketio_script = ""
-            if websocket:
-                socketio_script = """
-                <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-                """
+            # Add DOCTYPE declaration if it's not already present
+            if not html_content.startswith('<!DOCTYPE html>'):
+                html_content = '<!DOCTYPE html>\n' + html_content
 
-            # Insert Socket.IO client library and custom JavaScript before the closing body tag
-            html_content = html_content.replace('</body>', f'{socketio_script}{custom_js}</body>')
+            # Add Socket.IO client library and custom JavaScript if interactive or if polling is enabled
+            if interactive or not websocket:
+                # Add Socket.IO client library if WebSocket is enabled
+                socketio_script = ""
+                if websocket:
+                    socketio_script = """
+                    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+                    """
 
-        f.write(html_content)
+                # Insert Socket.IO client library and custom JavaScript before the closing body tag
+                html_content = html_content.replace('</body>', f'{socketio_script}{custom_js}</body>')
+
+            f.write(html_content)
+    except Exception as e:
+        # If an exception occurs, ensure the temporary file is deleted if we created one
+        if output_path is None and 'tmp' in locals() and os.path.exists(tmp.name):
+            os.unlink(tmp.name)
+        raise
 
     return output_path

@@ -4,7 +4,7 @@ setup(
     name="episodic",
     version="0.1.0",
     packages=find_packages(),
-    install_requires=["openai", "networkx", "pyvis", "prompt_toolkit", "pygments"],
+    install_requires=["openai", "networkx", "prompt_toolkit", "pygments", "plotly", "flask", "numpy", "flask-socketio"],
     entry_points={
         "console_scripts": [
             "episodic=episodic.__main__:main",

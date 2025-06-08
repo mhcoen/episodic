@@ -168,7 +168,7 @@ class EpisodicCompleter(Completer):
             },
             'visualize': {
                 'help': 'Create an interactive visualization of the conversation DAG',
-                'args': ['--output', '--no-browser']
+                'args': ['--output', '--no-browser', '--port']
             },
             'help': {
                 'help': 'Show help for a command or list all commands',
@@ -608,6 +608,7 @@ class EpisodicShell:
             # Parse arguments
             output = None
             no_browser = False
+            port = 5000  # Default port
 
             # Process optional arguments
             i = 0
@@ -618,16 +619,40 @@ class EpisodicShell:
                 elif args[i] == "--no-browser":
                     no_browser = True
                     i += 1
+                elif args[i] == "--port" and i + 1 < len(args):
+                    try:
+                        port = int(args[i + 1])
+                        i += 2
+                    except ValueError:
+                        print(f"Error: Invalid port value: {args[i + 1]}")
+                        return
                 else:
                     i += 1
 
             # Generate the visualization
             output_path = visualize_dag(output)
-            if output_path and not no_browser:
-                print(f"Opening visualization in browser: {output_path}")
-                webbrowser.open(f"file://{os.path.abspath(output_path)}")
+
+            # If interactive mode is requested, start the server with the specified port
+            if not no_browser:
+                from episodic.server import start_server, stop_server
+                server_url = start_server(server_port=port)
+                print(f"Starting visualization server at {server_url}")
+                print("Press Ctrl+C when done to stop the server.")
+                webbrowser.open(server_url)
+
+                try:
+                    # Keep the server running until the user presses Ctrl+C
+                    while True:
+                        import time
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    print("\nStopping server...")
+                    stop_server()
+                    print("Server stopped.")
             elif output_path:
                 print(f"Visualization saved to: {output_path}")
+                print(f"Opening visualization in browser: {output_path}")
+                webbrowser.open(f"file://{os.path.abspath(output_path)}")
 
         except Exception as e:
             print(f"Error generating visualization: {str(e)}")

@@ -20,18 +20,71 @@ import threading
 import webbrowser
 import json
 from flask import Flask, request, jsonify, send_file, Response, send_from_directory
+from flask_socketio import SocketIO, emit
 
-from episodic.db import get_node, set_head, get_head
+from episodic.db import get_node, set_head, get_head, delete_node, get_all_nodes
 from episodic.visualization import visualize_dag
 
 # Create Flask application
 app = Flask(__name__)
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Global variables
 server_thread = None
 server_running = False
 port = 5000
 host = '127.0.0.1'
+
+# Function to get graph data for WebSocket updates
+def get_graph_data():
+    """Get the current graph data for WebSocket updates."""
+    nodes = get_all_nodes()
+    current_node_id = get_head()
+
+    # Format the data for the client
+    node_data = []
+    edge_data = []
+
+    for node in nodes:
+        # Add node data
+        node_data.append({
+            'id': node['id'],
+            'short_id': node['short_id'],
+            'content': node['content'],
+            'is_current': (node['id'] == current_node_id)
+        })
+
+        # Add edge data if the node has a parent
+        if node['parent_id']:
+            edge_data.append({
+                'from': node['parent_id'],
+                'to': node['id']
+            })
+
+    return {
+        'nodes': node_data,
+        'edges': edge_data,
+        'current_node_id': current_node_id
+    }
+
+# WebSocket event handlers
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection."""
+    print("Client connected")
+    # Send the current graph data to the newly connected client
+    emit('graph_update', get_graph_data())
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection."""
+    print("Client disconnected")
+
+def broadcast_graph_update():
+    """Broadcast graph update to all connected clients."""
+    socketio.emit('graph_update', get_graph_data())
 
 @app.route('/')
 def index():
@@ -55,6 +108,9 @@ def set_current_node():
 
         # Set the node as the current head
         set_head(node_id)
+
+        # Broadcast the update to all connected clients
+        broadcast_graph_update()
 
         return jsonify({
             "success": True,
@@ -90,6 +146,33 @@ def get_current_node():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/delete_node', methods=['POST'])
+def delete_node_endpoint():
+    """Delete a node and all its descendants."""
+    try:
+        node_id = request.args.get('id')
+        if not node_id:
+            return jsonify({"error": "No node ID provided"}), 400
+
+        # Verify that the node exists
+        node = get_node(node_id)
+        if not node:
+            return jsonify({"error": f"Node not found: {node_id}"}), 404
+
+        # Delete the node and its descendants
+        deleted_nodes = delete_node(node_id)
+
+        # Broadcast the update to all connected clients
+        broadcast_graph_update()
+
+        return jsonify({
+            "success": True,
+            "message": f"Deleted node {node['short_id']} and {len(deleted_nodes) - 1} descendants",
+            "deleted_nodes": deleted_nodes
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/lib/<path:filename>')
 def serve_static(filename):
     """Serve static files from the lib directory."""
@@ -104,10 +187,10 @@ def favicon():
     return '', 204
 
 def run_server():
-    """Run the Flask server."""
+    """Run the Flask server with SocketIO support."""
     global server_running
     server_running = True
-    app.run(host=host, port=port, debug=False, use_reloader=False)
+    socketio.run(app, host=host, port=port, debug=False, use_reloader=False)
     server_running = False
 
 def start_server(server_port=5000):

@@ -240,6 +240,89 @@ def get_recent_nodes(limit=5):
 
     return result
 
+def get_descendants(node_id):
+    """
+    Get all descendants of a node.
+
+    Args:
+        node_id: ID of the node
+
+    Returns:
+        List of IDs of all descendants
+    """
+    descendants = []
+
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Use a recursive CTE to find all descendants
+        c.execute("""
+            WITH RECURSIVE descendants(id) AS (
+                SELECT id FROM nodes WHERE parent_id = ?
+                UNION ALL
+                SELECT n.id FROM nodes n, descendants d WHERE n.parent_id = d.id
+            )
+            SELECT id FROM descendants
+        """, (node_id,))
+
+        descendants = [row[0] for row in c.fetchall()]
+
+    return descendants
+
+def delete_node(node_id):
+    """
+    Delete a node and all its descendants from the database.
+
+    Args:
+        node_id: ID of the node to delete
+
+    Returns:
+        List of IDs of all deleted nodes
+    """
+    # Resolve the node reference if it's not a UUID
+    node_id = resolve_node_ref(node_id)
+
+    # Check if the node exists
+    node = get_node(node_id)
+    if not node:
+        return []
+
+    # Get all descendants
+    descendants = get_descendants(node_id)
+
+    # Add the node itself to the list of nodes to delete
+    nodes_to_delete = [node_id] + descendants
+
+    # Delete all nodes
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if the node to delete is the current head
+        c.execute("SELECT value FROM meta WHERE key = 'head'")
+        head_id = c.fetchone()
+
+        if head_id and head_id[0] in nodes_to_delete:
+            # If the head is being deleted, set the parent as the new head
+            parent_id = node['parent_id']
+            if parent_id:
+                set_head(parent_id)
+            else:
+                # If there's no parent, find another root node
+                c.execute("SELECT id FROM nodes WHERE parent_id IS NULL AND id != ? LIMIT 1", (node_id,))
+                new_head = c.fetchone()
+                if new_head:
+                    set_head(new_head[0])
+                else:
+                    # If there are no other root nodes, remove the head reference
+                    c.execute("DELETE FROM meta WHERE key = 'head'")
+
+        # Delete all nodes
+        placeholders = ','.join(['?'] * len(nodes_to_delete))
+        c.execute(f"DELETE FROM nodes WHERE id IN ({placeholders})", nodes_to_delete)
+        conn.commit()
+
+    return nodes_to_delete
+
 def resolve_node_ref(ref):
     """
     Resolve a node reference to its UUID.

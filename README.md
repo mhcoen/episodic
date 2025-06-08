@@ -190,6 +190,27 @@ The visualization allows you to:
 - Zoom in/out and pan around the graph
 - Move nodes to explore different layouts
 - See the hierarchical structure of conversations
+- Double-click on a node to make it the current node
+- Right-click on a node to delete it and all its descendants
+
+### Technical Notes
+
+- **Visualization Engine**: The visualization now uses Plotly, a powerful and interactive data visualization library, providing a more robust and feature-rich experience.
+- **Layout Algorithm**: The visualization uses a custom hierarchical layout algorithm that doesn't require external dependencies, ensuring consistent visualization across different environments.
+- **Real-time Updates**: The visualization now supports WebSocket for real-time updates:
+  - Changes to the graph (setting current node, deleting nodes) are pushed to all connected clients
+  - The visualization updates automatically without page reloads
+  - Multiple users can view the same visualization and see changes in real-time
+- **Interactive Features**: The visualization includes enhanced interactive features:
+  - Double-click on a node to make it the current node
+  - Right-click on a node to access a context menu for node deletion
+  - Hover over nodes to see the full content
+  - Pan and zoom to explore large conversation graphs
+- **Server Port**: If you encounter an "Address already in use" error (common on macOS where AirPlay uses port 5000), you can specify a different port:
+  ```bash
+  # Start the visualization server on port 5001
+  python -m episodic visualize --port 5001
+  ```
 
 ## Interactive Shell
 

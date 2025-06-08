@@ -1,13 +1,68 @@
 """
 This module provides visualization capabilities for the Episodic conversation DAG
-using NetworkX and PyVis.
+using NetworkX and Plotly.
 """
 
 import os
 import networkx as nx
-from pyvis.network import Network
 import tempfile
+import json
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.io as pio
 from episodic.db import get_connection, get_head
+
+def custom_simple_layout(G):
+    """
+    A simple layout algorithm that doesn't require external dependencies.
+
+    This function creates a basic tree layout for a directed graph.
+    It's used as a fallback when both pygraphviz and numpy are not available.
+
+    Args:
+        G: A NetworkX DiGraph object
+
+    Returns:
+        A dictionary mapping node IDs to (x, y) positions
+    """
+    # Initialize positions dictionary
+    pos = {}
+
+    # Find root nodes (nodes with no incoming edges)
+    root_nodes = [n for n in G.nodes() if G.in_degree(n) == 0]
+
+    # If there are no root nodes, use the first node as root
+    if not root_nodes and G.nodes():
+        root_nodes = [list(G.nodes())[0]]
+
+    # Initialize a queue for BFS traversal
+    queue = [(node, 0, i) for i, node in enumerate(root_nodes)]
+    visited = set(root_nodes)
+
+    # Assign positions using BFS
+    while queue:
+        node, level, position = queue.pop(0)
+
+        # Assign position: x is horizontal position, y is negative level (to go downward)
+        pos[node] = (position, -level)
+
+        # Get children (outgoing edges)
+        children = list(G.successors(node))
+
+        # Add children to queue
+        for i, child in enumerate(children):
+            if child not in visited:
+                # Position children relative to parent
+                queue.append((child, level + 1, position - (len(children) - 1) / 2 + i))
+                visited.add(child)
+
+    # If there are nodes not visited (disconnected components)
+    for node in G.nodes():
+        if node not in pos:
+            # Assign a default position
+            pos[node] = (0, 0)
+
+    return pos
 
 def get_all_nodes():
     """
@@ -37,9 +92,9 @@ def get_all_nodes():
         print(f"Error retrieving nodes from database: {str(e)}")
         return []
 
-def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None):
+def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None, websocket=True):
     """
-    Create an interactive visualization of the conversation DAG.
+    Create an interactive visualization of the conversation DAG using Plotly.
 
     Args:
         output_path: Path to save the HTML file (default: temporary file)
@@ -47,6 +102,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         width: Width of the visualization (default: 100%)
         interactive: Whether to include interactive features like double-click to set current node
         server_url: URL of the server for interactive features (default: http://localhost:5000)
+        websocket: Whether to enable WebSocket for real-time updates (default: True)
 
     Returns:
         Path to the generated HTML file
@@ -54,6 +110,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
     # Set default server URL if not provided
     if interactive and server_url is None:
         server_url = "http://localhost:5000"
+
     # Get all nodes from the database
     nodes = get_all_nodes()
 
@@ -68,6 +125,13 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
     G = nx.DiGraph()
 
     # Add nodes and edges
+    node_labels = {}
+    node_colors = []
+    node_hover_texts = []
+    node_ids = []
+    is_current = []
+
+    # Add nodes to the graph
     for node in nodes:
         # Ensure content is a string and truncate for display
         content_str = str(node["content"])
@@ -75,43 +139,24 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         # Include short ID in parentheses before the content
         display_content = f"({node['short_id']}) {display_content}"
 
-        # Set different color and border for current node
+        # Add node to the graph
+        G.add_node(node["id"], 
+                  title=content_str, 
+                  label=display_content,
+                  is_current=(node["id"] == current_node_id))
+
+        # Store node information for Plotly
+        node_ids.append(node["id"])
+        node_labels[node["id"]] = display_content
+        node_hover_texts.append(content_str)
+
+        # Set color based on whether this is the current node
         if node["id"] == current_node_id:
-            # For current node, use orange color and thicker border
-            G.add_node(node["id"], title=content_str, label=display_content, 
-                      # Use a more explicit color format
-                      color={
-                          "background": "#FFA500",  # Orange background
-                          "border": "#FF8C00",      # Darker orange border
-                          "highlight": {
-                              "background": "#FFA500",
-                              "border": "#FF8C00"
-                          },
-                          "hover": {
-                              "background": "#FFA500",
-                              "border": "#FF8C00"
-                          }
-                      },
-                      borderWidth=3, borderWidthSelected=5,
-                      # Add a custom attribute to identify this as the current node
-                      is_current=True)
+            node_colors.append("#FFA500")  # Orange for current node
+            is_current.append(True)
         else:
-            # For non-current nodes, use default color
-            G.add_node(node["id"], title=content_str, label=display_content, 
-                      # Use a more explicit color format
-                      color={
-                          "background": "#97c2fc",  # Light blue background
-                          "border": "#7c9fc9",      # Darker blue border
-                          "highlight": {
-                              "background": "#97c2fc",
-                              "border": "#7c9fc9"
-                          },
-                          "hover": {
-                              "background": "#97c2fc",
-                              "border": "#7c9fc9"
-                          }
-                      },
-                      is_current=False)
+            node_colors.append("#97c2fc")  # Light blue for other nodes
+            is_current.append(False)
 
     # Add edges after all nodes are created
     # Keep track of root nodes (nodes without parents)
@@ -129,202 +174,457 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
     if len(root_nodes) > 1:
         # Create a virtual root node
         virtual_root_id = "virtual_root"
-        G.add_node(virtual_root_id, label="(root)", title="Virtual root node", shape="dot", size=10, 
-                  color={
-                      "background": "#CCCCCC",  # Light gray background
-                      "border": "#AAAAAA",      # Darker gray border
-                      "highlight": {
-                          "background": "#CCCCCC",
-                          "border": "#AAAAAA"
-                      },
-                      "hover": {
-                          "background": "#CCCCCC",
-                          "border": "#AAAAAA"
-                      }
-                  })
+        G.add_node(virtual_root_id, 
+                  label="(root)", 
+                  title="Virtual root node")
+
+        # Add virtual root to our lists
+        node_ids.append(virtual_root_id)
+        node_labels[virtual_root_id] = "(root)"
+        node_hover_texts.append("Virtual root node")
+        node_colors.append("#CCCCCC")  # Light gray
+        is_current.append(False)
 
         # Connect all root nodes to the virtual root
         for root_id in root_nodes:
             G.add_edge(virtual_root_id, root_id)
 
-    # Create interactive visualization
-    net = Network(height=height, width=width, directed=True, notebook=False)
-    try:
-        net.from_nx(G)
-    except Exception as e:
-        print(f"Error converting NetworkX graph to PyVis network: {str(e)}")
-        raise
+    # Use our custom layout algorithm that doesn't require external dependencies
+    # This provides a consistent layout regardless of what packages are installed
+    pos = custom_simple_layout(G)
 
-    # Add physics and interaction options
-    options = {
-        "physics": {
-            "hierarchicalRepulsion": {
-                "centralGravity": 0.0,
-                "springLength": 100,
-                "springConstant": 0.01,
-                "nodeDistance": 120
-            },
-            "solver": "hierarchicalRepulsion"
-        },
-        "layout": {
-            "hierarchical": {
-                "enabled": True,
-                "direction": "UD",
-                "sortMethod": "directed"
-            }
-        },
-        "interaction": {
-            "navigationButtons": True,
-            "keyboard": True,
-            "hover": True,  # Enable hover interactions
-            "tooltipDelay": 200  # Show tooltips after 200ms hover
-        },
-        "nodes": {
-            "font": {
-                "size": 14,  # Larger font size for better readability
-                "face": "arial"
-            },
-            "shape": "box",  # Box shape to better display text
-            "margin": 10     # Margin around text
-        },
-        "edges": {
-            "arrows": {
-                "to": {
-                    "enabled": True,
-                    "scaleFactor": 0.5  # Smaller arrows
-                }
-            }
-        }
-    }
+    # Extract node positions
+    x_nodes = [pos[node_id][0] for node_id in node_ids]
+    y_nodes = [pos[node_id][1] for node_id in node_ids]
 
-    # Convert options to a JSON string for PyVis
-    # PyVis expects a string representation of the options
-    import json
-    options_str = json.dumps(options)
-    net.set_options(options_str)
+    # Extract edge positions
+    edge_x = []
+    edge_y = []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        # Add None to create a break in the line
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
 
-    # Add custom JavaScript for interactive features if requested
+    # Create edge trace
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='#888'),
+        hoverinfo='none',
+        mode='lines',
+        showlegend=False
+    )
+
+    # Create node trace
+    node_trace = go.Scatter(
+        x=x_nodes, y=y_nodes,
+        mode='markers+text',
+        text=[node_labels[node_id] for node_id in node_ids],
+        textposition="bottom center",
+        hovertext=node_hover_texts,
+        hoverinfo='text',
+        marker=dict(
+            showscale=False,
+            color=node_colors,
+            size=20,
+            line=dict(width=2, color='#888')
+        ),
+        customdata=list(zip(node_ids, is_current)),
+        showlegend=False
+    )
+
+    # Create the figure
+    fig = go.Figure(data=[edge_trace, node_trace])
+
+    # Update layout
+    fig.update_layout(
+        title='Episodic Conversation Visualization',
+        title_font_size=16,
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20, l=5, r=5, t=40),
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        height=int(height.replace('px', '')),
+        width=1000 if width == '100%' else int(width.replace('px', '')),
+        plot_bgcolor='rgba(255,255,255,1)'
+    )
+
+    # Add interactive features if requested
     if interactive:
-        # JavaScript for double-click to set current node
-        custom_js = """
-        // Add double-click event handler
-        network.on("doubleClick", function(params) {
-            if (params.nodes.length > 0) {
-                var nodeId = params.nodes[0];
+        # Add JavaScript for interactive features
+        # This will handle double-click to set current node and right-click for context menu
+        fig.update_layout(
+            clickmode='event+select',
+            # Add custom JavaScript for interactivity
+            updatemenus=[
+                dict(
+                    type='buttons',
+                    showactive=False,
+                    buttons=[
+                        dict(
+                            label='Instructions',
+                            method='relayout',
+                            args=['annotations[0].text', 
+                                  'Double-click: Set as current node<br>Right-click: Delete node and descendants']
+                        )
+                    ],
+                    x=0.5,
+                    y=1.1,
+                    xanchor='center',
+                    yanchor='top'
+                )
+            ],
+            annotations=[
+                dict(
+                    text='Double-click: Set as current node<br>Right-click: Delete node and descendants',
+                    showarrow=False,
+                    x=0.5,
+                    y=1.05,
+                    xanchor='center',
+                    yanchor='bottom'
+                )
+            ]
+        )
 
-                // Skip the virtual root node
-                if (nodeId === "virtual_root") {
+        # Add custom JavaScript for WebSocket, double-click, and right-click functionality
+        custom_js = """
+        <script>
+        // Wait for the plot to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Connect to WebSocket server if enabled
+            var socket = null;
+            if (""" + str(websocket).lower() + """) {
+                // Extract the server URL from the current page
+                var serverUrl = '""" + server_url + """';
+
+                // Connect to the Socket.IO server
+                socket = io(serverUrl);
+
+                // Handle connection event
+                socket.on('connect', function() {
+                    console.log('Connected to WebSocket server');
+                });
+
+                // Handle graph update event
+                socket.on('graph_update', function(data) {
+                    console.log('Received graph update:', data);
+                    updateVisualization(data);
+                });
+
+                // Handle disconnection event
+                socket.on('disconnect', function() {
+                    console.log('Disconnected from WebSocket server');
+                });
+            }
+
+            // Function to update the visualization with new graph data
+            function updateVisualization(data) {
+                // Get the plot div
+                var plotDiv = document.querySelector('.plotly-graph-div');
+                if (!plotDiv) {
+                    console.error('Plot div not found');
                     return;
                 }
 
-                // Show loading indicator
-                document.body.style.cursor = 'wait';
+                // Get the node trace (index 1 in the data array)
+                var nodeTrace = plotDiv._fullData[1];
+                if (!nodeTrace) {
+                    console.error('Node trace not found');
+                    return;
+                }
 
-                // Make AJAX call to set current node
-                fetch('""" + server_url + """/set_current_node?id=' + nodeId, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+                // Update node colors based on current node
+                var colors = [];
+                var isCurrentArray = [];
+
+                for (var i = 0; i < data.nodes.length; i++) {
+                    var node = data.nodes[i];
+                    if (node.is_current) {
+                        colors.push("#FFA500");  // Orange for current node
+                        isCurrentArray.push(true);
+                    } else {
+                        colors.push("#97c2fc");  // Light blue for other nodes
+                        isCurrentArray.push(false);
                     }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // Show success message
-                    alert(data.message || 'Current node updated');
+                }
 
-                    // Instead of reloading the page, update the node color directly
-                    // First, reset all nodes to their default color
-                    var allNodes = nodes.get({ returnType: "Object" });
-                    for (var id in allNodes) {
-                        if (allNodes[id].is_current) {
-                            // Reset previously current node
-                            allNodes[id].color = {
-                                background: "#97c2fc",
-                                border: "#7c9fc9",
-                                highlight: {
-                                    background: "#97c2fc",
-                                    border: "#7c9fc9"
-                                },
-                                hover: {
-                                    background: "#97c2fc",
-                                    border: "#7c9fc9"
-                                }
-                            };
-                            allNodes[id].is_current = false;
+                // Update the node trace
+                Plotly.restyle(plotDiv, {
+                    'marker.color': [colors],
+                    'customdata': [data.nodes.map(function(node, i) {
+                        return [node.id, isCurrentArray[i]];
+                    })]
+                }, [1]);
+
+                console.log('Visualization updated');
+            }
+            // Get the plot div
+            var plotDiv = document.querySelector('.plotly-graph-div');
+
+            // Store the currently selected node
+            var selectedNode = null;
+
+            // Create a context menu for right-click
+            var contextMenu = document.createElement("div");
+            contextMenu.id = "context-menu";
+            contextMenu.style.position = "absolute";
+            contextMenu.style.display = "none";
+            contextMenu.style.backgroundColor = "white";
+            contextMenu.style.border = "1px solid #ccc";
+            contextMenu.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.2)";
+            contextMenu.style.padding = "5px 0";
+            contextMenu.style.zIndex = "1000";
+            document.body.appendChild(contextMenu);
+
+            // Add delete option to context menu
+            var deleteOption = document.createElement("div");
+            deleteOption.textContent = "Delete node and descendants";
+            deleteOption.style.padding = "5px 10px";
+            deleteOption.style.cursor = "pointer";
+            deleteOption.addEventListener("mouseover", function() {
+                this.style.backgroundColor = "#f0f0f0";
+            });
+            deleteOption.addEventListener("mouseout", function() {
+                this.style.backgroundColor = "white";
+            });
+            contextMenu.appendChild(deleteOption);
+
+            // Add click event listener to the plot
+            plotDiv.addEventListener('click', function(evt) {
+                var clickType = evt.detail === 2 ? 'double' : 'single';
+                console.log("Click type: " + clickType);
+
+                // Get the event data from Plotly
+                var eventData = plotDiv._fullData[1];
+                if (!eventData || !eventData.customdata) {
+                    console.log("No event data or customdata available");
+                    return;
+                }
+
+                // Find the closest point
+                var pointIndex = getClosestPoint(evt, plotDiv);
+                if (pointIndex === -1) {
+                    console.log("No point found near click location");
+                    return;
+                }
+
+                // Get the node ID from customdata
+                var nodeId = eventData.customdata[pointIndex][0];
+                console.log("Clicked on node: " + nodeId);
+
+                // Skip the virtual root node
+                if (nodeId === "virtual_root") {
+                    console.log("Skipping virtual root node");
+                    return;
+                }
+
+                // Handle double-click to set current node
+                if (clickType === 'double') {
+                    console.log("Double-click detected, setting current node: " + nodeId);
+
+                    // Show loading indicator
+                    document.body.style.cursor = 'wait';
+
+                    // Make AJAX call to set current node
+                    fetch('""" + server_url + """/set_current_node?id=' + nodeId, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        console.log("Response received");
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log("Success: ", data);
+                        // Show success message
+                        alert(data.message || 'Current node updated');
+
+                        // If WebSocket is not enabled, reload the page to refresh the visualization
+                        if (!""" + str(websocket).lower() + """) {
+                            window.location.reload();
+                        }
+                        // Otherwise, the visualization will be updated via WebSocket
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error setting current node: ' + error);
+                    })
+                    .finally(() => {
+                        // Reset cursor
+                        document.body.style.cursor = 'default';
+                    });
+                }
+            });
+
+            // Add right-click event listener to the plot
+            plotDiv.addEventListener('contextmenu', function(evt) {
+                evt.preventDefault();
+                evt.stopPropagation();  // Stop event propagation
+
+                // Get the event data from Plotly
+                var eventData = plotDiv._fullData[1];
+                if (!eventData || !eventData.customdata) {
+                    console.log("No event data or customdata available");
+                    return;
+                }
+
+                // Find the closest point
+                var pointIndex = getClosestPoint(evt, plotDiv);
+                if (pointIndex === -1) {
+                    console.log("No point found near click location");
+                    return;
+                }
+
+                // Get the node ID from customdata
+                var nodeId = eventData.customdata[pointIndex][0];
+                console.log("Right-clicked on node: " + nodeId);
+
+                // Skip the virtual root node
+                if (nodeId === "virtual_root") {
+                    console.log("Skipping virtual root node");
+                    return;
+                }
+
+                // Store the selected node
+                selectedNode = nodeId;
+
+                // Position and show the context menu
+                contextMenu.style.left = evt.clientX + "px";
+                contextMenu.style.top = evt.clientY + "px";
+                contextMenu.style.display = "block";
+                console.log("Context menu displayed at: " + evt.clientX + ", " + evt.clientY);
+            });
+
+            // Add click handler for delete option
+            deleteOption.addEventListener("click", function() {
+                if (selectedNode) {
+                    console.log("Delete option clicked for node: " + selectedNode);
+
+                    if (confirm("Are you sure you want to delete this node and all its descendants?")) {
+                        console.log("Deletion confirmed for node: " + selectedNode);
+
+                        // Show loading indicator
+                        document.body.style.cursor = 'wait';
+
+                        // Make AJAX call to delete node
+                        fetch('""" + server_url + """/delete_node?id=' + selectedNode, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            console.log("Response received from delete_node endpoint");
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log("Success: ", data);
+                            // Show success message
+                            alert(data.message || 'Node deleted');
+
+                            // If WebSocket is not enabled, reload the page to refresh the visualization
+                            if (!""" + str(websocket).lower() + """) {
+                                window.location.reload();
+                            }
+                            // Otherwise, the visualization will be updated via WebSocket
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error deleting node: ' + error);
+                        })
+                        .finally(() => {
+                            // Reset cursor and hide context menu
+                            document.body.style.cursor = 'default';
+                            contextMenu.style.display = "none";
+                        });
+                    } else {
+                        console.log("Deletion canceled for node: " + selectedNode);
+                        // Hide context menu if delete is canceled
+                        contextMenu.style.display = "none";
+                    }
+                } else {
+                    console.log("No node selected for deletion");
+                }
+            });
+
+            // Hide context menu when clicking elsewhere
+            document.addEventListener("click", function(event) {
+                // Only hide if the click is outside the context menu
+                if (!contextMenu.contains(event.target)) {
+                    if (contextMenu.style.display === "block") {
+                        console.log("Hiding context menu due to click outside");
+                        contextMenu.style.display = "none";
+                    }
+                } else {
+                    console.log("Click inside context menu, keeping it open");
+                }
+            });
+
+            // Helper function to find the closest point to a click event
+            function getClosestPoint(evt, plotDiv) {
+                try {
+                    // Get the axis objects from the plot layout
+                    var xaxis = plotDiv._fullLayout.xaxis;
+                    var yaxis = plotDiv._fullLayout.yaxis;
+
+                    if (!xaxis || !yaxis) {
+                        console.error("Could not get axis objects from plot layout");
+                        return -1;
+                    }
+
+                    // Get the plot's position on the page
+                    var plotRect = plotDiv.getBoundingClientRect();
+
+                    // Convert from screen coordinates to data coordinates
+                    var x = xaxis.p2d(evt.clientX - plotRect.left);
+                    var y = yaxis.p2d(evt.clientY - plotRect.top);
+
+                    console.log("Click position in data coordinates: (" + x + ", " + y + ")");
+
+                    // Get the node data
+                    var eventData = plotDiv._fullData[1];
+                    if (!eventData || !eventData.x || !eventData.y) {
+                        console.error("Node data not available");
+                        return -1;
+                    }
+
+                    // Find the closest node
+                    var minDistance = Infinity;
+                    var closestPoint = -1;
+
+                    for (var i = 0; i < eventData.x.length; i++) {
+                        var dx = eventData.x[i] - x;
+                        var dy = eventData.y[i] - y;
+                        var distance = Math.sqrt(dx*dx + dy*dy);
+
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestPoint = i;
                         }
                     }
 
-                    // Set the new current node color
-                    var currentNode = allNodes[nodeId];
-                    if (currentNode) {
-                        currentNode.color = {
-                            background: "#FFA500",
-                            border: "#FF8C00",
-                            highlight: {
-                                background: "#FFA500",
-                                border: "#FF8C00"
-                            },
-                            hover: {
-                                background: "#FFA500",
-                                border: "#FF8C00"
-                            }
-                        };
-                        currentNode.is_current = true;
+                    console.log("Closest point: " + closestPoint + " at distance: " + minDistance);
 
-                        // Update the nodes in the network
-                        nodes.update(Object.values(allNodes));
-
-                        console.log("Updated current node color: " + nodeId);
+                    // Only return a point if it's close enough (within a threshold)
+                    var threshold = 50;  // Adjust this value as needed
+                    if (minDistance < threshold) {
+                        return closestPoint;
+                    } else {
+                        console.log("No point within threshold distance");
+                        return -1;
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error setting current node: ' + error);
-                })
-                .finally(() => {
-                    // Reset cursor
-                    document.body.style.cursor = 'default';
-                });
+                } catch (error) {
+                    console.error("Error in getClosestPoint: " + error);
+                    return -1;
+                }
             }
         });
-
-        // Add title to the page and ensure current node is highlighted
-        document.addEventListener('DOMContentLoaded', function() {
-            var header = document.createElement('h1');
-            header.textContent = 'Episodic Conversation Visualization';
-            header.style.textAlign = 'center';
-            header.style.marginBottom = '20px';
-
-            var instructions = document.createElement('p');
-            instructions.innerHTML = '<strong>Instructions:</strong> Double-click on a node to make it the current node. The current node is highlighted in orange.';
-            instructions.style.textAlign = 'center';
-            instructions.style.marginBottom = '20px';
-
-            document.body.insertBefore(instructions, document.body.firstChild);
-            document.body.insertBefore(header, document.body.firstChild);
-
-            // Ensure current node is highlighted
-            setTimeout(function() {
-                // Find the current node (the one with is_current=true)
-                var allNodes = nodes.get({ returnType: "Object" });
-                for (var nodeId in allNodes) {
-                    if (allNodes[nodeId].is_current) {
-                        // Force the color to be orange
-                        allNodes[nodeId].color = "#FFA500";
-                        // Update the node in the network
-                        nodes.update([allNodes[nodeId]]);
-                        console.log("Highlighted current node: " + nodeId);
-                        break;
-                    }
-                }
-            }, 500);
-        });
+        </script>
         """
-
-        # Add the custom JavaScript to the visualization
-        # Instead of trying to update options, we'll use a different approach
-        # to add the custom JavaScript directly to the HTML
-        net.html += f"<script>{custom_js}</script>"
 
     # Save to file
     if output_path is None:
@@ -332,5 +632,27 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
             output_path = tmp.name
 
-    net.save_graph(output_path)
+    # Write the figure to HTML with the custom JavaScript
+    with open(output_path, 'w') as f:
+        html_content = pio.to_html(
+            fig, 
+            full_html=True,
+            include_plotlyjs=True,
+            config={'responsive': True}
+        )
+
+        # Add Socket.IO client library and custom JavaScript if interactive
+        if interactive:
+            # Add Socket.IO client library if WebSocket is enabled
+            socketio_script = ""
+            if websocket:
+                socketio_script = """
+                <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+                """
+
+            # Insert Socket.IO client library and custom JavaScript before the closing body tag
+            html_content = html_content.replace('</body>', f'{socketio_script}{custom_js}</body>')
+
+        f.write(html_content)
+
     return output_path

@@ -44,6 +44,8 @@ from episodic.db import (
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
+from episodic.prompt_manager import PromptManager
+from episodic.config import config
 
 
 def parse_command_line(text: str) -> List[str]:
@@ -189,6 +191,10 @@ class EpisodicCompleter(Completer):
             'list': {
                 'help': 'List recent nodes',
                 'args': ['--count']
+            },
+            'prompts': {
+                'help': 'Manage system prompts',
+                'args': []  # Subcommands are handled in the handler
             }
         }
 
@@ -281,7 +287,15 @@ class EpisodicShell:
         # Initialize state
         self.current_node_id = None
         self.default_model = "gpt-3.5-turbo"
-        self.default_system = "You are a helpful assistant."
+
+        # Get the system message from the active prompt
+        try:
+            manager = PromptManager()
+            self.default_system = manager.get_active_prompt_content(config.get)
+        except Exception:
+            # Fallback to default if there's an error
+            self.default_system = "You are a helpful assistant."
+
         self.default_context_depth = 5
 
         # Command handlers
@@ -299,6 +313,7 @@ class EpisodicShell:
             'exit': self.handle_exit,
             'quit': self.handle_exit,
             'list': self.handle_list,
+            'prompts': self.handle_prompts,
         }
 
     def run(self):
@@ -765,6 +780,84 @@ class EpisodicShell:
 
         except Exception as e:
             print(f"Error retrieving recent nodes: {str(e)}")
+
+    def handle_prompts(self, args):
+        """Manage system prompts."""
+        # Create a prompt manager instance
+        manager = PromptManager()
+
+        if not args:
+            # If no subcommand is provided, show help
+            print("Usage: prompts <subcommand>")
+            print("\nAvailable subcommands:")
+            print("  list - List all available prompts")
+            print("  use <name> - Set the active prompt")
+            print("  show [<name>] - Show the content of a prompt (defaults to active prompt)")
+            print("  reload - Reload prompts from disk")
+            return
+
+        subcommand = args[0].lower()
+
+        if subcommand == "list":
+            # List all available prompts
+            prompts = manager.list()
+            if not prompts:
+                print("No prompts found.")
+                return
+
+            print("Available prompts:")
+            for name in prompts:
+                metadata = manager.get_metadata(name)
+                description = metadata.get('description', '') if metadata else ''
+                print(f"  - {name}: {description}")
+
+        elif subcommand == "use":
+            # Check if a name is provided
+            if len(args) < 2:
+                print("Error: Prompt name required")
+                print("Usage: prompts use <name>")
+                return
+
+            name = args[1]
+
+            # Set the active prompt
+            if name not in manager.list():
+                print(f"Prompt '{name}' not found.")
+                return
+
+            # Store the active prompt name in config
+            config.set("active_prompt", name)
+
+            # Display confirmation and description if available
+            metadata = manager.get_metadata(name)
+            description = f" - {metadata.get('description')}" if metadata and 'description' in metadata else ''
+            print(f"Now using prompt: {name}{description}")
+
+        elif subcommand == "show":
+            # Determine which prompt to show
+            name = args[1] if len(args) > 1 else config.get("active_prompt", "default")
+
+            # Get the prompt content
+            prompt = manager.get(name)
+            if not prompt:
+                print(f"Prompt '{name}' not found.")
+                return
+
+            # Display the prompt information
+            metadata = manager.get_metadata(name)
+            description = f" - {metadata.get('description')}" if metadata and 'description' in metadata else ''
+
+            print(f"--- Prompt: {name}{description} ---")
+            print(prompt)
+
+        elif subcommand == "reload":
+            # Reload prompts from disk
+            manager.reload()
+            print(f"Reloaded {len(manager.list())} prompts.")
+
+        else:
+            print(f"Unknown subcommand: {subcommand}")
+            print("Available subcommands: list, use, show, reload")
 
     def handle_exit(self, args):
         """Exit the shell."""

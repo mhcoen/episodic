@@ -256,7 +256,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         # Add JavaScript for interactive features
         # This will handle double-click to set current node and right-click for context menu
         fig.update_layout(
-            clickmode='event+select',
+#            clickmode='event+select',
+            clickmode='event',
             # Add custom JavaScript for interactivity
             updatemenus=[
                 dict(
@@ -334,6 +335,9 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                 // Set up polling interval (every 5 seconds)
                 pollingInterval = setInterval(function() {
                     console.log('Polling for updates...');
+
+                    // Blink the indicator when polling starts
+                    blinkUpdateIndicator();
 
                     // Make a request to get the current graph data
                     fetch(cleanUrl + '/get_graph_data')
@@ -471,6 +475,9 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                             pollingInterval = setInterval(function() {
                                 console.log('Polling for updates...');
 
+                                // Blink the indicator when polling starts
+                                blinkUpdateIndicator();
+
                                 // Make a request to get the current graph data
                                 fetch(cleanUrl + '/get_graph_data')
                                     .then(response => response.json())
@@ -534,36 +541,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                                 console.log('Current node ID:', currentNodeId);
                             }
 
-                            // Display a notification to the user
-                            var notification = document.createElement('div');
-                            notification.style.position = 'fixed';
-                            notification.style.top = '10px';
-                            notification.style.right = '10px';
-                            notification.style.backgroundColor = '#4CAF50';
-                            notification.style.color = 'white';
-                            notification.style.padding = '10px';
-                            notification.style.borderRadius = '5px';
-                            notification.style.zIndex = '1000';
-                            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-
-                            if (currentNodeFound) {
-                                notification.textContent = 'Graph updated! Current node: ' + 
-                                    data.nodes.find(n => n.id === currentNodeId).short_id;
-                            } else {
-                                notification.textContent = 'Graph updated!';
-                            }
-
-                            document.body.appendChild(notification);
-
-                            // Remove any existing notifications after a short delay
-                            setTimeout(function() {
-                                var oldNotifications = document.querySelectorAll('div[style*="position: fixed"][style*="top: 10px"][style*="right: 10px"]');
-                                oldNotifications.forEach(function(notif, index) {
-                                    if (index < oldNotifications.length - 1) {
-                                        notif.remove();
-                                    }
-                                });
-                            }, 100);
+                            // Blink the green circle indicator
+                            blinkUpdateIndicator();
 
                             // Call updateVisualization with the data immediately
                             console.log('Calling updateVisualization...');
@@ -608,6 +587,35 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     console.error('Error setting up WebSocket connection:', error);
                     alert('Error setting up WebSocket connection: ' + error);
                 }
+            }
+
+            // Function to create and blink a small green circle in the upper left corner
+            function blinkUpdateIndicator() {
+                // Check if indicator already exists
+                var indicator = document.getElementById('update-indicator');
+
+                // Create indicator if it doesn't exist
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'update-indicator';
+                    indicator.style.position = 'fixed';
+                    indicator.style.top = '10px';
+                    indicator.style.left = '10px';
+                    indicator.style.width = '12px';
+                    indicator.style.height = '12px';
+                    indicator.style.backgroundColor = '#4CAF50';
+                    indicator.style.borderRadius = '50%';
+                    indicator.style.zIndex = '1000';
+                    indicator.style.opacity = '0';
+                    indicator.style.transition = 'opacity 0.3s';
+                    document.body.appendChild(indicator);
+                }
+
+                // Blink the indicator
+                indicator.style.opacity = '1';
+                setTimeout(function() {
+                    indicator.style.opacity = '0';
+                }, 500);
             }
 
             // Function to update the visualization with new graph data
@@ -695,8 +703,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                     console.log('%c Visualization updated successfully', 'background: #2196F3; color: white; padding: 2px 5px; border-radius: 2px;');
 
-                    // Show a notification about the update
-                    showUpdateNotification();
+                    // Blink the update indicator
+                    blinkUpdateIndicator();
                 } catch (error) {
                     console.error('Error updating visualization:', error);
                     console.error('Error stack:', error.stack);
@@ -918,8 +926,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                         console.log('%c Visualization completely redrawn successfully', 'background: #2196F3; color: white; padding: 2px 5px; border-radius: 2px;');
 
-                        // Show a notification about the update
-                        showUpdateNotification();
+                        // Blink the update indicator
+                        blinkUpdateIndicator();
                     } catch (error) {
                         console.error('Error redrawing visualization:', error);
                         console.error('Error stack:', error.stack);
@@ -929,31 +937,6 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     }
                 }
 
-                // Helper function to show update notification
-                function showUpdateNotification() {
-                    var notification = document.createElement('div');
-                    notification.style.position = 'fixed';
-                    notification.style.top = '10px';
-                    notification.style.right = '10px';
-                    notification.style.backgroundColor = '#4CAF50';
-                    notification.style.color = 'white';
-                    notification.style.padding = '10px';
-                    notification.style.borderRadius = '5px';
-                    notification.style.zIndex = '1000';
-                    notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-                    notification.textContent = 'Graph updated!';
-                    document.body.appendChild(notification);
-
-                    // Remove the notification after a delay
-                    setTimeout(function() {
-                        notification.style.opacity = '0';
-                        notification.style.transition = 'opacity 0.5s';
-
-                        setTimeout(function() {
-                            notification.remove();
-                        }, 500);
-                    }, 3000);
-                }
 
                 // Helper function to show error notification
                 function showErrorNotification(message) {
@@ -1068,11 +1051,14 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     .then(data => {
                         console.log("Success: ", data);
                         // Show success message
-                        alert(data.message || 'Current node updated');
 
                         // If WebSocket is not enabled, poll for updates immediately
                         if (!""" + str(websocket).lower() + """) {
                             console.log('WebSocket disabled, polling for updates immediately');
+
+                            // Blink the indicator when polling starts
+                            blinkUpdateIndicator();
+
                             // Make a request to get the current graph data
                             fetch(cleanUrl + '/get_graph_data')
                                 .then(response => response.json())
@@ -1195,11 +1181,14 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                         .then(data => {
                             console.log("Success: ", data);
                             // Show success message
-                            alert(data.message || 'Node deleted');
 
                             // If WebSocket is not enabled, poll for updates immediately
                             if (!""" + str(websocket).lower() + """) {
                                 console.log('WebSocket disabled, polling for updates immediately');
+
+                                // Blink the indicator when polling starts
+                                blinkUpdateIndicator();
+
                                 // Make a request to get the current graph data
                                 fetch(cleanUrl + '/get_graph_data')
                                     .then(response => response.json())

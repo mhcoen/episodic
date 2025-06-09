@@ -35,6 +35,7 @@ from prompt_toolkit.completion import Completer, Completion, WordCompleter
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
 from prompt_toolkit.lexers import PygmentsLexer
+from prompt_toolkit import print_formatted_text
 from pygments.lexers import BashLexer
 
 from episodic.db import (
@@ -195,6 +196,10 @@ class EpisodicCompleter(Completer):
             'prompts': {
                 'help': 'Manage system prompts',
                 'args': []  # Subcommands are handled in the handler
+            },
+            'talk': {
+                'help': 'Enter talk mode for seamless conversation with colored output',
+                'args': ['--model', '--system', '--context-depth']
             }
         }
 
@@ -308,6 +313,7 @@ class EpisodicShell:
             'ancestry': self.handle_ancestry,
             'query': self.handle_query,
             'chat': self.handle_chat,
+            'talk': self.handle_talk,
             'visualize': self.handle_visualize,
             'help': self.handle_help,
             'exit': self.handle_exit,
@@ -320,6 +326,16 @@ class EpisodicShell:
         """Run the interactive shell."""
         print("Welcome to the Episodic interactive shell.")
         print("Type 'help' to see available commands or 'exit' to quit.")
+
+        # Print the active prompt
+        try:
+            manager = PromptManager()
+            active_prompt = config.get("active_prompt", "default")
+            metadata = manager.get_metadata(active_prompt)
+            description = f" - {metadata.get('description')}" if metadata and 'description' in metadata else ''
+            print(f"Active prompt: {active_prompt}{description}")
+        except Exception as e:
+            print("Active prompt: default")
 
         # Try to get the current head node
         try:
@@ -378,7 +394,17 @@ class EpisodicShell:
                     if result:
                         root_node_id, root_short_id = result
                         self.current_node_id = root_node_id
+                        # Reset the active prompt to default
+                        config.set("active_prompt", "default")
+                        # Update the default system message
+                        try:
+                            manager = PromptManager()
+                            self.default_system = manager.get_active_prompt_content(config.get)
+                        except Exception:
+                            # Fallback to default if there's an error
+                            self.default_system = "You are a helpful assistant."
                         print(f"Database has been reinitialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
+                        print("Prompt has been restored to default.")
                     else:
                         print("Database has been reinitialized.")
                 else:
@@ -390,7 +416,17 @@ class EpisodicShell:
             if result:
                 root_node_id, root_short_id = result
                 self.current_node_id = root_node_id
+                # Reset the active prompt to default for new databases too
+                config.set("active_prompt", "default")
+                # Update the default system message
+                try:
+                    manager = PromptManager()
+                    self.default_system = manager.get_active_prompt_content(config.get)
+                except Exception:
+                    # Fallback to default if there's an error
+                    self.default_system = "You are a helpful assistant."
                 print(f"Database initialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
+                print("Prompt has been set to default.")
             else:
                 print("Database initialized.")
 
@@ -664,6 +700,126 @@ class EpisodicShell:
         except Exception as e:
             print(f"Error: {str(e)}")
 
+    def handle_talk(self, args):
+        """
+        Enter a conversation mode for seamless interaction with the LLM.
+        Exit by typing 'done', 'exit', or pressing Ctrl+D.
+        """
+        try:
+            # Parse arguments
+            model = self.default_model
+            system = self.default_system
+            context_depth = self.default_context_depth
+
+            # Process optional arguments
+            i = 0
+            while i < len(args):
+                if args[i] == "--model" and i + 1 < len(args):
+                    model = args[i + 1]
+                    i += 2
+                elif args[i] == "--system" and i + 1 < len(args):
+                    system = args[i + 1]
+                    i += 2
+                elif args[i] == "--context-depth" and i + 1 < len(args):
+                    context_depth = int(args[i + 1])
+                    i += 2
+                else:
+                    i += 1
+
+            # Get the current head node
+            head_id = self.current_node_id or get_head()
+            if not head_id:
+                if database_exists():
+                    print("No conversation history found. Try initializing the database with 'init' or adding a message with 'add'.")
+                    return
+                else:
+                    print("No database found. Please initialize the database with 'init' command first.")
+                    return
+
+            print("\nEntering talk mode. Type 'done', 'exit', or press Ctrl+D to return to the main CLI.\n")
+
+            # Create a custom prompt session for the talk mode
+            from prompt_toolkit import PromptSession
+            from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+
+            talk_session = PromptSession(
+                message=HTML("<ansigreen>> </ansigreen>"),
+                history=self.session.history,
+                auto_suggest=AutoSuggestFromHistory(),
+            )
+
+            while True:
+                try:
+                    # Get user input
+                    user_input = talk_session.prompt()
+
+                    # Check for exit commands
+                    if user_input.lower() in ["done", "exit"]:
+                        print("Exiting talk mode.")
+                        break
+
+                    # Skip empty input
+                    if not user_input.strip():
+                        continue
+
+                    # Get the ancestry of the head node to use as context
+                    ancestry = get_ancestry(head_id)
+
+                    # Limit the context to the specified depth
+                    context_ancestry = ancestry[-context_depth:] if context_depth > 0 else ancestry
+
+                    # Convert the ancestry to the format expected by the LLM
+                    context_messages = []
+                    for i, node in enumerate(context_ancestry):
+                        # Skip the first node if it's a system message or has no parent
+                        if i == 0 and node['parent_id'] is None:
+                            continue
+
+                        # Alternate between user and assistant roles
+                        role = "user" if i % 2 == 0 else "assistant"
+                        context_messages.append({"role": role, "content": node['content']})
+
+                    # Store the user query as a node
+                    query_node_id, query_short_id = insert_node(user_input, head_id)
+
+                    # Query the LLM with context
+                    response = query_with_context(
+                        prompt=user_input,
+                        context_messages=context_messages,
+                        model=model,
+                        system_message=system
+                    )
+
+                    # Store the LLM response as a node with the query as its parent
+                    response_node_id, response_short_id = insert_node(response, query_node_id)
+
+                    # Update the current node and head
+                    self.current_node_id = response_node_id
+                    set_head(response_node_id)
+
+                    # Display the response with colored formatting
+                    print("")  # Empty line before response
+                    print(f"\033[36m🤖 {model}:\033[0m")
+                    print(f"\033[33m{response}\033[0m")
+                    print("")  # Empty line after response
+
+                    # Update head_id for the next iteration
+                    head_id = response_node_id
+
+                except KeyboardInterrupt:
+                    print("\n^C")
+                    continue
+                except EOFError:
+                    print("\n^D")
+                    print("Exiting talk mode.")
+                    break
+                except Exception as e:
+                    print("")  # Empty line before error
+                    print(f"\033[31mError: {str(e)}\033[0m")
+
+        except Exception as e:
+            print(f"Error: {str(e)}")
+
     def handle_visualize(self, args):
         """Create an interactive visualization of the conversation DAG."""
         try:
@@ -793,10 +949,21 @@ class EpisodicShell:
             print("  list - List all available prompts")
             print("  use <name> - Set the active prompt")
             print("  show [<name>] - Show the content of a prompt (defaults to active prompt)")
+            print("  id - Show the current active prompt")
             print("  reload - Reload prompts from disk")
             return
 
-        subcommand = args[0].lower()
+        # Get the first word as the subcommand
+        subcommand_parts = args[0].lower().split()
+        subcommand = subcommand_parts[0]
+
+        # If the subcommand has additional words, treat them as arguments
+        if len(subcommand_parts) > 1:
+            # Add the remaining words as separate arguments
+            args = [subcommand] + subcommand_parts[1:] + args[1:]
+        else:
+            # Keep the original args but with the first element replaced by the subcommand
+            args[0] = subcommand
 
         if subcommand == "list":
             # List all available prompts
@@ -850,6 +1017,13 @@ class EpisodicShell:
             print(f"--- Prompt: {name}{description} ---")
             print(prompt)
 
+        elif subcommand == "id":
+            # Show the current active prompt
+            active_prompt = config.get("active_prompt", "default")
+            metadata = manager.get_metadata(active_prompt)
+            description = f" - {metadata.get('description')}" if metadata and 'description' in metadata else ''
+            print(f"Current active prompt: {active_prompt}{description}")
+
         elif subcommand == "reload":
             # Reload prompts from disk
             manager.reload()
@@ -857,7 +1031,7 @@ class EpisodicShell:
 
         else:
             print(f"Unknown subcommand: {subcommand}")
-            print("Available subcommands: list, use, show, reload")
+            print("Available subcommands: list, use, show, id, reload")
 
     def handle_exit(self, args):
         """Exit the shell."""

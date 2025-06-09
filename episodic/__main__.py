@@ -48,6 +48,9 @@ def main():
     visualize_parser.add_argument("--output", help="Path to save the HTML visualization", default=None)
     visualize_parser.add_argument("--no-browser", help="Don't open the visualization in a browser", action="store_true")
     visualize_parser.add_argument("--port", help="Port to use for the visualization server", type=int, default=5000)
+    visualize_parser.add_argument("--native", help="Open the visualization in a native window instead of a browser", action="store_true")
+    visualize_parser.add_argument("--width", help="Width of the native window", type=int, default=1000)
+    visualize_parser.add_argument("--height", help="Height of the native window", type=int, default=800)
 
     # Add new command for listing recent nodes
     list_parser = subparsers.add_parser("list")
@@ -197,29 +200,40 @@ def main():
             print(f"Error: {str(e)}")
     elif args.command == "visualize":
         try:
-            output_path = visualize_dag(args.output)
-
-            # If interactive mode is requested, start the server with the specified port
-            if output_path and not args.no_browser:
-                from episodic.server import start_server, stop_server
-                server_url = start_server(server_port=args.port)
-                print(f"Starting visualization server at {server_url}")
-                print("Press Ctrl+C when done to stop the server.")
-                webbrowser.open(server_url)
-
+            # If native mode is requested, use the native visualization
+            if args.native:
+                from episodic.gui import visualize_native_blocking
+                print(f"Opening native visualization window (width: {args.width}, height: {args.height})...")
+                print("The window will remain open until you close it.")
+                print("Press Ctrl+C to stop the program if the window doesn't close properly.")
                 try:
-                    # Keep the server running until the user presses Ctrl+C
-                    while True:
-                        import time
-                        time.sleep(1)
+                    visualize_native_blocking(width=args.width, height=args.height, server_port=args.port)
                 except KeyboardInterrupt:
-                    print("\nStopping server...")
-                    stop_server()
-                    print("Server stopped.")
-            elif output_path:
-                print(f"Visualization saved to: {output_path}")
-                print(f"Opening visualization in browser: {output_path}")
-                webbrowser.open(f"file://{os.path.abspath(output_path)}")
+                    print("\nProgram stopped by user.")
+            else:
+                output_path = visualize_dag(args.output)
+
+                # If interactive mode is requested, start the server with the specified port
+                if output_path and not args.no_browser:
+                    from episodic.server import start_server, stop_server
+                    server_url = start_server(server_port=args.port)
+                    print(f"Starting visualization server at {server_url}")
+                    print("Press Ctrl+C when done to stop the server.")
+                    webbrowser.open(server_url)
+
+                    try:
+                        # Keep the server running until the user presses Ctrl+C
+                        while True:
+                            import time
+                            time.sleep(1)
+                    except KeyboardInterrupt:
+                        print("\nStopping server...")
+                        stop_server()
+                        print("Server stopped.")
+                elif output_path:
+                    print(f"Visualization saved to: {output_path}")
+                    print(f"Opening visualization in browser: {output_path}")
+                    webbrowser.open(f"file://{os.path.abspath(output_path)}")
         except Exception as e:
             print(f"Error generating visualization: {str(e)}")
     elif args.command == "list":

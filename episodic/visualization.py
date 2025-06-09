@@ -1247,6 +1247,14 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
             // Helper function to find the closest point to a click event
             function getClosestPoint(evt, plotDiv) {
                 try {
+                // Skip the data coordinate conversion and use screen coordinates directly
+                       return findClosestPointByScreenCoordinates(evt, plotDiv, plotDiv._fullData[1]);
+                } catch (error) {
+                console.error("Error in getClosestPoint: " + error);
+                return -1;
+                }
+
+                try {
                     console.log("Finding closest point to click at: " + evt.clientX + ", " + evt.clientY);
 
                     // First, check if we can use the Plotly event data directly
@@ -1284,7 +1292,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                     // Convert from screen coordinates to data coordinates
                     var x = xaxis.p2d(evt.clientX - plotRect.left);
-                    var y = yaxis.p2d(evt.clientY - plotRect.top);
+                    var verticalOffset = 20; // This value may need adjustment based on testing
+                    var y = yaxis.p2d(evt.clientY - plotRect.top - verticalOffset);                            
 
                     console.log("Click position in data coordinates: (" + x + ", " + y + ")");
 

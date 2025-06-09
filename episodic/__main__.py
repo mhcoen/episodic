@@ -25,9 +25,13 @@ def main():
     ancestry_parser = subparsers.add_parser("ancestry")
     ancestry_parser.add_argument("node_id", help="Node ID to trace ancestry")
 
-    # Add new command for changing the current node
-    goto_parser = subparsers.add_parser("goto")
-    goto_parser.add_argument("node_id", help="Node ID to make current")
+    # Add new command for displaying current node or changing to a specified node
+    head_parser = subparsers.add_parser("head")
+    head_parser.add_argument("node_id", help="Node ID to make current", nargs='?')
+
+    # Add new command for printing node info
+    print_parser = subparsers.add_parser("print")
+    print_parser.add_argument("node_id", help="Node ID to print (defaults to current node)", nargs='?')
 
     # Add new command for querying the LLM
     query_parser = subparsers.add_parser("query")
@@ -103,21 +107,69 @@ def main():
         ancestry = get_ancestry(node_id)
         for ancestor in ancestry:
             print(f"{ancestor['short_id']} (UUID: {ancestor['id']}): {ancestor['content']}")
-    elif args.command == "goto":
-        # Resolve the node ID
-        node_id = resolve_node_ref(args.node_id)
+    elif args.command == "print":
+        # Determine which node to print
+        if not args.node_id:
+            # If no node ID is provided, use the current head node
+            node_id = get_head()
+            if not node_id:
+                print("No current node. Specify a node ID or use 'add' to create a node.")
+                return
+        else:
+            # Resolve the provided node ID
+            node_id = resolve_node_ref(args.node_id)
 
-        # Verify that the node exists
+        # Get and display the node
         node = get_node(node_id)
-        if not node:
-            print(f"Error: Node not found: {args.node_id}")
-            return
+        if node:
+            print(f"Node ID: {node['short_id']} (UUID: {node['id']})")
+            if node['parent_id']:
+                parent = get_node(node['parent_id'])
+                parent_short_id = parent['short_id'] if parent else "Unknown"
+                print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+            else:
+                print(f"Parent: None")
+            print(f"Message: {node['content']}")
+        else:
+            print("Node not found.")
+    elif args.command == "head":
+        if not args.node_id:
+            # If no node ID is provided, display the current node's info
+            # This is equivalent to running the print command with no arguments
+            head_id = get_head()
+            if not head_id:
+                print("No current node. Specify a node ID or use 'add' to create a node.")
+                return
 
-        # Update the current node
-        set_head(node_id)
+            # Get and display the node
+            node = get_node(head_id)
+            if node:
+                # Use a slightly different format for head to indicate it's the current node
+                print(f"Current node: {node['short_id']} (UUID: {node['id']})")
+                if node['parent_id']:
+                    parent = get_node(node['parent_id'])
+                    parent_short_id = parent['short_id'] if parent else "Unknown"
+                    print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+                else:
+                    print(f"Parent: None")
+                print(f"Message: {node['content']}")
+            else:
+                print("Node not found.")
+        else:
+            # Resolve the node ID
+            node_id = resolve_node_ref(args.node_id)
 
-        # Display confirmation
-        print(f"Current node changed to: {node['short_id']} (UUID: {node['id']})")
+            # Verify that the node exists
+            node = get_node(node_id)
+            if not node:
+                print(f"Error: Node not found: {args.node_id}")
+                return
+
+            # Update the current node
+            set_head(node_id)
+
+            # Display confirmation
+            print(f"Current node changed to: {node['short_id']} (UUID: {node['id']})")
     elif args.command == "query":
         try:
             # Resolve parent ID if provided

@@ -146,9 +146,13 @@ class EpisodicCompleter(Completer):
                 'help': 'Add a new node with content',
                 'args': ['--parent']
             },
-            'goto': {
-                'help': 'Change the current node',
-                'args': []  # Node ID is a positional argument
+            'head': {
+                'help': 'Display current node or change to specified node',
+                'args': []  # Node ID is an optional positional argument
+            },
+            'print': {
+                'help': 'Print node info (defaults to current node)',
+                'args': []  # Node ID is an optional positional argument
             },
             'show': {
                 'help': 'Show a specific node',
@@ -284,7 +288,8 @@ class EpisodicShell:
         self.handlers = {
             'init': self.handle_init,
             'add': self.handle_add,
-            'goto': self.handle_goto,
+            'head': self.handle_head,
+            'print': self.handle_print,
             'show': self.handle_show,
             'ancestry': self.handle_ancestry,
             'query': self.handle_query,
@@ -394,6 +399,31 @@ class EpisodicShell:
         self.current_node_id = node_id
         print(f"Added node {short_id} (UUID: {node_id})")
 
+    def handle_print(self, args):
+        """Print node info (defaults to current node)."""
+        if not args:
+            # If no node ID is provided, use the current node
+            if not self.current_node_id:
+                print("No current node. Specify a node ID or use 'add' to create a node.")
+                return
+            node_id = self.current_node_id
+        else:
+            node_id = resolve_node_ref(args[0])
+
+        # Get and display the node
+        node = get_node(node_id)
+        if node:
+            print(f"Node ID: {node['short_id']} (UUID: {node['id']})")
+            if node['parent_id']:
+                parent = get_node(node['parent_id'])
+                parent_short_id = parent['short_id'] if parent else "Unknown"
+                print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+            else:
+                print(f"Parent: None")
+            print(f"Message: {node['content']}")
+        else:
+            print("Node not found.")
+
     def handle_show(self, args):
         """Show a specific node."""
         if not args:
@@ -419,10 +449,27 @@ class EpisodicShell:
         else:
             print("Node not found.")
 
-    def handle_goto(self, args):
-        """Change the current node."""
+    def handle_head(self, args):
+        """Display current node or change to specified node."""
         if not args:
-            print("Error: Node ID required")
+            # If no node ID is provided, display the current node's info
+            if not self.current_node_id:
+                print("No current node. Specify a node ID or use 'add' to create a node.")
+                return
+
+            # Get and display the node using a slightly different format to indicate it's the current node
+            node = get_node(self.current_node_id)
+            if node:
+                print(f"Current node: {node['short_id']} (UUID: {node['id']})")
+                if node['parent_id']:
+                    parent = get_node(node['parent_id'])
+                    parent_short_id = parent['short_id'] if parent else "Unknown"
+                    print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+                else:
+                    print(f"Parent: None")
+                print(f"Message: {node['content']}")
+            else:
+                print("Node not found.")
             return
 
         # Resolve the node ID

@@ -6,6 +6,8 @@ import sys
 from episodic.db import insert_node, get_node, get_ancestry, initialize_db, resolve_node_ref, get_head, set_head, database_exists, get_recent_nodes
 from episodic.llm import query_llm, query_with_context
 from episodic.visualization import visualize_dag
+from episodic.prompt_manager import PromptManager
+from episodic.config import config
 
 # This comment was added to demonstrate file editing capabilities
 
@@ -37,14 +39,14 @@ def main():
     query_parser = subparsers.add_parser("query")
     query_parser.add_argument("prompt", help="Query to send to the LLM")
     query_parser.add_argument("--model", help="LLM model to use", default="gpt-3.5-turbo")
-    query_parser.add_argument("--system", help="System message for the LLM", default="You are a helpful assistant.")
+    query_parser.add_argument("--system", help="System message for the LLM (overrides active prompt)", default=None)
     query_parser.add_argument("--parent", help="Parent node ID", default=None)
 
     # Add new command for chatting with the LLM using conversation history
     chat_parser = subparsers.add_parser("chat")
     chat_parser.add_argument("prompt", help="Query to send to the LLM")
     chat_parser.add_argument("--model", help="LLM model to use", default="gpt-3.5-turbo")
-    chat_parser.add_argument("--system", help="System message for the LLM", default="You are a helpful assistant.")
+    chat_parser.add_argument("--system", help="System message for the LLM (overrides active prompt)", default=None)
     chat_parser.add_argument("--context-depth", help="Number of ancestor nodes to include as context", type=int, default=5)
 
     # Add new command for visualizing the conversation DAG
@@ -59,6 +61,21 @@ def main():
     # Add new command for listing recent nodes
     list_parser = subparsers.add_parser("list")
     list_parser.add_argument("--count", help="Number of recent nodes to list", type=int, default=5)
+
+    # Add new command for managing prompts
+    prompts_parser = subparsers.add_parser("prompts")
+    prompts_subparsers = prompts_parser.add_subparsers(dest="prompts_command")
+
+    # Add subcommands for prompts
+    prompts_list_parser = prompts_subparsers.add_parser("list", help="List all available prompts")
+
+    prompts_use_parser = prompts_subparsers.add_parser("use", help="Set the active prompt")
+    prompts_use_parser.add_argument("name", help="Name of the prompt to use")
+
+    prompts_show_parser = prompts_subparsers.add_parser("show", help="Show the content of a prompt")
+    prompts_show_parser.add_argument("name", help="Name of the prompt to show", nargs='?')
+
+    prompts_reload_parser = prompts_subparsers.add_parser("reload", help="Reload prompts from disk")
 
     args = parser.parse_args()
 
@@ -179,11 +196,18 @@ def main():
             query_node_id, query_short_id = insert_node(args.prompt, parent_id)
             print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
+            # Get the system message from the active prompt if not provided
+            system_message = args.system
+            if system_message is None:
+                # Create a prompt manager instance
+                manager = PromptManager()
+                system_message = manager.get_active_prompt_content(config.get)
+
             # Query the LLM
             response = query_llm(
                 prompt=args.prompt,
                 model=args.model,
-                system_message=args.system
+                system_message=system_message
             )
 
             # Store the LLM response as a node with the query as its parent
@@ -232,12 +256,19 @@ def main():
             query_node_id, query_short_id = insert_node(args.prompt, head_id)
             print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
+            # Get the system message from the active prompt if not provided
+            system_message = args.system
+            if system_message is None:
+                # Create a prompt manager instance
+                manager = PromptManager()
+                system_message = manager.get_active_prompt_content(config.get)
+
             # Query the LLM with context
             response = query_with_context(
                 prompt=args.prompt,
                 context_messages=context_messages,
                 model=args.model,
-                system_message=args.system
+                system_message=system_message
             )
 
             # Store the LLM response as a node with the query as its parent
@@ -308,6 +339,62 @@ def main():
                 print(f"{node['short_id']} (UUID: {node['id']}): {content}")
         except Exception as e:
             print(f"Error retrieving recent nodes: {str(e)}")
+    elif args.command == "prompts":
+        # Create a prompt manager instance
+        manager = PromptManager()
+
+        if args.prompts_command == "list":
+            # List all available prompts
+            prompts = manager.list()
+            if not prompts:
+                print("No prompts found.")
+                return
+
+            print("Available prompts:")
+            for name in prompts:
+                metadata = manager.get_metadata(name)
+                description = metadata.get('description', '') if metadata else ''
+                print(f"  - {name}: {description}")
+
+        elif args.prompts_command == "use":
+            # Set the active prompt
+            if args.name not in manager.list():
+                print(f"Prompt '{args.name}' not found.")
+                return
+
+            # Store the active prompt name in config
+            config.set("active_prompt", args.name)
+
+            # Display confirmation and description if available
+            metadata = manager.get_metadata(args.name)
+            description = f" - {metadata.get('description')}" if metadata and 'description' in metadata else ''
+            print(f"Now using prompt: {args.name}{description}")
+
+        elif args.prompts_command == "show":
+            # Determine which prompt to show
+            name = args.name if args.name else config.get("active_prompt", "default")
+
+            # Get the prompt content
+            prompt = manager.get(name)
+            if not prompt:
+                print(f"Prompt '{name}' not found.")
+                return
+
+            # Display the prompt information
+            metadata = manager.get_metadata(name)
+            description = f" - {metadata.get('description')}" if metadata and 'description' in metadata else ''
+
+            print(f"--- Prompt: {name}{description} ---")
+            print(prompt)
+
+        elif args.prompts_command == "reload":
+            # Reload prompts from disk
+            manager.reload()
+            print(f"Reloaded {len(manager.list())} prompts.")
+
+        else:
+            # If no subcommand is provided, show help
+            prompts_parser.print_help()
     else:
         parser.print_help()
 

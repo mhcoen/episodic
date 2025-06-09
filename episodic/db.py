@@ -6,6 +6,8 @@ import contextlib
 
 # Default database path
 DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "episodic.db"))
+# Alias for backward compatibility with test scripts
+DB_PATH = DEFAULT_DB_PATH
 
 # Thread-local storage for database connections
 _local = threading.local()
@@ -74,6 +76,25 @@ def database_exists():
     except sqlite3.Error:
         return False
 
+def base36_encode(number):
+    """
+    Convert a positive integer to a base-36 string.
+    """
+    if not isinstance(number, int) or number < 0:
+        raise ValueError("Number must be a positive integer")
+
+    chars = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+    if number == 0:
+        return '0'
+
+    result = ''
+    while number > 0:
+        number, remainder = divmod(number, 36)
+        result = chars[remainder] + result
+
+    return result
+
 def generate_short_id(fallback=False):
     """
     Generate a short, sequential alphanumeric ID.
@@ -111,16 +132,19 @@ def generate_short_id(fallback=False):
             max_value = 0
             for short_id in short_ids:
                 try:
+                    # Convert to integer using base-36 (0-9, a-z)
                     value = int(short_id, 36)
                     max_value = max(max_value, value)
                 except ValueError:
                     # Skip IDs that can't be parsed as base-36
                     continue
 
-            # Increment and convert back to base-36
-            value = max_value + 1
-            # Format as base-36, removing '0x' prefix and using lowercase
-            new_id = format(value, 'x')
+            # Increment by 1 in base-36
+            next_value = max_value + 1
+
+            # Convert to base-36 string (using base-36 instead of hex)
+            # This ensures IDs increase by 1 in their displayed form
+            new_id = base36_encode(next_value)
 
             # Ensure at least 2 characters
             if len(new_id) < 2:
@@ -314,8 +338,14 @@ def migrate_to_short_ids():
 
         # Assign sequential short IDs
         for node_id, in nodes:
-            # Format as base-36, removing '0x' prefix and using lowercase
-            short_id = format(next_value, 'x').zfill(2)
+            # Convert to base-36 string (using base-36 instead of hex)
+            # This ensures IDs increase by 1 in their displayed form
+            short_id = base36_encode(next_value)
+
+            # Ensure at least 2 characters
+            if len(short_id) < 2:
+                short_id = short_id.zfill(2)
+
             next_value += 1
 
             c.execute("UPDATE nodes SET short_id = ? WHERE id = ?", (short_id, node_id))

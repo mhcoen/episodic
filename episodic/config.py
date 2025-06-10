@@ -29,6 +29,11 @@ class Config:
             try:
                 with open(self.config_file, 'r') as f:
                     self.config = json.load(f)
+
+                # Ensure debug is set to False by default
+                if "debug" not in self.config:
+                    self.config["debug"] = False
+                    self._save()
             except json.JSONDecodeError:
                 # If the file is corrupted, start with an empty config
                 self.config = {}

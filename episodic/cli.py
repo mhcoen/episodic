@@ -141,7 +141,7 @@ class EpisodicCompleter(Completer):
     def __init__(self):
         # Define all available commands
         self.commands = {
-            'init': {
+            'dbinit': {
                 'help': 'Initialize the database',
                 'args': []
             },
@@ -310,7 +310,7 @@ class EpisodicShell:
 
         # Command handlers
         self.handlers = {
-            'init': self.handle_init,
+            'dbinit': self.handle_db_init,
             'add': self.handle_add,
             'head': self.handle_head,
             'print': self.handle_print,
@@ -388,7 +388,7 @@ class EpisodicShell:
             except Exception as e:
                 print(f"Error: {str(e)}")
 
-    def handle_init(self, args):
+    def handle_db_init(self, args):
         """Initialize the database."""
         if database_exists():
             try:
@@ -1082,6 +1082,9 @@ def main():
 
     This function creates and runs an instance of the EpisodicShell.
     """
+    # Always set debug to False when starting the CLI
+    config.set("debug", False)
+
     shell = EpisodicShell()
     shell.run()
 

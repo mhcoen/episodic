@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("init")
+    subparsers.add_parser("dbinit")
 
     add_parser = subparsers.add_parser("add")
     add_parser.add_argument("content", help="Message content")
@@ -79,7 +79,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "init":
+    if args.command == "dbinit":
         if database_exists():
             print("Database already exists. Do you want to erase it? (yes/no)")
             response = input().strip().lower()

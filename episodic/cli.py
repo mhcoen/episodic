@@ -200,13 +200,18 @@ class EpisodicCompleter(Completer):
             'talk': {
                 'help': 'Enter talk mode for seamless conversation with colored output',
                 'args': ['--model', '--system', '--context-depth']
+            },
+            'debug': {
+                'help': 'Set the debug flag to enable/disable debug output',
+                'args': []
             }
         }
 
         # Special completions for specific arguments
         self.arg_completions = {
             '--model': ['gpt-3.5-turbo', 'gpt-4'],
-            '--parent': ['HEAD', 'HEAD~1', 'HEAD~2']  # Will be dynamically updated
+            '--parent': ['HEAD', 'HEAD~1', 'HEAD~2'],  # Will be dynamically updated
+            'debug': ['on', 'off', 'true', 'false']
         }
 
     def get_completions(self, document, complete_event):
@@ -320,6 +325,7 @@ class EpisodicShell:
             'quit': self.handle_exit,
             'list': self.handle_list,
             'prompts': self.handle_prompts,
+            'debug': self.handle_debug,
         }
 
     def run(self):
@@ -444,8 +450,8 @@ class EpisodicShell:
         if len(args) > 2 and args[1] == "--parent":
             parent = resolve_node_ref(args[2])
 
-        # Insert the node
-        node_id, short_id = insert_node(content, parent)
+        # Insert the node with "user" role
+        node_id, short_id = insert_node(content, parent, role="user")
         set_head(node_id)
         self.current_node_id = node_id
         print(f"Added node {short_id} (UUID: {node_id})")
@@ -587,8 +593,8 @@ class EpisodicShell:
             if parent is None and self.current_node_id:
                 parent = self.current_node_id
 
-            # Store the user query as a node
-            query_node_id, query_short_id = insert_node(prompt, parent)
+            # Store the user query as a node with "user" role
+            query_node_id, query_short_id = insert_node(prompt, parent, role="user")
             print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM
@@ -598,8 +604,8 @@ class EpisodicShell:
                 system_message=system
             )
 
-            # Store the LLM response as a node with the query as its parent
-            response_node_id, response_short_id = insert_node(response, query_node_id)
+            # Store the LLM response as a node with the query as its parent and "assistant" role
+            response_node_id, response_short_id = insert_node(response, query_node_id, role="assistant")
             print(f"Added response node {response_short_id} (UUID: {response_node_id})")
 
             # Update the current node
@@ -669,12 +675,15 @@ class EpisodicShell:
                 if i == 0 and node['parent_id'] is None:
                     continue
 
-                # Alternate between user and assistant roles
-                role = "user" if i % 2 == 0 else "assistant"
+                # Use the stored role if available, otherwise fall back to alternating roles
+                role = node.get('role')
+                if role is None:
+                    # Fallback to alternating roles if role is not stored
+                    role = "user" if i % 2 == 0 else "assistant"
                 context_messages.append({"role": role, "content": node['content']})
 
-            # Store the user query as a node
-            query_node_id, query_short_id = insert_node(prompt, head_id)
+            # Store the user query as a node with "user" role
+            query_node_id, query_short_id = insert_node(prompt, head_id, role="user")
             print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM with context
@@ -685,8 +694,8 @@ class EpisodicShell:
                 system_message=system
             )
 
-            # Store the LLM response as a node with the query as its parent
-            response_node_id, response_short_id = insert_node(response, query_node_id)
+            # Store the LLM response as a node with the query as its parent and "assistant" role
+            response_node_id, response_short_id = insert_node(response, query_node_id, role="assistant")
             print(f"Added response node {response_short_id} (UUID: {response_node_id})")
 
             # Update the current node
@@ -775,12 +784,15 @@ class EpisodicShell:
                         if i == 0 and node['parent_id'] is None:
                             continue
 
-                        # Alternate between user and assistant roles
-                        role = "user" if i % 2 == 0 else "assistant"
+                        # Use the stored role if available, otherwise fall back to alternating roles
+                        role = node.get('role')
+                        if role is None:
+                            # Fallback to alternating roles if role is not stored
+                            role = "user" if i % 2 == 0 else "assistant"
                         context_messages.append({"role": role, "content": node['content']})
 
-                    # Store the user query as a node
-                    query_node_id, query_short_id = insert_node(user_input, head_id)
+                    # Store the user query as a node with "user" role
+                    query_node_id, query_short_id = insert_node(user_input, head_id, role="user")
 
                     # Query the LLM with context
                     response = query_with_context(
@@ -790,8 +802,8 @@ class EpisodicShell:
                         system_message=system
                     )
 
-                    # Store the LLM response as a node with the query as its parent
-                    response_node_id, response_short_id = insert_node(response, query_node_id)
+                    # Store the LLM response as a node with the query as its parent and "assistant" role
+                    response_node_id, response_short_id = insert_node(response, query_node_id, role="assistant")
 
                     # Update the current node and head
                     self.current_node_id = response_node_id
@@ -1037,6 +1049,31 @@ class EpisodicShell:
         """Exit the shell."""
         print("Goodbye!")
         sys.exit(0)
+
+    def handle_debug(self, args):
+        """
+        Set the debug flag to enable/disable debug output.
+
+        Usage:
+            debug on|true    - Enable debug output
+            debug off|false  - Disable debug output
+            debug            - Show current debug status
+        """
+        if not args:
+            # Show current debug status
+            debug_enabled = config.get("debug", False)
+            print(f"Debug mode is currently {'enabled' if debug_enabled else 'disabled'}")
+            return
+
+        value = args[0].lower()
+        if value in ["on", "true"]:
+            config.set("debug", True)
+            print("Debug mode enabled")
+        elif value in ["off", "false"]:
+            config.set("debug", False)
+            print("Debug mode disabled")
+        else:
+            print("Invalid argument. Use 'on', 'true', 'off', or 'false'")
 
 
 def main():

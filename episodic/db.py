@@ -155,7 +155,7 @@ def generate_short_id(fallback=False):
             # Ensure the transaction is committed even if an error occurs
             conn.commit()
 
-def initialize_db(erase=False, create_root_node=True):
+def initialize_db(erase=False, create_root_node=True, migrate=True):
     """
     Initialize the database.
 
@@ -163,6 +163,7 @@ def initialize_db(erase=False, create_root_node=True):
         erase (bool): If True and the database exists, it will be erased.
                      If False and the database exists, it will not be modified.
         create_root_node (bool): If True, creates a default root node if no nodes exist.
+        migrate (bool): If True, run migrations to update the database schema.
     """
     db_path = get_db_path()
     if erase and os.path.exists(db_path):
@@ -176,6 +177,7 @@ def initialize_db(erase=False, create_root_node=True):
                 short_id TEXT UNIQUE,
                 content TEXT NOT NULL,
                 parent_id TEXT,
+                role TEXT,
                 FOREIGN KEY(parent_id) REFERENCES nodes(id)
             )
         """)
@@ -187,6 +189,13 @@ def initialize_db(erase=False, create_root_node=True):
         """)
         conn.commit()
 
+        # Run migrations if requested
+        if migrate:
+            # Migrate short IDs
+            migrate_to_short_ids()
+            # Migrate roles
+            migrate_to_roles()
+
         # Check if we should create a root node and if there are no existing nodes
         if create_root_node:
             c.execute("SELECT COUNT(*) FROM nodes")
@@ -196,21 +205,22 @@ def initialize_db(erase=False, create_root_node=True):
                 # Close the current connection to allow insert_node to create its own
                 conn.commit()
 
-                # Create a default root node with an empty string
-                root_node_id, root_short_id = insert_node("", None)
+                # Create a default root node with an empty string and system role
+                root_node_id, root_short_id = insert_node("", None, role="system")
 
                 # Return the root node ID
                 return root_node_id, root_short_id
 
     return None
 
-def insert_node(content, parent_id=None, max_retries=3):
+def insert_node(content, parent_id=None, role=None, max_retries=3):
     """
     Insert a new node into the database.
 
     Args:
         content: The content of the node
         parent_id: The ID of the parent node (optional)
+        role: The role of the node (e.g., "user", "assistant") (optional)
         max_retries: Maximum number of retries if a duplicate short_id is generated
 
     Returns:
@@ -232,8 +242,8 @@ def insert_node(content, parent_id=None, max_retries=3):
             with get_connection() as conn:
                 c = conn.cursor()
                 c.execute(
-                    "INSERT INTO nodes (id, short_id, content, parent_id) VALUES (?, ?, ?, ?)",
-                    (node_id, short_id, content, parent_id)
+                    "INSERT INTO nodes (id, short_id, content, parent_id, role) VALUES (?, ?, ?, ?, ?)",
+                    (node_id, short_id, content, parent_id, role)
                 )
                 conn.commit()
             set_head(node_id)
@@ -254,14 +264,14 @@ def insert_node(content, parent_id=None, max_retries=3):
 def get_node(node_id):
     with get_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT id, short_id, content, parent_id FROM nodes WHERE id = ?", (node_id,))
+        c.execute("SELECT id, short_id, content, parent_id, role FROM nodes WHERE id = ?", (node_id,))
         row = c.fetchone()
         if not row:
             # Try to find by short_id
-            c.execute("SELECT id, short_id, content, parent_id FROM nodes WHERE short_id = ?", (node_id,))
+            c.execute("SELECT id, short_id, content, parent_id, role FROM nodes WHERE short_id = ?", (node_id,))
             row = c.fetchone()
     if row:
-        return {"id": row[0], "short_id": row[1], "content": row[2], "parent_id": row[3]}
+        return {"id": row[0], "short_id": row[1], "content": row[2], "parent_id": row[3], "role": row[4]}
     return None
 
 def get_ancestry(node_id):
@@ -367,7 +377,7 @@ def get_recent_nodes(limit=5):
     with get_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT id, short_id, content, parent_id
+            SELECT id, short_id, content, parent_id, role
             FROM nodes
             ORDER BY ROWID DESC
             LIMIT ?
@@ -392,12 +402,12 @@ def get_all_nodes():
     Retrieve all nodes from the database.
 
     Returns:
-        List of dictionaries containing node data (id, short_id, content, parent_id)
+        List of dictionaries containing node data (id, short_id, content, parent_id, role)
     """
     try:
         with get_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT id, short_id, content, parent_id FROM nodes")
+            c.execute("SELECT id, short_id, content, parent_id, role FROM nodes")
 
             # Get column names from cursor description
             columns = [desc[0] for desc in c.description]
@@ -541,3 +551,72 @@ def resolve_node_ref(ref):
 
     # If we get here, assume it's already a UUID
     return ref
+
+def migrate_to_roles():
+    """
+    Add role information to existing nodes.
+
+    This function should be called after upgrading to a version that supports roles.
+    It will add the role column to the nodes table if it doesn't exist,
+    and infer roles for all existing nodes based on their position in the conversation.
+
+    Returns:
+        The number of nodes that were updated with roles
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if role column exists
+        c.execute("PRAGMA table_info(nodes)")
+        columns = [info[1] for info in c.fetchall()]
+
+        if 'role' not in columns:
+            # Add the column
+            c.execute("ALTER TABLE nodes ADD COLUMN role TEXT")
+
+        # Get all nodes without roles
+        c.execute("SELECT id FROM nodes WHERE role IS NULL ORDER BY ROWID")
+        nodes_without_roles = [row[0] for row in c.fetchall()]
+
+        if not nodes_without_roles:
+            return 0  # No nodes to update
+
+        # Get all nodes
+        c.execute("SELECT id, parent_id FROM nodes ORDER BY ROWID")
+        all_nodes = {row[0]: row[1] for row in c.fetchall()}
+
+        # Build a tree structure to determine the role of each node
+        node_roles = {}
+        count = 0
+
+        # First, identify root nodes (nodes with no parent)
+        root_nodes = [node_id for node_id, parent_id in all_nodes.items() if parent_id is None]
+
+        # For each root node, assign it the role "system"
+        for node_id in root_nodes:
+            node_roles[node_id] = "system"
+            count += 1
+
+        # For each node with a parent, determine its role based on its parent's role
+        for node_id, parent_id in all_nodes.items():
+            if parent_id is None:
+                continue  # Skip root nodes, already processed
+
+            # If the parent has a role, assign the opposite role
+            if parent_id in node_roles:
+                parent_role = node_roles[parent_id]
+                if parent_role == "user":
+                    node_roles[node_id] = "assistant"
+                elif parent_role == "assistant":
+                    node_roles[node_id] = "user"
+                elif parent_role == "system":
+                    # If the parent is a system message, the child is a user message
+                    node_roles[node_id] = "user"
+                count += 1
+
+        # Update the database with the inferred roles
+        for node_id, role in node_roles.items():
+            c.execute("UPDATE nodes SET role = ? WHERE id = ?", (role, node_id))
+
+        conn.commit()
+        return count

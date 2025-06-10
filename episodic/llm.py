@@ -6,15 +6,16 @@ It handles sending queries to the API and processing the responses.
 import os
 import openai
 from typing import Dict, List, Optional, Any, Union
+from episodic.config import config
 
 # Initialize the OpenAI client with API key from environment variable
 def get_openai_client():
     """
     Initialize and return an OpenAI client using the API key from environment variables.
-    
+
     Returns:
         OpenAI client object
-    
+
     Raises:
         ValueError: If the OPENAI_API_KEY environment variable is not set
     """
@@ -34,33 +35,43 @@ def query_llm(
 ) -> str:
     """
     Send a query to the OpenAI API and return the response.
-    
+
     Args:
         prompt: The user's query to send to the LLM
         model: The OpenAI model to use (default: gpt-3.5-turbo)
         system_message: The system message to set the context for the LLM
         temperature: Controls randomness (0-1, lower is more deterministic)
         max_tokens: Maximum number of tokens in the response
-        
+
     Returns:
         The LLM's response as a string
-        
+
     Raises:
         Exception: If there's an error communicating with the OpenAI API
     """
     try:
         client = get_openai_client()
-        
+
+        # Create messages array
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": prompt}
+        ]
+
+        # Print messages if debug is enabled
+        if config.get("debug", False):
+            print("\n=== DEBUG: Messages sent to LLM ===")
+            for msg in messages:
+                print(f"[{msg['role']}]: {msg['content']}")
+            print("===================================\n")
+
         response = client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt}
-            ],
+            messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
         )
-        
+
         return response.choices[0].message.content
     except Exception as e:
         raise Exception(f"Error querying OpenAI API: {str(e)}")
@@ -75,7 +86,7 @@ def query_with_context(
 ) -> str:
     """
     Send a query to the OpenAI API with conversation context and return the response.
-    
+
     Args:
         prompt: The user's query to send to the LLM
         context_messages: List of previous messages in the conversation
@@ -84,28 +95,35 @@ def query_with_context(
         system_message: The system message to set the context for the LLM
         temperature: Controls randomness (0-1, lower is more deterministic)
         max_tokens: Maximum number of tokens in the response
-        
+
     Returns:
         The LLM's response as a string
-        
+
     Raises:
         Exception: If there's an error communicating with the OpenAI API
     """
     try:
         client = get_openai_client()
-        
+
         # Prepare messages with system message first, then context, then the new prompt
         messages = [{"role": "system", "content": system_message}]
         messages.extend(context_messages)
         messages.append({"role": "user", "content": prompt})
-        
+
+        # Print messages if debug is enabled
+        if config.get("debug", False):
+            print("\n=== DEBUG: Messages sent to LLM ===")
+            for msg in messages:
+                print(f"[{msg['role']}]: {msg['content']}")
+            print("===================================\n")
+
         response = client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
         )
-        
+
         return response.choices[0].message.content
     except Exception as e:
         raise Exception(f"Error querying OpenAI API with context: {str(e)}")

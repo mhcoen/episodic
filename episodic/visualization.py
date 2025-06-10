@@ -14,10 +14,12 @@ from episodic.db import get_connection, get_head
 
 def custom_simple_layout(G):
     """
-    A simple layout algorithm that doesn't require external dependencies.
+    A vertical tree layout algorithm that places the root node at the top center.
 
-    This function creates a basic tree layout for a directed graph.
-    It's used as a fallback when both pygraphviz and numpy are not available.
+    This function creates a balanced tree layout for a directed graph by:
+    1. Placing the root node at the top center
+    2. Positioning children vertically below their parents
+    3. Distributing children horizontally centered under their parent
 
     Args:
         G: A NetworkX DiGraph object
@@ -25,7 +27,6 @@ def custom_simple_layout(G):
     Returns:
         A dictionary mapping node IDs to (x, y) positions
     """
-    # Initialize positions dictionary
     pos = {}
 
     # Find root nodes (nodes with no incoming edges)
@@ -35,26 +36,52 @@ def custom_simple_layout(G):
     if not root_nodes and G.nodes():
         root_nodes = [list(G.nodes())[0]]
 
-    # Initialize a queue for BFS traversal
-    queue = [(node, 0, i) for i, node in enumerate(root_nodes)]
-    visited = set(root_nodes)
+    # Sort root nodes to ensure consistent ordering
+    root_nodes = sorted(root_nodes)
 
-    # Assign positions using BFS
-    while queue:
-        node, level, position = queue.pop(0)
+    # Calculate the maximum width needed at each level
+    level_widths = {}
+    nodes_at_level = {}
 
-        # Assign position: x is horizontal position, y is negative level (to go downward)
-        pos[node] = (position, -level)
+    def calculate_level_info(node, level=0):
+        # Initialize this level if not seen before
+        if level not in nodes_at_level:
+            nodes_at_level[level] = []
+            level_widths[level] = 0
 
-        # Get children (outgoing edges)
-        children = list(G.successors(node))
+        # Add this node to its level
+        nodes_at_level[level].append(node)
 
-        # Add children to queue
-        for i, child in enumerate(children):
-            if child not in visited:
-                # Position children relative to parent
-                queue.append((child, level + 1, position - (len(children) - 1) / 2 + i))
-                visited.add(child)
+        # Update the width needed for this level
+        level_widths[level] += 1
+
+        # Process children recursively
+        # Sort children to ensure consistent ordering
+        children = sorted(list(G.successors(node)))
+        for child in children:
+            calculate_level_info(child, level+1)
+
+    # Calculate level information for each root node
+    for root in root_nodes:
+        calculate_level_info(root)
+
+    # Calculate the maximum width across all levels
+    max_width = max(level_widths.values()) if level_widths else 1
+
+    # Position nodes level by level
+    for level in sorted(nodes_at_level.keys()):
+        # Sort nodes at this level to ensure consistent ordering
+        nodes = sorted(nodes_at_level[level])
+        # Calculate horizontal spacing
+        spacing = max(1.0, max_width / (len(nodes) + 1))
+
+        # Position nodes at this level
+        for i, node in enumerate(nodes):
+            # Center the nodes horizontally
+            x_pos = (i + 1) * spacing - max_width / 2
+            # Position vertically based on level (negative to go downward)
+            y_pos = -level * 2  # Increased vertical spacing
+            pos[node] = (x_pos, y_pos)
 
     # If there are nodes not visited (disconnected components)
     for node in G.nodes():
@@ -74,7 +101,7 @@ def get_all_nodes():
     try:
         with get_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT id, short_id, content, parent_id FROM nodes")
+            c.execute("SELECT id, short_id, content, parent_id FROM nodes ORDER BY ROWID")
 
             # Get column names from cursor description
             columns = [desc[0] for desc in c.description]
@@ -107,6 +134,9 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
     Returns:
         Path to the generated HTML file
     """
+    # Initialize custom_js as an empty string
+    custom_js = ""
+
     # Set default server URL if not provided
     if interactive and server_url is None:
         server_url = "http://127.0.0.1:5000"
@@ -244,11 +274,24 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         showlegend=False,
         hovermode='closest',
         margin=dict(b=20, l=5, r=5, t=40),
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        xaxis=dict(
+            showgrid=False, 
+            zeroline=False, 
+            showticklabels=False,
+            automargin=True,  # Auto-adjust margins
+            autorange=True    # Auto-range to fit all points
+        ),
+        yaxis=dict(
+            showgrid=False, 
+            zeroline=False, 
+            showticklabels=False,
+            automargin=True,  # Auto-adjust margins
+            autorange=True    # Auto-range to fit all points
+        ),
         height=int(height.replace('px', '')),
         width=1000 if width == '100%' else int(width.replace('px', '')),
-        plot_bgcolor='rgba(255,255,255,1)'
+        plot_bgcolor='rgba(255,255,255,1)',
+        autosize=True        # Enable auto-sizing
     )
 
     # Add interactive features if requested
@@ -294,6 +337,11 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         <script>
         // Wait for the plot to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-zoom to fit all nodes on initial load
+            setTimeout(function() {
+                fitGraphToViewport();
+            }, 500);  // Small delay to ensure the plot is fully rendered
+
             // Connect to WebSocket server if enabled, otherwise use polling
             var socket = null;
             var pollingInterval = null;
@@ -618,6 +666,17 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                 }, 500);
             }
 
+            // Function to automatically fit the graph to the viewport
+            function fitGraphToViewport() {
+                var plotDiv = document.querySelector('.plotly-graph-div');
+                if (plotDiv && plotDiv.layout) {
+                    Plotly.relayout(plotDiv, {
+                        'xaxis.autorange': true,
+                        'yaxis.autorange': true
+                    });
+                }
+            }
+
             // Function to update the visualization with new graph data
             function updateVisualization(data) {
                 console.log('%c Updating visualization with data', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;');
@@ -705,6 +764,9 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                     // Blink the update indicator
                     blinkUpdateIndicator();
+
+                    // Auto-zoom to fit all nodes
+                    fitGraphToViewport();
                 } catch (error) {
                     console.error('Error updating visualization:', error);
                     console.error('Error stack:', error.stack);
@@ -851,9 +913,10 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                                 }
 
                                 if (!found) {
-                                    // Use a simple layout algorithm
-                                    nodeX.push(i);
-                                    nodeY.push(Math.floor(i / 5));
+                                    // Use a vertical layout algorithm
+                                    // Position nodes in a vertical column, with the first node at the top
+                                    nodeX.push(0);  // All nodes centered horizontally
+                                    nodeY.push(-i); // Nodes stacked vertically, with increasing depth
                                 }
                             }
                         }
@@ -928,6 +991,9 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                         // Blink the update indicator
                         blinkUpdateIndicator();
+
+                        // Auto-zoom to fit all nodes
+                        fitGraphToViewport();
                     } catch (error) {
                         console.error('Error redrawing visualization:', error);
                         console.error('Error stack:', error.stack);
@@ -1415,7 +1481,12 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                 fig, 
                 full_html=True,
                 include_plotlyjs=True,
-                config={'responsive': True}
+                config={
+                    'responsive': True,
+                    'scrollZoom': True,     # Enable scroll to zoom
+                    'displayModeBar': True, # Show the mode bar with zoom controls
+                    'modeBarButtonsToAdd': ['resetScale']  # Add reset scale button
+                }
             )
 
             # Add DOCTYPE declaration if it's not already present

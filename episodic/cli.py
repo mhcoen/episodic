@@ -477,6 +477,7 @@ class EpisodicShell:
                 print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
             else:
                 print(f"Parent: None")
+            print(f"Role: {node['role'] or 'None'}")
             print(f"Message: {node['content']}")
         else:
             print("Node not found.")
@@ -502,6 +503,7 @@ class EpisodicShell:
                 print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
             else:
                 print(f"Parent: None")
+            print(f"Role: {node['role'] or 'None'}")
             print(f"Message: {node['content']}")
         else:
             print("Node not found.")
@@ -524,6 +526,7 @@ class EpisodicShell:
                     print(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
                 else:
                     print(f"Parent: None")
+                print(f"Role: {node['role'] or 'None'}")
                 print(f"Message: {node['content']}")
             else:
                 print("Node not found.")

@@ -133,17 +133,20 @@ episodic/
 ├── state.py
 └── ...
 
-LLM Integration
+## LLM Integration
 
-Episodic now integrates with OpenAI's chat completion API, allowing you to:
+Episodic integrates with various LLM providers through LiteLLM, allowing you to:
 	•	Query an LLM and store both the query and response in the conversation DAG
 	•	Chat with an LLM using conversation history as context
+	•	Switch between different LLM providers (OpenAI, Anthropic, Ollama, LMStudio, etc.)
 
-To use these features, you need to set your OpenAI API key as an environment variable:
+To use these features with OpenAI (the default provider), you need to set your API key as an environment variable:
 
 ```bash
 export OPENAI_API_KEY=your_api_key_here
 ```
+
+For other providers, see the [OllamaAndLmStudio.md](OllamaAndLmStudio.md) documentation.
 
 Example usage:
 
@@ -391,8 +394,25 @@ The browser-based test provides an interactive experience:
 
 ## Next Steps
 	•	Implement state summarization
-	•	Add support for other LLM providers
 
-License
+## LLM Providers
 
-MIT
+Episodic now supports multiple LLM providers through LiteLLM. See [OllamaAndLmStudio.md](OllamaAndLmStudio.md) for details on using local LLM providers like Ollama and LMStudio.
+
+### Installation for LiteLLM Support
+
+If you've previously installed Episodic and are getting a "No module named 'litellm'" error, you need to reinstall the package to include the new dependencies:
+
+```bash
+pip install -e .
+```
+
+For Ollama support, install with:
+
+```bash
+pip install "litellm[ollama]"
+```
+
+## License
+
+This project is licensed under the terms of the MIT license.

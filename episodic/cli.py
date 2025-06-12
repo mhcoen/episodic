@@ -44,6 +44,7 @@ from episodic.db import (
     get_recent_nodes
 )
 from episodic.llm import query_llm, query_with_context
+from episodic.llm_config import get_current_provider
 from episodic.visualization import visualize_dag
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
@@ -204,14 +205,19 @@ class EpisodicCompleter(Completer):
             'debug': {
                 'help': 'Set the debug flag to enable/disable debug output',
                 'args': []
+            },
+            'llm': {
+                'help': 'Manage LLM models',
+                'args': ['list', 'model', 'add-local', 'local']
             }
         }
 
         # Special completions for specific arguments
         self.arg_completions = {
-            '--model': ['gpt-3.5-turbo', 'gpt-4'],
+            '--model': ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'],
             '--parent': ['HEAD', 'HEAD~1', 'HEAD~2'],  # Will be dynamically updated
-            'debug': ['on', 'off', 'true', 'false']
+            'debug': ['on', 'off', 'true', 'false'],
+            'llm': ['list', 'model', 'add-local', 'local']
         }
 
     def get_completions(self, document, complete_event):
@@ -296,7 +302,7 @@ class EpisodicShell:
 
         # Initialize state
         self.current_node_id = None
-        self.default_model = "gpt-3.5-turbo"
+        self.default_model = "gpt-4o-mini"
 
         # Get the system message from the active prompt
         try:
@@ -326,6 +332,7 @@ class EpisodicShell:
             'list': self.handle_list,
             'prompts': self.handle_prompts,
             'debug': self.handle_debug,
+            'llm': self.handle_llm_providers,
         }
 
     def run(self):
@@ -355,6 +362,19 @@ class EpisodicShell:
                     print(f"Current node: {self.current_node_id}")
         except:
             print("No database found. Use 'init' to create a new database.")
+
+        # Print the current model
+        try:
+            from episodic.llm_config import get_current_provider, get_default_model, ensure_provider_matches_model
+            # Ensure the provider matches the model
+            ensure_provider_matches_model()
+            # Get the current provider and model
+            current_provider = get_current_provider()
+            current_model = get_default_model()
+            print(f"Current model: {current_model} (Provider: {current_provider})")
+        except Exception as e:
+            # If there's an error, just skip printing the model
+            pass
 
         while True:
             try:
@@ -814,7 +834,10 @@ class EpisodicShell:
 
                     # Display the response with colored formatting
                     print("")  # Empty line before response
-                    print(f"\033[36m🤖 {model}:\033[0m")
+                    # Get the current provider to display along with the model
+                    from episodic.llm_config import get_current_provider
+                    provider = get_current_provider()
+                    print(f"\033[36m🤖 {provider}/{model}:\033[0m")
                     print(f"\033[33m{response}\033[0m")
                     print("")  # Empty line after response
 
@@ -1077,6 +1100,189 @@ class EpisodicShell:
             print("Debug mode disabled")
         else:
             print("Invalid argument. Use 'on', 'true', 'off', or 'false'")
+
+    def handle_llm_providers(self, args):
+        """
+        Manage LLM models and view available models by provider.
+        Usage:
+          llm list                  - List all available models by provider
+          llm model <model_name>    - Switch to a specific model
+          llm add-local <name> <path> <backend> - Add a local model
+          llm local <provider>      - Switch to a local provider (ollama or lmstudio)
+        """
+        from episodic.llm_config import (
+            get_current_provider, set_current_provider, 
+            get_available_providers, add_local_model,
+            get_provider_models, get_provider_config,
+            get_default_model, set_default_model,
+            load_config, save_config
+        )
+
+        if not args:
+            # Get and display the current model before showing usage information
+            current_provider = get_current_provider()
+            current_model = get_default_model()
+            print(f"Current model: {current_model} (Provider: {current_provider})")
+            print("")
+
+            # Display usage information
+            print("Usage:")
+            print("  llm list                  - List all available models by provider")
+            print("  llm model <model_name>    - Switch to a specific model")
+            print("  llm add-local <name> <path> <backend> - Add a local model")
+            print("  llm local <provider>      - Switch to a local provider (ollama or lmstudio)")
+            return
+
+        # Extract the subcommand and any additional arguments
+        subcommand_parts = args[0].split()
+        subcommand = subcommand_parts[0]
+
+        # If the subcommand has additional parts, add them back to args
+        if len(subcommand_parts) > 1:
+            args = [subcommand] + subcommand_parts[1:] + args[1:]
+
+        if subcommand == "list":
+            # List all providers and their models
+            current_provider = get_current_provider()
+            current_model = get_default_model()
+            providers = get_available_providers()
+
+            print(f"Current model: {current_model}")
+            print(f"Available LLM models by provider:")
+            for provider, details in providers.items():
+                # Only mark the provider as current if it's the provider of the current model
+                marker = "*" if provider == current_provider else " "
+                print(f"{marker} {provider}:")
+
+                # Print models for this provider
+                models = details.get("models", [])
+                if models:
+                    if provider == "local":
+                        # Local models have name and path
+                        for model in models:
+                            model_name = model.get("name")
+                            # Mark the model as current if it's the current model
+                            model_marker = "*" if model_name == current_model else " "
+                            print(f"  {model_marker} {model_name} (path: {model.get('path')}, backend: {model.get('backend', 'llama.cpp')})")
+                    else:
+                        # Cloud models are just strings
+                        for model in models:
+                            # Mark the model as current if it's the current model
+                            model_marker = "*" if model == current_model else " "
+                            print(f"  {model_marker} {model}")
+                else:
+                    print("  (No models configured)")
+
+                # Print additional provider details if available
+                if provider == "lmstudio" and "api_base" in details:
+                    print(f"  API Base: {details['api_base']}")
+
+        elif subcommand == "model" and len(args) > 1:
+            # Switch to a specific model
+            model_name = args[1]
+            try:
+                set_default_model(model_name)
+                print(f"Switched to model: {model_name}")
+                # Update the default model in the shell
+                self.default_model = model_name
+            except ValueError as e:
+                print(f"Error: {str(e)}")
+                print("Use 'llm list' to see available models")
+
+        elif subcommand == "switch" and len(args) > 1:
+            # Redirect to model command for better user experience
+            provider_or_model = args[1]
+
+            # Check if it's a model name
+            is_model = False
+            model_name = provider_or_model
+            providers = get_available_providers()
+
+            for p_name, p_details in providers.items():
+                models = p_details.get("models", [])
+                if isinstance(models, list):
+                    for model in models:
+                        if (isinstance(model, dict) and model.get("name") == model_name) or \
+                           (isinstance(model, str) and model == model_name):
+                            is_model = True
+                            break
+                if is_model:
+                    break
+
+            if is_model:
+                # It's a model name, so use the model command
+                try:
+                    set_default_model(model_name)
+                    print(f"Switched to model: {model_name}")
+                    # Update the default model in the shell
+                    self.default_model = model_name
+                except ValueError as e:
+                    print(f"Error: {str(e)}")
+                    print("Use 'llm list' to see available models")
+            else:
+                # It's not a model name, suggest using the model command instead
+                print(f"The 'switch' command is deprecated. Please use 'llm model <model_name>' instead.")
+                print(f"If you're trying to use a model from {provider_or_model}, use 'llm list' to see available models.")
+
+        elif subcommand == "add-local" and len(args) > 3:
+            # Add a local model
+            name = args[1]
+            path = args[2]
+            backend = args[3]
+            try:
+                add_local_model(name, path, backend)
+                print(f"Added local model: {name} (path: {path}, backend: {backend})")
+            except Exception as e:
+                print(f"Error adding local model: {str(e)}")
+
+        elif subcommand == "local" and len(args) > 1:
+            # Switch to a model from a local provider (ollama or lmstudio)
+            local_provider = args[1]
+            if local_provider in ["ollama", "lmstudio"]:
+                try:
+                    # Get the available models for this provider
+                    provider_models = get_provider_models(local_provider)
+                    if provider_models:
+                        # Get the first model (handle both string and dict models)
+                        if isinstance(provider_models[0], dict):
+                            default_model = provider_models[0].get("name")
+                        else:
+                            default_model = provider_models[0]
+
+                        # Use set_default_model to switch to this model
+                        set_default_model(default_model)
+                        # Update the default model in the shell
+                        self.default_model = default_model
+
+                        print(f"Switched to model: {default_model} from {local_provider}")
+
+                        # Show available models for this provider
+                        print(f"Available models from {local_provider}:")
+                        for model in provider_models:
+                            if isinstance(model, dict):
+                                print(f"  - {model.get('name')}")
+                            else:
+                                print(f"  - {model}")
+                    else:
+                        print(f"No models available from {local_provider}")
+                except ValueError as e:
+                    print(f"Error: {str(e)}")
+            else:
+                print(f"Unknown local provider: {local_provider}")
+                print("Available local providers: ollama, lmstudio")
+
+        else:
+            # For invalid subcommands or missing arguments, show a more helpful error message
+            if len(args) > 0:
+                print(f"Error: Invalid subcommand or missing arguments for '{args[0]}'.")
+            else:
+                print("Error: Invalid subcommand or missing arguments.")
+
+            print("Usage:")
+            print("  llm list                  - List all available models by provider")
+            print("  llm model <model_name>    - Switch to a specific model")
+            print("  llm add-local <name> <path> <backend> - Add a local model")
+            print("  llm local <provider>      - Switch to a local provider (ollama or lmstudio)")
 
 
 def main():

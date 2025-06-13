@@ -1115,7 +1115,9 @@ class EpisodicShell:
             get_available_providers, add_local_model,
             get_provider_models, get_provider_config,
             get_default_model, set_default_model,
-            load_config, save_config
+            load_config, save_config,
+            has_api_key, get_providers_with_api_keys,
+            LOCAL_PROVIDERS
         )
 
         if not args:
@@ -1147,12 +1149,22 @@ class EpisodicShell:
             current_model = get_default_model()
             providers = get_available_providers()
 
+            # Get providers with API keys
+            providers_with_api_keys = get_providers_with_api_keys()
+
             print(f"Current model: {current_model}")
             print(f"Available LLM models by provider:")
             for provider, details in providers.items():
                 # Only mark the provider as current if it's the provider of the current model
                 marker = "*" if provider == current_provider else " "
-                print(f"{marker} {provider}:")
+
+                # Check if the provider has an API key
+                has_key = providers_with_api_keys.get(provider, False)
+                api_key_status = ""
+                if provider not in LOCAL_PROVIDERS and not has_key:
+                    api_key_status = " (Not selectable - missing API key)"
+
+                print(f"{marker} {provider}{api_key_status}:")
 
                 # Print models for this provider
                 models = details.get("models", [])

@@ -146,7 +146,7 @@ To use these features with OpenAI (the default provider), you need to set your A
 export OPENAI_API_KEY=your_api_key_here
 ```
 
-For other providers, see the [OllamaAndLmStudio.md](OllamaAndLmStudio.md) documentation.
+For other providers, see the [LLMProviders.md](LLMProviders.md) documentation.
 
 Example usage:
 
@@ -397,7 +397,29 @@ The browser-based test provides an interactive experience:
 
 ## LLM Providers
 
-Episodic now supports multiple LLM providers through LiteLLM. See [OllamaAndLmStudio.md](OllamaAndLmStudio.md) for details on using local LLM providers like Ollama and LMStudio.
+Episodic now supports multiple LLM providers through LiteLLM:
+
+- **OpenAI**: The default provider with models like gpt-4o-mini, gpt-4o, and gpt-3.5-turbo
+- **Anthropic**: Claude models including claude-3-opus, claude-3-sonnet, and claude-3-haiku
+- **Groq**: Fast inference with models like llama3-8b-8192, llama3-70b-8192, mixtral-8x7b-32768, and gemma-7b-it
+- **Local Providers**: Ollama and LMStudio for running models locally
+
+See [LLMProviders.md](LLMProviders.md) for details on using various LLM providers including cloud providers like Groq and local options like Ollama and LMStudio.
+
+### Setting Up API Keys
+
+Each provider requires its own API key set as an environment variable:
+
+```bash
+# OpenAI (default provider)
+export OPENAI_API_KEY=your_openai_key_here
+
+# Anthropic
+export ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# Groq
+export GROQ_API_KEY=your_groq_key_here
+```
 
 ### Installation for LiteLLM Support
 

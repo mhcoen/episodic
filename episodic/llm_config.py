@@ -4,10 +4,24 @@ Configuration management for LLM providers.
 import os
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 
 # Default configuration path
 CONFIG_PATH = Path.home() / ".episodic" / "llm_config.json"
+
+# Map of provider names to their corresponding environment variable names
+PROVIDER_API_KEYS = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "google": "GOOGLE_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
+    "cohere": "COHERE_API_KEY",
+    "azure": "AZURE_API_KEY",
+    "groq": "GROQ_API_KEY"
+}
+
+# Local providers that don't require API keys
+LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
 
 def ensure_config_dir():
     """Ensure the configuration directory exists."""
@@ -25,6 +39,9 @@ def get_default_config() -> Dict[str, Any]:
             },
             "anthropic": {
                 "models": ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+            },
+            "groq": {
+                "models": ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"]
             },
             "ollama": {
                 "models": ["llama3", "mistral", "codellama", "phi3"]
@@ -137,6 +154,7 @@ def set_default_model(model_name: str) -> None:
 
     Raises:
         ValueError: If the model is not found in any provider
+        ValueError: If the provider for the model does not have an API key
     """
     config = load_config()
 
@@ -159,10 +177,51 @@ def set_default_model(model_name: str) -> None:
     if not model_exists:
         raise ValueError(f"Model '{model_name}' not found in any provider")
 
+    # Check if the provider has an API key
+    if not has_api_key(provider_for_model):
+        env_var = PROVIDER_API_KEYS.get(provider_for_model)
+        if env_var:
+            raise ValueError(f"Cannot use model '{model_name}' because the API key for {provider_for_model} is not set. "
+                            f"Please set the {env_var} environment variable.")
+        else:
+            raise ValueError(f"Cannot use model '{model_name}' because the API key for {provider_for_model} is not available.")
+
     # Set the default model and its provider
     config["default_model"] = model_name
     config["default_provider"] = provider_for_model
     save_config(config)
+
+def has_api_key(provider: str) -> bool:
+    """
+    Check if the API key for a provider is available.
+
+    Args:
+        provider: The name of the provider to check
+
+    Returns:
+        True if the provider is local or has an API key, False otherwise
+    """
+    # Local providers don't require API keys
+    if provider in LOCAL_PROVIDERS:
+        return True
+
+    # Check if the provider is in the API keys map
+    if provider not in PROVIDER_API_KEYS:
+        return False
+
+    # Check if the environment variable is set
+    env_var = PROVIDER_API_KEYS[provider]
+    return os.environ.get(env_var) is not None
+
+def get_providers_with_api_keys() -> Dict[str, bool]:
+    """
+    Get a dictionary of all providers and whether they have API keys available.
+
+    Returns:
+        A dictionary mapping provider names to booleans indicating if they have API keys
+    """
+    providers = get_available_providers()
+    return {provider: has_api_key(provider) for provider in providers}
 
 def add_local_model(name: str, path: str, backend: str = "llama.cpp") -> None:
     """Add a local model configuration."""

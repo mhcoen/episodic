@@ -20,27 +20,28 @@ def test_llm_integration():
         print("Error: OPENAI_API_KEY environment variable not set.")
         print("Please set it with: export OPENAI_API_KEY=your_api_key_here")
         sys.exit(1)
-    
+
     print("== Testing LLM Integration ==")
-    
+
     # Initialize the database
     print("\n== Initializing DB ==")
     initialize_db()
-    
+
     # Test simple query
     print("\n== Testing simple query ==")
     try:
         prompt = "What is the capital of France?"
         print(f"Query: {prompt}")
-        
-        response = query_llm(prompt)
+
+        response, cost_info = query_llm(prompt)
         print(f"Response: {response}")
-        
+        print(f"Cost info: {cost_info}")
+
         print("\nTest passed: Successfully queried the LLM.")
     except Exception as e:
         print(f"Test failed: {str(e)}")
         sys.exit(1)
-    
+
     # Test query with context
     print("\n== Testing query with context ==")
     try:
@@ -48,19 +49,20 @@ def test_llm_integration():
             {"role": "user", "content": "What is the capital of France?"},
             {"role": "assistant", "content": "The capital of France is Paris."}
         ]
-        
+
         prompt = "Tell me more about this city."
         print(f"Context: {context_messages}")
         print(f"Query: {prompt}")
-        
-        response = query_with_context(prompt, context_messages)
+
+        response, cost_info = query_with_context(prompt, context_messages)
         print(f"Response: {response}")
-        
+        print(f"Cost info: {cost_info}")
+
         print("\nTest passed: Successfully queried the LLM with context.")
     except Exception as e:
         print(f"Test failed: {str(e)}")
         sys.exit(1)
-    
+
     print("\n== All tests passed ==")
 
 if __name__ == "__main__":

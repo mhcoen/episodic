@@ -204,11 +204,14 @@ def main():
                 system_message = manager.get_active_prompt_content(config.get)
 
             # Query the LLM
-            response = query_llm(
+            response, cost_info = query_llm(
                 prompt=args.prompt,
                 model=args.model,
                 system_message=system_message
             )
+            # Display cost information if enabled
+            if config.get("show_cost", False):
+                print(f"\nCost: {cost_info['input_tokens']} input + {cost_info['output_tokens']} output = {cost_info['total_tokens']} tokens (${cost_info['cost_usd']:.6f} USD)")
 
             # Store the LLM response as a node with the query as its parent
             response_node_id, response_short_id = insert_node(response, query_node_id)
@@ -264,12 +267,15 @@ def main():
                 system_message = manager.get_active_prompt_content(config.get)
 
             # Query the LLM with context
-            response = query_with_context(
+            response, cost_info = query_with_context(
                 prompt=args.prompt,
                 context_messages=context_messages,
                 model=args.model,
                 system_message=system_message
             )
+            # Display cost information if enabled
+            if config.get("show_cost", False):
+                print(f"\nCost: {cost_info['input_tokens']} input + {cost_info['output_tokens']} output = {cost_info['total_tokens']} tokens (${cost_info['cost_usd']:.6f} USD)")
 
             # Store the LLM response as a node with the query as its parent
             response_node_id, response_short_id = insert_node(response, query_node_id)

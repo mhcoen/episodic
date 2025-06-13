@@ -656,12 +656,14 @@ class EpisodicShell:
             # Get the current provider to display along with the model
             from episodic.llm_config import get_current_provider
             provider = get_current_provider()
-            print(f"\033[36m🤖 {provider}/{model}:\033[0m")
-            print(response)
 
-            # Display cost information if enabled
+            # Display model info with cost information on the same line if enabled
             if config.get("show_cost", False):
-                print(f"\033[36m({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+                print(f"\033[36m🤖 {provider}/{model}: ({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+            else:
+                print(f"\033[36m🤖 {provider}/{model}:\033[0m")
+
+            print(response)
 
             # Update session cost totals
             self.session_costs["total_input_tokens"] += cost_info["input_tokens"]
@@ -760,12 +762,14 @@ class EpisodicShell:
             # Get the current provider to display along with the model
             from episodic.llm_config import get_current_provider
             provider = get_current_provider()
-            print(f"\033[36m🤖 {provider}/{model}:\033[0m")
-            print(response)
 
-            # Display cost information if enabled
+            # Display model info with cost information on the same line if enabled
             if config.get("show_cost", False):
-                print(f"\033[36m({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+                print(f"\033[36m🤖 {provider}/{model}: ({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+            else:
+                print(f"\033[36m🤖 {provider}/{model}:\033[0m")
+
+            print(response)
 
             # Update session cost totals
             self.session_costs["total_input_tokens"] += cost_info["input_tokens"]
@@ -881,12 +885,14 @@ class EpisodicShell:
                     # Get the current provider to display along with the model
                     from episodic.llm_config import get_current_provider
                     provider = get_current_provider()
-                    print(f"\033[36m🤖 {provider}/{model}:\033[0m")
-                    print(f"\033[33m{response}\033[0m")
 
-                    # Display cost information if enabled
+                    # Display model info with cost information on the same line if enabled
                     if config.get("show_cost", False):
-                        print(f"\033[36m({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+                        print(f"\033[36m🤖 {provider}/{model}: ({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+                    else:
+                        print(f"\033[36m🤖 {provider}/{model}:\033[0m")
+
+                    print(f"\033[33m{response}\033[0m")
 
                     # Update session cost totals
                     self.session_costs["total_input_tokens"] += cost_info["input_tokens"]

@@ -209,9 +209,6 @@ def main():
                 model=args.model,
                 system_message=system_message
             )
-            # Display cost information if enabled
-            if config.get("show_cost", False):
-                print(f"({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)")
 
             # Store the LLM response as a node with the query as its parent
             response_node_id, response_short_id = insert_node(response, query_node_id)
@@ -222,7 +219,13 @@ def main():
             # Get the current provider to display along with the model
             from episodic.llm_config import get_current_provider
             provider = get_current_provider()
-            print(f"\033[36m🤖 {provider}/{args.model}:\033[0m")
+
+            # Display model info with cost information on the same line if enabled
+            if config.get("show_cost", False):
+                print(f"\033[36m🤖 {provider}/{args.model}: ({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+            else:
+                print(f"\033[36m🤖 {provider}/{args.model}:\033[0m")
+
             print(response)
 
         except Exception as e:
@@ -277,9 +280,6 @@ def main():
                 model=args.model,
                 system_message=system_message
             )
-            # Display cost information if enabled
-            if config.get("show_cost", False):
-                print(f"({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)")
 
             # Store the LLM response as a node with the query as its parent
             response_node_id, response_short_id = insert_node(response, query_node_id)
@@ -290,7 +290,13 @@ def main():
             # Get the current provider to display along with the model
             from episodic.llm_config import get_current_provider
             provider = get_current_provider()
-            print(f"\033[36m🤖 {provider}/{args.model}:\033[0m")
+
+            # Display model info with cost information on the same line if enabled
+            if config.get("show_cost", False):
+                print(f"\033[36m🤖 {provider}/{args.model}: ({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+            else:
+                print(f"\033[36m🤖 {provider}/{args.model}:\033[0m")
+
             print(response)
 
         except Exception as e:

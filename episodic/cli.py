@@ -44,6 +44,7 @@ from episodic.db import (
     get_recent_nodes
 )
 from episodic.llm import query_llm, query_with_context
+from litellm import cost_per_token
 from episodic.llm_config import get_current_provider
 from episodic.visualization import visualize_dag
 from episodic.prompt_manager import PromptManager
@@ -1313,7 +1314,27 @@ class EpisodicShell:
                         for model in models:
                             # Mark the model as current if it's the current model
                             model_marker = "*" if model == current_model else " "
-                            print(f"  {model_marker} {model}")
+
+                            # Get cost information using LiteLLM's cost_per_token function
+                            model_with_provider = f"{provider}/{model}"
+                            cost_info = ""
+                            try:
+                                # Calculate cost for 1000 tokens (to get cost per 1K tokens)
+                                input_cost, output_cost = cost_per_token(
+                                    model=model_with_provider,
+                                    prompt_tokens=1000,
+                                    completion_tokens=1000
+                                )
+                                # Multiply by 1000 to get cost per 1K tokens
+                                input_cost *= 1000
+                                output_cost *= 1000
+                                cost_info = f"(${input_cost:.4f}/1K input, ${output_cost:.4f}/1K output tokens)"
+                            except Exception:
+                                # If cost calculation fails, don't show cost information
+                                pass
+
+                            # Use a fixed width for the model name to align the cost information
+                            print(f"  {model_marker} {model:<20}\t{cost_info}")
                 else:
                     print("  (No models configured)")
 

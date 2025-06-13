@@ -35,7 +35,7 @@ def get_default_config() -> Dict[str, Any]:
         "default_model": "gpt-4o-mini",
         "providers": {
             "openai": {
-                "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
+                "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "gpt-4", "gpt-4.5"]
             },
             "anthropic": {
                 "models": ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
@@ -67,7 +67,28 @@ def load_config() -> Dict[str, Any]:
         return default_config
 
     with open(CONFIG_PATH, "r") as f:
-        return json.load(f)
+        config = json.load(f)
+
+    # Check if the OpenAI models list includes "gpt-4" and "gpt-4.5"
+    # If not, add them to ensure they're available
+    if "providers" in config and "openai" in config["providers"]:
+        openai_models = config["providers"]["openai"].get("models", [])
+        models_to_add = []
+
+        if "gpt-4" not in openai_models:
+            models_to_add.append("gpt-4")
+
+        if "gpt-4.5" not in openai_models:
+            models_to_add.append("gpt-4.5")
+
+        if models_to_add:
+            # Add the missing models to the OpenAI models list
+            config["providers"]["openai"]["models"] = openai_models + models_to_add
+            # Save the updated configuration
+            save_config(config)
+            print(f"Added {', '.join(models_to_add)} to OpenAI models list")
+
+    return config
 
 def save_config(config: Dict[str, Any]) -> None:
     """Save LLM configuration to file."""

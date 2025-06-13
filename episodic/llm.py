@@ -9,6 +9,92 @@ import litellm
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
 
+def calculate_cost(response, model_name):
+    """
+    Calculate the cost of an LLM request based on token usage.
+
+    Args:
+        response: The response from litellm.completion
+        model_name: The full model name including provider prefix
+
+    Returns:
+        The calculated cost in USD
+    """
+    # Try to get cost from response first
+    cost = getattr(response, "cost", None)
+    if cost is not None:
+        return cost
+
+    # If cost is not available in response, calculate it manually
+    input_tokens = response.usage.prompt_tokens
+    output_tokens = response.usage.completion_tokens
+
+    # Get model pricing from litellm
+    model_pricing = litellm.model_prices.get(model_name)
+    if model_pricing:
+        input_cost = input_tokens * model_pricing.get("input_cost_per_token", 0)
+        output_cost = output_tokens * model_pricing.get("output_cost_per_token", 0)
+        return input_cost + output_cost
+
+    # If no pricing information is available, try to estimate based on model name
+    if "gpt-4" in model_name:
+        # GPT-4 family pricing (approximate)
+        return (input_tokens * 0.00003) + (output_tokens * 0.00006)
+    elif "gpt-3.5" in model_name:
+        # GPT-3.5 family pricing (approximate)
+        return (input_tokens * 0.000001) + (output_tokens * 0.000002)
+
+    # Default to 0 if we can't determine the cost
+    return 0.0
+
+litellm.model_prices = {
+    # OpenAI models
+    "openai/gpt-4o-mini": {
+        "input_cost_per_token": 0.00001,  # $0.01 per 1K tokens
+        "output_cost_per_token": 0.00003,  # $0.03 per 1K tokens
+    },
+    "openai/gpt-4o": {
+        "input_cost_per_token": 0.00005,  # $0.05 per 1K tokens
+        "output_cost_per_token": 0.00015,  # $0.15 per 1K tokens
+    },
+    "openai/gpt-3.5-turbo": {
+        "input_cost_per_token": 0.0000005,  # $0.0005 per 1K tokens
+        "output_cost_per_token": 0.0000015,  # $0.0015 per 1K tokens
+    },
+
+    # Anthropic models
+    "anthropic/claude-3-opus-20240229": {
+        "input_cost_per_token": 0.00001,  # $0.01 per 1K tokens
+        "output_cost_per_token": 0.00003,  # $0.03 per 1K tokens
+    },
+    "anthropic/claude-3-sonnet-20240229": {
+        "input_cost_per_token": 0.000003,  # $0.003 per 1K tokens
+        "output_cost_per_token": 0.000015,  # $0.015 per 1K tokens
+    },
+    "anthropic/claude-3-haiku-20240307": {
+        "input_cost_per_token": 0.00000025,  # $0.00025 per 1K tokens
+        "output_cost_per_token": 0.00000125,  # $0.00125 per 1K tokens
+    },
+
+    # Groq models
+    "groq/llama3-8b-8192": {
+        "input_cost_per_token": 0.0000002,  # $0.0002 per 1K tokens
+        "output_cost_per_token": 0.0000002,  # $0.0002 per 1K tokens
+    },
+    "groq/llama3-70b-8192": {
+        "input_cost_per_token": 0.0000007,  # $0.0007 per 1K tokens
+        "output_cost_per_token": 0.0000007,  # $0.0007 per 1K tokens
+    },
+    "groq/mixtral-8x7b-32768": {
+        "input_cost_per_token": 0.0000006,  # $0.0006 per 1K tokens
+        "output_cost_per_token": 0.0000006,  # $0.0006 per 1K tokens
+    },
+    "groq/gemma-7b-it": {
+        "input_cost_per_token": 0.0000001,  # $0.0001 per 1K tokens
+        "output_cost_per_token": 0.0000001,  # $0.0001 per 1K tokens
+    }
+}
+
 def get_model_string(model_name: str) -> str:
     """
     Convert a model name to the appropriate format for the current provider.
@@ -111,7 +197,7 @@ def query_llm(
             "input_tokens": response.usage.prompt_tokens,
             "output_tokens": response.usage.completion_tokens,
             "total_tokens": response.usage.total_tokens,
-            "cost_usd": getattr(response, "cost", 0.0)  # LiteLLM provides cost in USD
+            "cost_usd": calculate_cost(response, full_model)  # Calculate cost based on token usage
         }
 
         return response.choices[0].message.content, cost_info
@@ -189,7 +275,7 @@ def query_with_context(
             "input_tokens": response.usage.prompt_tokens,
             "output_tokens": response.usage.completion_tokens,
             "total_tokens": response.usage.total_tokens,
-            "cost_usd": getattr(response, "cost", 0.0)  # LiteLLM provides cost in USD
+            "cost_usd": calculate_cost(response, full_model)  # Calculate cost based on token usage
         }
 
         return response.choices[0].message.content, cost_info

@@ -311,6 +311,14 @@ class EpisodicShell:
         self.current_node_id = None
         self.default_model = "gpt-4o-mini"
 
+        # Initialize session cost tracking
+        self.session_costs = {
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_tokens": 0,
+            "total_cost_usd": 0.0
+        }
+
         # Get the system message from the active prompt
         try:
             manager = PromptManager()
@@ -643,17 +651,23 @@ class EpisodicShell:
             self.current_node_id = response_node_id
             set_head(response_node_id)
 
-            # Display the response
+            # Display the response with model information
             print("\nLLM Response:")
+            # Get the current provider to display along with the model
+            from episodic.llm_config import get_current_provider
+            provider = get_current_provider()
+            print(f"\033[36m🤖 {provider}/{model}:\033[0m")
             print(response)
 
             # Display cost information if enabled
             if config.get("show_cost", False):
-                print("\nCost Information:")
-                print(f"Input tokens: {cost_info['input_tokens']}")
-                print(f"Output tokens: {cost_info['output_tokens']}")
-                print(f"Total tokens: {cost_info['total_tokens']}")
-                print(f"Cost: ${cost_info['cost_usd']:.6f} USD")
+                print(f"\033[36m({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+
+            # Update session cost totals
+            self.session_costs["total_input_tokens"] += cost_info["input_tokens"]
+            self.session_costs["total_output_tokens"] += cost_info["output_tokens"]
+            self.session_costs["total_tokens"] += cost_info["total_tokens"]
+            self.session_costs["total_cost_usd"] += cost_info["cost_usd"]
 
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -741,17 +755,23 @@ class EpisodicShell:
             self.current_node_id = response_node_id
             set_head(response_node_id)
 
-            # Display the response
+            # Display the response with model information
             print("\nLLM Response:")
+            # Get the current provider to display along with the model
+            from episodic.llm_config import get_current_provider
+            provider = get_current_provider()
+            print(f"\033[36m🤖 {provider}/{model}:\033[0m")
             print(response)
 
             # Display cost information if enabled
             if config.get("show_cost", False):
-                print("\nCost Information:")
-                print(f"Input tokens: {cost_info['input_tokens']}")
-                print(f"Output tokens: {cost_info['output_tokens']}")
-                print(f"Total tokens: {cost_info['total_tokens']}")
-                print(f"Cost: ${cost_info['cost_usd']:.6f} USD")
+                print(f"\033[36m({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+
+            # Update session cost totals
+            self.session_costs["total_input_tokens"] += cost_info["input_tokens"]
+            self.session_costs["total_output_tokens"] += cost_info["output_tokens"]
+            self.session_costs["total_tokens"] += cost_info["total_tokens"]
+            self.session_costs["total_cost_usd"] += cost_info["cost_usd"]
 
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -866,11 +886,13 @@ class EpisodicShell:
 
                     # Display cost information if enabled
                     if config.get("show_cost", False):
-                        print("\n\033[36mCost Information:\033[0m")
-                        print(f"\033[36mInput tokens: {cost_info['input_tokens']}\033[0m")
-                        print(f"\033[36mOutput tokens: {cost_info['output_tokens']}\033[0m")
-                        print(f"\033[36mTotal tokens: {cost_info['total_tokens']}\033[0m")
-                        print(f"\033[36mCost: ${cost_info['cost_usd']:.6f} USD\033[0m")
+                        print(f"\033[36m({cost_info['input_tokens']}_in + {cost_info['output_tokens']}_out = {cost_info['total_tokens']}_tokens ${cost_info['cost_usd']:.6f} USD)\033[0m")
+
+                    # Update session cost totals
+                    self.session_costs["total_input_tokens"] += cost_info["input_tokens"]
+                    self.session_costs["total_output_tokens"] += cost_info["output_tokens"]
+                    self.session_costs["total_tokens"] += cost_info["total_tokens"]
+                    self.session_costs["total_cost_usd"] += cost_info["cost_usd"]
 
                     print("")  # Empty line after response
 
@@ -1106,6 +1128,14 @@ class EpisodicShell:
 
     def handle_exit(self, args):
         """Exit the shell."""
+        # Display total cost information for the session
+        if self.session_costs["total_tokens"] > 0:
+            print("\nSession Cost Information:")
+            print(f"Total input tokens: {self.session_costs['total_input_tokens']}")
+            print(f"Total output tokens: {self.session_costs['total_output_tokens']}")
+            print(f"Total tokens: {self.session_costs['total_tokens']}")
+            print(f"Total cost: ${self.session_costs['total_cost_usd']:.6f} USD")
+
         print("Goodbye!")
         sys.exit(0)
 
@@ -1150,7 +1180,13 @@ class EpisodicShell:
             print(f"depth: {self.default_context_depth} - Default context depth for chat/talk commands")
             return
 
-        param = args[0].lower()
+        # Extract the parameter and any additional arguments
+        param_parts = args[0].split()
+        param = param_parts[0].lower()
+
+        # If the parameter has additional parts, add them back to args
+        if len(param_parts) > 1:
+            args = [param] + param_parts[1:] + args[1:]
 
         # Handle 'cost' parameter
         if param == "cost":

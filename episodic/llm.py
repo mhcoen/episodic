@@ -48,7 +48,7 @@ def query_llm(
     system_message: str = "You are a helpful assistant.",
     temperature: float = 0.7,
     max_tokens: int = 1000
-) -> str:
+) -> tuple[str, dict]:
     """
     Send a query to an LLM provider via LiteLLM and return the response.
 
@@ -60,7 +60,9 @@ def query_llm(
         max_tokens: Maximum number of tokens in the response
 
     Returns:
-        The LLM's response as a string
+        A tuple containing:
+        - The LLM's response as a string
+        - A dictionary with cost information (input_tokens, output_tokens, total_tokens, cost_usd)
 
     Raises:
         Exception: If there's an error communicating with the LLM provider
@@ -104,7 +106,15 @@ def query_llm(
                 max_tokens=max_tokens
             )
 
-        return response.choices[0].message.content
+        # Extract cost information
+        cost_info = {
+            "input_tokens": response.usage.prompt_tokens,
+            "output_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+            "cost_usd": getattr(response, "cost", 0.0)  # LiteLLM provides cost in USD
+        }
+
+        return response.choices[0].message.content, cost_info
     except Exception as e:
         raise Exception(f"Error querying LLM API: {str(e)}")
 
@@ -115,7 +125,7 @@ def query_with_context(
     system_message: str = "You are a helpful assistant.",
     temperature: float = 0.7,
     max_tokens: int = 1000
-) -> str:
+) -> tuple[str, dict]:
     """
     Send a query to an LLM provider with conversation context and return the response.
 
@@ -129,7 +139,9 @@ def query_with_context(
         max_tokens: Maximum number of tokens in the response
 
     Returns:
-        The LLM's response as a string
+        A tuple containing:
+        - The LLM's response as a string
+        - A dictionary with cost information (input_tokens, output_tokens, total_tokens, cost_usd)
 
     Raises:
         Exception: If there's an error communicating with the LLM provider
@@ -172,7 +184,15 @@ def query_with_context(
                 max_tokens=max_tokens
             )
 
-        return response.choices[0].message.content
+        # Extract cost information
+        cost_info = {
+            "input_tokens": response.usage.prompt_tokens,
+            "output_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+            "cost_usd": getattr(response, "cost", 0.0)  # LiteLLM provides cost in USD
+        }
+
+        return response.choices[0].message.content, cost_info
     except Exception as e:
         raise Exception(f"Error querying LLM API with context: {str(e)}")
 
@@ -180,7 +200,7 @@ def query_with_context(
 def get_openai_client():
     """
     Initialize and return an OpenAI client using the API key from environment variables.
-    
+
     This function is maintained for backward compatibility.
 
     Returns:

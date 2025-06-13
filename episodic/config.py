@@ -41,7 +41,8 @@ class Config:
             # If the file doesn't exist, create it with default values
             self.config = {
                 "active_prompt": "default",
-                "debug": False
+                "debug": False,
+                "show_cost": False
             }
             self._save()
 

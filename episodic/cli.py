@@ -209,6 +209,10 @@ class EpisodicCompleter(Completer):
             'llm': {
                 'help': 'Manage LLM models',
                 'args': ['list', 'model', 'add-local', 'local']
+            },
+            'set': {
+                'help': 'Configure various parameters',
+                'args': ['cost', 'depth']
             }
         }
 
@@ -217,7 +221,10 @@ class EpisodicCompleter(Completer):
             '--model': ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'],
             '--parent': ['HEAD', 'HEAD~1', 'HEAD~2'],  # Will be dynamically updated
             'debug': ['on', 'off', 'true', 'false'],
-            'llm': ['list', 'model', 'add-local', 'local']
+            'llm': ['list', 'model', 'add-local', 'local'],
+            'set': ['cost', 'depth'],
+            'cost': ['on', 'off', 'true', 'false'],
+            'depth': ['3', '5', '10', '20', '50']
         }
 
     def get_completions(self, document, complete_event):
@@ -333,6 +340,7 @@ class EpisodicShell:
             'prompts': self.handle_prompts,
             'debug': self.handle_debug,
             'llm': self.handle_llm_providers,
+            'set': self.handle_set,
         }
 
     def run(self):
@@ -621,7 +629,7 @@ class EpisodicShell:
             print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM
-            response = query_llm(
+            response, cost_info = query_llm(
                 prompt=prompt,
                 model=model,
                 system_message=system
@@ -638,6 +646,14 @@ class EpisodicShell:
             # Display the response
             print("\nLLM Response:")
             print(response)
+
+            # Display cost information if enabled
+            if config.get("show_cost", False):
+                print("\nCost Information:")
+                print(f"Input tokens: {cost_info['input_tokens']}")
+                print(f"Output tokens: {cost_info['output_tokens']}")
+                print(f"Total tokens: {cost_info['total_tokens']}")
+                print(f"Cost: ${cost_info['cost_usd']:.6f} USD")
 
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -710,7 +726,7 @@ class EpisodicShell:
             print(f"Added query node {query_short_id} (UUID: {query_node_id})")
 
             # Query the LLM with context
-            response = query_with_context(
+            response, cost_info = query_with_context(
                 prompt=prompt,
                 context_messages=context_messages,
                 model=model,
@@ -728,6 +744,14 @@ class EpisodicShell:
             # Display the response
             print("\nLLM Response:")
             print(response)
+
+            # Display cost information if enabled
+            if config.get("show_cost", False):
+                print("\nCost Information:")
+                print(f"Input tokens: {cost_info['input_tokens']}")
+                print(f"Output tokens: {cost_info['output_tokens']}")
+                print(f"Total tokens: {cost_info['total_tokens']}")
+                print(f"Cost: ${cost_info['cost_usd']:.6f} USD")
 
         except Exception as e:
             print(f"Error: {str(e)}")
@@ -818,7 +842,7 @@ class EpisodicShell:
                     query_node_id, query_short_id = insert_node(user_input, head_id, role="user")
 
                     # Query the LLM with context
-                    response = query_with_context(
+                    response, cost_info = query_with_context(
                         prompt=user_input,
                         context_messages=context_messages,
                         model=model,
@@ -839,6 +863,15 @@ class EpisodicShell:
                     provider = get_current_provider()
                     print(f"\033[36m🤖 {provider}/{model}:\033[0m")
                     print(f"\033[33m{response}\033[0m")
+
+                    # Display cost information if enabled
+                    if config.get("show_cost", False):
+                        print("\n\033[36mCost Information:\033[0m")
+                        print(f"\033[36mInput tokens: {cost_info['input_tokens']}\033[0m")
+                        print(f"\033[36mOutput tokens: {cost_info['output_tokens']}\033[0m")
+                        print(f"\033[36mTotal tokens: {cost_info['total_tokens']}\033[0m")
+                        print(f"\033[36mCost: ${cost_info['cost_usd']:.6f} USD\033[0m")
+
                     print("")  # Empty line after response
 
                     # Update head_id for the next iteration
@@ -1100,6 +1133,63 @@ class EpisodicShell:
             print("Debug mode disabled")
         else:
             print("Invalid argument. Use 'on', 'true', 'off', or 'false'")
+
+    def handle_set(self, args):
+        """
+        Configure various parameters.
+
+        Usage:
+            set                  - Show all configurable parameters and their current values
+            set cost on|off      - Enable/disable displaying cost information for LLM queries
+            set depth <number>   - Set the default context depth for chat/talk commands
+        """
+        if not args:
+            # Show all configurable parameters and their current values
+            show_cost = config.get("show_cost", False)
+            print(f"cost: {'on' if show_cost else 'off'} - Display cost information for LLM queries")
+            print(f"depth: {self.default_context_depth} - Default context depth for chat/talk commands")
+            return
+
+        param = args[0].lower()
+
+        # Handle 'cost' parameter
+        if param == "cost":
+            if len(args) < 2:
+                show_cost = config.get("show_cost", False)
+                print(f"Cost display is currently {'enabled' if show_cost else 'disabled'}")
+                return
+
+            value = args[1].lower()
+            if value in ["on", "true"]:
+                config.set("show_cost", True)
+                print("Cost display enabled")
+            elif value in ["off", "false"]:
+                config.set("show_cost", False)
+                print("Cost display disabled")
+            else:
+                print("Invalid value for cost. Use 'on', 'off', 'true', or 'false'")
+
+        # Handle 'depth' parameter
+        elif param == "depth":
+            if len(args) < 2:
+                print(f"Current default context depth: {self.default_context_depth}")
+                return
+
+            try:
+                depth = int(args[1])
+                if depth < 0:
+                    print("Context depth must be a non-negative integer")
+                else:
+                    self.default_context_depth = depth
+                    print(f"Default context depth set to {depth}")
+            except ValueError:
+                print("Invalid value for depth. Please provide a non-negative integer")
+
+        # Handle unknown parameter
+        else:
+            print(f"Unknown parameter: {param}")
+            print("Available parameters: cost, depth")
+            print("Use 'set' without arguments to see all parameters and their current values")
 
     def handle_llm_providers(self, args):
         """

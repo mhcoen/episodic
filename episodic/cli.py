@@ -382,10 +382,18 @@ class EpisodicShell:
 
         # Print the current model
         try:
-            from episodic.llm_config import get_current_provider, get_default_model, ensure_provider_matches_model
-            # Ensure the provider matches the model
-            ensure_provider_matches_model()
-            # Get the current provider and model
+            from episodic.llm_config import get_current_provider, get_default_model, set_default_model
+            # Get the current model
+            current_model = get_default_model()
+            # Set the default model to ensure proper initialization
+            try:
+                set_default_model(current_model)
+                # Update the default model in the shell
+                self.default_model = current_model
+            except ValueError:
+                # If there's an error setting the model, just continue
+                pass
+            # Get the current provider and model after initialization
             current_provider = get_current_provider()
             current_model = get_default_model()
             print(f"Current model: {current_model} (Provider: {current_provider})")

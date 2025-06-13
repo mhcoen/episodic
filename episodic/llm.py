@@ -38,6 +38,10 @@ def get_model_string(model_name: str) -> str:
     elif provider == "lmstudio":
         return model_name
 
+    # For Ollama, prepend the provider name
+    elif provider == "ollama":
+        return f"ollama/{model_name}"
+
     # For cloud providers, prepend the provider name if not already included
     if "/" not in model_name:
         return f"{provider}/{model_name}"
@@ -89,7 +93,7 @@ def query_llm(
         # Get the full model string with provider prefix
         full_model = get_model_string(model)
 
-        # Handle LMStudio specially since it needs an api_base
+        # Handle providers that need special configuration
         if provider == "lmstudio":
             provider_config = get_provider_config("lmstudio")
             response = litellm.completion(
@@ -98,6 +102,16 @@ def query_llm(
                 api_base=provider_config.get("api_base"),
                 temperature=temperature,
                 max_tokens=max_tokens
+            )
+        elif provider == "ollama":
+            # Ollama needs api_base parameter and stream parameter
+            response = litellm.completion(
+                model=full_model,
+                messages=messages,
+                api_base="http://localhost:11434",  # Default Ollama API endpoint
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False  # Explicitly set stream to False
             )
         else:
             # Call LiteLLM for other providers
@@ -174,7 +188,7 @@ def query_with_context(
         # Get the full model string with provider prefix
         full_model = get_model_string(model)
 
-        # Handle LMStudio specially since it needs an api_base
+        # Handle providers that need special configuration
         if provider == "lmstudio":
             provider_config = get_provider_config("lmstudio")
             response = litellm.completion(
@@ -183,6 +197,16 @@ def query_with_context(
                 api_base=provider_config.get("api_base"),
                 temperature=temperature,
                 max_tokens=max_tokens
+            )
+        elif provider == "ollama":
+            # Ollama needs api_base parameter and stream parameter
+            response = litellm.completion(
+                model=full_model,
+                messages=messages,
+                api_base="http://localhost:11434",  # Default Ollama API endpoint
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False  # Explicitly set stream to False
             )
         else:
             # Call LiteLLM for other providers

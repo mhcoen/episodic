@@ -11,6 +11,12 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+This will install all required dependencies, including:
+- **prompt_toolkit**: For the interactive interface
+- **typer**: For the command-line interface
+- **litellm**: For LLM provider integration
+- Other dependencies for visualization and database functionality
+
 ## Running Episodic
 
 After installation, you can start Episodic with:

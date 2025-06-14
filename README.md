@@ -9,7 +9,7 @@ Episodic is a persistent, navigable memory system for interacting with generativ
 ## Key Features
 
 - Persistent storage of conversations using SQLite
-- CLI tool and interactive shell for managing conversations
+- Simplified CLI with a talk-first interface and command access via "/" prefix
 - Branching conversations with easy navigation
 - Integration with various LLM providers (OpenAI, Anthropic, Ollama, etc.)
 - Interactive visualization of conversation graphs
@@ -24,13 +24,16 @@ cd episodic
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
+pip install typer  # Required for the new CLI
 
 # Set up your API key (for LLM integration)
 export OPENAI_API_KEY=your_api_key_here
 
-# Initialize and start using
-episodic init
-episodic-shell
+# Start the application
+python -m episodic
+
+# In the talk mode:
+> /init  # Initialize the database
 ```
 
 ## Example Usage
@@ -38,40 +41,49 @@ episodic-shell
 ### Basic Conversation Flow
 
 ```bash
-# Start the interactive shell
-episodic-shell
+# Start the application
+python -m episodic
 
-# In the shell (notice no quotes needed):
-episodic> add Hello, I'd like to explore quantum computing
-Added node 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
+# In the talk mode (notice the / prefix for commands):
+> Hello, I'd like to explore quantum computing
+🤖 openai/gpt-3.5-turbo:
+I'd be happy to explore quantum computing with you! It's a fascinating field that combines physics, computer science, and mathematics. What specific aspects of quantum computing would you like to learn about? For example, we could discuss:
 
-episodic> query What is quantum superposition?
-Added query node 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
-Added response node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
+1. Basic principles of quantum mechanics relevant to computing
+2. Quantum bits (qubits) and how they differ from classical bits
+3. Quantum gates and circuits
+4. Quantum algorithms like Shor's or Grover's
+5. Current state of quantum hardware
+6. Potential applications and impact
+7. Challenges in quantum computing
 
-LLM Response:
+Let me know what interests you most!
+
+> What is quantum superposition?
+🤖 openai/gpt-3.5-turbo:
 Quantum superposition is a fundamental principle of quantum mechanics...
 
 # Branch the conversation to explore a different topic
-episodic> goto 01
+> /head 01
 Current node changed to: 01
 
-episodic> query Tell me about quantum entanglement instead
-Added query node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
-Added response node 05 (UUID: 7eb28a0d-cf42-6e5e-e3e4-c28f7eb28a0d)
+> Tell me about quantum entanglement instead
+🤖 openai/gpt-3.5-turbo:
+Quantum entanglement is a fascinating phenomenon in quantum physics...
 
 # Visualize the conversation graph
-episodic> visualize --native
+> /visualize
 ```
 
 ### Visualization Demo
 
 ```bash
-# In a separate terminal, start the visualization server
-episodic visualize
+# In the talk mode, start the visualization server
+> /visualize
 
-# Then continue using the CLI in another terminal
-episodic-shell
+# The visualization will open in your browser
+# Continue the conversation in the same terminal
+> Tell me more about quantum computing
 ```
 
 ## Documentation

@@ -2,76 +2,70 @@
 
 This document covers advanced features and usage patterns for Episodic.
 
-## Interactive Shell
+## Talk Mode Interface
 
-Episodic includes an interactive shell for a more fluid user experience:
+Episodic now uses a simplified CLI structure where the talk loop is the main interface, and commands are accessed by prefixing them with a "/" character.
 
 ```bash
-# Launch the interactive shell (after installing with pip)
-episodic-shell
-
-# Launch the interactive shell using the Python module syntax
-python -m episodic.cli
+# Start the application
+python -m episodic
 ```
 
-The interactive shell provides several advantages over the command-line interface:
+The talk mode interface provides several advantages:
 
 - **Persistent State**: Maintains context between commands, including the current node
 - **Command History**: Remembers commands between sessions
-- **Auto-completion**: Suggests commands and arguments as you type (press Tab)
-- **Syntax Highlighting**: Makes commands more readable
+- **Auto-suggestion**: Suggests commands and messages as you type
+- **Syntax Highlighting**: Makes commands and responses more readable
 - **Help System**: Built-in documentation for all commands
-- **No Quotation Marks Required**: Arguments are automatically parsed based on command flags (--)
+- **Seamless Conversation**: Chat with the LLM without any special commands
+- **Easy Command Access**: Access commands with the "/" prefix
 
-### Example Usage in the Shell
+### Example Usage in Talk Mode
 
-The following examples show what you'll see after launching the interactive shell. The `episodic>` prompt is displayed by the shell itself, and you only need to type the commands that follow it:
+The following examples show what you'll see in the talk mode interface:
 
 ```
-episodic> init
+> /init
 Database initialized with a default root node (ID: 01, UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9).
 
-episodic> add Hello, world.
+> /add Hello, world.
 Added node 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
 
-episodic> show
+> /show 02
 Node ID: 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
 Parent: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 Message: Hello, world.
 
-episodic> goto 01
+> /head 01
 Current node changed to: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 
-episodic> query What is the capital of France? --model gpt-4
-Added query node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
-Added response node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
-
-LLM Response:
+> What is the capital of France?
+🤖 openai/gpt-3.5-turbo:
 The capital of France is Paris. It's one of the world's major global cities and...
 
-episodic> list
+> /list
 Recent nodes (showing 5 of 5 requested):
 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc): The capital of France is Paris. It's one of the world...
 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb): What is the capital of France?
 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da): Hello, world.
 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9): 
 
-episodic> help
+> /help
 Available commands:
-  add         - Add a new node with content
-  ancestry    - Show the ancestry of a node
-  chat        - Chat with an LLM using conversation history
-  exit        - Exit the shell
-  goto        - Change the current node
-  help        - Show help for a command or list all commands
-  init        - Initialize the database
-  list        - List recent nodes
-  query       - Query an LLM and store the result
-  quit        - Exit the shell
-  show        - Show a specific node
-  visualize   - Create an interactive visualization of the conversation DAG
+  /help                - Show this help message
+  /exit, /quit         - Exit the application
+  /init [--erase]      - Initialize the database (--erase to erase existing)
+  /add <content>       - Add a new node with the given content
+  /show <node_id>      - Show details of a specific node
+  /head [node_id]      - Show current node or change to specified node
+  /list [--count N]    - List recent nodes (default: 5)
+  /ancestry <node_id>  - Trace the ancestry of a node
+  /visualize           - Visualize the conversation DAG
+  /model               - Show or change the current model
+  /prompts             - Manage system prompts
 
-Type 'help <command>' for more information on a specific command.
+Type a message without a leading / to chat with the LLM.
 ```
 
 ## LLM Integration
@@ -84,25 +78,31 @@ Episodic integrates with various LLM providers through LiteLLM, allowing you to:
 ### Example LLM Usage
 
 ```bash
-# Send a one-off query to the LLM
-episodic query "What is the capital of France?"
-Added query node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
-Added response node 04 (UUID: 6da179fc-be31-5f4d-d2d3-b17e6da179fc)
+# Simply type your message to chat with the LLM
+> What is the capital of France?
+🤖 openai/gpt-3.5-turbo:
+The capital of France is Paris. It's one of the world's major global cities and...
 
 # Continue a conversation with context from previous messages
-episodic chat "Tell me more about its history."
-Added query node 05 (UUID: 7eb28a0d-cf42-6e5e-e3e4-c28f7eb28a0d)
-Added response node 06 (UUID: 8fc39b1e-d053-7f6f-f4f5-d3908fc39b1e)
+> Tell me more about its history.
+🤖 openai/gpt-3.5-turbo:
+Paris has a rich history dating back to ancient times. It was originally founded...
 
-# Specify a different model
-episodic query --model gpt-4 "Explain quantum computing."
-Added query node 07 (UUID: 90d4ac2f-e164-8g7g-g5g6-e4a190d4ac2f)
-Added response node 08 (UUID: a1e5bd30-f275-9h8h-h6h7-f5b2a1e5bd30)
+# Specify a different model using the /model command
+> /model gpt-4
+Switched to model: gpt-4 (Provider: openai)
 
-# Customize the system message
-episodic query --system "You are a helpful coding assistant." "How do I write a Python function?"
-Added query node 09 (UUID: b2f6ce41-g386-ai9i-i7i8-g6c3b2f6ce41)
-Added response node 0a (UUID: c3g7df52-h497-bj0j-j8j9-h7d4c3g7df52)
+> Explain quantum computing.
+🤖 openai/gpt-4:
+Quantum computing is a type of computing that uses quantum-mechanical phenomena...
+
+# Customize the system message using the /prompts command
+> /prompts use coding_assistant
+Now using prompt: coding_assistant - A helpful coding assistant
+
+> How do I write a Python function?
+🤖 openai/gpt-3.5-turbo:
+In Python, you define a function using the `def` keyword followed by the function name...
 ```
 
 For more details on LLM providers, see the [LLM Providers](./LLMProviders.md) documentation.
@@ -113,23 +113,23 @@ One of Episodic's key features is the ability to branch conversations and naviga
 
 ```bash
 # Start a conversation
-episodic add "Hello, world."
+> /add Hello, world.
 Added node 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 
 # Add a child node
-episodic add "This is branch A."
+> /add This is branch A.
 Added node 02 (UUID: 4b8f57da-9c1f-4d2b-b0b1-9f5c4b8f57da)
 
 # Go back to the root node
-episodic goto 01
+> /head 01
 Current node changed to: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 
 # Create a different branch
-episodic add "This is branch B."
+> /add This is branch B.
 Added node 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb)
 
 # View the ancestry of a node to see its thread history
-episodic ancestry 03
+> /ancestry 03
 03 (UUID: 5c9068eb-ad20-4e3c-c1c2-a06d5c9068eb): This is branch B.
 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9): Hello, world.
 ```

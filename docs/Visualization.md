@@ -8,13 +8,13 @@ The default visualization opens in your web browser:
 
 ```bash
 # Generate and open an interactive visualization in your browser
-episodic visualize
+> /visualize
 
 # Save the visualization to a specific file
-episodic visualize --output conversation.html
+> /visualize --output conversation.html
 
 # Generate the visualization without opening it in a browser
-episodic visualize --no-browser
+> /visualize --no-browser
 ```
 
 ## Native Window Visualization
@@ -23,10 +23,10 @@ Episodic also supports displaying the visualization in a native window instead o
 
 ```bash
 # Open the visualization in a native window
-episodic visualize --native
+> /visualize --native
 
 # Customize the window size
-episodic visualize --native --width 1200 --height 900
+> /visualize --native --width 1200 --height 900
 ```
 
 The native window visualization provides the same features as the browser-based visualization but in a standalone application window, which can be more convenient for some users.
@@ -42,44 +42,40 @@ Both visualization methods allow you to:
 - Double-click on a node to make it the current node
 - Right-click on a node to delete it and all its descendants
 
-## Using CLI and Visualization Together
+## Using Visualization with Talk Mode
 
-To use the CLI while having the visualization open, you need to run two separate processes:
-
-### Step 1: Start the Visualization in One Terminal
+The visualization can be used directly from the talk mode interface:
 
 ```bash
-# Open the browser-based visualization
-episodic visualize
+# Start the application
+python -m episodic
 
-# Or open the native visualization window
-episodic visualize --native
+# In the talk mode, start the visualization
+> /visualize
 ```
 
-This will open the visualization and block that terminal until the visualization is closed or you press Ctrl+C.
+The visualization will open in your browser, and you can continue using the talk mode interface in the same terminal. This allows you to:
 
-### Step 2: Run the Interactive Shell in Another Terminal
+1. Chat with the LLM and see the conversation graph update in real-time
+2. Use commands like `/head` to navigate to different nodes
+3. See the effects of your actions immediately in the visualization
+4. Interact with the visualization (e.g., double-click on nodes) and see the changes reflected in the talk mode
 
-Open a new terminal window and run:
+This integrated approach provides a seamless experience where you can both converse with the LLM and visually explore the conversation structure at the same time.
+
+### Multiple Visualization Windows
+
+You can also open the visualization in a separate terminal if you prefer:
 
 ```bash
-# If installed with pip
-episodic-shell
+# In a separate terminal
+python -m episodic
 
-# Or using the Python module syntax
-python -m episodic.cli
+# Then immediately start the visualization
+> /visualize
 ```
 
-### How They Work Together
-
-Both the visualization and the CLI access the same database, so:
-
-1. Changes made in the CLI (adding nodes, changing the current node) will be reflected in the visualization
-2. Changes made in the visualization (setting current node, deleting nodes) will be reflected in the CLI
-3. The visualization automatically polls for updates, so you'll see your changes appear in real-time
-4. You can keep both open simultaneously for a more interactive workflow
-
-This approach gives you the best of both worlds: visual exploration of your conversation graph and powerful command-line control.
+This allows you to have multiple visualization windows open at the same time, each showing the same conversation graph but potentially focused on different parts of it.
 
 ## Technical Notes
 
@@ -103,5 +99,5 @@ This approach gives you the best of both worlds: visual exploration of your conv
   - Detailed error handling and logging for troubleshooting
 - **Server Port**: If you encounter an "Address already in use" error (common on macOS where AirPlay uses port 5000), you can specify a different port:
   ```bash
-  episodic visualize --port 5001
+  > /visualize --port 5001
   ```

@@ -68,7 +68,7 @@ def get_default_config() -> Dict[str, Any]:
 def get_model_string(model_name: str) -> str:
     """Convert model name to LiteLLM format based on provider."""
     provider = get_current_provider()
-    
+
     # Handle different provider types
     if provider == "lmstudio":
         # For LMStudio, we need to set the API base in the call
@@ -124,9 +124,30 @@ response = litellm.completion(
 
 Groq is known for its extremely fast inference speeds, making it a good choice for applications where response time is critical.
 
-## CLI Command for Switching Between Providers
+## Switching Between Providers in Talk Mode
 
-Add a command to easily switch between your providers:
+You can easily switch between providers using the `/model` command in talk mode:
+
+```bash
+# List available models
+> /model
+Current model: gpt-3.5-turbo (Provider: openai)
+
+Available models from openai:
+  - gpt-4o-mini
+  - gpt-4o
+  - gpt-3.5-turbo
+
+# Switch to a specific model
+> /model gpt-4o
+Switched to model: gpt-4o (Provider: openai)
+
+# Switch to a local provider like Ollama
+> /model llama3
+Switched to model: llama3 (Provider: ollama)
+```
+
+The implementation of this feature in the code looks like:
 
 ```python
 # In your handle_llm_providers method

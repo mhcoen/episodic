@@ -2,12 +2,25 @@
 
 This document provides a comprehensive reference for all Episodic CLI commands.
 
+Episodic now uses a simplified CLI structure where the talk loop is the main interface, and commands are accessed by prefixing them with a "/" character.
+
+## Starting the Application
+
+```bash
+python -m episodic
+```
+
+This starts the application in talk mode, where you can chat with the LLM and use commands.
+
 ## Basic Commands
+
+All commands are prefixed with a "/" character in the talk mode.
 
 ### Initialize the Database
 
 ```bash
-episodic init
+/init
+/init --erase  # Erase existing database
 ```
 
 Creates a new database or resets an existing one.
@@ -15,7 +28,8 @@ Creates a new database or resets an existing one.
 ### Add a Message
 
 ```bash
-episodic add "Your message here"
+/add Your message here
+/add --parent 01 Your message here  # Add as child of specific node
 ```
 
 Adds a new node with the specified content as a child of the current node.
@@ -23,8 +37,7 @@ Adds a new node with the specified content as a child of the current node.
 ### Show a Node
 
 ```bash
-episodic show <node_id>
-episodic show HEAD  # Shows the current node
+/show <node_id>
 ```
 
 Displays the content and metadata of the specified node.
@@ -32,7 +45,7 @@ Displays the content and metadata of the specified node.
 ### Change the Current Node
 
 ```bash
-episodic goto <node_id>
+/head <node_id>
 ```
 
 Changes the current node to the specified node.
@@ -40,8 +53,8 @@ Changes the current node to the specified node.
 ### List Recent Nodes
 
 ```bash
-episodic list
-episodic list --count 10  # Show 10 most recent nodes
+/list
+/list --count 10  # Show 10 most recent nodes
 ```
 
 Lists the most recent nodes in the database.
@@ -49,85 +62,70 @@ Lists the most recent nodes in the database.
 ### Show Ancestry
 
 ```bash
-episodic ancestry <node_id>
+/ancestry <node_id>
 ```
 
 Shows the ancestry (thread history) of the specified node.
 
-## LLM Integration Commands
+## LLM Integration
 
-### Query an LLM
-
-```bash
-episodic query "Your question here"
-episodic query --model gpt-4 "Your question here"
-episodic query --system "Custom system message" "Your question here"
-```
-
-Sends a one-off query to the LLM and stores both the query and response in the conversation DAG.
-
-### Chat with an LLM
+In the talk mode, you can simply type your message without any command prefix to chat with the LLM. The system will automatically use the conversation history as context.
 
 ```bash
-episodic chat "Your message here"
-episodic chat --model claude-3-opus "Your message here"
+> What is quantum computing?
+🤖 openai/gpt-3.5-turbo:
+Quantum computing is a type of computing that uses quantum-mechanical phenomena...
 ```
 
-Continues a conversation with context from previous messages.
+### Change the Model
+
+```bash
+/model
+/model gpt-4
+```
+
+Shows the current model or changes to a different model.
 
 ## Visualization Commands
 
 ### Generate Visualization
 
 ```bash
-episodic visualize
-episodic visualize --output conversation.html
-episodic visualize --no-browser
-episodic visualize --port 5001
+/visualize
+/visualize --output conversation.html
+/visualize --no-browser
+/visualize --port 5001
 ```
 
 Generates and opens an interactive visualization of the conversation DAG.
 
-### Native Window Visualization
+## Talk Mode Interface
+
+The talk mode is now the main interface for Episodic. It provides a fluid user experience with command history, auto-suggestion, and a simple way to interact with the LLM.
 
 ```bash
-episodic visualize --native
-episodic visualize --native --width 1200 --height 900
+# Start the application
+python -m episodic
 ```
 
-Opens the visualization in a native window instead of a web browser.
-
-## Interactive Shell
-
-The interactive shell provides a more fluid user experience with command history, auto-completion, and syntax highlighting.
-
-```bash
-# After installation
-episodic-shell
-
-# Before installation (or without installation)
-python -m episodic.cli
-```
-
-In the shell, you can use all the commands without quotation marks:
+In the talk mode:
+- Type a message without any prefix to chat with the LLM
+- Use the "/" prefix to access commands
 
 ```
-episodic> add Hello, world.
-episodic> query What is the capital of France?
-episodic> goto 01
+> Hello, world!
+🤖 openai/gpt-3.5-turbo:
+Hello! How can I assist you today?
+
+> /help
+Available commands:
+  /help                - Show this help message
+  /exit, /quit         - Exit the application
+  /init [--erase]      - Initialize the database (--erase to erase existing)
+  ...
 ```
 
-Use `help` to see all available commands:
-
-```
-episodic> help
-```
-
-Or get help for a specific command:
-
-```
-episodic> help query
-```
+The talk mode uses the [Typer](https://typer.tiangolo.com/) package for command handling and [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/) for the interactive interface.
 
 ## Short Node IDs
 
@@ -135,23 +133,23 @@ Episodic uses short, human-readable IDs for nodes in addition to the traditional
 
 - Are 2-3 characters long (alphanumeric, base-36 encoding)
 - Are sequential, making it easy to understand the order of creation
-- Can be used anywhere a node ID is required (show, ancestry, parent references)
+- Can be used anywhere a node ID is required (/show, /ancestry, --parent references)
 - Make it much easier to reference nodes in the command line
 
 Example:
 
 ```bash
 # Adding a node shows both the short ID and UUID
-$ episodic add "Hello, world."
+> /add Hello, world.
 Added node 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 
 # You can reference nodes using the short ID
-$ episodic show 01
+> /show 01
 Node ID: 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9)
 Parent: None
 Message: Hello, world.
 
 # Short IDs are also shown in ancestry
-$ episodic ancestry 01
+> /ancestry 01
 01 (UUID: 3a7e46c9-8b0e-4c1a-9f0a-8e5b3a7e46c9): Hello, world.
 ```

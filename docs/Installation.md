@@ -11,27 +11,27 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Running Episodic Commands
+## Running Episodic
 
-There are two ways to run Episodic commands:
-
-### Before Installation (or without installation)
-
-Use the Python module syntax:
+After installation, you can start Episodic with:
 
 ```bash
-python -m episodic <command> [arguments]
+# If installed with pip
+episodic
+
+# Or using the Python module syntax
+python -m episodic
 ```
 
-### After Installation
-
-After installing the package with pip (as shown above), you can use the direct command:
+This will start Episodic in talk mode, where you can chat with the LLM and use commands with the "/" prefix:
 
 ```bash
-episodic <command> [arguments]
+> /help                # Show available commands
+> /init                # Initialize the database
+> Hello, world!        # Chat with the LLM
 ```
 
-This works because pip automatically creates executable wrapper scripts for the entry points defined in setup.py.
+The talk mode is now the main interface for Episodic, providing a seamless experience for both conversation and command execution.
 
 ## LLM Integration Setup
 

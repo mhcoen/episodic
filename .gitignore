@@ -1,5 +1,12 @@
 /episodic.db
 
+# Python package files
+*.egg-info/
+*.egg
+
+# IDE files
+.idea/sqldialects.xml
+
 # Emacs backup files
 \#*
 *~

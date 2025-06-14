@@ -356,6 +356,7 @@ class EpisodicShell:
         """Run the interactive shell."""
         print("Welcome to the Episodic interactive shell.")
         print("Type 'help' to see available commands or 'exit' to quit.")
+        print("You can also use the '/' prefix for commands, e.g., '/help'.")
 
         # Print the active prompt
         try:
@@ -410,6 +411,11 @@ class EpisodicShell:
                 if not text.strip():
                     continue
 
+                # Check if the input starts with a slash (/)
+                if text.startswith('/'):
+                    # Remove the slash and get the command
+                    text = text[1:].strip()
+
                 # Parse the input without requiring quotation marks
                 args = parse_command_line(text)
                 command = args[0].lower() if args else ""
@@ -419,7 +425,7 @@ class EpisodicShell:
                     self.handlers[command](args[1:])
                 else:
                     print(f"Unknown command: {command}")
-                    print("Type 'help' to see available commands.")
+                    print("Type 'help' or '/help' to see available commands.")
 
             except KeyboardInterrupt:
                 # Handle Ctrl+C
@@ -990,7 +996,8 @@ class EpisodicShell:
             print("Available commands:")
             for cmd, info in sorted(self.session.completer.commands.items()):
                 print(f"  {cmd:<12} - {info['help']}")
-            print("\nType 'help <command>' for more information on a specific command.")
+            print("\nCommands can also be prefixed with a slash, e.g., '/help', '/exit'.")
+            print("Type 'help <command>' or '/help <command>' for more information on a specific command.")
         else:
             # Show help for a specific command
             command = args[0].lower()

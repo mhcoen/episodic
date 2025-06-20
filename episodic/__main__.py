@@ -12,9 +12,9 @@ from episodic.config import config
 # This comment was added to demonstrate file editing capabilities
 
 def main():
-    # Import and use the new CLI
-    from episodic.new_cli import main as new_main
-    new_main()
+    # Import and use the CLI
+    from episodic.cli import main as cli_main
+    cli_main()
 
 if __name__ == "__main__":
     main()

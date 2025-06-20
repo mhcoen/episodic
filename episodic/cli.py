@@ -26,6 +26,7 @@ current_node_id = None
 default_model = "gpt-3.5-turbo"
 default_system = "You are a helpful assistant."
 default_context_depth = 5
+model_list = None  # List to store available models for number-based selection
 session_costs = {
     "total_input_tokens": 0,
     "total_output_tokens": 0,
@@ -222,9 +223,12 @@ def list(count: int = typer.Option(5, "--count", "-c", help="Number of recent no
 @app.command()
 def handle_model(name: Optional[str] = None):
     """Show or change the current model."""
-    global default_model
+    global default_model, model_list
 
     from episodic.llm_config import get_provider_models, set_default_model
+
+    # Create a list to store all models with their details
+    all_models = []
 
     if not name:
         # Show current model and available models
@@ -236,6 +240,7 @@ def handle_model(name: Optional[str] = None):
         try:
             # Get all available providers
             providers = get_available_providers()
+            model_number = 1  # Start numbering from 1
 
             # Process all providers and collect model information
             for display_provider, provider_details in providers.items():
@@ -289,27 +294,70 @@ def handle_model(name: Optional[str] = None):
 
                 # First display priced models (sorted by price)
                 for model_name, cost_info, _ in priced_models:
-                    typer.echo(f"  - {model_name:<20}\t{cost_info}")
+                    typer.echo(f"  {model_number:2}. {model_name:<20}\t{cost_info}")
+                    all_models.append((model_name, display_provider))
+                    model_number += 1
 
                 # Then display free models
                 for model_name, cost_info in free_models:
-                    typer.echo(f"  - {model_name:<20}\t{cost_info}")
+                    typer.echo(f"  {model_number:2}. {model_name:<20}\t{cost_info}")
+                    all_models.append((model_name, display_provider))
+                    model_number += 1
 
                 # Finally display models without pricing
                 for model_name, cost_info in no_price_models:
-                    typer.echo(f"  - {model_name:<20}\t{cost_info}")
+                    typer.echo(f"  {model_number:2}. {model_name:<20}\t{cost_info}")
+                    all_models.append((model_name, display_provider))
+                    model_number += 1
+
+            # Store the model list in a global variable for reference
+            model_list = all_models
 
         except Exception as e:
             typer.echo(f"Error retrieving models: {str(e)}")
     else:
-        # Change the model
+        # Check if the input is a number
         try:
-            set_default_model(name)
-            default_model = name
-            provider = get_current_provider()
-            typer.echo(f"Switched to model: {name} (Provider: {provider})")
-        except ValueError as e:
-            typer.echo(f"Error: {str(e)}")
+            model_index = int(name) - 1  # Convert to 0-based index
+
+            # Get the model list if it doesn't exist
+            if model_list is None:
+                # If model_list is None, we need to populate it first
+                typer.echo("Loading available models...")
+                # Populate the model list without recursion
+                providers = get_available_providers()
+                temp_model_list = []
+
+                for display_provider, provider_details in providers.items():
+                    provider_models = provider_details.get("models", [])
+                    if not provider_models:
+                        continue
+
+                    for model in provider_models:
+                        model_name = model.get('name') if isinstance(model, dict) else model
+                        temp_model_list.append((model_name, display_provider))
+
+                model_list = temp_model_list
+
+            # Check if the index is valid
+            if 0 <= model_index < len(model_list):
+                model_name, provider_name = model_list[model_index]
+                # Change the model
+                set_default_model(model_name)
+                default_model = model_name
+                provider = get_current_provider()
+                typer.echo(f"Switched to model: {model_name} (Provider: {provider})")
+            else:
+                typer.echo(f"Error: Invalid model number. Please enter a number between 1 and {len(model_list)}")
+        except ValueError:
+            # If not a number, treat as a model name
+            try:
+                set_default_model(name)
+                default_model = name
+                provider = get_current_provider()
+                typer.echo(f"Switched to model: {name} (Provider: {provider})")
+            except ValueError as e:
+                typer.echo(f"Error: {str(e)}")
 
 @app.command()
 def ancestry(node_id: str):
@@ -419,6 +467,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"Unknown parameter: {param}")
         typer.echo("Available parameters: cost, depth, debug")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
+
 
 @app.command()
 def verify():

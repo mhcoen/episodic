@@ -50,7 +50,7 @@ jiter==0.10.0
 jsonpickle==4.1.1
 jsonschema==4.24.0
 jsonschema-specifications==2025.4.1
-litellm==1.72.4
+litellm==1.72.7
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 matplotlib-inline==0.1.7

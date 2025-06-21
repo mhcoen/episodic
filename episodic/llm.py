@@ -11,25 +11,31 @@ from litellm.caching import Cache
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
 
-# Replace the existing caching initialization with this:
-from litellm import Cache
-
-# Initialize context caching with in-memory cache
-# This will be enabled by default but can be toggled via CLI
-if config.get("use_context_cache", True):
-    try:
-        cache = Cache(
-            type="local",
-            cache_responses=True,
-            cache_time=3600  # Cache entries expire after 1 hour
-        )
-        litellm.cache = cache
-    except Exception as e:
-        print(f"Warning: Failed to initialize cache: {str(e)}")
-
-# Default setting for context caching (enabled by default)
+# Set default configuration value for context caching (enabled by default)
 if config.get("use_context_cache") is None:
     config.set("use_context_cache", True)
+
+def initialize_cache():
+    """
+    Initialize the LiteLLM cache with in-memory cache.
+    This will be called once at module initialization.
+    """
+    if config.get("use_context_cache", True):
+        try:
+            cache = Cache(
+                type="local",
+                cache_responses=True,
+                cache_time=3600  # Cache entries expire after 1 hour
+            )
+            litellm.cache = cache
+            return True
+        except Exception as e:
+            print(f"Warning: Failed to initialize cache: {str(e)}")
+            return False
+    return False
+
+# Initialize cache on module load
+initialize_cache()
 
 
 def get_model_string(model_name: str) -> str:

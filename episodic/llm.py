@@ -148,16 +148,56 @@ def query_llm(
     return _execute_llm_query(messages, model, temperature, max_tokens)
 
 def query_with_context(
-    prompt: str,
-    context_messages: List[Dict[str, str]],
+    node_id: str,
     model: str = "gpt-4o-mini",
     system_message: str = "You are a helpful assistant.",
     temperature: float = 0.7,
-    max_tokens: int = 1000
+    max_tokens: int = 1000,
+    context_depth: int = 5
 ) -> tuple[str, dict]:
+    """
+    Query the LLM with context from the conversation history.
+
+    Args:
+        node_id: The ID of the node to use as the starting point for context
+        model: The model to use for the query
+        system_message: The system message to include at the beginning of the context
+        temperature: The temperature to use for the query
+        max_tokens: The maximum number of tokens to generate
+        context_depth: The number of ancestor nodes to include in the context
+
+    Returns:
+        A tuple of (response_text, cost_info)
+    """
+    from episodic.db import get_node, get_ancestry
+
+    # Get the node and its content
+    node = get_node(node_id)
+    if not node:
+        raise ValueError(f"Node {node_id} not found")
+
+    prompt = node["content"]
+
+    # Get the ancestry of the node
+    ancestry = get_ancestry(node_id)
+
+    # Limit the ancestry to the specified depth
+    if context_depth > 0:
+        ancestry = ancestry[-context_depth:]
+
+    # Build the context messages from the ancestry
+    context_messages = []
+    for ancestor in ancestry[:-1]:  # Exclude the current node
+        context_messages.append({
+            "role": ancestor.get("role", "user"),
+            "content": ancestor.get("content", "")
+        })
+
+    # Build the messages list
     messages = [{"role": "system", "content": system_message}]
     messages.extend(context_messages)
     messages.append({"role": "user", "content": prompt})
+
     return _execute_llm_query(messages, model, temperature, max_tokens)
 
 # Backward compatibility for code that might be using get_openai_client directly

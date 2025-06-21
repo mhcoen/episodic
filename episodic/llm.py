@@ -7,8 +7,29 @@ import os
 from typing import Dict, List, Optional, Any, Union
 import litellm
 from litellm import cost_per_token
+from litellm.caching import Cache
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
+
+# Replace the existing caching initialization with this:
+from litellm import Cache
+
+# Initialize context caching with in-memory cache
+# This will be enabled by default but can be toggled via CLI
+if config.get("use_context_cache", True):
+    try:
+        cache = Cache(
+            type="local",
+            cache_responses=True,
+            cache_time=3600  # Cache entries expire after 1 hour
+        )
+        litellm.cache = cache
+    except Exception as e:
+        print(f"Warning: Failed to initialize cache: {str(e)}")
+
+# Default setting for context caching (enabled by default)
+if config.get("use_context_cache") is None:
+    config.set("use_context_cache", True)
 
 
 def get_model_string(model_name: str) -> str:
@@ -48,98 +69,77 @@ def get_model_string(model_name: str) -> str:
 
     return model_name
 
+def _execute_llm_query(
+    messages: List[Dict[str, str]],
+    model: str,
+    temperature: float,
+    max_tokens: int
+) -> tuple[str, dict]:
+    """
+    Internal function to execute LLM queries.
+    """
+    provider = get_current_provider()
+    full_model = get_model_string(model)
+
+    if config.get("debug", False):
+        print("\n=== DEBUG: Messages sent to LLM ===")
+        for msg in messages:
+            print(f"[{msg['role']}]: {msg['content']}")
+        print("===================================\n")
+
+    # Provider-specific handling
+    if provider == "lmstudio":
+        provider_config = get_provider_config("lmstudio")
+        response = litellm.completion(
+            model=full_model,
+            messages=messages,
+            api_base=provider_config.get("api_base"),
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+    elif provider == "ollama":
+        provider_config = get_provider_config("ollama")
+        response = litellm.completion(
+            model=full_model,
+            messages=messages,
+            api_base=provider_config.get("api_base"),
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False
+        )
+    else:
+        response = litellm.completion(
+            model=full_model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+
+    total_cost = sum(cost_per_token(
+        model=full_model,
+        prompt_tokens=response.usage.prompt_tokens,
+        completion_tokens=response.usage.completion_tokens
+    ))
+
+    return response.choices[0].message.content, {
+        "input_tokens": response.usage.prompt_tokens,
+        "output_tokens": response.usage.completion_tokens,
+        "total_tokens": response.usage.total_tokens,
+        "cost_usd": total_cost
+    }
+
 def query_llm(
-    prompt: str, 
+    prompt: str,
     model: str = "gpt-4o-mini",
     system_message: str = "You are a helpful assistant.",
     temperature: float = 0.7,
     max_tokens: int = 1000
 ) -> tuple[str, dict]:
-    """
-    Send a query to an LLM provider via LiteLLM and return the response.
-
-    Args:
-        prompt: The user's query to send to the LLM
-        model: The model to use (default: gpt-4o-mini)
-        system_message: The system message to set the context for the LLM
-        temperature: Controls randomness (0-1, lower is more deterministic)
-        max_tokens: Maximum number of tokens in the response
-
-    Returns:
-        A tuple containing:
-        - The LLM's response as a string
-        - A dictionary with cost information (input_tokens, output_tokens, total_tokens, cost_usd)
-
-    Raises:
-        Exception: If there's an error communicating with the LLM provider
-    """
-    try:
-        # Create messages array
-        messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": prompt}
-        ]
-
-        # Print messages if debug is enabled
-        if config.get("debug", False):
-            print("\n=== DEBUG: Messages sent to LLM ===")
-            for msg in messages:
-                print(f"[{msg['role']}]: {msg['content']}")
-            print("===================================\n")
-
-        # Get the current provider
-        provider = get_current_provider()
-
-        # Get the full model string with provider prefix
-        full_model = get_model_string(model)
-
-        # Handle providers that need special configuration
-        if provider == "lmstudio":
-            provider_config = get_provider_config("lmstudio")
-            response = litellm.completion(
-                model=full_model,
-                messages=messages,
-                api_base=provider_config.get("api_base"),
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-        elif provider == "ollama":
-            # Ollama needs api_base parameter and stream parameter
-            response = litellm.completion(
-                model=full_model,
-                messages=messages,
-                api_base="http://localhost:11434",  # Default Ollama API endpoint
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False  # Explicitly set stream to False
-            )
-        else:
-            # Call LiteLLM for other providers
-            response = litellm.completion(
-                model=full_model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-
-        # Extract cost information
-        # Calculate cost using LiteLLM's cost_per_token function
-        total_cost = sum(cost_per_token(
-            model=full_model,
-            prompt_tokens=response.usage.prompt_tokens,
-            completion_tokens=response.usage.completion_tokens
-        ))
-
-        cost_info = {
-            "input_tokens": response.usage.prompt_tokens,
-            "output_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-            "cost_usd": total_cost
-        }
-
-        return response.choices[0].message.content, cost_info
-    except Exception as e:
-        raise Exception(f"Error querying LLM API: {str(e)}")
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": prompt}
+    ]
+    return _execute_llm_query(messages, model, temperature, max_tokens)
 
 def query_with_context(
     prompt: str,
@@ -149,92 +149,10 @@ def query_with_context(
     temperature: float = 0.7,
     max_tokens: int = 1000
 ) -> tuple[str, dict]:
-    """
-    Send a query to an LLM provider with conversation context and return the response.
-
-    Args:
-        prompt: The user's query to send to the LLM
-        context_messages: List of previous messages in the conversation
-                         [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
-        model: The model to use (default: gpt-4o-mini)
-        system_message: The system message to set the context for the LLM
-        temperature: Controls randomness (0-1, lower is more deterministic)
-        max_tokens: Maximum number of tokens in the response
-
-    Returns:
-        A tuple containing:
-        - The LLM's response as a string
-        - A dictionary with cost information (input_tokens, output_tokens, total_tokens, cost_usd)
-
-    Raises:
-        Exception: If there's an error communicating with the LLM provider
-    """
-    try:
-        # Prepare messages with system message first, then context, then the new prompt
-        messages = [{"role": "system", "content": system_message}]
-        messages.extend(context_messages)
-        messages.append({"role": "user", "content": prompt})
-
-        # Print messages if debug is enabled
-        if config.get("debug", False):
-            print("\n=== DEBUG: Messages sent to LLM ===")
-            for msg in messages:
-                print(f"[{msg['role']}]: {msg['content']}")
-            print("===================================\n")
-
-        # Get the current provider
-        provider = get_current_provider()
-
-        # Get the full model string with provider prefix
-        full_model = get_model_string(model)
-
-        # Handle providers that need special configuration
-        if provider == "lmstudio":
-            provider_config = get_provider_config("lmstudio")
-            response = litellm.completion(
-                model=full_model,
-                messages=messages,
-                api_base=provider_config.get("api_base"),
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-        elif provider == "ollama":
-            # Ollama needs api_base parameter and stream parameter
-            response = litellm.completion(
-                model=full_model,
-                messages=messages,
-                api_base="http://localhost:11434",  # Default Ollama API endpoint
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False  # Explicitly set stream to False
-            )
-        else:
-            # Call LiteLLM for other providers
-            response = litellm.completion(
-                model=full_model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-
-        # Extract cost information
-        # Calculate cost using LiteLLM's cost_per_token function
-        total_cost = sum(cost_per_token(
-            model=full_model,
-            prompt_tokens=response.usage.prompt_tokens,
-            completion_tokens=response.usage.completion_tokens
-        ))
-
-        cost_info = {
-            "input_tokens": response.usage.prompt_tokens,
-            "output_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-            "cost_usd": total_cost
-        }
-
-        return response.choices[0].message.content, cost_info
-    except Exception as e:
-        raise Exception(f"Error querying LLM API with context: {str(e)}")
+    messages = [{"role": "system", "content": system_message}]
+    messages.extend(context_messages)
+    messages.append({"role": "user", "content": prompt})
+    return _execute_llm_query(messages, model, temperature, max_tokens)
 
 # Backward compatibility for code that might be using get_openai_client directly
 def get_openai_client():
@@ -250,6 +168,7 @@ def get_openai_client():
         ValueError: If the OPENAI_API_KEY environment variable is not set
     """
     import openai
+
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError(

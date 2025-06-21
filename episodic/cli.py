@@ -419,6 +419,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  cost: {config.get('show_cost', False)}")
         typer.echo(f"  depth: {default_context_depth}")
         typer.echo(f"  debug: {config.get('debug', False)}")
+        typer.echo(f"  cache: {config.get('use_context_cache', True)}")
         return
 
     # Handle the 'cost' parameter
@@ -462,10 +463,23 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("debug", val)
             typer.echo(f"Debug mode: {'ON' if val else 'OFF'}")
 
+    # Handle the 'cache' parameter for context caching
+    elif param.lower() == "cache":
+        if not value:
+            # Toggle the current value if no value is provided
+            current = config.get("use_context_cache", True)
+            config.set("use_context_cache", not current)
+            typer.echo(f"Context caching: {'ON' if not current else 'OFF'}")
+        else:
+            # Set to the provided value
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("use_context_cache", val)
+            typer.echo(f"Context caching: {'ON' if val else 'OFF'}")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, depth, debug")
+        typer.echo("Available parameters: cost, depth, debug, cache")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -608,7 +622,7 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    typer.echo("  /set [param] [value] - Configure parameters (cost, depth, debug)")
+    typer.echo("  /set [param] [value] - Configure parameters (cost, depth, debug, cache)")
     typer.echo("  /prompts             - Manage system prompts")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")

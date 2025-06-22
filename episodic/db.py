@@ -178,6 +178,8 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 content TEXT NOT NULL,
                 parent_id TEXT,
                 role TEXT,
+                provider TEXT,
+                model TEXT,
                 FOREIGN KEY(parent_id) REFERENCES nodes(id)
             )
         """)
@@ -195,6 +197,8 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
             migrate_to_short_ids()
             # Migrate roles
             migrate_to_roles()
+            # Migrate provider and model
+            migrate_to_provider_model()
 
         # Check if we should create a root node and if there are no existing nodes
         if create_root_node:
@@ -213,7 +217,7 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
 
     return None
 
-def insert_node(content, parent_id=None, role=None, max_retries=3):
+def insert_node(content, parent_id=None, role=None, provider=None, model=None, max_retries=3):
     """
     Insert a new node into the database.
 
@@ -221,6 +225,8 @@ def insert_node(content, parent_id=None, role=None, max_retries=3):
         content: The content of the node
         parent_id: The ID of the parent node (optional)
         role: The role of the node (e.g., "user", "assistant") (optional)
+        provider: The provider that generated this node (e.g., "openai", "anthropic") (optional)
+        model: The specific model that generated this node (e.g., "gpt-4", "claude-3") (optional)
         max_retries: Maximum number of retries if a duplicate short_id is generated
 
     Returns:
@@ -242,8 +248,8 @@ def insert_node(content, parent_id=None, role=None, max_retries=3):
             with get_connection() as conn:
                 c = conn.cursor()
                 c.execute(
-                    "INSERT INTO nodes (id, short_id, content, parent_id, role) VALUES (?, ?, ?, ?, ?)",
-                    (node_id, short_id, content, parent_id, role)
+                    "INSERT INTO nodes (id, short_id, content, parent_id, role, provider, model) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (node_id, short_id, content, parent_id, role, provider, model)
                 )
                 conn.commit()
             set_head(node_id)
@@ -264,14 +270,14 @@ def insert_node(content, parent_id=None, role=None, max_retries=3):
 def get_node(node_id):
     with get_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT id, short_id, content, parent_id, role FROM nodes WHERE id = ?", (node_id,))
+        c.execute("SELECT id, short_id, content, parent_id, role, provider, model FROM nodes WHERE id = ?", (node_id,))
         row = c.fetchone()
         if not row:
             # Try to find by short_id
-            c.execute("SELECT id, short_id, content, parent_id, role FROM nodes WHERE short_id = ?", (node_id,))
+            c.execute("SELECT id, short_id, content, parent_id, role, provider, model FROM nodes WHERE short_id = ?", (node_id,))
             row = c.fetchone()
     if row:
-        return {"id": row[0], "short_id": row[1], "content": row[2], "parent_id": row[3], "role": row[4]}
+        return {"id": row[0], "short_id": row[1], "content": row[2], "parent_id": row[3], "role": row[4], "provider": row[5], "model": row[6]}
     return None
 
 def get_ancestry(node_id):
@@ -377,7 +383,7 @@ def get_recent_nodes(limit=5):
     with get_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT id, short_id, content, parent_id, role
+            SELECT id, short_id, content, parent_id, role, provider, model
             FROM nodes
             ORDER BY ROWID DESC
             LIMIT ?
@@ -407,7 +413,7 @@ def get_all_nodes():
     try:
         with get_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT id, short_id, content, parent_id, role FROM nodes")
+            c.execute("SELECT id, short_id, content, parent_id, role, provider, model FROM nodes")
 
             # Get column names from cursor description
             columns = [desc[0] for desc in c.description]
@@ -551,6 +557,37 @@ def resolve_node_ref(ref):
 
     # If we get here, assume it's already a UUID
     return ref
+
+def migrate_to_provider_model():
+    """
+    Add provider and model information to existing nodes.
+
+    This function should be called after upgrading to a version that supports provider and model tracking.
+    It will add provider and model columns to the nodes table if they don't exist.
+
+    Returns:
+        The number of columns added (0, 1, or 2)
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if columns exist
+        c.execute("PRAGMA table_info(nodes)")
+        columns = [info[1] for info in c.fetchall()]
+        columns_added = 0
+
+        # Add provider column if it doesn't exist
+        if 'provider' not in columns:
+            c.execute("ALTER TABLE nodes ADD COLUMN provider TEXT")
+            columns_added += 1
+
+        # Add model column if it doesn't exist
+        if 'model' not in columns:
+            c.execute("ALTER TABLE nodes ADD COLUMN model TEXT")
+            columns_added += 1
+
+        conn.commit()
+        return columns_added
 
 def migrate_to_roles():
     """

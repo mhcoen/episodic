@@ -104,6 +104,7 @@ def get_model_string(model_name: str) -> str:
 def _apply_prompt_caching(messages: List[Dict[str, Any]], model: str) -> List[Dict[str, Any]]:
     """
     Apply prompt caching to system messages if supported by the model.
+    Also filters out empty system messages for Anthropic models.
     
     Args:
         messages: List of message dictionaries
@@ -113,32 +114,46 @@ def _apply_prompt_caching(messages: List[Dict[str, Any]], model: str) -> List[Di
         Modified messages list with cache_control applied for Anthropic models
     """
     try:
-        # Check if the model supports prompt caching
-        if not supports_prompt_caching(model=model):
+        # Check if this is an Anthropic model
+        is_anthropic = "anthropic" in model.lower() or "claude" in model.lower()
+        
+        # For non-Anthropic models, check if they support prompt caching
+        if not is_anthropic and not supports_prompt_caching(model=model):
             return messages
             
-        # Only apply cache_control for Anthropic models
-        # OpenAI prompt caching is automatic for prompts over 1024 tokens
-        if "anthropic" not in model.lower() and "claude" not in model.lower():
+        # For OpenAI models, prompt caching is automatic - no modifications needed
+        if not is_anthropic:
             return messages
             
         # Create a copy of messages to avoid modifying the original
         cached_messages = []
         
+        # Check if the model actually supports prompt caching
+        supports_caching = supports_prompt_caching(model=model)
+        
         for msg in messages:
             if msg.get("role") == "system":
-                # Apply cache control to system messages for Anthropic models
-                cached_msg = {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": msg["content"],
-                            "cache_control": {"type": "ephemeral"}
+                # Only process non-empty system messages for Anthropic models
+                content = msg.get("content", "")
+                if content and content.strip():
+                    if supports_caching:
+                        # Apply cache control if supported
+                        cached_msg = {
+                            "role": "system",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": content,
+                                    "cache_control": {"type": "ephemeral"}
+                                }
+                            ]
                         }
-                    ]
-                }
-                cached_messages.append(cached_msg)
+                        cached_messages.append(cached_msg)
+                    else:
+                        # Keep as simple message without cache control
+                        cached_messages.append(msg)
+                # Skip empty system messages entirely for Anthropic models
+                # (Anthropic doesn't allow empty text content blocks)
             else:
                 # Keep other messages unchanged
                 cached_messages.append(msg)

@@ -182,6 +182,13 @@ def show(node_id: str):
             role = node.get('role')
             typer.echo(f"Role: {format_role_display(role)}")
 
+            # Display provider and model information if available
+            provider = node.get('provider')
+            model = node.get('model')
+            if provider or model:
+                model_info = f"{provider}/{model}" if provider and model else provider or model
+                typer.echo(f"Model: {model_info}")
+
             typer.echo(f"Message: {node['content']}")
         else:
             typer.echo(f"Node not found: {node_id}")
@@ -220,6 +227,13 @@ def print_node(node_id: Optional[str] = None):
             role = node.get('role')
             typer.echo(f"Role: {format_role_display(role)}")
 
+            # Display provider and model information if available
+            provider = node.get('provider')
+            model = node.get('model')
+            if provider or model:
+                model_info = f"{provider}/{model}" if provider and model else provider or model
+                typer.echo(f"Model: {model_info}")
+
             typer.echo(f"Message: {node['content']}")
         else:
             typer.echo("Node not found.")
@@ -249,6 +263,14 @@ def head(node_id: Optional[str] = None):
                 typer.echo(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
             else:
                 typer.echo(f"Parent: None")
+
+            # Display provider and model information if available
+            provider = node.get('provider')
+            model = node.get('model')
+            if provider or model:
+                model_info = f"{provider}/{model}" if provider and model else provider or model
+                typer.echo(f"Model: {model_info}")
+
             typer.echo(f"Message: {node['content']}")
         else:
             typer.echo("Node not found.")
@@ -943,8 +965,15 @@ def _handle_chat_message(user_input: str) -> None:
         # Display the response
         typer.echo(f"\n🤖 {response}")
 
-        # Add the assistant's response to the database
-        assistant_node_id, assistant_short_id = insert_node(response, user_node_id, role="assistant")
+        # Add the assistant's response to the database with provider and model information
+        provider = get_current_provider()
+        assistant_node_id, assistant_short_id = insert_node(
+            response, 
+            user_node_id, 
+            role="assistant",
+            provider=provider,
+            model=default_model
+        )
 
         # Update the current node to the assistant's response
         current_node_id = assistant_node_id

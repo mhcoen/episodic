@@ -1,7 +1,10 @@
 import typer
 import shlex
 import os
-from typing import Optional, List
+import warnings
+import io
+from typing import Optional, List, Dict, Any
+from contextlib import redirect_stdout, redirect_stderr
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -13,9 +16,10 @@ from episodic.db import (
     get_recent_nodes
 )
 from episodic.llm import query_llm, query_with_context
-from episodic.llm_config import get_current_provider, get_default_model, get_available_providers, LOCAL_PROVIDERS
+from episodic.llm_config import get_current_provider, get_default_model, get_available_providers
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
+from episodic.cli_constants import *
 from litellm import cost_per_token
 
 # Create a Typer app for command handling
@@ -23,16 +27,86 @@ app = typer.Typer(add_completion=False)
 
 # Global variables to store state
 current_node_id = None
-default_model = "gpt-3.5-turbo"
-default_system = "You are a helpful assistant."
-default_context_depth = 5
-model_list = None  # List to store available models for number-based selection
+default_model = DEFAULT_MODEL
+default_system = DEFAULT_SYSTEM_MESSAGE
+default_context_depth = DEFAULT_CONTEXT_DEPTH
 session_costs = {
     "total_input_tokens": 0,
     "total_output_tokens": 0,
     "total_tokens": 0,
     "total_cost_usd": 0.0
 }
+
+# Helper functions
+def _parse_flag_value(args: List[str], flag_names: List[str]) -> Optional[str]:
+    """Parse a flag value from command arguments.
+    
+    Args:
+        args: List of command arguments
+        flag_names: List of flag names to look for (e.g., ["--count", "-c"])
+        
+    Returns:
+        The flag value if found, None otherwise
+    """
+    for flag in flag_names:
+        if flag in args:
+            flag_idx = args.index(flag)
+            if flag_idx + 1 < len(args):
+                return args[flag_idx + 1]
+    return None
+
+def _remove_flag_and_value(args: List[str], flag_names: List[str]) -> List[str]:
+    """Remove a flag and its value from command arguments.
+    
+    Args:
+        args: List of command arguments
+        flag_names: List of flag names to look for (e.g., ["--parent", "-p"])
+        
+    Returns:
+        Modified argument list with flag and value removed
+    """
+    result = args.copy()
+    for flag in flag_names:
+        if flag in result:
+            flag_idx = result.index(flag)
+            if flag_idx + 1 < len(result):
+                # Remove both flag and value
+                result.pop(flag_idx)  # Remove flag
+                result.pop(flag_idx)  # Remove value (now at same index)
+            else:
+                # Remove just the flag if no value
+                result.pop(flag_idx)
+    return result
+
+def _has_flag(args: List[str], flag_names: List[str]) -> bool:
+    """Check if any of the specified flags are present in arguments.
+    
+    Args:
+        args: List of command arguments
+        flag_names: List of flag names to check for
+        
+    Returns:
+        True if any flag is found, False otherwise
+    """
+    return any(flag in args for flag in flag_names)
+
+def format_role_display(role: Optional[str]) -> str:
+    """Format role information for display.
+    
+    Args:
+        role: The role string from the node data
+        
+    Returns:
+        A human-readable role description
+    """
+    if role == "assistant":
+        return "Model (assistant)"
+    elif role == "user":
+        return "User"
+    elif role == "system":
+        return "System"
+    else:
+        return "Unknown"
 
 # Command handlers
 @app.command()
@@ -59,7 +133,7 @@ def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing
             default_system = manager.get_active_prompt_content(config.get)
         except Exception:
             # Fallback to default if there's an error
-            default_system = "You are a helpful assistant."
+            default_system = DEFAULT_SYSTEM_MESSAGE
         typer.echo(f"Database initialized with a default root node (ID: {root_short_id}, UUID: {root_node_id}).")
         typer.echo("Prompt has been restored to default.")
     else:
@@ -70,15 +144,28 @@ def add(content: str, parent: Optional[str] = typer.Option(None, "--parent", "-p
     """Add a new node with the given content."""
     global current_node_id
 
-    parent_id = resolve_node_ref(parent) if parent else current_node_id or get_head()
-    node_id, short_id = insert_node(content, parent_id)
-    set_head(node_id)
-    current_node_id = node_id
-    typer.echo(f"Added node {short_id} (UUID: {node_id})")
+    if not content or not content.strip():
+        typer.echo("Error: Content cannot be empty")
+        return
+
+    try:
+        parent_id = resolve_node_ref(parent) if parent else current_node_id or get_head()
+        node_id, short_id = insert_node(content, parent_id)
+        set_head(node_id)
+        current_node_id = node_id
+        typer.echo(f"Added node {short_id} (UUID: {node_id})")
+    except ValueError as e:
+        typer.echo(f"Invalid parent node ID: {str(e)}")
+    except Exception as e:
+        typer.echo(f"Error adding node: {str(e)}")
 
 @app.command()
 def show(node_id: str):
     """Show details of a specific node."""
+    if not node_id or not node_id.strip():
+        typer.echo("Error: node_id is required")
+        return
+        
     try:
         resolved_id = resolve_node_ref(node_id)
         node = get_node(resolved_id)
@@ -93,20 +180,15 @@ def show(node_id: str):
 
             # Display role information
             role = node.get('role')
-            if role == "assistant":
-                typer.echo(f"Role: Model (assistant)")
-            elif role == "user":
-                typer.echo(f"Role: User")
-            elif role == "system":
-                typer.echo(f"Role: System")
-            else:
-                typer.echo(f"Role: Unknown")
+            typer.echo(f"Role: {format_role_display(role)}")
 
             typer.echo(f"Message: {node['content']}")
         else:
-            typer.echo("Node not found.")
+            typer.echo(f"Node not found: {node_id}")
+    except ValueError as e:
+        typer.echo(f"Invalid node ID: {str(e)}")
     except Exception as e:
-        typer.echo(f"Error: {str(e)}")
+        typer.echo(f"Error retrieving node: {str(e)}")
 
 @app.command()
 def print_node(node_id: Optional[str] = None):
@@ -136,14 +218,7 @@ def print_node(node_id: Optional[str] = None):
 
             # Display role information
             role = node.get('role')
-            if role == "assistant":
-                typer.echo(f"Role: Model (assistant)")
-            elif role == "user":
-                typer.echo(f"Role: User")
-            elif role == "system":
-                typer.echo(f"Role: System")
-            else:
-                typer.echo(f"Role: Unknown")
+            typer.echo(f"Role: {format_role_display(role)}")
 
             typer.echo(f"Message: {node['content']}")
         else:
@@ -194,12 +269,18 @@ def head(node_id: Optional[str] = None):
 
             # Display confirmation
             typer.echo(f"Current node changed to: {node['short_id']} (UUID: {node['id']})")
+        except ValueError as e:
+            typer.echo(f"Invalid node ID: {str(e)}")
         except Exception as e:
-            typer.echo(f"Error: {str(e)}")
+            typer.echo(f"Error changing current node: {str(e)}")
 
 @app.command()
-def list(count: int = typer.Option(5, "--count", "-c", help="Number of recent nodes to list")):
+def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Number of recent nodes to list")):
     """List recent nodes."""
+    if count <= 0:
+        typer.echo("Error: Count must be a positive integer")
+        return
+        
     try:
         # Get recent nodes
         nodes = get_recent_nodes(count)
@@ -212,8 +293,8 @@ def list(count: int = typer.Option(5, "--count", "-c", help="Number of recent no
         for node in nodes:
             # Truncate content for display
             content = node['content']
-            if len(content) > 50:
-                content = content[:47] + "..."
+            if len(content) > MAX_CONTENT_DISPLAY_LENGTH:
+                content = content[:MAX_CONTENT_DISPLAY_LENGTH-3] + "..."
 
             # Display node information
             typer.echo(f"{node['short_id']} (UUID: {node['id']}): {content}")
@@ -223,7 +304,7 @@ def list(count: int = typer.Option(5, "--count", "-c", help="Number of recent no
 @app.command()
 def handle_model(name: Optional[str] = None):
     """Show current model or change to a new one."""
-    global default_model, model_list
+    global default_model
 
     # Get the current model first
     if name is None:
@@ -250,19 +331,14 @@ def handle_model(name: Optional[str] = None):
                         # Try to get pricing information using cost_per_token
                         # Use raw model name for pricing lookup (LiteLLM pricing doesn't use provider prefixes)
                         try:
-                            import warnings
-                            import sys
-                            import io
-                            from contextlib import redirect_stdout, redirect_stderr
-                            
                             # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
                             with warnings.catch_warnings(), \
                                  redirect_stdout(io.StringIO()), \
                                  redirect_stderr(io.StringIO()):
                                 warnings.simplefilter("ignore")
                                 # Calculate cost for 1000 tokens (both input and output separately)
-                                input_cost_raw = cost_per_token(model=model_name, prompt_tokens=1000, completion_tokens=0)
-                                output_cost_raw = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=1000)
+                                input_cost_raw = cost_per_token(model=model_name, prompt_tokens=PRICING_TOKEN_COUNT, completion_tokens=0)
+                                output_cost_raw = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=PRICING_TOKEN_COUNT)
 
                             # Handle tuple results (sum if tuple, use directly if scalar)
                             input_cost = sum(input_cost_raw) if isinstance(input_cost_raw, tuple) else input_cost_raw
@@ -272,13 +348,13 @@ def handle_model(name: Optional[str] = None):
                                 pricing = f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
                             else:
                                 # For local providers, show "Local model" instead of "Pricing not available"
-                                if provider_name in ["ollama", "lmstudio"]:
+                                if provider_name in LOCAL_PROVIDERS:
                                     pricing = "Local model"
                                 else:
                                     pricing = "Pricing not available"
                         except Exception:
                             # For local providers, show "Local model" instead of "Pricing not available"
-                            if provider_name in ["ollama", "lmstudio"]:
+                            if provider_name in LOCAL_PROVIDERS:
                                 pricing = "Local model"
                             else:
                                 pricing = "Pricing not available"
@@ -342,6 +418,10 @@ def handle_model(name: Optional[str] = None):
 @app.command()
 def ancestry(node_id: str):
     """Trace the ancestry of a node."""
+    if not node_id or not node_id.strip():
+        typer.echo("Error: node_id is required")
+        return
+        
     try:
         resolved_id = resolve_node_ref(node_id)
         ancestry = get_ancestry(resolved_id)
@@ -352,12 +432,19 @@ def ancestry(node_id: str):
 
         for ancestor in ancestry:
             typer.echo(f"{ancestor['short_id']} (UUID: {ancestor['id']}): {ancestor['content']}")
+    except ValueError as e:
+        typer.echo(f"Invalid node ID: {str(e)}")
     except Exception as e:
-        typer.echo(f"Error: {str(e)}")
+        typer.echo(f"Error retrieving ancestry: {str(e)}")
 
 @app.command()
-def visualize(output: Optional[str] = None, no_browser: bool = False, port: int = 5000):
+def visualize(output: Optional[str] = None, no_browser: bool = False, port: int = DEFAULT_VISUALIZATION_PORT):
     """Visualize the conversation DAG."""
+    # Validate port number
+    if port <= 0 or port > 65535:
+        typer.echo("Error: Port must be between 1 and 65535")
+        return
+        
     try:
         from episodic.visualization import visualize_dag
         import webbrowser
@@ -385,6 +472,8 @@ def visualize(output: Optional[str] = None, no_browser: bool = False, port: int 
             typer.echo(f"Visualization saved to: {output_path}")
             typer.echo(f"Opening visualization in browser: {output_path}")
             webbrowser.open(f"file://{os.path.abspath(output_path)}")
+    except ImportError as e:
+        typer.echo(f"Visualization dependencies not available: {str(e)}")
     except Exception as e:
         typer.echo(f"Error generating visualization: {str(e)}")
 
@@ -448,13 +537,21 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         if not value:
             # Toggle the current value if no value is provided
             current = config.get("use_context_cache", True)
-            config.set("use_context_cache", not current)
-            typer.echo(f"Context caching: {'ON' if not current else 'OFF'}")
+            if current:
+                from episodic.llm import disable_cache
+                disable_cache()
+            else:
+                from episodic.llm import enable_cache
+                enable_cache()
         else:
             # Set to the provided value
             val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("use_context_cache", val)
-            typer.echo(f"Context caching: {'ON' if val else 'OFF'}")
+            if val:
+                from episodic.llm import enable_cache
+                enable_cache()
+            else:
+                from episodic.llm import disable_cache
+                disable_cache()
 
     # Handle unknown parameter
     else:
@@ -608,21 +705,24 @@ def help():
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 
 # Main talk loop
-def display_session_summary():
+def display_session_summary() -> None:
     """Display session summary with token usage and costs if any LLM interactions occurred."""
     if session_costs["total_tokens"] > 0:
         typer.echo("Session Summary:")
         typer.echo(f"Total input tokens: {session_costs['total_input_tokens']}")
         typer.echo(f"Total output tokens: {session_costs['total_output_tokens']}")
         typer.echo(f"Total tokens: {session_costs['total_tokens']}")
-        typer.echo(f"Total cost: ${session_costs['total_cost_usd']:.6f} USD")
+        typer.echo(f"Total cost: ${session_costs['total_cost_usd']:.{COST_PRECISION}f} USD")
     else:
-        typer.echo(f"Total cost: ${0: .1f} USD")
+        typer.echo(f"Total cost: ${0: .{ZERO_COST_PRECISION}f} USD")
 
 
-def talk_loop():
-    """Main talk loop that handles both conversation and commands."""
-    global current_node_id, default_model, default_system, default_context_depth, session_costs
+def _initialize_talk_session() -> None:
+    """Initialize the database and set up the talk session.
+    
+    Sets up the database if it doesn't exist and initializes the current node.
+    """
+    global current_node_id, default_model
 
     # Initialize the database if it doesn't exist
     if not database_exists():
@@ -636,22 +736,27 @@ def talk_loop():
         init()
         current_node_id = get_head()
 
-    # Create a prompt session for the talk mode
-    history_file = os.path.expanduser(config.get("history_file", "~/.episodic_history"))
+def _create_prompt_session() -> PromptSession:
+    """Create and configure the prompt session for talk mode.
+    
+    Returns:
+        A configured PromptSession with history and auto-suggestion
+    """
+    history_file = os.path.expanduser(config.get("history_file", DEFAULT_HISTORY_FILE))
     # Ensure the directory exists
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
-    session = PromptSession(
-        message=HTML("<ansigreen>> </ansigreen>"),
+    return PromptSession(
+        message=HTML(PROMPT_COLOR),
         history=FileHistory(history_file),
         auto_suggest=AutoSuggestFromHistory(),
     )
 
-    # Print welcome message
-    typer.echo("Welcome to Episodic. You are now in talk mode.")
-    typer.echo("Type a message to chat with the LLM, or use / to access commands.")
-    typer.echo("Examples: '/help', '/init', '/add Hello', '/exit'")
-
-    # Get the current model and provider
+def _initialize_model() -> None:
+    """Initialize and display the current model information.
+    
+    Ensures provider and model are properly matched and displays current selection.
+    """
+    global default_model
     from episodic.llm_config import get_current_provider, get_default_model, set_default_model, ensure_provider_matches_model
 
     # Ensure the provider matches the model
@@ -664,7 +769,6 @@ def talk_loop():
     try:
         set_default_model(current_model_name)
         # Update the default model in the global variable
-        global default_model
         default_model = current_model_name
     except ValueError:
         # If there's an error setting the model, just continue
@@ -674,6 +778,180 @@ def talk_loop():
     provider = get_current_provider()
     current_model_name = get_default_model()
     typer.echo(f"Current model: {current_model_name} (Provider: {provider})")
+
+def _print_welcome_message() -> None:
+    """Print the welcome message for talk mode."""
+    typer.echo("Welcome to Episodic. You are now in talk mode.")
+    typer.echo("Type a message to chat with the LLM, or use / to access commands.")
+    typer.echo("Examples: '/help', '/init', '/add Hello', '/exit'")
+
+def _handle_command(command_text: str) -> bool:
+    """Handle a command input. 
+    
+    Args:
+        command_text: The command text (without the leading /)
+        
+    Returns:
+        True if the application should exit, False otherwise
+    """
+    # Handle exit command directly
+    if command_text.lower() in EXIT_COMMANDS:
+        typer.echo("\nExiting!")
+        display_session_summary()
+        typer.echo("Goodbye!")
+        return True
+
+    # Parse the command and arguments
+    try:
+        args = shlex.split(command_text)
+        command = args[0].lower()
+        command_args = args[1:]
+
+        # Handle commands directly
+        if command == "help":
+            help()
+        elif command == "init":
+            # Check for --erase flag
+            erase = _has_flag(command_args, ["--erase", "-e"])
+            init(erase=erase)
+        elif command == "add":
+            if not command_args:
+                typer.echo("Error: Missing content for add command")
+                return False
+            # Check for --parent flag
+            parent = _parse_flag_value(command_args, ["--parent", "-p"])
+            # Remove parent flag and value from args
+            command_args = _remove_flag_and_value(command_args, ["--parent", "-p"])
+            # Join remaining args as content
+            content = " ".join(command_args)
+            add(content=content, parent=parent)
+        elif command == "show":
+            if not command_args:
+                typer.echo("Error: Missing node_id for show command")
+                return False
+            show(node_id=command_args[0])
+        elif command == "head":
+            node_id = command_args[0] if command_args else None
+            head(node_id=node_id)
+        elif command == "print":
+            node_id = command_args[0] if command_args else None
+            print_node(node_id=node_id)
+        elif command == "list":
+            # Check for --count flag
+            count_str = _parse_flag_value(command_args, ["--count", "-c"])
+            if count_str:
+                try:
+                    count = int(count_str)
+                except ValueError:
+                    typer.echo(f"Error: Invalid count value: {count_str}")
+                    return False
+            else:
+                count = DEFAULT_LIST_COUNT
+            list(count=count)
+        elif command == "model":
+            name = command_args[0] if command_args else None
+            handle_model(name=name)
+        elif command == "prompts":
+            action = command_args[0] if len(command_args) > 0 else None
+            name = command_args[1] if len(command_args) > 1 else None
+            prompts(action=action, name=name)
+        elif command == "ancestry":
+            if not command_args:
+                typer.echo("Error: Missing node_id for ancestry command")
+                return False
+            ancestry(node_id=command_args[0])
+        elif command == "visualize":
+            # Parse options
+            output = _parse_flag_value(command_args, ["--output"])
+            no_browser = _has_flag(command_args, ["--no-browser"])
+            
+            port_str = _parse_flag_value(command_args, ["--port"])
+            if port_str:
+                try:
+                    port = int(port_str)
+                except ValueError:
+                    typer.echo(f"Error: Invalid port value: {port_str}")
+                    return False
+            else:
+                port = DEFAULT_VISUALIZATION_PORT
+
+            visualize(output=output, no_browser=no_browser, port=port)
+        elif command == "set":
+            param = command_args[0] if len(command_args) > 0 else None
+            value = command_args[1] if len(command_args) > 1 else None
+            set(param=param, value=value)
+        elif command == "verify":
+            verify()
+        else:
+            typer.echo(f"Unknown command: {command}")
+            typer.echo("Type '/help' for available commands.")
+    except Exception as e:
+        typer.echo(f"Error executing command: {str(e)}")
+    
+    return False  # Don't exit
+
+def _handle_chat_message(user_input: str) -> None:
+    """Handle a chat message (non-command input).
+    
+    Args:
+        user_input: The user's chat message
+        
+    Processes the message through the LLM and updates the conversation DAG.
+    """
+    global current_node_id, default_model, default_system, default_context_depth, session_costs
+    
+    # Add the user message to the database
+    user_node_id, user_short_id = insert_node(user_input, current_node_id, role="user")
+
+    # Query the LLM with context
+    try:
+        # Get the context depth
+        depth = default_context_depth
+
+        # Query with context
+        response, cost_info = query_with_context(
+            user_node_id, 
+            model=default_model,
+            system_message=default_system,
+            context_depth=depth
+        )
+
+        # Update session costs
+        if cost_info:
+            session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
+            session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
+            session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
+            session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
+
+        # Display cost information if enabled
+        if config.get("show_cost", False) and cost_info:
+            typer.echo(f"\n💰 Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD")
+
+        # Display the response
+        typer.echo(f"\n🤖 {response}")
+
+        # Add the assistant's response to the database
+        assistant_node_id, assistant_short_id = insert_node(response, user_node_id, role="assistant")
+
+        # Update the current node to the assistant's response
+        current_node_id = assistant_node_id
+        set_head(assistant_node_id)
+
+    except Exception as e:
+        typer.echo(f"Error querying LLM: {str(e)}")
+
+def talk_loop() -> None:
+    """Main talk loop that handles both conversation and commands.
+    
+    Initializes the session and runs the main interaction loop, handling both
+    chat messages and commands until the user exits.
+    """
+    global current_node_id, default_model, default_system, default_context_depth, session_costs
+
+    _initialize_talk_session()
+    session = _create_prompt_session()
+    _print_welcome_message()
+    _initialize_model()
 
     # Main loop
     while True:
@@ -693,170 +971,14 @@ def talk_loop():
                     typer.echo("Empty command. Type '/help' for available commands.")
                     continue
 
-                # Handle exit command directly
-                if command_text.lower() in ["exit", "quit"]:
-                    typer.echo("\nExiting!")
-                    display_session_summary()
-                    typer.echo("Goodbye!")
+                # Handle command and check if we should exit
+                should_exit = _handle_command(command_text)
+                if should_exit:
                     break
-
-                # Parse the command and arguments
-                try:
-                    args = shlex.split(command_text)
-                    command = args[0].lower()
-                    command_args = args[1:]
-
-                    # Handle commands directly
-                    if command == "help":
-                        help()
-                    elif command == "init":
-                        # Check for --erase flag
-                        erase = False
-                        if "--erase" in command_args or "-e" in command_args:
-                            erase = True
-                        init(erase=erase)
-                    elif command == "add":
-                        if not command_args:
-                            typer.echo("Error: Missing content for add command")
-                            continue
-                        # Check for --parent flag
-                        parent = None
-                        if "--parent" in command_args:
-                            parent_idx = command_args.index("--parent")
-                            if parent_idx + 1 < len(command_args):
-                                parent = command_args[parent_idx + 1]
-                                # Remove parent and its value from args
-                                command_args.pop(parent_idx)  # Remove --parent
-                                command_args.pop(parent_idx)  # Remove parent value
-                        elif "-p" in command_args:
-                            parent_idx = command_args.index("-p")
-                            if parent_idx + 1 < len(command_args):
-                                parent = command_args[parent_idx + 1]
-                                # Remove parent and its value from args
-                                command_args.pop(parent_idx)  # Remove -p
-                                command_args.pop(parent_idx)  # Remove parent value
-                        # Join remaining args as content
-                        content = " ".join(command_args)
-                        add(content=content, parent=parent)
-                    elif command == "show":
-                        if not command_args:
-                            typer.echo("Error: Missing node_id for show command")
-                            continue
-                        show(node_id=command_args[0])
-                    elif command == "head":
-                        node_id = command_args[0] if command_args else None
-                        head(node_id=node_id)
-                    elif command == "print":
-                        node_id = command_args[0] if command_args else None
-                        print_node(node_id=node_id)
-                    elif command == "list":
-                        # Check for --count flag
-                        count = 5  # Default
-                        if "--count" in command_args:
-                            count_idx = command_args.index("--count")
-                            if count_idx + 1 < len(command_args):
-                                try:
-                                    count = int(command_args[count_idx + 1])
-                                except ValueError:
-                                    typer.echo(f"Error: Invalid count value: {command_args[count_idx + 1]}")
-                                    continue
-                        elif "-c" in command_args:
-                            count_idx = command_args.index("-c")
-                            if count_idx + 1 < len(command_args):
-                                try:
-                                    count = int(command_args[count_idx + 1])
-                                except ValueError:
-                                    typer.echo(f"Error: Invalid count value: {command_args[count_idx + 1]}")
-                                    continue
-                        list(count=count)
-                    elif command == "model":
-                        name = command_args[0] if command_args else None
-                        handle_model(name=name)
-                    elif command == "prompts":
-                        action = command_args[0] if len(command_args) > 0 else None
-                        name = command_args[1] if len(command_args) > 1 else None
-                        prompts(action=action, name=name)
-                    elif command == "ancestry":
-                        if not command_args:
-                            typer.echo("Error: Missing node_id for ancestry command")
-                            continue
-                        ancestry(node_id=command_args[0])
-                    elif command == "visualize":
-                        # Parse options
-                        output = None
-                        no_browser = False
-                        port = 5000
-
-                        if "--output" in command_args:
-                            output_idx = command_args.index("--output")
-                            if output_idx + 1 < len(command_args):
-                                output = command_args[output_idx + 1]
-
-                        if "--no-browser" in command_args:
-                            no_browser = True
-
-                        if "--port" in command_args:
-                            port_idx = command_args.index("--port")
-                            if port_idx + 1 < len(command_args):
-                                try:
-                                    port = int(command_args[port_idx + 1])
-                                except ValueError:
-                                    typer.echo(f"Error: Invalid port value: {command_args[port_idx + 1]}")
-                                    continue
-
-                        visualize(output=output, no_browser=no_browser, port=port)
-                    elif command == "set":
-                        param = command_args[0] if len(command_args) > 0 else None
-                        value = command_args[1] if len(command_args) > 1 else None
-                        set(param=param, value=value)
-                    elif command == "verify":
-                        verify()
-                    else:
-                        typer.echo(f"Unknown command: {command}")
-                        typer.echo("Type '/help' for available commands.")
-                except Exception as e:
-                    typer.echo(f"Error executing command: {str(e)}")
             else:
                 # This is a chat message, not a command
-                # Add the user message to the database
-                user_node_id, user_short_id = insert_node(user_input, current_node_id, role="user")
-
-                # Query the LLM with context
-                try:
-                    # Get the context depth
-                    depth = default_context_depth
-
-                    # Query with context
-                    response, cost_info = query_with_context(
-                        user_node_id, 
-                        model=default_model,
-                        system_message=default_system,
-                        context_depth=depth
-                    )
-
-                    # Update session costs
-                    if cost_info:
-                        session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
-                        session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
-                        session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
-                        session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
-
-                    # Display cost information if enabled
-                    if config.get("show_cost", False) and cost_info:
-                        typer.echo(f"\n💰 Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.6f} USD")
-
-                    # Display the response
-                    typer.echo(f"\n🤖 {response}")
-
-                    # Add the assistant's response to the database
-                    assistant_node_id, assistant_short_id = insert_node(response, user_node_id, role="assistant")
-
-                    # Update the current node to the assistant's response
-                    current_node_id = assistant_node_id
-                    set_head(assistant_node_id)
-
-                except Exception as e:
-                    typer.echo(f"Error querying LLM: {str(e)}")
+                _handle_chat_message(user_input)
+                
         except KeyboardInterrupt:
             # Handle Ctrl+C gracefully
             typer.echo("\nUse '/exit' or '/quit' to exit the application.")
@@ -869,13 +991,12 @@ def talk_loop():
         except Exception as e:
             typer.echo(f"Error: {str(e)}")
 
-def set_default_model(model_name):
-    """Set the default model for the CLI."""
-    from episodic.llm_config import set_default_model as set_model
-    set_model(model_name)
-
-def main():
-    """Main entry point for the CLI."""
+def main() -> None:
+    """Main entry point for the CLI.
+    
+    Determines whether to run individual commands or start the interactive talk loop
+    based on command-line arguments.
+    """
     # Check if any command-line arguments were provided
     import sys
     if len(sys.argv) > 1:

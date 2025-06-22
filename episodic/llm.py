@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Any, Union
 import litellm
 from litellm import cost_per_token
 from litellm.caching import Cache
+from litellm.utils import supports_prompt_caching
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
 
@@ -17,25 +18,50 @@ if config.get("use_context_cache") is None:
 
 def initialize_cache():
     """
-    Initialize the LiteLLM cache with in-memory cache.
-    This will be called once at module initialization.
+    Initialize LiteLLM for prompt caching to reduce token usage.
+    Disables response caching in favor of prompt caching.
     """
     if config.get("use_context_cache", True):
         try:
-            cache = Cache(
-                type="local",
-                cache_responses=True,
-                cache_time=3600  # Cache entries expire after 1 hour
-            )
-            litellm.cache = cache
+            # Disable response caching - we only want prompt caching
+            litellm.cache = None
+            
+            # Prompt caching is handled per-request via cache_control parameters
+            # in the _apply_prompt_caching function. No global setup needed.
+            print("Prompt caching enabled for supported models (response caching disabled)")
             return True
         except Exception as e:
-            print(f"Warning: Failed to initialize cache: {str(e)}")
+            print(f"Warning: Failed to initialize prompt caching: {str(e)}")
             return False
-    return False
+    else:
+        # Ensure all caching is completely disabled
+        litellm.cache = None
+        print("All caching disabled")
+        return False
 
 # Initialize cache on module load
 initialize_cache()
+
+def disable_cache():
+    """
+    Disable the LiteLLM cache at runtime.
+    """
+    import litellm
+    litellm.cache = None
+    config.set("use_context_cache", False)
+    print("Cache disabled")
+
+def enable_cache():
+    """
+    Enable the LiteLLM cache at runtime.
+    """
+    config.set("use_context_cache", True)
+    result = initialize_cache()
+    if result:
+        print("Cache enabled")
+    else:
+        print("Failed to enable cache")
+    return result
 
 
 def get_model_string(model_name: str) -> str:
@@ -75,6 +101,56 @@ def get_model_string(model_name: str) -> str:
 
     return model_name
 
+def _apply_prompt_caching(messages: List[Dict[str, Any]], model: str) -> List[Dict[str, Any]]:
+    """
+    Apply prompt caching to system messages if supported by the model.
+    
+    Args:
+        messages: List of message dictionaries
+        model: The model string being used
+        
+    Returns:
+        Modified messages list with cache_control applied for Anthropic models
+    """
+    try:
+        # Check if the model supports prompt caching
+        if not supports_prompt_caching(model=model):
+            return messages
+            
+        # Only apply cache_control for Anthropic models
+        # OpenAI prompt caching is automatic for prompts over 1024 tokens
+        if "anthropic" not in model.lower() and "claude" not in model.lower():
+            return messages
+            
+        # Create a copy of messages to avoid modifying the original
+        cached_messages = []
+        
+        for msg in messages:
+            if msg.get("role") == "system":
+                # Apply cache control to system messages for Anthropic models
+                cached_msg = {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": msg["content"],
+                            "cache_control": {"type": "ephemeral"}
+                        }
+                    ]
+                }
+                cached_messages.append(cached_msg)
+            else:
+                # Keep other messages unchanged
+                cached_messages.append(msg)
+                
+        return cached_messages
+        
+    except Exception as e:
+        # If prompt caching fails, return original messages
+        if config.get("debug", False):
+            print(f"Warning: Failed to apply prompt caching: {e}")
+        return messages
+
 def _execute_llm_query(
     messages: List[Dict[str, str]],
     model: str,
@@ -82,15 +158,19 @@ def _execute_llm_query(
     max_tokens: int
 ) -> tuple[str, dict]:
     """
-    Internal function to execute LLM queries.
+    Internal function to execute LLM queries with prompt caching support.
     """
     provider = get_current_provider()
     full_model = get_model_string(model)
 
+    # Apply prompt caching if enabled and supported
+    if config.get("use_context_cache", True):
+        messages = _apply_prompt_caching(messages, full_model)
+
     if config.get("debug", False):
         print("\n=== DEBUG: Messages sent to LLM ===")
         for msg in messages:
-            print(f"[{msg['role']}]: {msg['content']}")
+            print(f"[{msg['role']}]: {msg.get('content', msg)}")
         print("===================================\n")
 
     # Provider-specific handling
@@ -127,12 +207,48 @@ def _execute_llm_query(
         completion_tokens=response.usage.completion_tokens
     ))
 
-    return response.choices[0].message.content, {
+    # Check for cached tokens in the response (OpenAI prompt caching)
+    cached_tokens = 0
+    if hasattr(response.usage, 'prompt_tokens_details') and response.usage.prompt_tokens_details:
+        cached_tokens = getattr(response.usage.prompt_tokens_details, 'cached_tokens', 0)
+    
+    # Calculate actual cost considering cached tokens (cached tokens are discounted)
+    actual_prompt_tokens = response.usage.prompt_tokens - cached_tokens
+    actual_cost = sum(cost_per_token(
+        model=full_model,
+        prompt_tokens=actual_prompt_tokens,
+        completion_tokens=response.usage.completion_tokens
+    ))
+    
+    # Add cost savings from caching
+    if cached_tokens > 0:
+        # Cached tokens typically cost 50% less
+        cached_cost = sum(cost_per_token(
+            model=full_model,
+            prompt_tokens=cached_tokens,
+            completion_tokens=0
+        )) * 0.5  # 50% discount for cached tokens
+        total_cost_with_cache = actual_cost + cached_cost
+    else:
+        total_cost_with_cache = actual_cost
+    
+    cost_info = {
         "input_tokens": response.usage.prompt_tokens,
         "output_tokens": response.usage.completion_tokens,
         "total_tokens": response.usage.total_tokens,
-        "cost_usd": total_cost
+        "cost_usd": total_cost_with_cache
     }
+    
+    # Add cache information if available
+    if cached_tokens > 0:
+        cost_info["cached_tokens"] = cached_tokens
+        cost_info["non_cached_tokens"] = actual_prompt_tokens
+        cost_info["cache_savings_usd"] = total_cost - total_cost_with_cache
+        if config.get("debug", False):
+            print(f"🎯 Cache hit! {cached_tokens} tokens cached, {actual_prompt_tokens} new tokens")
+            print(f"💰 Cost savings: ${total_cost - total_cost_with_cache:.6f}")
+    
+    return response.choices[0].message.content, cost_info
 
 def query_llm(
     prompt: str,

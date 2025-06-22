@@ -751,6 +751,19 @@ def _create_prompt_session() -> PromptSession:
         auto_suggest=AutoSuggestFromHistory(),
     )
 
+def _initialize_prompt() -> None:
+    """Initialize the default system prompt from the prompt manager.
+    
+    Loads the active prompt from configuration and updates the global default_system.
+    """
+    global default_system
+    try:
+        manager = PromptManager()
+        default_system = manager.get_active_prompt_content(config.get)
+    except Exception:
+        # Fallback to default if there's an error
+        default_system = DEFAULT_SYSTEM_MESSAGE
+
 def _initialize_model() -> None:
     """Initialize and display the current model information.
     
@@ -951,6 +964,7 @@ def talk_loop() -> None:
     _initialize_talk_session()
     session = _create_prompt_session()
     _print_welcome_message()
+    _initialize_prompt()
     _initialize_model()
 
     # Main loop

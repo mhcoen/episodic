@@ -3,6 +3,9 @@
 # Python package files
 *.egg-info/
 *.egg
+__pycache__/
+*.py[cod]
+*$py.class
 
 # IDE files
 .idea/sqldialects.xml

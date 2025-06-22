@@ -248,19 +248,40 @@ def handle_model(name: Optional[str] = None):
                             model_name = model
 
                         # Try to get pricing information using cost_per_token
+                        # Use raw model name for pricing lookup (LiteLLM pricing doesn't use provider prefixes)
                         try:
-                            from episodic.llm import get_model_string
-                            full_model = get_model_string(model_name)
-                            # Calculate cost for 1000 tokens (both input and output)
-                            input_cost = cost_per_token(model=full_model, prompt_tokens=1000)
-                            output_cost = cost_per_token(model=full_model, completion_tokens=1000)
+                            import warnings
+                            import sys
+                            import io
+                            from contextlib import redirect_stdout, redirect_stderr
+                            
+                            # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
+                            with warnings.catch_warnings(), \
+                                 redirect_stdout(io.StringIO()), \
+                                 redirect_stderr(io.StringIO()):
+                                warnings.simplefilter("ignore")
+                                # Calculate cost for 1000 tokens (both input and output separately)
+                                input_cost_raw = cost_per_token(model=model_name, prompt_tokens=1000, completion_tokens=0)
+                                output_cost_raw = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=1000)
+
+                            # Handle tuple results (sum if tuple, use directly if scalar)
+                            input_cost = sum(input_cost_raw) if isinstance(input_cost_raw, tuple) else input_cost_raw
+                            output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
 
                             if input_cost or output_cost:
                                 pricing = f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
                             else:
-                                pricing = "Pricing not available"
+                                # For local providers, show "Local model" instead of "Pricing not available"
+                                if provider_name in ["ollama", "lmstudio"]:
+                                    pricing = "Local model"
+                                else:
+                                    pricing = "Pricing not available"
                         except Exception:
-                            pricing = "Pricing not available"
+                            # For local providers, show "Local model" instead of "Pricing not available"
+                            if provider_name in ["ollama", "lmstudio"]:
+                                pricing = "Local model"
+                            else:
+                                pricing = "Pricing not available"
 
                         typer.echo(f"  {current_idx:2d}. {model_name:20s}\t({pricing})")
                         current_idx += 1
@@ -269,8 +290,47 @@ def handle_model(name: Optional[str] = None):
             typer.echo(f"Error getting model list: {str(e)}")
         return
 
-    # Handle model changes (rest of your existing code remains the same)
-    from episodic.llm_config import get_provider_models, set_default_model
+    # Handle model changes - check if input is a number first
+    from episodic.llm_config import get_provider_models, set_default_model, get_available_providers
+    
+    # Check if the input is a number (model index)
+    try:
+        model_index = int(name)
+        # Build the same model list to map index to model name
+        providers = get_available_providers()
+        current_idx = 1
+        selected_model = None
+        selected_provider = None
+        
+        for provider_name, provider_config in providers.items():
+            models = get_provider_models(provider_name)
+            if models:
+                for model in models:
+                    if isinstance(model, dict):
+                        model_name = model.get("name", "unknown")
+                    else:
+                        model_name = model
+                    
+                    if current_idx == model_index:
+                        selected_model = model_name
+                        selected_provider = provider_name
+                        break
+                    current_idx += 1
+                if selected_model:
+                    break
+        
+        if selected_model:
+            # Use the selected model name
+            name = selected_model
+        else:
+            typer.echo(f"Error: Invalid model number '{model_index}'. Use '/model' to see available models.")
+            return
+            
+    except ValueError:
+        # Not a number, treat as model name
+        pass
+    
+    # Now handle model change with the resolved model name
     try:
         set_default_model(name)
         default_model = name
@@ -548,6 +608,18 @@ def help():
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 
 # Main talk loop
+def display_session_summary():
+    """Display session summary with token usage and costs if any LLM interactions occurred."""
+    if session_costs["total_tokens"] > 0:
+        typer.echo("Session Summary:")
+        typer.echo(f"Total input tokens: {session_costs['total_input_tokens']}")
+        typer.echo(f"Total output tokens: {session_costs['total_output_tokens']}")
+        typer.echo(f"Total tokens: {session_costs['total_tokens']}")
+        typer.echo(f"Total cost: ${session_costs['total_cost_usd']:.6f} USD")
+    else:
+        typer.echo(f"Total cost: ${0: .1f} USD")
+
+
 def talk_loop():
     """Main talk loop that handles both conversation and commands."""
     global current_node_id, default_model, default_system, default_context_depth, session_costs
@@ -623,13 +695,8 @@ def talk_loop():
 
                 # Handle exit command directly
                 if command_text.lower() in ["exit", "quit"]:
-                    # Display total cost if any tokens were used
-                    if session_costs["total_tokens"] > 0:
-                        typer.echo("\nSession Summary:")
-                        typer.echo(f"Total input tokens: {session_costs['total_input_tokens']}")
-                        typer.echo(f"Total output tokens: {session_costs['total_output_tokens']}")
-                        typer.echo(f"Total tokens: {session_costs['total_tokens']}")
-                        typer.echo(f"Total cost: ${session_costs['total_cost_usd']:.6f} USD")
+                    typer.echo("\nExiting!")
+                    display_session_summary()
                     typer.echo("Goodbye!")
                     break
 
@@ -793,10 +860,22 @@ def talk_loop():
         except KeyboardInterrupt:
             # Handle Ctrl+C gracefully
             typer.echo("\nUse '/exit' or '/quit' to exit the application.")
+        except EOFError:
+            # Handle Ctrl+D gracefully (EOF)
+            typer.echo("\nExiting!")
+            display_session_summary()
+            typer.echo("\nGoodbye!")
+            break
         except Exception as e:
             typer.echo(f"Error: {str(e)}")
 
-if __name__ == "__main__":
+def set_default_model(model_name):
+    """Set the default model for the CLI."""
+    from episodic.llm_config import set_default_model as set_model
+    set_model(model_name)
+
+def main():
+    """Main entry point for the CLI."""
     # Check if any command-line arguments were provided
     import sys
     if len(sys.argv) > 1:
@@ -805,3 +884,6 @@ if __name__ == "__main__":
     else:
         # If no arguments were provided, start the talk loop
         talk_loop()
+
+if __name__ == "__main__":
+    main()

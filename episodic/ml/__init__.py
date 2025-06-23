@@ -5,4 +5,11 @@ This package contains modular ML components:
 - distance: Distance/similarity functions
 - embeddings: Text embedding providers
 - summarization: Branch summarization strategies
+- drift: Conversational drift detection
 """
+
+from .drift import ConversationalDrift
+from .embeddings import EmbeddingProvider
+from .distance.functions import DistanceFunction
+
+__all__ = ['ConversationalDrift', 'EmbeddingProvider', 'DistanceFunction']

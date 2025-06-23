@@ -3,10 +3,14 @@ import uuid
 import os
 import threading
 import contextlib
+import logging
 from .configuration import (
     DATABASE_FILENAME, MAX_DATABASE_RETRIES, FALLBACK_ID_LENGTH,
     MIN_SHORT_ID_LENGTH, SHORT_ID_MAX_LENGTH, ID_CHARSET
 )
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Default database path
 DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", DATABASE_FILENAME))
@@ -274,7 +278,7 @@ def insert_node(content, parent_id=None, role=None, provider=None, model=None, m
             if "UNIQUE constraint failed: nodes.short_id" in str(e) and retries < max_retries:
                 retries += 1
                 # Log the collision for debugging
-                print(f"Warning: Short ID collision detected. Retrying ({retries}/{max_retries})...")
+                logger.warning(f"Short ID collision detected. Retrying ({retries}/{max_retries})...")
                 continue
             # If it's another integrity error or we've exceeded max_retries, raise the exception
             raise
@@ -443,7 +447,7 @@ def get_all_nodes():
             result.append(node)
         return result
     except Exception as e:
-        print(f"Error retrieving nodes from database: {str(e)}")
+        logger.error(f"Error retrieving nodes from database: {str(e)}")
         return []
 
 def get_descendants(node_id):

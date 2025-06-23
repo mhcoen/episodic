@@ -63,25 +63,24 @@ class ConversationDAG:
 
         return nodes_to_delete
 
+    def _get_descendants(self, node_id: str) -> list:
+        """
+        Get all descendants of a node.
 
-def _get_descendants(self, node_id: str) -> list:
-    """
-    Get all descendants of a node.
+        Args:
+            node_id: ID of the node
 
-    Args:
-        node_id: ID of the node
+        Returns:
+            List of IDs of all descendants
+        """
+        descendants = set()
 
-    Returns:
-        List of IDs of all descendants
-    """
-    descendants = set()
+        def collect_descendants(current_id: str):
+            children = [n_id for n_id, node in self.nodes.items() if node.parent_id == current_id]
+            for child_id in children:
+                if child_id not in descendants:
+                    descendants.add(child_id)
+                    collect_descendants(child_id)
 
-    def collect_descendants(current_id: str):
-        children = [n_id for n_id, node in self.nodes.items() if node.parent_id == current_id]
-        for child_id in children:
-            if child_id not in descendants:
-                descendants.add(child_id)
-                collect_descendants(child_id)
-
-    collect_descendants(node_id)
-    return list(descendants)
+        collect_descendants(node_id)
+        return list(descendants)

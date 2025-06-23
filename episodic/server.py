@@ -70,9 +70,13 @@ def get_graph_data():
         'current_node_id': current_node_id
     }
 
-
-
-    print("=== END OF BROADCAST ===\n")
+def broadcast_graph_update():
+    """Placeholder for broadcasting graph updates to connected clients.
+    
+    TODO: Implement WebSocket or Server-Sent Events for real-time updates.
+    Currently this is a no-op to prevent runtime errors.
+    """
+    pass
 
 @app.route('/')
 def index():

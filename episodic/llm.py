@@ -4,6 +4,7 @@ It handles sending queries to the APIs and processing the responses.
 """
 
 import os
+import logging
 from typing import Dict, List, Optional, Any, Union
 import litellm
 from litellm import cost_per_token
@@ -12,6 +13,9 @@ from litellm.utils import supports_prompt_caching
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
 from episodic.configuration import CACHED_TOKEN_DISCOUNT_RATE
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Set default configuration value for context caching (enabled by default)
 if config.get("use_context_cache") is None:
@@ -29,15 +33,15 @@ def initialize_cache():
             
             # Prompt caching is handled per-request via cache_control parameters
             # in the _apply_prompt_caching function. No global setup needed.
-            print("Prompt caching enabled for supported models (response caching disabled)")
+            logger.info("Prompt caching enabled for supported models (response caching disabled)")
             return True
         except Exception as e:
-            print(f"Warning: Failed to initialize prompt caching: {str(e)}")
+            logger.warning(f"Failed to initialize prompt caching: {str(e)}")
             return False
     else:
         # Ensure all caching is completely disabled
         litellm.cache = None
-        print("All caching disabled")
+        logger.info("All caching disabled")
         return False
 
 # Initialize cache on module load
@@ -50,7 +54,7 @@ def disable_cache():
     import litellm
     litellm.cache = None
     config.set("use_context_cache", False)
-    print("Cache disabled")
+    logger.info("Cache disabled")
 
 def enable_cache():
     """
@@ -59,9 +63,9 @@ def enable_cache():
     config.set("use_context_cache", True)
     result = initialize_cache()
     if result:
-        print("Cache enabled")
+        logger.info("Cache enabled")
     else:
-        print("Failed to enable cache")
+        logger.warning("Failed to enable cache")
     return result
 
 
@@ -164,7 +168,7 @@ def _apply_prompt_caching(messages: List[Dict[str, Any]], model: str) -> List[Di
     except Exception as e:
         # If prompt caching fails, return original messages
         if config.get("debug", False):
-            print(f"Warning: Failed to apply prompt caching: {e}")
+            logger.warning(f"Failed to apply prompt caching: {e}")
         return messages
 
 def _execute_llm_query(
@@ -184,10 +188,10 @@ def _execute_llm_query(
         messages = _apply_prompt_caching(messages, full_model)
 
     if config.get("debug", False):
-        print("\n=== DEBUG: Messages sent to LLM ===")
+        logger.debug("=== DEBUG: Messages sent to LLM ===")
         for msg in messages:
-            print(f"[{msg['role']}]: {msg.get('content', msg)}")
-        print("===================================\n")
+            logger.debug(f"[{msg['role']}]: {msg.get('content', msg)}")
+        logger.debug("===================================")
 
     # Provider-specific handling
     if provider == "lmstudio":
@@ -261,8 +265,8 @@ def _execute_llm_query(
         cost_info["non_cached_tokens"] = actual_prompt_tokens
         cost_info["cache_savings_usd"] = total_cost - total_cost_with_cache
         if config.get("debug", False):
-            print(f"🎯 Cache hit! {cached_tokens} tokens cached, {actual_prompt_tokens} new tokens")
-            print(f"💰 Cost savings: ${total_cost - total_cost_with_cache:.6f}")
+            logger.info(f"🎯 Cache hit! {cached_tokens} tokens cached, {actual_prompt_tokens} new tokens")
+            logger.info(f"💰 Cost savings: ${total_cost - total_cost_with_cache:.6f}")
     
     return response.choices[0].message.content, cost_info
 

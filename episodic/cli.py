@@ -1112,10 +1112,20 @@ def topics(all_topics: bool = typer.Option(False, "--all", help="Show all topics
             confidence = topic['confidence'] or 'unknown'
             confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(confidence, "📝")
             
-            # Show topic info
-            typer.echo(f"{confidence_emoji} {topic['name']:<20} ({confidence} confidence)")
-            typer.echo(f"   Range: {topic['start_short_id']} → {topic['end_short_id']}")
-            typer.echo(f"   Created: {topic['created_at']}")
+            # Show topic info with colors
+            typer.secho(f"{confidence_emoji} ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{topic['name']:<20}", nl=False, fg=get_system_color())
+            typer.secho(f" (", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{confidence}", nl=False, fg=get_system_color())
+            typer.secho(f" confidence)", fg=typer.colors.WHITE)
+            
+            typer.secho(f"   Range: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{topic['start_short_id']}", nl=False, fg=get_system_color())
+            typer.secho(f" → ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{topic['end_short_id']}", fg=get_system_color())
+            
+            typer.secho(f"   Created: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{topic['created_at']}", fg=get_system_color())
             
             if i < len(topic_list) - 1:  # Don't add extra line after last item
                 typer.echo()

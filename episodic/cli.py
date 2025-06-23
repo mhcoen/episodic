@@ -23,6 +23,7 @@ from episodic.llm_config import get_current_provider, get_default_model, get_ava
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
 from episodic.configuration import *
+from episodic.configuration import get_llm_color, get_system_color, get_prompt_color
 from episodic.ml import ConversationalDrift
 from litellm import cost_per_token
 
@@ -142,7 +143,7 @@ def _display_semantic_drift(current_user_node_id: str) -> None:
         
         # Display drift information
         prev_short_id = previous_user.get("short_id", "??")
-        typer.echo(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}")
+        typer.secho(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_system_color())
         
         # Show additional context if debug mode is enabled
         if config.get("debug", False):
@@ -604,6 +605,21 @@ def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Nu
         typer.echo(f"Error retrieving recent nodes: {str(e)}")
 
 @app.command()
+def cost():
+    """Display the current session cost."""
+    global session_costs
+    
+    typer.echo("Session Cost Summary:")
+    typer.secho(f"  Input tokens: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"{session_costs['total_input_tokens']}", fg=get_system_color())
+    typer.secho(f"  Output tokens: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"{session_costs['total_output_tokens']}", fg=get_system_color())
+    typer.secho(f"  Total tokens: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"{session_costs['total_tokens']}", fg=get_system_color())
+    typer.secho(f"  Total cost: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"${session_costs['total_cost_usd']:.{COST_PRECISION}f} USD", fg=get_system_color())
+
+@app.command()
 def handle_model(name: Optional[str] = None):
     """Show current model or change to a new one."""
     global default_model
@@ -611,7 +627,11 @@ def handle_model(name: Optional[str] = None):
     # Get the current model first
     if name is None:
         current_model = default_model
-        typer.echo(f"Current model: {current_model} (Provider: {get_current_provider()})")
+        typer.secho(f"Current model: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"{current_model}", nl=False, fg=get_system_color())
+        typer.secho(f" (Provider: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"{get_current_provider()}", nl=False, fg=get_system_color())
+        typer.secho(")", fg=typer.colors.WHITE)
 
         # Get provider models using our own configuration
         from episodic.llm_config import get_available_providers, get_provider_models
@@ -662,7 +682,11 @@ def handle_model(name: Optional[str] = None):
                             else:
                                 pricing = "Pricing not available"
 
-                        typer.echo(f"  {current_idx:2d}. {model_name:20s}\t({pricing})")
+                        typer.secho(f"  ", nl=False, fg=typer.colors.WHITE)
+                        typer.secho(f"{current_idx:2d}", nl=False, fg=get_system_color())
+                        typer.secho(f". ", nl=False, fg=typer.colors.WHITE)
+                        typer.secho(f"{model_name:20s}", nl=False, fg=get_system_color())
+                        typer.secho(f"\t({pricing})", fg=typer.colors.WHITE)
                         current_idx += 1
 
         except Exception as e:
@@ -820,6 +844,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  debug: {config.get('debug', False)}")
         typer.echo(f"  cache: {config.get('use_context_cache', True)}")
         typer.echo(f"  topics: {config.get('show_topics', False)}")
+        typer.echo(f"  color: {config.get('color_mode', DEFAULT_COLOR_MODE)}")
         return
 
     # Handle the 'cost' parameter
@@ -922,10 +947,24 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("show_topics", val)
             typer.echo(f"Topics display set to {val}")
 
+    # Handle the 'color' parameter
+    elif param.lower() == "color":
+        if not value:
+            current = config.get("color_mode", DEFAULT_COLOR_MODE)
+            typer.echo(f"Current color mode: {current}")
+            typer.echo("Available modes: dark, light")
+        else:
+            if value.lower() in ["dark", "light"]:
+                config.set("color_mode", value.lower())
+                typer.echo(f"Color mode set to {value.lower()}")
+                typer.echo("Note: Restart the session to see color changes in the prompt")
+            else:
+                typer.echo("Invalid color mode. Available options: dark, light")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1116,8 +1155,16 @@ def script(filename: str):
         for i, query in enumerate(queries, 1):
             typer.echo(f"\n[{i}/{len(queries)}] > {query}")
             
-            # Process the query using the same handler as manual input
-            _handle_chat_message(query)
+            # Check if it's a command (starts with /) or a chat message
+            if query.startswith('/'):
+                # Process as a command (remove the leading /)
+                should_exit = _handle_command(query[1:])
+                if should_exit:
+                    typer.echo("Script terminated by exit command.")
+                    break
+            else:
+                # Process as a chat message
+                _handle_chat_message(query)
             
         typer.echo("\n" + "=" * 50)
         typer.echo(f"Script completed! Processed {len(queries)} queries.")
@@ -1154,12 +1201,17 @@ def display_session_summary() -> None:
     """Display session summary with token usage and costs if any LLM interactions occurred."""
     if session_costs["total_tokens"] > 0:
         typer.echo("Session Summary:")
-        typer.echo(f"Total input tokens: {session_costs['total_input_tokens']}")
-        typer.echo(f"Total output tokens: {session_costs['total_output_tokens']}")
-        typer.echo(f"Total tokens: {session_costs['total_tokens']}")
-        typer.echo(f"Total cost: ${session_costs['total_cost_usd']:.{COST_PRECISION}f} USD")
+        typer.secho(f"Total input tokens: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"{session_costs['total_input_tokens']}", fg=get_system_color())
+        typer.secho(f"Total output tokens: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"{session_costs['total_output_tokens']}", fg=get_system_color())
+        typer.secho(f"Total tokens: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"{session_costs['total_tokens']}", fg=get_system_color())
+        typer.secho(f"Total cost: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"${session_costs['total_cost_usd']:.{COST_PRECISION}f} USD", fg=get_system_color())
     else:
-        typer.echo(f"Total cost: ${0: .{ZERO_COST_PRECISION}f} USD")
+        typer.secho(f"Total cost: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"${0: .{ZERO_COST_PRECISION}f} USD", fg=get_system_color())
 
 
 def _initialize_talk_session() -> None:
@@ -1191,7 +1243,7 @@ def _create_prompt_session() -> PromptSession:
     # Ensure the directory exists
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
     return PromptSession(
-        message=HTML(PROMPT_COLOR),
+        message=HTML(get_prompt_color()),
         history=FileHistory(history_file),
         auto_suggest=AutoSuggestFromHistory(),
     )
@@ -1235,7 +1287,11 @@ def _initialize_model() -> None:
     # Get the current provider and model after initialization
     provider = get_current_provider()
     current_model_name = get_default_model()
-    typer.echo(f"Current model: {current_model_name} (Provider: {provider})")
+    typer.secho(f"Current model: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"{current_model_name}", nl=False, fg=get_system_color())
+    typer.secho(f" (Provider: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"{provider}", nl=False, fg=get_system_color())
+    typer.secho(")", fg=typer.colors.WHITE)
 
 def _print_welcome_message() -> None:
     """Print the welcome message for talk mode."""
@@ -1350,6 +1406,8 @@ def _handle_command(command_text: str) -> bool:
                 return False
             filename = command_args[0]
             script(filename=filename)
+        elif command == "cost":
+            cost()
         else:
             typer.echo(f"Unknown command: {command}")
             typer.echo("Type '/help' for available commands.")
@@ -1403,21 +1461,32 @@ def _handle_chat_message(user_input: str) -> None:
         if config.get("show_topics", False):
             _display_topic_evolution(user_node_id)
         
+        # Collect all status messages to display in one block
+        status_messages = []
+        
         if topic_confidence:
             confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(topic_confidence, "📝")
-            typer.echo(f"\n{confidence_emoji} Topic change detected ({topic_confidence} confidence)")
+            status_messages.append(f"{confidence_emoji} Topic change detected ({topic_confidence} confidence)")
             
             # Remove the change indicator line from the displayed response
             lines = response.split('\n')
             if lines and lines[0].lower().startswith('change-'):
                 display_response = '\n'.join(lines[1:]).strip()
 
-        # Display cost information if enabled
+        # Add cost information if enabled
         if config.get("show_cost", False) and cost_info:
-            typer.echo(f"\n💰 Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD")
+            status_messages.append(f"💰 Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD")
 
-        # Display the response
-        typer.echo(f"\n🤖 {display_response}")
+        # Display the response block with proper spacing
+        if status_messages:
+            # Show blank line, then status messages, then LLM response
+            typer.echo("")
+            for msg in status_messages:
+                typer.secho(msg, fg=get_system_color())
+            typer.secho(f"🤖 {display_response}", fg=get_llm_color())
+        else:
+            # No status messages, just show blank line then LLM response
+            typer.secho(f"\n🤖 {display_response}", fg=get_llm_color())
 
         # Add the assistant's response to the database with provider and model information
         # Use the cleaned response (without change indicators) for storage

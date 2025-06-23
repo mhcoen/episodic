@@ -32,7 +32,47 @@ MAX_CONTENT_DISPLAY_LENGTH = 50  # Max length for truncated content display
 EXIT_COMMANDS = ["exit", "quit"]
 
 # Prompt styling
-PROMPT_COLOR = "<ansigreen>> </ansigreen>"
+PROMPT_COLOR = "<ansicyan>\n> </ansicyan>"
+
+# Color schemes for different modes
+COLOR_SCHEMES = {
+    "dark": {
+        "llm_response": "BRIGHT_GREEN",      # LLM responses - distinct from white user text
+        "system_info": "BRIGHT_CYAN",       # All episodic system information
+        "prompt": "CYAN"                    # Prompt symbol color
+    },
+    "light": {
+        "llm_response": "BLUE",             # LLM responses for light background
+        "system_info": "MAGENTA",           # All episodic system information  
+        "prompt": "BLUE"                    # Prompt symbol color
+    }
+}
+
+# Default color mode
+DEFAULT_COLOR_MODE = "dark"
+
+def get_color_scheme():
+    """Get the current color scheme based on configuration."""
+    from episodic.config import config
+    mode = config.get("color_mode", DEFAULT_COLOR_MODE)
+    return COLOR_SCHEMES.get(mode, COLOR_SCHEMES[DEFAULT_COLOR_MODE])
+
+def get_llm_color():
+    """Get the color for LLM responses."""
+    import typer
+    color_name = get_color_scheme()["llm_response"]
+    return getattr(typer.colors, color_name)
+
+def get_system_color():
+    """Get the color for system information."""
+    import typer
+    color_name = get_color_scheme()["system_info"]
+    return getattr(typer.colors, color_name)
+
+def get_prompt_color():
+    """Get the color for the prompt."""
+    color_name = get_color_scheme()["prompt"]
+    return f"<ansi{color_name.lower()}>\n> </ansi{color_name.lower()}>"
 
 # Cost display formatting
 COST_PRECISION = 6  # Number of decimal places for cost display

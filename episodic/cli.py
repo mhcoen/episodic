@@ -20,6 +20,7 @@ from episodic.llm_config import get_current_provider, get_default_model, get_ava
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
 from episodic.configuration import *
+from episodic.ml import ConversationalDrift
 from litellm import cost_per_token
 
 # Create a Typer app for command handling
@@ -36,6 +37,100 @@ session_costs = {
     "total_tokens": 0,
     "total_cost_usd": 0.0
 }
+
+# Global drift calculator for real-time drift detection
+drift_calculator = None
+
+def _get_drift_calculator():
+    """Get or create the global drift calculator instance."""
+    global drift_calculator
+    if drift_calculator is None:
+        try:
+            drift_calculator = ConversationalDrift()
+        except Exception as e:
+            # If drift calculator fails to initialize (e.g., missing dependencies),
+            # disable drift detection for this session
+            if config.get("debug", False):
+                typer.echo(f"⚠️  Drift detection disabled: {e}")
+            drift_calculator = False  # Mark as disabled
+    return drift_calculator if drift_calculator is not False else None
+
+def _display_semantic_drift(current_user_node_id: str) -> None:
+    """
+    Calculate and display semantic drift for the current conversation.
+    
+    Args:
+        current_user_node_id: ID of the current user message node
+    """
+    calc = _get_drift_calculator()
+    if not calc:
+        return  # Drift detection disabled
+    
+    try:
+        # Get conversation history leading to this point
+        conversation_chain = get_ancestry(current_user_node_id)
+        
+        # Filter to content nodes only (exclude empty system nodes)
+        content_nodes = [node for node in conversation_chain if node.get("content", "").strip()]
+        
+        if len(content_nodes) < 2:
+            # Not enough conversation history for drift calculation
+            return
+        
+        # Calculate drift from previous message to current message
+        current_node = content_nodes[-1]  # Current user message
+        previous_node = content_nodes[-2]  # Previous message (user or assistant)
+        
+        drift_score = calc.calculate_drift(previous_node, current_node, text_field="content")
+        
+        # Format drift display based on score level
+        if drift_score >= 0.8:
+            # High drift - topic shift
+            drift_emoji = "🔄"
+            drift_desc = "High topic shift"
+            drift_color = "red"
+        elif drift_score >= 0.6:
+            # Moderate drift - some topic change
+            drift_emoji = "📈"
+            drift_desc = "Moderate drift"
+            drift_color = "yellow"
+        elif drift_score >= 0.3:
+            # Low drift - staying on topic with some variation
+            drift_emoji = "➡️"
+            drift_desc = "Low drift"
+            drift_color = "green"
+        else:
+            # Very low drift - very similar to previous
+            drift_emoji = "🎯"
+            drift_desc = "Minimal drift"
+            drift_color = "green"
+        
+        # Display drift information
+        prev_role = previous_node.get("role", "unknown")
+        prev_short_id = previous_node.get("short_id", "??")
+        
+        typer.echo(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from {prev_role} {prev_short_id}")
+        
+        # Show additional context if debug mode is enabled
+        if config.get("debug", False):
+            # Show recent drift trend if we have enough history
+            if len(content_nodes) >= 4:
+                recent_drift = calc.calculate_drift_sequence(content_nodes[-4:], text_field="content")
+                avg_recent_drift = sum(recent_drift) / len(recent_drift)
+                typer.echo(f"   Recent trend: {[f'{d:.3f}' for d in recent_drift]} (avg: {avg_recent_drift:.3f})")
+            
+            # Show peak detection
+            drift_peaks = calc.find_drift_peaks(content_nodes, text_field="content")
+            if drift_peaks:
+                peak_count = len(drift_peaks)
+                latest_peak = max(drift_peaks, key=lambda x: x[1]) if drift_peaks else None
+                if latest_peak:
+                    typer.echo(f"   Conversation peaks: {peak_count} detected, highest: {latest_peak[1]:.3f} at node {latest_peak[0]}")
+        
+    except Exception as e:
+        # If drift calculation fails, silently continue (don't disrupt conversation flow)
+        if config.get("debug", False):
+            typer.echo(f"⚠️  Drift calculation error: {e}")
 
 # Helper functions
 def _parse_flag_value(args: List[str], flag_names: List[str]) -> Optional[str]:
@@ -533,6 +628,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     if not param:
         typer.echo("Current parameters:")
         typer.echo(f"  cost: {config.get('show_cost', False)}")
+        typer.echo(f"  drift: {config.get('show_drift', True)}")
         typer.echo(f"  depth: {default_context_depth}")
         typer.echo(f"  debug: {config.get('debug', False)}")
         typer.echo(f"  cache: {config.get('use_context_cache', True)}")
@@ -550,6 +646,19 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             val = value.lower() in ["on", "true", "yes", "1"]
             config.set("show_cost", val)
             typer.echo(f"Cost display: {'ON' if val else 'OFF'}")
+
+    # Handle the 'drift' parameter
+    elif param.lower() == "drift":
+        if not value:
+            # Toggle the current value if no value is provided
+            current = config.get("show_drift", True)
+            config.set("show_drift", not current)
+            typer.echo(f"Drift display: {'ON' if not current else 'OFF'}")
+        else:
+            # Set to the provided value
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("show_drift", val)
+            typer.echo(f"Drift display: {'ON' if val else 'OFF'}")
 
     # Handle the 'depth' parameter
     elif param.lower() == "depth":
@@ -603,7 +712,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, depth, debug, cache")
+        typer.echo("Available parameters: cost, drift, depth, debug, cache")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -746,7 +855,7 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    typer.echo("  /set [param] [value] - Configure parameters (cost, depth, debug, cache)")
+    typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, debug, cache)")
     typer.echo("  /prompts             - Manage system prompts")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
@@ -982,6 +1091,10 @@ def _handle_chat_message(user_input: str) -> None:
             session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
             session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
             session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
+
+        # Calculate and display semantic drift if enabled
+        if config.get("show_drift", True):
+            _display_semantic_drift(user_node_id)
 
         # Display cost information if enabled
         if config.get("show_cost", False) and cost_info:

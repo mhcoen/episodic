@@ -34,6 +34,11 @@ class Config:
                 if "debug" not in self.config:
                     self.config["debug"] = False
                     self._save()
+                
+                # Ensure show_drift is set to True by default
+                if "show_drift" not in self.config:
+                    self.config["show_drift"] = True
+                    self._save()
             except json.JSONDecodeError:
                 # If the file is corrupted, start with an empty config
                 self.config = {}
@@ -42,7 +47,8 @@ class Config:
             self.config = {
                 "active_prompt": "default",
                 "debug": False,
-                "show_cost": False
+                "show_cost": False,
+                "show_drift": True
             }
             self._save()
 

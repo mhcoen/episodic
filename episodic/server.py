@@ -21,32 +21,22 @@ import webbrowser
 import json
 import time
 from flask import Flask, request, jsonify, send_file, Response, send_from_directory
-from flask_socketio import SocketIO, emit
 
 from episodic.db import get_node, set_head, get_head, delete_node, get_all_nodes
 from episodic.visualization import visualize_dag
+from episodic.configuration import (
+    SERVER_SHUTDOWN_DELAY, DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT
+)
 
 # Create Flask application
 app = Flask(__name__)
 
-# Initialize SocketIO with simplified configuration
-socketio = SocketIO(
-    app,
-    cors_allowed_origins="*",
-    async_mode='threading',
-    logger=False,  # Disable detailed Socket.IO logging
-    engineio_logger=False,  # Disable detailed Engine.IO logging
-    ping_timeout=20,
-    ping_interval=10,
-    always_connect=True,
-    manage_session=False
-)
 
 # Global variables
 server_thread = None
 server_running = False
-port = 5000
-host = '127.0.0.1'
+port = DEFAULT_SERVER_PORT
+host = DEFAULT_SERVER_HOST
 
 # Function to get graph data for WebSocket updates
 def get_graph_data():
@@ -80,85 +70,28 @@ def get_graph_data():
         'current_node_id': current_node_id
     }
 
-# WebSocket event handlers
-@socketio.on('connect')
-def handle_connect():
-    """Handle client connection."""
-    print("Client connected")
-    # Send the current graph data to the newly connected client
-    emit('graph_update', get_graph_data())
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection."""
-    print("Client disconnected")
-
-@socketio.on('ping')
-def handle_ping(data):
-    """Handle ping messages from clients."""
-    print(f"Received ping from client: {data}")
-    # Send a response back to the client
-    return {
-        'serverTime': time.strftime('%Y-%m-%d %H:%M:%S'),
-        'receivedClientTime': data.get('clientTime', 'No client time provided'),
-        'status': 'ok'
-    }
-
-def broadcast_graph_update():
-    """Broadcast graph update to all connected clients."""
-    # Get the graph data
-    graph_data = get_graph_data()
-
-    # Log the data being sent
-    print("\n=== BROADCASTING GRAPH UPDATE ===")
-    print(f"Graph data contains {len(graph_data['nodes'])} nodes and {len(graph_data['edges'])} edges")
-
-    # Check if there's a current node
-    current_node = None
-    for node in graph_data['nodes']:
-        if node['is_current']:
-            current_node = node
-            break
-
-    if current_node:
-        print(f"Current node: {current_node['short_id']} (ID: {current_node['id']})")
-    else:
-        print("Warning: No current node found in the graph data")
-
-    # Print connected clients
-    if hasattr(socketio, 'server'):
-        connected_clients = len(socketio.server.eio.sockets)
-        print(f"Number of connected clients: {connected_clients}")
-
-        # If no clients are connected, there's no point in broadcasting
-        if connected_clients == 0:
-            print("No clients connected, skipping broadcast")
-            print("=== END OF BROADCAST (SKIPPED) ===\n")
-            return
-    else:
-        print("Unable to determine number of connected clients")
-
-    # Emit the event with a callback to verify delivery
-    def ack_callback(data):
-        print(f"Broadcast acknowledged by client: {data if data else 'No data'}")
-
-    try:
-        socketio.emit('graph_update', graph_data, callback=ack_callback)
-        print("Graph update broadcast sent successfully")
-    except Exception as e:
-        print(f"Error broadcasting graph update: {str(e)}")
 
     print("=== END OF BROADCAST ===\n")
 
 @app.route('/')
 def index():
     """Serve the visualization."""
-    # Generate a new visualization with interactive features
-    # Use the actual server URL with the current port
-    server_url = f"http://{host}:{port}"
-    print(f"Generating visualization with server URL: {server_url}")
-    output_path = visualize_dag(interactive=True, server_url=server_url)
-    return send_file(output_path)
+    try:
+        # Generate a new visualization with interactive features
+        # Use the actual server URL with the current port
+        server_url = f"http://{host}:{port}"
+        print(f"=== SERVER ROOT ROUTE ACCESSED ===")
+        print(f"Generating visualization with server URL: {server_url}")
+        output_path = visualize_dag(interactive=True, server_url=server_url)
+        print(f"Visualization generated: {output_path}")
+        print(f"Sending file to browser...")
+        return send_file(output_path)
+    except Exception as e:
+        print(f"ERROR in root route: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Server Error: {e}", 500
 
 @app.route('/set_current_node', methods=['POST'])
 def set_current_node():
@@ -270,10 +203,10 @@ def favicon():
     return '', 204
 
 def run_server():
-    """Run the Flask server with SocketIO support."""
+    """Run the Flask server."""
     global server_running
     server_running = True
-    socketio.run(app, host=host, port=port, debug=False, use_reloader=False)
+    app.run(host=host, port=port, debug=False, use_reloader=False)
     server_running = False
 
 def start_server(server_port=5000):
@@ -349,7 +282,7 @@ def shutdown():
 
     def shutdown_server():
         # Give a small delay to allow the response to be sent
-        time.sleep(0.1)
+        time.sleep(SERVER_SHUTDOWN_DELAY)
         os._exit(0)
 
     # Start a thread to shut down the server

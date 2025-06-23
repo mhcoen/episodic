@@ -19,7 +19,7 @@ from episodic.llm import query_llm, query_with_context
 from episodic.llm_config import get_current_provider, get_default_model, get_available_providers
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
-from episodic.cli_constants import *
+from episodic.configuration import *
 from litellm import cost_per_token
 
 # Create a Typer app for command handling
@@ -472,28 +472,53 @@ def visualize(output: Optional[str] = None, no_browser: bool = False, port: int 
         import webbrowser
         import os
         import time
+        import signal
+        import sys
 
-        output_path = visualize_dag(output)
-
-        if output_path and not no_browser:
+        if not no_browser:
+            # Start server first, then generate interactive visualization
             from episodic.server import start_server, stop_server
             server_url = start_server(server_port=port)
             typer.echo(f"Starting visualization server at {server_url}")
+            
+            # Generate interactive visualization that connects to the server
+            output_path = visualize_dag(output, interactive=True, server_url=server_url)
+            
             typer.echo("Press Ctrl+C when done to stop the server.")
+            
+            # Give the server a moment to fully start before opening browser
+            time.sleep(1)
+            
+            typer.echo(f"Opening browser to: {server_url}")
             webbrowser.open(server_url)
+            
+            # Set up signal handler for clean shutdown
+            def signal_handler(signum, frame):
+                typer.echo("\nStopping server...")
+                stop_server()
+                typer.echo("Server stopped.")
+                sys.exit(0)
+            
+            signal.signal(signal.SIGINT, signal_handler)
 
             try:
                 # Keep the server running until the user presses Ctrl+C
                 while True:
-                    time.sleep(1)
+                    time.sleep(MAIN_LOOP_SLEEP_INTERVAL)
             except KeyboardInterrupt:
                 typer.echo("\nStopping server...")
                 stop_server()
                 typer.echo("Server stopped.")
-        elif output_path:
-            typer.echo(f"Visualization saved to: {output_path}")
-            typer.echo(f"Opening visualization in browser: {output_path}")
-            webbrowser.open(f"file://{os.path.abspath(output_path)}")
+            except Exception as e:
+                typer.echo(f"\nError in server loop: {e}")
+                stop_server()
+        else:
+            # Generate static visualization without interactive features
+            output_path = visualize_dag(output, interactive=False)
+            if output_path:
+                typer.echo(f"Visualization saved to: {output_path}")
+                typer.echo(f"Opening visualization in browser: {output_path}")
+                webbrowser.open(f"file://{os.path.abspath(output_path)}")
     except ImportError as e:
         typer.echo(f"Visualization dependencies not available: {str(e)}")
     except Exception as e:

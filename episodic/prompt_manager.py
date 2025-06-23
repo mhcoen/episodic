@@ -1,6 +1,7 @@
 import os
 import glob
 from typing import Dict, List, Optional
+from .configuration import PROMPT_FILE_EXTENSIONS
 
 # Try to import yaml, but provide a fallback if it's not available
 try:
@@ -27,9 +28,10 @@ class PromptManager:
         if not os.path.exists(self.prompts_dir):
             os.makedirs(self.prompts_dir)
 
-        # Get all .txt and .md files
-        prompt_files = glob.glob(os.path.join(self.prompts_dir, "*.txt"))
-        prompt_files.extend(glob.glob(os.path.join(self.prompts_dir, "*.md")))
+        # Get all supported prompt files
+        prompt_files = []
+        for ext in PROMPT_FILE_EXTENSIONS:
+            prompt_files.extend(glob.glob(os.path.join(self.prompts_dir, ext)))
 
         for file_path in prompt_files:
             name = os.path.splitext(os.path.basename(file_path))[0]

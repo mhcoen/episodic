@@ -11,6 +11,7 @@ from litellm.caching import Cache
 from litellm.utils import supports_prompt_caching
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
+from episodic.configuration import CACHED_TOKEN_DISCOUNT_RATE
 
 # Set default configuration value for context caching (enabled by default)
 if config.get("use_context_cache") is None:
@@ -242,7 +243,7 @@ def _execute_llm_query(
             model=full_model,
             prompt_tokens=cached_tokens,
             completion_tokens=0
-        )) * 0.5  # 50% discount for cached tokens
+        )) * CACHED_TOKEN_DISCOUNT_RATE
         total_cost_with_cache = actual_cost + cached_cost
     else:
         total_cost_with_cache = actual_cost

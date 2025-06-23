@@ -11,6 +11,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 from episodic.db import get_connection, get_head
+from episodic.configuration import (
+    VISUALIZATION_VERTICAL_SPACING, VISUALIZATION_DEFAULT_WIDTH, VISUALIZATION_NODE_SIZE,
+    VISUALIZATION_CONTENT_TRUNCATE_LENGTH, CURRENT_NODE_COLOR, DEFAULT_NODE_COLOR,
+    VIRTUAL_ROOT_COLOR, HTTP_POLLING_INTERVAL,
+    CLICK_THRESHOLD_TOUCH, CLICK_THRESHOLD_MOUSE
+)
 
 def custom_simple_layout(G):
     """
@@ -80,7 +86,7 @@ def custom_simple_layout(G):
             # Center the nodes horizontally
             x_pos = (i + 1) * spacing - max_width / 2
             # Position vertically based on level (negative to go downward)
-            y_pos = -level * 2  # Increased vertical spacing
+            y_pos = -level * VISUALIZATION_VERTICAL_SPACING
             pos[node] = (x_pos, y_pos)
 
     # If there are nodes not visited (disconnected components)
@@ -119,7 +125,7 @@ def get_all_nodes():
         print(f"Error retrieving nodes from database: {str(e)}")
         return []
 
-def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None, websocket=False):
+def visualize_dag(output_path=None, height="800px", width="100%", interactive=False, server_url=None):
     """
     Create an interactive visualization of the conversation DAG using Plotly.
 
@@ -129,7 +135,6 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         width: Width of the visualization (default: 100%)
         interactive: Whether to include interactive features like double-click to set current node
         server_url: URL of the server for interactive features (default: http://127.0.0.1:5000)
-        websocket: Whether to enable WebSocket for real-time updates (default: False)
 
     Returns:
         Path to the generated HTML file
@@ -165,7 +170,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
     for node in nodes:
         # Ensure content is a string and truncate for display
         content_str = str(node["content"])
-        display_content = content_str[:50] + "..." if len(content_str) > 50 else content_str
+        display_content = content_str[:VISUALIZATION_CONTENT_TRUNCATE_LENGTH] + "..." if len(content_str) > VISUALIZATION_CONTENT_TRUNCATE_LENGTH else content_str
         # Include short ID in parentheses before the content
         display_content = f"({node['short_id']}) {display_content}"
 
@@ -182,10 +187,10 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
         # Set color based on whether this is the current node
         if node["id"] == current_node_id:
-            node_colors.append("#FFA500")  # Orange for current node
+            node_colors.append(CURRENT_NODE_COLOR)  # Orange for current node
             is_current.append(True)
         else:
-            node_colors.append("#97c2fc")  # Light blue for other nodes
+            node_colors.append(DEFAULT_NODE_COLOR)  # Light blue for other nodes
             is_current.append(False)
 
     # Add edges after all nodes are created
@@ -212,7 +217,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         node_ids.append(virtual_root_id)
         node_labels[virtual_root_id] = "(root)"
         node_hover_texts.append("Virtual root node")
-        node_colors.append("#CCCCCC")  # Light gray
+        node_colors.append(VIRTUAL_ROOT_COLOR)  # Light gray
         is_current.append(False)
 
         # Connect all root nodes to the virtual root
@@ -257,7 +262,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
         marker=dict(
             showscale=False,
             color=node_colors,
-            size=20,
+            size=VISUALIZATION_NODE_SIZE,
             line=dict(width=2, color='#888')
         ),
         customdata=list(zip(node_ids, is_current)),
@@ -289,7 +294,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
             autorange=True    # Auto-range to fit all points
         ),
         height=int(height.replace('px', '')),
-        width=1000 if width == '100%' else int(width.replace('px', '')),
+        width=VISUALIZATION_DEFAULT_WIDTH if width == '100%' else int(width.replace('px', '')),
         plot_bgcolor='rgba(255,255,255,1)',
         autosize=True        # Enable auto-sizing
     )
@@ -334,7 +339,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
         # Add custom JavaScript for WebSocket, double-click, and right-click functionality
         custom_js = """
-        <script>
+        <script>\n        // Color constants from configuration\n        var currentNodeColor = '""" + CURRENT_NODE_COLOR + """';\n        var defaultNodeColor = '""" + DEFAULT_NODE_COLOR + """';\n        var virtualRootColor = '""" + VIRTUAL_ROOT_COLOR + """';
         // Wait for the plot to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Auto-zoom to fit all nodes on initial load
@@ -348,7 +353,6 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
             var serverUrl = '""" + server_url + """';
             var cleanUrl = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
 
-            console.log('WebSocket enabled:', """ + str(websocket).lower() + """);
             console.log('Server URL:', serverUrl);
             console.log('Cleaned server URL:', cleanUrl);
 
@@ -403,239 +407,12 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                         .catch(error => {
                             console.error('Error polling for updates:', error);
                         });
-                }, 5000);
+                }, """ + str(HTTP_POLLING_INTERVAL) + """);
             }
 
-            // Start polling immediately if WebSocket is disabled
-            if (!""" + str(websocket).lower() + """) {
-                console.log('WebSocket disabled, using HTTP polling for updates');
-                startPolling();
-            } else {
-                try {
-                    console.log('Connecting to WebSocket server at:', serverUrl);
-
-                    // Check if Socket.IO is loaded
-                    if (typeof io === 'undefined') {
-                        console.error('Socket.IO client not loaded. Check if the script tag is included correctly.');
-                        alert('WebSocket functionality not available. Socket.IO client not loaded.');
-                    } else {
-                        // Connect to the Socket.IO server
-                        // cleanUrl is already defined above, no need to redefine it
-                        console.log('Using cleaned server URL for WebSocket:', cleanUrl);
-
-                        // Initialize Socket.IO with both WebSocket and polling transports
-                        socket = io(cleanUrl, {
-                            transports: ['websocket', 'polling'],  // Try WebSocket first, fall back to polling
-                            reconnection: true,
-                            reconnectionAttempts: 10,
-                            reconnectionDelay: 1000,
-                            timeout: 20000
-                        });
-                        console.log('Socket.IO connection initialized with path:', socket.io.opts.path);
-
-                        // Handle connection event
-                        socket.on('connect', function() {
-                            console.log('%c WebSocket connected successfully!', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;');
-
-                            // Display a notification to the user
-                            var notification = document.createElement('div');
-                            notification.style.position = 'fixed';
-                            notification.style.top = '10px';
-                            notification.style.right = '10px';
-                            notification.style.backgroundColor = '#4CAF50';
-                            notification.style.color = 'white';
-                            notification.style.padding = '10px';
-                            notification.style.borderRadius = '5px';
-                            notification.style.zIndex = '1000';
-                            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-                            notification.textContent = 'WebSocket connected successfully!';
-                            document.body.appendChild(notification);
-
-                            // Remove the notification after 3 seconds
-                            setTimeout(function() {
-                                notification.style.opacity = '0';
-                                notification.style.transition = 'opacity 0.5s';
-
-                                setTimeout(function() {
-                                    notification.remove();
-                                }, 500);
-                            }, 3000);
-
-                            // Send a test message to the server to verify the connection
-                            socket.emit('ping', { clientTime: new Date().toISOString() }, function(response) {
-                                console.log('Server acknowledged ping:', response);
-                            });
-                        });
-
-                        // Handle connection error
-                        var connectionErrorShown = false;
-                        var pollingInterval = null;
-
-                        socket.on('connect_error', function(error) {
-                            console.error('%c WebSocket connection error!', 'background: #F44336; color: white; padding: 2px 5px; border-radius: 2px;');
-                            console.error('Error details:', error);
-
-                            // Only show the alert once to avoid annoying the user
-                            if (!connectionErrorShown) {
-                                console.log('Showing connection error alert (will only show once)');
-
-                                // Create a more detailed error message
-                                var errorMessage = 'WebSocket connection error. Falling back to periodic updates.\\n\\n';
-                                errorMessage += 'Error details: ' + error + '\\n\\n';
-                                errorMessage += 'The visualization will still update, but you will need to refresh manually or wait for the automatic update.';
-
-                                alert(errorMessage);
-                                connectionErrorShown = true;
-
-                                // Start polling for updates as a fallback
-                                if (!pollingInterval) {
-                                    console.log('Starting polling fallback mechanism');
-                                    startPollingFallback();
-                                }
-                            }
-
-                            // Try to reconnect after a delay
-                            setTimeout(function() {
-                                console.log('Attempting to reconnect...');
-                                socket.connect();
-                            }, 5000);
-                        });
-
-                        // Fallback mechanism: poll for updates using regular HTTP requests
-                        function startPollingFallback() {
-                            console.log('Initializing polling fallback mechanism');
-
-                            // Show a notification to the user
-                            var notification = document.createElement('div');
-                            notification.style.position = 'fixed';
-                            notification.style.bottom = '10px';
-                            notification.style.right = '10px';
-                            notification.style.backgroundColor = '#FF9800';
-                            notification.style.color = 'white';
-                            notification.style.padding = '10px';
-                            notification.style.borderRadius = '5px';
-                            notification.style.zIndex = '1000';
-                            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-                            notification.textContent = 'WebSocket unavailable. Using fallback update mechanism.';
-                            document.body.appendChild(notification);
-
-                            // Set up polling interval (every 5 seconds)
-                            pollingInterval = setInterval(function() {
-                                console.log('Polling for updates...');
-
-                                // Blink the indicator when polling starts
-                                blinkUpdateIndicator();
-
-                                // Make a request to get the current graph data
-                                fetch(cleanUrl + '/get_graph_data')
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        console.log('Received update from polling:', data);
-
-                                        // Update the visualization with the new data
-                                        try {
-                                            updateVisualization(data);
-                                        } catch (error) {
-                                            console.error('Error updating visualization from polling:', error);
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error polling for updates:', error);
-                                    });
-                            }, 5000);
-
-                            // Stop polling if WebSocket connects successfully
-                            socket.on('connect', function() {
-                                if (pollingInterval) {
-                                    console.log('WebSocket connected, stopping polling fallback');
-                                    clearInterval(pollingInterval);
-                                    pollingInterval = null;
-
-                                    // Remove the notification
-                                    notification.remove();
-                                }
-                            });
-                        }
-
-
-                        // Handle graph update event
-                        socket.on('graph_update', function(data) {
-                            console.log('%c Received graph_update event from server', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;');
-
-                            // Verify the data contains what we need
-                            if (!data || !data.nodes || !data.edges) {
-                                console.error('Invalid graph data received:', data);
-                                return;
-                            }
-
-                            console.log('Graph data contains ' + data.nodes.length + ' nodes and ' + 
-                                        data.edges.length + ' edges');
-
-                            // Check if there's a current node
-                            var currentNodeFound = false;
-                            var currentNodeId = null;
-                            for (var i = 0; i < data.nodes.length; i++) {
-                                if (data.nodes[i].is_current) {
-                                    console.log('Current node found:', data.nodes[i]);
-                                    currentNodeFound = true;
-                                    currentNodeId = data.nodes[i].id;
-                                    break;
-                                }
-                            }
-
-                            if (!currentNodeFound) {
-                                console.warn('No current node found in the graph data');
-                            } else {
-                                console.log('Current node ID:', currentNodeId);
-                            }
-
-                            // Blink the green circle indicator
-                            blinkUpdateIndicator();
-
-                            // Call updateVisualization with the data immediately
-                            console.log('Calling updateVisualization...');
-                            try {
-                                updateVisualization(data);
-                            } catch (error) {
-                                console.error('Error in updateVisualization:', error);
-                                console.error('Stack trace:', error.stack);
-
-                                // Show error notification instead of forcing reload
-                                var errorNotification = document.createElement('div');
-                                errorNotification.style.position = 'fixed';
-                                errorNotification.style.top = '10px';
-                                errorNotification.style.right = '10px';
-                                errorNotification.style.backgroundColor = '#F44336';
-                                errorNotification.style.color = 'white';
-                                errorNotification.style.padding = '10px';
-                                errorNotification.style.borderRadius = '5px';
-                                errorNotification.style.zIndex = '1000';
-                                errorNotification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-                                errorNotification.textContent = 'Error updating visualization: ' + error.message;
-                                document.body.appendChild(errorNotification);
-
-                                // Remove the notification after a delay
-                                setTimeout(function() {
-                                    errorNotification.style.opacity = '0';
-                                    errorNotification.style.transition = 'opacity 0.5s';
-
-                                    setTimeout(function() {
-                                        errorNotification.remove();
-                                    }, 500);
-                                }, 5000);
-                            }
-                        });
-
-                        // Handle disconnection event
-                        socket.on('disconnect', function(reason) {
-                            console.log('Disconnected from WebSocket server. Reason:', reason);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error setting up WebSocket connection:', error);
-                    alert('Error setting up WebSocket connection: ' + error);
-                }
-            }
+            // Start HTTP polling for updates
+            console.log('Using HTTP polling for updates');
+            startPolling();
 
             // Function to create and blink a small green circle in the upper left corner
             function blinkUpdateIndicator() {
@@ -733,7 +510,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                             var wasCurrentNode = nodeTrace.customdata[i][1];
 
                             // Set color based on current status
-                            var newColor = isCurrentNode ? "#FFA500" : "#97c2fc";
+                            var newColor = isCurrentNode ? "" + currentNodeColor + "" : "" + defaultNodeColor + "";
                             newColors.push(newColor);
 
                             // Update customdata with current status
@@ -827,7 +604,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                             nodeIds.push(virtual_root_id);
                             nodeLabels[virtual_root_id] = "(root)";
                             nodeHoverTexts.push("Virtual root node");
-                            nodeColors.push("#CCCCCC");  // Light gray
+                            nodeColors.push(virtualRootColor);  // Light gray
                             isCurrentNode.push(false);
 
                             // Position the virtual root node
@@ -862,7 +639,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                             var content_str = node.content !== undefined ? node.content : (node.title || node.id);
                             // Convert content to string to handle non-string content
                             content_str = String(content_str);
-                            var display_content = content_str.length > 50 ? content_str.substring(0, 50) + "..." : content_str;
+                            var display_content = content_str.length > """ + str(VISUALIZATION_CONTENT_TRUNCATE_LENGTH) + """ ? content_str.substring(0, """ + str(VISUALIZATION_CONTENT_TRUNCATE_LENGTH) + """) + "..." : content_str;
 
                             // Use short_id if available, otherwise use a shortened version of the full ID
                             var short_id = node.short_id;
@@ -886,10 +663,10 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                             // Set color based on whether this is the current node
                             if (node.is_current || node.id === currentNodeId) {
-                                nodeColors.push("#FFA500");  // Orange for current node
+                                nodeColors.push(currentNodeColor);  // Orange for current node
                                 isCurrentNode.push(true);
                             } else {
-                                nodeColors.push("#97c2fc");  // Light blue for other nodes
+                                nodeColors.push(defaultNodeColor);  // Light blue for other nodes
                                 isCurrentNode.push(false);
                             }
 
@@ -1027,7 +804,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                         setTimeout(function() {
                             errorNotification.remove();
                         }, 500);
-                    }, 5000);
+                    }, """ + str(HTTP_POLLING_INTERVAL) + """);
                 }
             }
             // Get the plot div
@@ -1118,9 +895,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                         console.log("Success: ", data);
                         // Show success message
 
-                        // If WebSocket is not enabled, poll for updates immediately
-                        if (!""" + str(websocket).lower() + """) {
-                            console.log('WebSocket disabled, polling for updates immediately');
+                        // Poll for updates immediately
+                        console.log('Polling for updates immediately');
 
                             // Blink the indicator when polling starts
                             blinkUpdateIndicator();
@@ -1145,8 +921,6 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                                     // If polling fails, fall back to page reload
                                     window.location.reload();
                                 });
-                        }
-                        // Otherwise, the visualization will be updated via WebSocket
                     })
                     .catch(error => {
                         console.error('Error:', error);
@@ -1248,9 +1022,8 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                             console.log("Success: ", data);
                             // Show success message
 
-                            // If WebSocket is not enabled, poll for updates immediately
-                            if (!""" + str(websocket).lower() + """) {
-                                console.log('WebSocket disabled, polling for updates immediately');
+                            // Poll for updates immediately
+                            console.log('Polling for updates immediately');
 
                                 // Blink the indicator when polling starts
                                 blinkUpdateIndicator();
@@ -1275,8 +1048,6 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                                         // If polling fails, fall back to page reload
                                         window.location.reload();
                                     });
-                            }
-                            // Otherwise, the visualization will be updated via WebSocket
                         })
                         .catch(error => {
                             console.error('Error:', error);
@@ -1390,7 +1161,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
 
                     // Only return a point if it's close enough (within a threshold)
                     // Use a larger threshold for touch devices
-                    var threshold = ('ontouchstart' in window) ? 100 : 50;
+                    var threshold = ('ontouchstart' in window) ? """ + str(CLICK_THRESHOLD_TOUCH) + """ : """ + str(CLICK_THRESHOLD_MOUSE) + """;
                     if (minDistance < threshold) {
                         return closestPoint;
                     } else {
@@ -1451,7 +1222,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                     console.log("Closest point by screen coordinates: " + closestPoint + " at distance: " + minDistance);
 
                     // Only return a point if it's close enough
-                    var threshold = ('ontouchstart' in window) ? 100 : 50;
+                    var threshold = ('ontouchstart' in window) ? """ + str(CLICK_THRESHOLD_TOUCH) + """ : """ + str(CLICK_THRESHOLD_MOUSE) + """;
                     if (minDistance < threshold) {
                         return closestPoint;
                     } else {
@@ -1493,17 +1264,11 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
             if not html_content.startswith('<!DOCTYPE html>'):
                 html_content = '<!DOCTYPE html>\n' + html_content
 
-            # Add Socket.IO client library and custom JavaScript if interactive or if polling is enabled
-            if interactive or not websocket:
-                # Add Socket.IO client library if WebSocket is enabled
-                socketio_script = ""
-                if websocket:
-                    socketio_script = """
-                    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
-                    """
+            # Add custom JavaScript if interactive
+            if interactive:
 
-                # Insert Socket.IO client library and custom JavaScript before the closing body tag
-                html_content = html_content.replace('</body>', f'{socketio_script}{custom_js}</body>')
+                # Insert custom JavaScript before the closing body tag
+                html_content = html_content.replace('</body>', f'{custom_js}</body>')
 
             f.write(html_content)
     except Exception as e:

@@ -50,10 +50,45 @@ class DistanceFunction:
         self.algorithm = algorithm
     
     def calculate(self, embedding1: List[float], embedding2: List[float]) -> float:
-        """Calculate distance/similarity between two embeddings."""
-        # TODO: Implement different algorithms based on self.algorithm
-        # Note: Some return similarity (higher = more similar), others distance (lower = more similar)
-        raise NotImplementedError("Distance calculation not yet implemented")
+        """
+        Calculate distance/similarity between two embeddings.
+        
+        Returns:
+            For cosine: similarity score (0.0 to 1.0, higher = more similar)
+            For euclidean: distance (lower = more similar)
+            For dot_product: similarity score (higher = more similar)
+            For manhattan: distance (lower = more similar)
+        """
+        import math
+        
+        if len(embedding1) != len(embedding2):
+            raise ValueError(f"Embedding dimensions don't match: {len(embedding1)} vs {len(embedding2)}")
+        
+        if self.algorithm == "cosine":
+            # Cosine similarity: dot product / (magnitude1 * magnitude2)
+            dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
+            magnitude1 = math.sqrt(sum(a * a for a in embedding1))
+            magnitude2 = math.sqrt(sum(b * b for b in embedding2))
+            
+            if magnitude1 == 0 or magnitude2 == 0:
+                return 0.0  # No similarity if either vector is zero
+            
+            return dot_product / (magnitude1 * magnitude2)
+            
+        elif self.algorithm == "euclidean":
+            # Euclidean distance: sqrt(sum((a - b)^2))
+            return math.sqrt(sum((a - b) ** 2 for a, b in zip(embedding1, embedding2)))
+            
+        elif self.algorithm == "dot_product":
+            # Simple dot product
+            return sum(a * b for a, b in zip(embedding1, embedding2))
+            
+        elif self.algorithm == "manhattan":
+            # Manhattan distance: sum(|a - b|)
+            return sum(abs(a - b) for a, b in zip(embedding1, embedding2))
+            
+        else:
+            raise ValueError(f"Unknown distance algorithm: {self.algorithm}")
 
 
 class BranchSummarizer:

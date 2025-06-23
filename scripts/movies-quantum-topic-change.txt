@@ -1,0 +1,8 @@
+# Movies to Quantum Test with Topic Change Prompt
+# Same test but with topic change detection enabled
+
+/prompts use topic_change
+
+Tell me about movies
+What's your favorite film genre?
+How does quantum mechanics work?

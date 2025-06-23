@@ -13,6 +13,7 @@ __pycache__/
 # Emacs backup files
 \#*
 *~
+.#*
 
 # Defunct/legacy files
 defunct/

@@ -1,6 +1,8 @@
 # Gradual topic drift testing
 # Tests subtle transitions that might be harder to detect
 
+/prompts use default
+
 Tell me about science fiction movies
 What makes Blade Runner so influential?
 The movie explores themes of artificial intelligence

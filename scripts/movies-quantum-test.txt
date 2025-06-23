@@ -1,0 +1,8 @@
+# Movies to Quantum Test
+# Isolates the specific transition that default prompt missed
+
+/prompts use default
+
+Tell me about movies
+What's your favorite film genre?
+How does quantum mechanics work?

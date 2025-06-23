@@ -1,6 +1,8 @@
 # Basic topic change testing
 # Tests clear topic shifts across different domains
 
+/prompts use default
+
 Tell me about movies
 What's your favorite film genre?
 

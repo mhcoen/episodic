@@ -286,6 +286,37 @@ def detect_and_extract_topic_from_response(response: str, current_node_id: str) 
     
     return None
 
+def _display_topic_evolution(current_node_id: str) -> None:
+    """
+    Display topic evolution showing current and previous topics.
+    
+    Args:
+        current_node_id: ID of the current conversation node
+    """
+    try:
+        # Get recent topics to show evolution
+        recent_topics = get_recent_topics(limit=3)
+        
+        if len(recent_topics) < 2:
+            # Not enough topic history to show evolution
+            return
+            
+        # Get the current topic (most recent) and previous topic
+        current_topic = recent_topics[0]
+        previous_topic = recent_topics[1]
+        
+        # Format the evolution display
+        prev_name = previous_topic['name']
+        curr_name = current_topic['name']
+        
+        # Only show if topics are actually different
+        if prev_name != curr_name:
+            typer.echo(f"\nTopic evolution: {prev_name} (fading) → {curr_name} (emerging)")
+            
+    except Exception as e:
+        if config.get("debug", False):
+            typer.echo(f"⚠️  Topic evolution display error: {e}")
+
 # Helper functions
 def _parse_flag_value(args: List[str], flag_names: List[str]) -> Optional[str]:
     """Parse a flag value from command arguments.
@@ -788,6 +819,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  semdepth: {default_semdepth}")
         typer.echo(f"  debug: {config.get('debug', False)}")
         typer.echo(f"  cache: {config.get('use_context_cache', True)}")
+        typer.echo(f"  topics: {config.get('show_topics', False)}")
         return
 
     # Handle the 'cost' parameter
@@ -880,10 +912,20 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 from episodic.llm import disable_cache
                 disable_cache()
 
+    # Handle the 'topics' parameter
+    elif param.lower() == "topics":
+        if not value:
+            current = config.get("show_topics", False)
+            typer.echo(f"Current topics display: {current}")
+        else:
+            val = value.lower() in ["true", "1", "yes", "on"]
+            config.set("show_topics", val)
+            typer.echo(f"Topics display set to {val}")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1100,7 +1142,7 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache)")
+    typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics)")
     typer.echo("  /prompts             - Manage system prompts")
     typer.echo("  /topics [--all]      - Show recent conversation topics")
     typer.echo("  /script <filename>   - Run scripted conversation from text file")
@@ -1357,6 +1399,10 @@ def _handle_chat_message(user_input: str) -> None:
         topic_confidence = detect_and_extract_topic_from_response(response, user_node_id)
         display_response = response
         
+        # Show topic evolution if enabled
+        if config.get("show_topics", False):
+            _display_topic_evolution(user_node_id)
+        
         if topic_confidence:
             confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(topic_confidence, "📝")
             typer.echo(f"\n{confidence_emoji} Topic change detected ({topic_confidence} confidence)")
@@ -1374,9 +1420,12 @@ def _handle_chat_message(user_input: str) -> None:
         typer.echo(f"\n🤖 {display_response}")
 
         # Add the assistant's response to the database with provider and model information
+        # Use the cleaned response (without change indicators) for storage
+        storage_response = display_response if topic_confidence else response
+        
         provider = get_current_provider()
         assistant_node_id, assistant_short_id = insert_node(
-            response, 
+            storage_response, 
             user_node_id, 
             role="assistant",
             provider=provider,

@@ -1,6 +1,8 @@
 # Edge case testing
 # Tests unusual scenarios and boundary conditions
 
+/prompts use default
+
 Hi there
 Hello
 How are you?

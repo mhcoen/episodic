@@ -1,6 +1,8 @@
 # Rapid topic switching
 # Tests how well the system handles quick topic changes
 
+/prompts use default
+
 What's the weather like?
 Tell me about quantum physics
 How do you cook pasta?

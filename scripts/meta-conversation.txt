@@ -1,6 +1,8 @@
 # Meta-conversation testing
 # Tests discussion about the conversation itself and the system
 
+/prompts use default
+
 I want to test your topic detection
 Are you detecting topic changes properly?
 How confident are you in your assessments?

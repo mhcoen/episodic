@@ -1,6 +1,8 @@
 # False positive testing
 # Tests cases that should NOT trigger topic changes
 
+/prompts use default
+
 What is semantic drift?
 How do you calculate semantic drift?
 Can you explain drift detection algorithms?

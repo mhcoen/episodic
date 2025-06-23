@@ -82,21 +82,21 @@ This allows you to have multiple visualization windows open at the same time, ea
 - **Visualization Engine**: The visualization uses Plotly, a powerful and interactive data visualization library, providing a robust and feature-rich experience.
 - **Native Window Support**: The native window visualization uses PyWebView to embed the web-based visualization in a standalone application window.
 - **Layout Algorithm**: The visualization uses a custom hierarchical layout algorithm that doesn't require external dependencies, ensuring consistent visualization across different environments.
-- **Real-time Updates**: The visualization supports real-time updates:
-  - Changes to the graph (setting current node, deleting nodes) are pushed to all connected clients
-  - The visualization updates automatically without page reloads
-  - Multiple users can view the same visualization and see changes in real-time
-  - Uses HTTP polling for reliable updates
+- **Real-time Updates**: The visualization supports real-time updates via HTTP polling:
+  - Changes to the graph (setting current node, deleting nodes) are reflected across all browser windows
+  - The visualization updates automatically without page reloads through periodic HTTP requests
+  - Multiple users can view the same visualization and see changes updated periodically
+  - Uses HTTP polling every 5 seconds for reliable updates
 - **Interactive Features**: The visualization includes enhanced interactive features:
   - Double-click on a node to make it the current node
   - Right-click on a node to access a context menu for node deletion
   - Hover over nodes to see the full content
   - Pan and zoom to explore large conversation graphs
 - **Robust Connectivity**: The visualization includes several features to ensure reliable operation:
-  - Automatic reconnection if the connection is lost
-  - HTTP polling for reliable real-time updates
-  - Visual notifications of connection status and updates
+  - HTTP polling for reliable periodic updates
+  - Visual notifications of successful updates
   - Detailed error handling and logging for troubleshooting
+  - Fallback to page reload if polling fails
 - **Server Port**: If you encounter an "Address already in use" error (common on macOS where AirPlay uses port 5000), you can specify a different port:
   ```bash
   > /visualize --port 5001

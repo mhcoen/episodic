@@ -111,13 +111,13 @@ The existing integration tests in the main `episodic/` directory cover:
 - Database operations (`test_db.py`)
 - Core data structures (`test_core.py`) 
 - Visualization (`test_integration.py`)
-- WebSocket functionality (`test_websocket*.py`)
+- Server and HTTP functionality (`test_server.py`)
 
 ### 3. Manual/Interactive Tests
 
 Located in `episodic/` directory:
 - `test_interactive_features.py` - Interactive visualization tests
-- `test_websocket_browser.py` - Browser-based WebSocket tests
+- `test_interactive_features.py` - Interactive visualization and HTTP polling tests
 
 ## Test Development Guidelines
 

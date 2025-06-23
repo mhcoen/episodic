@@ -24,7 +24,6 @@ cd episodic
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
-pip install typer  # Required for the new CLI
 
 # Set up your API key (for LLM integration)
 export OPENAI_API_KEY=your_api_key_here

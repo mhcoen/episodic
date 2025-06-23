@@ -22,7 +22,7 @@ class ConversationalDrift:
     def __init__(
         self,
         embedding_provider: str = "sentence-transformers",
-        embedding_model: str = "all-MiniLM-L6-v2",
+        embedding_model: str = "paraphrase-mpnet-base-v2",
         distance_algorithm: str = "cosine",
         peak_strategy: str = "threshold",
         **peak_kwargs

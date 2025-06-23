@@ -4,6 +4,9 @@ import os
 import warnings
 import io
 from typing import Optional, List, Dict, Any
+
+# Disable tokenizer parallelism to avoid warnings in CLI context
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from contextlib import redirect_stdout, redirect_stderr
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -31,6 +34,7 @@ current_node_id = None
 default_model = DEFAULT_MODEL
 default_system = DEFAULT_SYSTEM_MESSAGE
 default_context_depth = DEFAULT_CONTEXT_DEPTH
+default_semdepth = 4  # Default semantic depth for drift calculation
 session_costs = {
     "total_input_tokens": 0,
     "total_output_tokens": 0,
@@ -44,6 +48,11 @@ drift_calculator = None
 def _get_drift_calculator():
     """Get or create the global drift calculator instance."""
     global drift_calculator
+    
+    # Check if drift detection is disabled in config
+    if not config.get("show_drift", True):
+        return None
+        
     if drift_calculator is None:
         try:
             drift_calculator = ConversationalDrift()
@@ -55,9 +64,39 @@ def _get_drift_calculator():
             drift_calculator = False  # Mark as disabled
     return drift_calculator if drift_calculator is not False else None
 
+def _build_semdepth_context(nodes: List[Dict[str, Any]], semdepth: int, text_field: str = "content") -> str:
+    """
+    Build combined context from the last N nodes for semantic analysis.
+    
+    Args:
+        nodes: List of conversation nodes in chronological order
+        semdepth: Number of most recent nodes to combine
+        text_field: Field containing text content
+        
+    Returns:
+        Combined text from the last semdepth nodes
+    """
+    if not nodes or semdepth < 1:
+        return ""
+    
+    # Get the last semdepth nodes
+    context_nodes = nodes[-semdepth:] if len(nodes) >= semdepth else nodes
+    
+    # Combine their content
+    combined_text = []
+    for node in context_nodes:
+        content = node.get(text_field, "").strip()
+        if content:
+            combined_text.append(content)
+    
+    return "\n".join(combined_text)
+
 def _display_semantic_drift(current_user_node_id: str) -> None:
     """
-    Calculate and display semantic drift for the current conversation.
+    Calculate and display semantic drift between consecutive user messages.
+    
+    Only compares user inputs to detect when the user changes topics,
+    ignoring assistant responses which just follow the user's lead.
     
     Args:
         current_user_node_id: ID of the current user message node
@@ -67,65 +106,54 @@ def _display_semantic_drift(current_user_node_id: str) -> None:
         return  # Drift detection disabled
     
     try:
-        # Get conversation history leading to this point
+        # Get conversation history from root to current node
         conversation_chain = get_ancestry(current_user_node_id)
         
-        # Filter to content nodes only (exclude empty system nodes)
-        content_nodes = [node for node in conversation_chain if node.get("content", "").strip()]
+        # Filter to user messages only
+        user_messages = [node for node in conversation_chain 
+                        if node.get("role") == "user" and node.get("content", "").strip()]
         
-        if len(content_nodes) < 2:
-            # Not enough conversation history for drift calculation
+        # Need at least 2 user messages for comparison
+        if len(user_messages) < 2:
+            if config.get("debug", False):
+                typer.echo(f"   (Need 2 user messages for drift, have {len(user_messages)})")
             return
         
-        # Calculate drift from previous message to current message
-        current_node = content_nodes[-1]  # Current user message
-        previous_node = content_nodes[-2]  # Previous message (user or assistant)
+        # Compare current user message to previous user message
+        current_user = user_messages[-1]
+        previous_user = user_messages[-2]
         
-        drift_score = calc.calculate_drift(previous_node, current_node, text_field="content")
+        # Calculate semantic drift between consecutive user inputs
+        drift_score = calc.calculate_drift(previous_user, current_user, text_field="content")
         
         # Format drift display based on score level
         if drift_score >= 0.8:
-            # High drift - topic shift
             drift_emoji = "🔄"
             drift_desc = "High topic shift"
-            drift_color = "red"
         elif drift_score >= 0.6:
-            # Moderate drift - some topic change
             drift_emoji = "📈"
             drift_desc = "Moderate drift"
-            drift_color = "yellow"
         elif drift_score >= 0.3:
-            # Low drift - staying on topic with some variation
             drift_emoji = "➡️"
             drift_desc = "Low drift"
-            drift_color = "green"
         else:
-            # Very low drift - very similar to previous
             drift_emoji = "🎯"
             drift_desc = "Minimal drift"
-            drift_color = "green"
         
         # Display drift information
-        prev_role = previous_node.get("role", "unknown")
-        prev_short_id = previous_node.get("short_id", "??")
-        
-        typer.echo(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from {prev_role} {prev_short_id}")
+        prev_short_id = previous_user.get("short_id", "??")
+        typer.echo(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}")
         
         # Show additional context if debug mode is enabled
         if config.get("debug", False):
-            # Show recent drift trend if we have enough history
-            if len(content_nodes) >= 4:
-                recent_drift = calc.calculate_drift_sequence(content_nodes[-4:], text_field="content")
-                avg_recent_drift = sum(recent_drift) / len(recent_drift)
-                typer.echo(f"   Recent trend: {[f'{d:.3f}' for d in recent_drift]} (avg: {avg_recent_drift:.3f})")
+            prev_content = previous_user.get("content", "")[:80]
+            curr_content = current_user.get("content", "")[:80]
+            typer.echo(f"   Previous: {prev_content}{'...' if len(previous_user.get('content', '')) > 80 else ''}")
+            typer.echo(f"   Current:  {curr_content}{'...' if len(current_user.get('content', '')) > 80 else ''}")
             
-            # Show peak detection
-            drift_peaks = calc.find_drift_peaks(content_nodes, text_field="content")
-            if drift_peaks:
-                peak_count = len(drift_peaks)
-                latest_peak = max(drift_peaks, key=lambda x: x[1]) if drift_peaks else None
-                if latest_peak:
-                    typer.echo(f"   Conversation peaks: {peak_count} detected, highest: {latest_peak[1]:.3f} at node {latest_peak[0]}")
+            # Show embedding cache efficiency
+            cache_size = calc.get_cache_size()
+            typer.echo(f"   Embedding cache: {cache_size} entries")
         
     except Exception as e:
         # If drift calculation fails, silently continue (don't disrupt conversation flow)
@@ -447,6 +475,7 @@ def handle_model(name: Optional[str] = None):
 
                         # Try to get pricing information using cost_per_token
                         # Use raw model name for pricing lookup (LiteLLM pricing doesn't use provider prefixes)
+                        # This is somewhat lacking as the same model (e.g., llama) may be provided by different cloud services.
                         try:
                             # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
                             with warnings.catch_warnings(), \
@@ -622,7 +651,7 @@ def visualize(output: Optional[str] = None, no_browser: bool = False, port: int 
 @app.command()
 def set(param: Optional[str] = None, value: Optional[str] = None):
     """Configure various parameters."""
-    global default_context_depth
+    global default_context_depth, default_semdepth
 
     # If no parameter is provided, show all parameters and their current values
     if not param:
@@ -630,6 +659,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  cost: {config.get('show_cost', False)}")
         typer.echo(f"  drift: {config.get('show_drift', True)}")
         typer.echo(f"  depth: {default_context_depth}")
+        typer.echo(f"  semdepth: {default_semdepth}")
         typer.echo(f"  debug: {config.get('debug', False)}")
         typer.echo(f"  cache: {config.get('use_context_cache', True)}")
         return
@@ -675,6 +705,21 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             except ValueError:
                 typer.echo("Invalid value for depth. Please provide a non-negative integer")
 
+    # Handle the 'semdepth' parameter
+    elif param.lower() == "semdepth":
+        if not value:
+            typer.echo(f"Current semantic depth: {default_semdepth}")
+        else:
+            try:
+                semdepth = int(value)
+                if semdepth < 1:
+                    typer.echo("Semantic depth must be a positive integer")
+                    return
+                default_semdepth = semdepth
+                typer.echo(f"Semantic depth set to {semdepth}")
+            except ValueError:
+                typer.echo("Invalid value for semdepth. Please provide a positive integer")
+
     # Handle the 'debug' parameter
     elif param.lower() == "debug":
         if not value:
@@ -712,7 +757,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, debug, cache")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -855,7 +900,7 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, debug, cache)")
+    typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache)")
     typer.echo("  /prompts             - Manage system prompts")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")

@@ -8,6 +8,7 @@ conversation nodes using embeddings and distance functions.
 from typing import List, Dict, Any, Optional, Tuple
 from .embeddings import EmbeddingProvider
 from .distance.functions import DistanceFunction
+from .peaks import PeakDetector
 
 
 class ConversationalDrift:
@@ -22,7 +23,9 @@ class ConversationalDrift:
         self,
         embedding_provider: str = "sentence-transformers",
         embedding_model: str = "all-MiniLM-L6-v2",
-        distance_algorithm: str = "cosine"
+        distance_algorithm: str = "cosine",
+        peak_strategy: str = "threshold",
+        **peak_kwargs
     ):
         """
         Initialize conversational drift calculator.
@@ -31,12 +34,15 @@ class ConversationalDrift:
             embedding_provider: Backend for generating embeddings
             embedding_model: Model name for the embedding provider
             distance_algorithm: Algorithm for measuring distance/similarity
+            peak_strategy: Peak detection strategy ("threshold", "relative", "rolling_average", "statistical")
+            **peak_kwargs: Additional parameters for peak detection strategy
         """
         self.embedding_provider = EmbeddingProvider(
             provider=embedding_provider,
             model=embedding_model
         )
         self.distance_function = DistanceFunction(algorithm=distance_algorithm)
+        self.peak_detector = PeakDetector(strategy=peak_strategy, **peak_kwargs)
         
         # Cache embeddings to avoid recomputation
         self._embedding_cache: Dict[str, List[float]] = {}
@@ -151,29 +157,22 @@ class ConversationalDrift:
     def find_drift_peaks(
         self,
         nodes: List[Dict[str, Any]],
-        threshold: float = 0.5,
         text_field: str = "message"
     ) -> List[Tuple[int, float]]:
         """
-        Identify conversation points where drift exceeds a threshold.
+        Identify conversation points where significant drift occurs.
+        
+        Uses the configured peak detection strategy to find drift peaks.
         
         Args:
             nodes: List of conversation nodes in chronological order
-            threshold: Minimum drift score to consider a "peak"
             text_field: Field name containing the text to analyze
             
         Returns:
-            List of (node_index, drift_score) tuples for peaks
+            List of (node_index, drift_score) tuples for detected peaks
         """
         drift_scores = self.calculate_drift_sequence(nodes, text_field)
-        
-        peaks = []
-        for i, drift in enumerate(drift_scores):
-            if drift >= threshold:
-                # i+1 because drift_scores[i] represents drift between nodes[i] and nodes[i+1]
-                peaks.append((i + 1, drift))
-        
-        return peaks
+        return self.peak_detector.find_peaks(drift_scores)
     
     def _get_embedding(self, text: str) -> List[float]:
         """Get embedding for text, using cache if available."""

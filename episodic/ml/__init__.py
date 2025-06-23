@@ -11,5 +11,6 @@ This package contains modular ML components:
 from .drift import ConversationalDrift
 from .embeddings import EmbeddingProvider
 from .distance.functions import DistanceFunction
+from .peaks import PeakDetector
 
-__all__ = ['ConversationalDrift', 'EmbeddingProvider', 'DistanceFunction']
+__all__ = ['ConversationalDrift', 'EmbeddingProvider', 'DistanceFunction', 'PeakDetector']

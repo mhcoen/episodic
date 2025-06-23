@@ -51,6 +51,32 @@ COLOR_SCHEMES = {
 # Default color mode
 DEFAULT_COLOR_MODE = "dark"
 
+# Model context limits (approximate token limits for common models)
+MODEL_CONTEXT_LIMITS = {
+    "gpt-4o": 128000,
+    "gpt-4o-mini": 128000,
+    "gpt-4": 8192,
+    "gpt-3.5-turbo": 16385,
+    "claude-3-opus-20240229": 200000,
+    "claude-3-sonnet-20240229": 200000,
+    "claude-3-haiku-20240307": 200000,
+    "gemini-pro": 32768,
+    "gemini-1.5-pro": 1048576,
+    "gemini-1.5-flash": 1048576,
+    # Local models - conservative estimates
+    "llama3": 8192,
+    "mistral": 32768,
+    "codellama": 16384,
+    "phi3": 4096,
+    "local-model": 8192
+}
+
+def get_model_context_limit(model_name: str) -> int:
+    """Get the context limit for a model, with fallback for unknown models."""
+    # Strip provider prefix if present (e.g., "openai/gpt-4" -> "gpt-4")
+    clean_model = model_name.split('/')[-1] if '/' in model_name else model_name
+    return MODEL_CONTEXT_LIMITS.get(clean_model, 8192)  # Default to 8192 if unknown
+
 def get_color_scheme():
     """Get the current color scheme based on configuration."""
     from episodic.config import config

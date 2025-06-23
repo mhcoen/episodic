@@ -23,7 +23,7 @@ from episodic.llm_config import get_current_provider, get_default_model, get_ava
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
 from episodic.configuration import *
-from episodic.configuration import get_llm_color, get_system_color, get_prompt_color
+from episodic.configuration import get_llm_color, get_system_color, get_prompt_color, get_model_context_limit
 from episodic.ml import ConversationalDrift
 from litellm import cost_per_token
 
@@ -1485,7 +1485,18 @@ def _handle_chat_message(user_input: str) -> None:
 
         # Add cost information if enabled
         if config.get("show_cost", False) and cost_info:
-            status_messages.append(f"💰 Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD")
+            # Calculate context usage
+            current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
+            context_limit = get_model_context_limit(default_model)
+            context_percentage = (current_tokens / context_limit) * 100
+            
+            # Format context percentage with appropriate precision
+            if context_percentage < 1.0:
+                context_display = f"{context_percentage:.1f}%"
+            else:
+                context_display = f"{int(context_percentage)}%"
+            
+            status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
 
         # Display the response block with proper spacing
         if status_messages:

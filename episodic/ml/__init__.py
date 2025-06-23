@@ -12,5 +12,6 @@ from .drift import ConversationalDrift
 from .embeddings import EmbeddingProvider
 from .distance.functions import DistanceFunction
 from .peaks import PeakDetector
+from .testing import TestingStrategy, AnalysisStrategy
 
-__all__ = ['ConversationalDrift', 'EmbeddingProvider', 'DistanceFunction', 'PeakDetector']
+__all__ = ['ConversationalDrift', 'EmbeddingProvider', 'DistanceFunction', 'PeakDetector', 'TestingStrategy', 'AnalysisStrategy']

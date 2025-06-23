@@ -3,6 +3,8 @@ import shlex
 import os
 import warnings
 import io
+import textwrap
+import shutil
 from typing import Optional, List, Dict, Any
 
 # Disable tokenizer parallelism to avoid warnings in CLI context
@@ -45,6 +47,105 @@ session_costs = {
 
 # Global drift calculator for real-time drift detection
 drift_calculator = None
+
+def _get_wrap_width():
+    """Get the appropriate text wrapping width for the terminal."""
+    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    margin = 4
+    max_width = 100  # Maximum line length for readability
+    return min(max_width, max(40, terminal_width - margin))
+
+def wrapped_text_print(text: str, **typer_kwargs):
+    """Print text with automatic wrapping while preserving formatting."""
+    # Check if wrapping is enabled
+    if not config.get("text_wrap", True):
+        typer.secho(str(text), **typer_kwargs)
+        return
+    
+    wrap_width = _get_wrap_width()
+    
+    # Process text to preserve formatting while wrapping long lines
+    lines = str(text).split('\n')
+    wrapped_lines = []
+    
+    for line in lines:
+        if len(line) <= wrap_width:
+            # Line is short enough, keep as-is
+            wrapped_lines.append(line)
+        else:
+            # Line is too long, wrap it while preserving indentation
+            # Detect indentation (spaces or tabs at start of line)
+            stripped = line.lstrip()
+            indent = line[:len(line) - len(stripped)]
+            
+            # Wrap the content while preserving indentation
+            if stripped:  # Only wrap if there's actual content
+                wrapped = textwrap.fill(
+                    stripped, 
+                    width=wrap_width,
+                    initial_indent=indent,
+                    subsequent_indent=indent + "  "  # Add slight extra indent for continuation
+                )
+                wrapped_lines.append(wrapped)
+            else:
+                # Empty or whitespace-only line, keep as-is
+                wrapped_lines.append(line)
+    
+    # Join the processed lines back together
+    wrapped_text = '\n'.join(wrapped_lines)
+    
+    # Print with the specified formatting
+    typer.secho(wrapped_text, **typer_kwargs)
+
+def wrapped_llm_print(text: str, **typer_kwargs):
+    """Print LLM text with automatic wrapping while preserving formatting."""
+    wrapped_text_print(text, **typer_kwargs)
+
+def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs):
+    """Print text with automatic wrapping accounting for an existing prefix indent."""
+    # Check if wrapping is enabled
+    if not config.get("text_wrap", True):
+        typer.secho(str(text), **typer_kwargs)
+        return
+    
+    # Calculate available width accounting for the prefix
+    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    margin = 4
+    max_width = 100  # Maximum line length for readability
+    available_width = min(max_width, max(40, terminal_width - margin))
+    wrap_width = max(20, available_width - indent_length)  # Ensure minimum width
+    
+    # Process text to preserve formatting while wrapping long lines
+    lines = str(text).split('\n')
+    wrapped_lines = []
+    
+    for i, line in enumerate(lines):
+        # Detect indentation (spaces or tabs at start of line)
+        stripped = line.lstrip()
+        line_indent = line[:len(line) - len(stripped)]
+        
+        if len(line) <= wrap_width:
+            # Line is short enough, keep as-is
+            wrapped_lines.append(line)
+        else:
+            # Line is too long, wrap it - NO INDENTATION for continuation lines
+            if stripped:
+                wrapped = textwrap.fill(
+                    stripped, 
+                    width=wrap_width,
+                    initial_indent=line_indent,
+                    subsequent_indent=line_indent  # No extra indentation
+                )
+                wrapped_lines.append(wrapped)
+            else:
+                # Empty line - preserve as-is
+                wrapped_lines.append(line)
+    
+    # Join the processed lines back together
+    wrapped_text = '\n'.join(wrapped_lines)
+    
+    # Print with the specified formatting
+    typer.secho(wrapped_text, **typer_kwargs)
 
 def _get_drift_calculator():
     """Get or create the global drift calculator instance."""
@@ -451,26 +552,47 @@ def show(node_id: str):
         resolved_id = resolve_node_ref(node_id)
         node = get_node(resolved_id)
         if node:
-            typer.echo(f"Node ID: {node['short_id']} (UUID: {node['id']})")
+            # Display node ID with color
+            typer.secho("Node ID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
+            typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
+            typer.secho(")", fg=typer.colors.WHITE)
+            
+            # Display parent with color
             if node['parent_id']:
                 parent = get_node(node['parent_id'])
                 parent_short_id = parent['short_id'] if parent else "Unknown"
-                typer.echo(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
+                typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
+                typer.secho(")", fg=typer.colors.WHITE)
             else:
-                typer.echo(f"Parent: None")
+                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("None", fg=get_system_color())
 
-            # Display role information
+            # Display role information with color
             role = node.get('role')
-            typer.echo(f"Role: {format_role_display(role)}")
+            typer.secho("Role: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{format_role_display(role)}", fg=get_system_color())
 
-            # Display provider and model information if available
+            # Display provider and model information with color
             provider = node.get('provider')
             model = node.get('model')
             if provider or model:
                 model_info = f"{provider}/{model}" if provider and model else provider or model
-                typer.echo(f"Model: {model_info}")
+                typer.secho("Model: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(f"{model_info}", fg=get_system_color())
 
-            typer.echo(f"Message: {node['content']}")
+            # Display message with wrapping and appropriate color based on role
+            typer.secho("Message: ", nl=False, fg=typer.colors.WHITE)
+            role = node.get('role', 'user')
+            message_prefix_length = len("Message: ")
+            if role == 'user':
+                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=typer.colors.WHITE)
+            else:  # assistant/LLM role
+                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
         else:
             typer.echo(f"Node not found: {node_id}")
     except ValueError as e:
@@ -496,26 +618,47 @@ def print_node(node_id: Optional[str] = None):
         # Get and display the node
         node = get_node(node_id)
         if node:
-            typer.echo(f"Node ID: {node['short_id']} (UUID: {node['id']})")
+            # Display node ID with color
+            typer.secho("Node ID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
+            typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
+            typer.secho(")", fg=typer.colors.WHITE)
+            
+            # Display parent with color
             if node['parent_id']:
                 parent = get_node(node['parent_id'])
                 parent_short_id = parent['short_id'] if parent else "Unknown"
-                typer.echo(f"Parent: {parent_short_id} (UUID: {node['parent_id']})")
+                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
+                typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
+                typer.secho(")", fg=typer.colors.WHITE)
             else:
-                typer.echo(f"Parent: None")
+                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("None", fg=get_system_color())
 
-            # Display role information
+            # Display role information with color
             role = node.get('role')
-            typer.echo(f"Role: {format_role_display(role)}")
+            typer.secho("Role: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{format_role_display(role)}", fg=get_system_color())
 
-            # Display provider and model information if available
+            # Display provider and model information with color
             provider = node.get('provider')
             model = node.get('model')
             if provider or model:
                 model_info = f"{provider}/{model}" if provider and model else provider or model
-                typer.echo(f"Model: {model_info}")
+                typer.secho("Model: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(f"{model_info}", fg=get_system_color())
 
-            typer.echo(f"Message: {node['content']}")
+            # Display message with wrapping and appropriate color based on role
+            typer.secho("Message: ", nl=False, fg=typer.colors.WHITE)
+            role = node.get('role', 'user')
+            message_prefix_length = len("Message: ")
+            if role == 'user':
+                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=typer.colors.WHITE)
+            else:  # assistant/LLM role
+                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
         else:
             typer.echo("Node not found.")
     except Exception as e:
@@ -594,13 +737,64 @@ def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Nu
 
         typer.echo(f"Recent nodes (showing {len(nodes)} of {count} requested):")
         for node in nodes:
-            # Truncate content for display
+            # Get content and limit to exactly 3 display lines
             content = node['content']
-            if len(content) > MAX_CONTENT_DISPLAY_LENGTH:
-                content = content[:MAX_CONTENT_DISPLAY_LENGTH-3] + "..."
-
-            # Display node information
-            typer.echo(f"{node['short_id']} (UUID: {node['id']}): {content}")
+            role = node.get('role', 'user')  # Default to user if role not specified
+            
+            # Use shorter prefix for better readability
+            prefix = f"{node['short_id']}: "
+            prefix_length = len(prefix)
+            
+            # Calculate available width using same logic as wrapped_text_print_with_indent
+            terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+            margin = 4
+            max_width = 100
+            available_width = min(max_width, max(40, terminal_width - margin))
+            wrap_width = max(20, available_width - prefix_length)
+            
+            # Simulate text wrapping to find content that fits in exactly 3 lines
+            words = content.split()
+            lines = []
+            current_line = ""
+            
+            for word in words:
+                # Check if adding this word would exceed line width
+                test_line = current_line + (" " + word if current_line else word)
+                if len(test_line) <= wrap_width:
+                    current_line = test_line
+                else:
+                    # Line is full, start a new line
+                    if current_line:
+                        lines.append(current_line)
+                        current_line = word
+                    else:
+                        # Single word is too long, break it
+                        lines.append(word[:wrap_width])
+                        current_line = word[wrap_width:]
+                    
+                    # Stop if we have 3 lines
+                    if len(lines) >= 3:
+                        break
+            
+            # Add the last line if we have room
+            if current_line and len(lines) < 3:
+                lines.append(current_line)
+            
+            # Join lines and add ... if content was truncated
+            if len(lines) >= 3 and len(words) > len(' '.join(lines).split()):
+                limited_content = '\n'.join(lines[:3]) + '...'
+            else:
+                limited_content = '\n'.join(lines)
+            
+            # Display prefix in system color
+            typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
+            typer.secho(f": ", nl=False, fg=typer.colors.WHITE)
+            
+            # Display content with wrapping that accounts for prefix length
+            if role == 'user':
+                wrapped_text_print_with_indent(limited_content, prefix_length, fg=typer.colors.WHITE)
+            else:  # assistant/LLM role
+                wrapped_text_print_with_indent(limited_content, prefix_length, fg=get_llm_color())
     except Exception as e:
         typer.echo(f"Error retrieving recent nodes: {str(e)}")
 
@@ -758,7 +952,19 @@ def ancestry(node_id: str):
             return
 
         for ancestor in ancestry:
-            typer.echo(f"{ancestor['short_id']} (UUID: {ancestor['id']}): {ancestor['content']}")
+            # Display ancestor with colors and wrapping (shorter prefix for readability)
+            typer.secho(f"{ancestor['short_id']}", nl=False, fg=get_system_color())
+            typer.secho(": ", nl=False, fg=typer.colors.WHITE)
+            
+            # Use shorter prefix for better readability
+            prefix_length = len(f"{ancestor['short_id']}: ")
+            
+            # Display content with role-based coloring and wrapping
+            role = ancestor.get('role', 'user')
+            if role == 'user':
+                wrapped_text_print_with_indent(ancestor['content'], prefix_length, fg=typer.colors.WHITE)
+            else:  # assistant/LLM role
+                wrapped_text_print_with_indent(ancestor['content'], prefix_length, fg=get_llm_color())
     except ValueError as e:
         typer.echo(f"Invalid node ID: {str(e)}")
     except Exception as e:
@@ -845,6 +1051,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  cache: {config.get('use_context_cache', True)}")
         typer.echo(f"  topics: {config.get('show_topics', False)}")
         typer.echo(f"  color: {config.get('color_mode', DEFAULT_COLOR_MODE)}")
+        typer.echo(f"  wrap: {config.get('text_wrap', True)}")
         return
 
     # Handle the 'cost' parameter
@@ -961,10 +1168,20 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             else:
                 typer.echo("Invalid color mode. Available options: dark, light")
 
+    # Handle the 'wrap' parameter
+    elif param.lower() == "wrap":
+        if not value:
+            current = config.get("text_wrap", True)
+            typer.echo(f"Current text wrapping: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("text_wrap", val)
+            typer.echo(f"Text wrapping: {'ON' if val else 'OFF'}")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1092,42 +1309,50 @@ def prompts(action: Optional[str] = None, name: Optional[str] = None):
         typer.echo("  /prompts reload         - Reload prompts from disk")
 
 @app.command()
-def topics(all_topics: bool = typer.Option(False, "--all", help="Show all topics instead of just recent ones")):
+def topics(
+    count: int = typer.Option(10, "--count", "-c", help="Number of recent topics to show"),
+    all_topics: bool = typer.Option(False, "--all", help="Show all topics instead of just recent ones")
+):
     """Show recent conversation topics."""
     try:
         if all_topics:
             topic_list = get_recent_topics(limit=1000)  # Get all topics
             typer.echo("All conversation topics:")
         else:
-            topic_list = get_recent_topics(limit=20)
-            typer.echo("Recent topics (last 20):")
+            topic_list = get_recent_topics(limit=count)
+            typer.echo(f"Recent topics (last {count}):")
         
         if not topic_list:
             typer.echo("No topics found. Topics are created when the LLM detects topic changes.")
             return
             
         typer.echo()
-        for i, topic in enumerate(topic_list):
-            # Calculate topic age
+        
+        # Calculate number width for proper alignment
+        max_number = len(topic_list)
+        number_width = len(str(max_number))
+        
+        for i, topic in enumerate(topic_list, 1):
             confidence = topic['confidence'] or 'unknown'
-            confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(confidence, "📝")
             
-            # Show topic info with colors
-            typer.secho(f"{confidence_emoji} ", nl=False, fg=typer.colors.WHITE)
-            typer.secho(f"{topic['name']:<20}", nl=False, fg=get_system_color())
+            # Show topic info with proper alignment
+            typer.secho(f"{i:>{number_width}}. ", nl=False, fg=get_system_color())
+            typer.secho(f"{topic['name']:<25}", nl=False, fg=get_llm_color())
             typer.secho(f" (", nl=False, fg=typer.colors.WHITE)
             typer.secho(f"{confidence}", nl=False, fg=get_system_color())
             typer.secho(f" confidence)", fg=typer.colors.WHITE)
             
-            typer.secho(f"   Range: ", nl=False, fg=typer.colors.WHITE)
+            # Indent the range and created lines to align with topic name
+            indent = " " * (number_width + 2)  # Account for number + ". "
+            typer.secho(f"{indent}Range: ", nl=False, fg=typer.colors.WHITE)
             typer.secho(f"{topic['start_short_id']}", nl=False, fg=get_system_color())
             typer.secho(f" → ", nl=False, fg=typer.colors.WHITE)
             typer.secho(f"{topic['end_short_id']}", fg=get_system_color())
             
-            typer.secho(f"   Created: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{indent}Created: ", nl=False, fg=typer.colors.WHITE)
             typer.secho(f"{topic['created_at']}", fg=get_system_color())
             
-            if i < len(topic_list) - 1:  # Don't add extra line after last item
+            if i < len(topic_list):  # Don't add extra line after last item
                 typer.echo()
                 
     except Exception as e:
@@ -1194,14 +1419,14 @@ def help():
     typer.echo("  /show <node_id>      - Show details of a specific node")
     typer.echo("  /print [node_id]     - Print node info (defaults to current node)")
     typer.echo("  /head [node_id]      - Show current node or change to specified node")
-    typer.echo("  /list [--count N]    - List recent nodes (default: 5)")
+    typer.echo("  /last [N]            - List recent nodes (default: 5)")
     typer.echo("  /ancestry <node_id>  - Trace the ancestry of a node")
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics)")
+    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics)")
     typer.echo("  /prompts             - Manage system prompts")
-    typer.echo("  /topics [--all]      - Show recent conversation topics")
+    typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
     typer.echo("  /script <filename>   - Run scripted conversation from text file")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
@@ -1360,14 +1585,21 @@ def _handle_command(command_text: str) -> bool:
         elif command == "print":
             node_id = command_args[0] if command_args else None
             print_node(node_id=node_id)
-        elif command == "list":
-            # Check for --count flag
+        elif command == "last" or command == "list":  # Support both for backward compatibility
+            # Check for --count flag first
             count_str = _parse_flag_value(command_args, ["--count", "-c"])
             if count_str:
                 try:
                     count = int(count_str)
                 except ValueError:
                     typer.echo(f"Error: Invalid count value: {count_str}")
+                    return False
+            elif command_args and command_args[0].isdigit():
+                # Accept positional argument like "/last 10"
+                try:
+                    count = int(command_args[0])
+                except ValueError:
+                    typer.echo(f"Error: Invalid count value: {command_args[0]}")
                     return False
             else:
                 count = DEFAULT_LIST_COUNT
@@ -1409,7 +1641,26 @@ def _handle_command(command_text: str) -> bool:
         elif command == "topics":
             # Parse --all flag
             all_topics = "--all" in command_args
-            topics(all_topics=all_topics)
+            
+            # Check for --count flag or positional argument
+            count_str = _parse_flag_value(command_args, ["--count", "-c"])
+            if count_str:
+                try:
+                    count = int(count_str)
+                except ValueError:
+                    typer.echo(f"Error: Invalid count value: {count_str}")
+                    return False
+            elif command_args and command_args[0].isdigit():
+                # Accept positional argument like "/topics 10"
+                try:
+                    count = int(command_args[0])
+                except ValueError:
+                    typer.echo(f"Error: Invalid count value: {command_args[0]}")
+                    return False
+            else:
+                count = 10  # Default
+            
+            topics(count=count, all_topics=all_topics)
         elif command == "script":
             if len(command_args) == 0:
                 typer.echo("Usage: /script <filename>")
@@ -1504,10 +1755,11 @@ def _handle_chat_message(user_input: str) -> None:
             typer.echo("")
             for msg in status_messages:
                 typer.secho(msg, fg=get_system_color())
-            typer.secho(f"🤖 {display_response}", fg=get_llm_color())
+            wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
         else:
             # No status messages, just show blank line then LLM response
-            typer.secho(f"\n🤖 {display_response}", fg=get_llm_color())
+            typer.echo("")  # Blank line
+            wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
 
         # Add the assistant's response to the database with provider and model information
         # Use the cleaned response (without change indicators) for storage

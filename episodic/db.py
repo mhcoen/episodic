@@ -192,6 +192,18 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 value TEXT NOT NULL
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS topics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                start_node_id TEXT NOT NULL,
+                end_node_id TEXT NOT NULL,
+                confidence TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(start_node_id) REFERENCES nodes(id),
+                FOREIGN KEY(end_node_id) REFERENCES nodes(id)
+            )
+        """)
         conn.commit()
 
         # Run migrations if requested
@@ -660,3 +672,72 @@ def migrate_to_roles():
 
         conn.commit()
         return count
+
+
+def store_topic(name: str, start_node_id: str, end_node_id: str, confidence: str = None):
+    """
+    Store a topic with its conversation range.
+    
+    Args:
+        name: Topic name (e.g., "movies", "quantum-physics")
+        start_node_id: ID of the first node in this topic
+        end_node_id: ID of the last node in this topic
+        confidence: Optional confidence level (high, medium, low)
+    
+    Returns:
+        The ID of the inserted topic record
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO topics (name, start_node_id, end_node_id, confidence)
+            VALUES (?, ?, ?, ?)
+        """, (name, start_node_id, end_node_id, confidence))
+        return c.lastrowid
+
+
+def get_recent_topics(limit: int = 10):
+    """
+    Get recent topics with their conversation ranges.
+    
+    Args:
+        limit: Maximum number of topics to return
+    
+    Returns:
+        List of topic dictionaries with name, node range, and metadata
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT t.name, t.start_node_id, t.end_node_id, t.confidence, t.created_at,
+                   n1.short_id as start_short_id, n2.short_id as end_short_id
+            FROM topics t
+            JOIN nodes n1 ON t.start_node_id = n1.id
+            JOIN nodes n2 ON t.end_node_id = n2.id
+            ORDER BY t.created_at DESC
+            LIMIT ?
+        """, (limit,))
+        
+        topics = []
+        for row in c.fetchall():
+            topics.append({
+                'name': row[0],
+                'start_node_id': row[1],
+                'end_node_id': row[2],
+                'confidence': row[3],
+                'created_at': row[4],
+                'start_short_id': row[5],
+                'end_short_id': row[6]
+            })
+        
+        return topics
+
+
+def get_all_topics():
+    """
+    Get all topics ordered by creation date.
+    
+    Returns:
+        List of all topic dictionaries
+    """
+    return get_recent_topics(limit=1000)  # Large limit to get all

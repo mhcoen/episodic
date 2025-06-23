@@ -1,0 +1,13 @@
+# Rapid topic switching
+# Tests how well the system handles quick topic changes
+
+What's the weather like?
+Tell me about quantum physics
+How do you cook pasta?
+What's the latest in AI research?
+Explain baseball rules
+What are the best programming languages?
+How does photosynthesis work?
+What's your favorite music genre?
+Explain blockchain technology
+What are the health benefits of exercise?

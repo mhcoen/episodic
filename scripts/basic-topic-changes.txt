@@ -1,0 +1,17 @@
+# Basic topic change testing
+# Tests clear topic shifts across different domains
+
+Tell me about movies
+What's your favorite film genre?
+
+How does quantum mechanics work?
+Explain wave-particle duality
+
+What about baseball statistics?
+Who has the best batting average?
+
+Can you help debug Python code?
+What's the difference between lists and dictionaries?
+
+Let's discuss cooking techniques
+What's the best way to roast vegetables?

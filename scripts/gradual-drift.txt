@@ -1,0 +1,13 @@
+# Gradual topic drift testing
+# Tests subtle transitions that might be harder to detect
+
+Tell me about science fiction movies
+What makes Blade Runner so influential?
+The movie explores themes of artificial intelligence
+Speaking of AI, how do neural networks work?
+Are there different types of machine learning?
+What about quantum computing for AI?
+How does quantum mechanics relate to computation?
+Can quantum effects be observed in everyday life?
+What about quantum effects in biology?
+How do birds navigate using quantum mechanics?

@@ -1,0 +1,20 @@
+# Meta-conversation testing
+# Tests discussion about the conversation itself and the system
+
+I want to test your topic detection
+Are you detecting topic changes properly?
+How confident are you in your assessments?
+What makes you decide to mark something as a topic change?
+
+Now let's switch to completely different subjects
+Tell me about space exploration
+What's the latest Mars mission news?
+
+Back to discussing the system again
+How does your topic detection algorithm work?
+Is it based on semantic similarity?
+Do you think it's accurate?
+
+Let's try talking about food now
+What's your favorite cuisine?
+How do you make a good pizza?

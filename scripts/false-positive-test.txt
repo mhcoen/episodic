@@ -1,0 +1,13 @@
+# False positive testing
+# Tests cases that should NOT trigger topic changes
+
+What is semantic drift?
+How do you calculate semantic drift?
+Can you explain drift detection algorithms?
+What are the challenges with drift detection?
+How does conversational drift differ from data drift?
+What about topic modeling approaches?
+Are there better alternatives to embedding-based drift?
+How does LLM-based detection compare?
+What are the advantages of each approach?
+Can you summarize the key points about drift detection?

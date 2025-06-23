@@ -16,7 +16,7 @@ from prompt_toolkit.formatted_text import HTML
 from episodic.db import (
     insert_node, get_node, get_ancestry, initialize_db, 
     resolve_node_ref, get_head, set_head, database_exists,
-    get_recent_nodes
+    get_recent_nodes, store_topic, get_recent_topics
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.llm_config import get_current_provider, get_default_model, get_available_providers
@@ -159,6 +159,132 @@ def _display_semantic_drift(current_user_node_id: str) -> None:
         # If drift calculation fails, silently continue (don't disrupt conversation flow)
         if config.get("debug", False):
             typer.echo(f"⚠️  Drift calculation error: {e}")
+
+def extract_topic_ollama(conversation_segment: str) -> Optional[str]:
+    """
+    Extract topic name from conversation segment using Ollama.
+    
+    Args:
+        conversation_segment: Text containing recent conversation exchanges
+        
+    Returns:
+        Topic name as lowercase string with hyphens, or None if extraction fails
+    """
+    try:
+        prompt = f"""Extract the main topic from this conversation in 1-3 words. Use lowercase with hyphens.
+
+Examples:
+- Conversation about movies and directors → "movies"
+- Discussion of quantum physics concepts → "quantum-physics" 
+- Debugging code and performance → "programming"
+- Talking about semantic drift → "semantic-drift"
+
+Conversation: {conversation_segment}
+
+Topic:"""
+
+        # Use ollama for silent topic extraction
+        response, _ = query_llm(prompt, model="ollama/llama3")
+        
+        if response:
+            # Clean and normalize the response
+            topic = response.strip().lower()
+            # Remove quotes if present
+            topic = topic.strip('"\'')
+            # Replace spaces with hyphens
+            topic = topic.replace(' ', '-')
+            # Remove any extra characters, keep only letters, numbers, hyphens
+            import re
+            topic = re.sub(r'[^a-z0-9-]', '', topic)
+            
+            return topic if topic else None
+            
+    except Exception as e:
+        if config.get("debug", False):
+            typer.echo(f"⚠️  Topic extraction error: {e}")
+        return None
+
+def build_conversation_segment(nodes: List[Dict[str, Any]], max_length: int = 500) -> str:
+    """
+    Build a conversation segment for topic extraction.
+    
+    Args:
+        nodes: List of conversation nodes
+        max_length: Maximum character length for the segment
+        
+    Returns:
+        Formatted conversation segment
+    """
+    segment_parts = []
+    current_length = 0
+    
+    for node in reversed(nodes):  # Start from most recent
+        content = node.get("content", "").strip()
+        role = node.get("role", "unknown")
+        
+        if content:
+            part = f"{role}: {content}"
+            if current_length + len(part) > max_length:
+                break
+            segment_parts.insert(0, part)  # Insert at beginning to maintain order
+            current_length += len(part)
+    
+    return "\n".join(segment_parts)
+
+def detect_and_extract_topic_from_response(response: str, current_node_id: str) -> Optional[str]:
+    """
+    Detect topic changes from LLM response and extract topic if change detected.
+    
+    Args:
+        response: The LLM's response text
+        current_node_id: ID of the current conversation node
+        
+    Returns:
+        Confidence level if topic change detected, None otherwise
+    """
+    try:
+        # Check if response indicates topic change
+        first_line = response.strip().split('\n')[0].lower()
+        if not first_line.startswith('change-'):
+            return None
+            
+        # Extract confidence level
+        confidence = first_line.split('-')[1] if '-' in first_line else 'unknown'
+        
+        # Get recent conversation for topic extraction
+        conversation_chain = get_ancestry(current_node_id)
+        
+        # Build conversation segment for topic extraction (last 5-10 exchanges)
+        recent_nodes = conversation_chain[-10:] if len(conversation_chain) > 10 else conversation_chain
+        conversation_segment = build_conversation_segment(recent_nodes)
+        
+        if conversation_segment:
+            # Extract topic name
+            topic_name = extract_topic_ollama(conversation_segment)
+            
+            if topic_name:
+                # Find the start of this topic (for now, use the previous topic end or conversation start)
+                # This is simplified - we could make it more sophisticated later
+                previous_topics = get_recent_topics(limit=1)
+                if previous_topics:
+                    start_node_id = previous_topics[0]['end_node_id'] 
+                else:
+                    # First topic - start from beginning of current conversation segment
+                    start_node_id = recent_nodes[0]['id'] if recent_nodes else current_node_id
+                
+                # Store the topic
+                store_topic(topic_name, start_node_id, current_node_id, confidence)
+                
+                if config.get("debug", False):
+                    typer.echo(f"   📝 Extracted topic: '{topic_name}' with confidence: {confidence}")
+                
+                return confidence
+                
+    except Exception as e:
+        if config.get("debug", False):
+            typer.echo(f"⚠️  Topic extraction error: {e}")
+    
+    return None
 
 # Helper functions
 def _parse_flag_value(args: List[str], flag_names: List[str]) -> Optional[str]:
@@ -885,6 +1011,80 @@ def prompts(action: Optional[str] = None, name: Optional[str] = None):
         typer.echo("  /prompts reload         - Reload prompts from disk")
 
 @app.command()
+def topics(all_topics: bool = typer.Option(False, "--all", help="Show all topics instead of just recent ones")):
+    """Show recent conversation topics."""
+    try:
+        if all_topics:
+            topic_list = get_recent_topics(limit=1000)  # Get all topics
+            typer.echo("All conversation topics:")
+        else:
+            topic_list = get_recent_topics(limit=20)
+            typer.echo("Recent topics (last 20):")
+        
+        if not topic_list:
+            typer.echo("No topics found. Topics are created when the LLM detects topic changes.")
+            return
+            
+        typer.echo()
+        for i, topic in enumerate(topic_list):
+            # Calculate topic age
+            confidence = topic['confidence'] or 'unknown'
+            confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(confidence, "📝")
+            
+            # Show topic info
+            typer.echo(f"{confidence_emoji} {topic['name']:<20} ({confidence} confidence)")
+            typer.echo(f"   Range: {topic['start_short_id']} → {topic['end_short_id']}")
+            typer.echo(f"   Created: {topic['created_at']}")
+            
+            if i < len(topic_list) - 1:  # Don't add extra line after last item
+                typer.echo()
+                
+    except Exception as e:
+        typer.echo(f"Error retrieving topics: {e}")
+
+
+@app.command()
+def script(filename: str):
+    """Run scripted conversation from a text file."""
+    try:
+        # Check if file exists
+        if not os.path.exists(filename):
+            typer.echo(f"Error: File '{filename}' not found.")
+            return
+            
+        # Read the script file
+        with open(filename, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        # Parse queries (ignore empty lines and comments starting with #)
+        queries = []
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                queries.append(line)
+        
+        if not queries:
+            typer.echo(f"No queries found in '{filename}'. Add one query per line, use # for comments.")
+            return
+            
+        typer.echo(f"Running script '{filename}' with {len(queries)} queries...")
+        typer.echo("=" * 50)
+        
+        # Process each query
+        for i, query in enumerate(queries, 1):
+            typer.echo(f"\n[{i}/{len(queries)}] > {query}")
+            
+            # Process the query using the same handler as manual input
+            _handle_chat_message(query)
+            
+        typer.echo("\n" + "=" * 50)
+        typer.echo(f"Script completed! Processed {len(queries)} queries.")
+        typer.echo("Use '/topics' to see extracted topics.")
+        
+    except Exception as e:
+        typer.echo(f"Error running script: {e}")
+
+
 def help():
     """Show available commands."""
     typer.echo("Available commands:")
@@ -902,6 +1102,8 @@ def help():
     typer.echo("  /verify              - Verify the current model with a test prompt")
     typer.echo("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache)")
     typer.echo("  /prompts             - Manage system prompts")
+    typer.echo("  /topics [--all]      - Show recent conversation topics")
+    typer.echo("  /script <filename>   - Run scripted conversation from text file")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 
@@ -1096,6 +1298,16 @@ def _handle_command(command_text: str) -> bool:
             set(param=param, value=value)
         elif command == "verify":
             verify()
+        elif command == "topics":
+            # Parse --all flag
+            all_topics = "--all" in command_args
+            topics(all_topics=all_topics)
+        elif command == "script":
+            if len(command_args) == 0:
+                typer.echo("Usage: /script <filename>")
+                return False
+            filename = command_args[0]
+            script(filename=filename)
         else:
             typer.echo(f"Unknown command: {command}")
             typer.echo("Type '/help' for available commands.")
@@ -1141,12 +1353,25 @@ def _handle_chat_message(user_input: str) -> None:
         if config.get("show_drift", True):
             _display_semantic_drift(user_node_id)
 
+        # Detect topic changes and extract topics from LLM response
+        topic_confidence = detect_and_extract_topic_from_response(response, user_node_id)
+        display_response = response
+        
+        if topic_confidence:
+            confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(topic_confidence, "📝")
+            typer.echo(f"\n{confidence_emoji} Topic change detected ({topic_confidence} confidence)")
+            
+            # Remove the change indicator line from the displayed response
+            lines = response.split('\n')
+            if lines and lines[0].lower().startswith('change-'):
+                display_response = '\n'.join(lines[1:]).strip()
+
         # Display cost information if enabled
         if config.get("show_cost", False) and cost_info:
             typer.echo(f"\n💰 Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD")
 
         # Display the response
-        typer.echo(f"\n🤖 {response}")
+        typer.echo(f"\n🤖 {display_response}")
 
         # Add the assistant's response to the database with provider and model information
         provider = get_current_provider()

@@ -1,0 +1,22 @@
+# Edge case testing
+# Tests unusual scenarios and boundary conditions
+
+Hi there
+Hello
+How are you?
+Good morning
+
+What is love?
+What is the meaning of life?
+What is consciousness?
+What is reality?
+
+Tell me a joke
+Make me laugh
+Say something funny
+Do you know any puns?
+
+Actually, let's talk about serious things
+What about climate change?
+How severe is global warming?
+What can individuals do to help?

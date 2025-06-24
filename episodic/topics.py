@@ -38,7 +38,7 @@ class TopicManager:
         self, 
         recent_messages: List[Dict[str, Any]], 
         new_message: str
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Detect if the topic has changed by analyzing recent messages and the new message.
         
@@ -50,7 +50,7 @@ class TopicManager:
             new_message: The new user message to analyze
             
         Returns:
-            Tuple of (topic_changed: bool, new_topic_name: Optional[str])
+            Tuple of (topic_changed: bool, new_topic_name: Optional[str], cost_info: Optional[Dict])
         """
         try:
             # Check if we should skip topic detection due to recency
@@ -72,7 +72,7 @@ class TopicManager:
                 if messages_in_topic < min_messages_before_change:
                     if config.get("debug", False):
                         typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {messages_in_topic} messages (min: {min_messages_before_change})")
-                    return False, None
+                    return False, None, None
             # Build context from recent messages
             context_parts = []
             for msg in recent_messages[-6:]:  # Last 3 exchanges (6 messages)
@@ -126,16 +126,19 @@ Examples of YES CHANGE (major topic shift):
 
 Answer:"""
 
+            # Get the topic detection model from config (default to ollama/llama3)
+            topic_model = config.get("topic_detection_model", "ollama/llama3")
+            
             if config.get("debug", False):
                 typer.echo(f"\n🔍 DEBUG: Topic change detection")
-                typer.echo(f"   Model: ollama/llama3")
+                typer.echo(f"   Model: {topic_model}")
                 typer.echo(f"   Recent messages: {len(recent_messages)}")
                 typer.echo(f"   New message preview: {new_message[:100]}...")
             
-            # Use ollama for fast detection
-            response, _ = query_llm(
+            # Use configured model for detection
+            response, cost_info = query_llm(
                 prompt, 
-                model="ollama/llama3",
+                model=topic_model,
                 max_tokens=20  # Very short response expected
             )
             
@@ -157,23 +160,23 @@ Answer:"""
                     if topic:
                         if config.get("debug", False):
                             typer.echo(f"   ✅ Topic changed to: {topic}")
-                        return True, topic
+                        return True, topic, cost_info
                     else:
                         if config.get("debug", False):
                             typer.echo(f"   ⚠️ Topic changed but couldn't extract name")
-                        return True, None
+                        return True, None, cost_info
                 else:
                     if config.get("debug", False):
                         typer.echo(f"   ➡️ Continuing same topic")
-                    return False, None
+                    return False, None, cost_info
         
         except Exception as e:
             logger.warning(f"Topic change detection error: {e}")
             if config.get("debug", False):
                 typer.echo(f"⚠️  Topic detection error: {e}")
-            return False, None
+            return False, None, None
     
-    def extract_topic_ollama(self, conversation_segment: str) -> Optional[str]:
+    def extract_topic_ollama(self, conversation_segment: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
         """
         Extract topic name from conversation segment using Ollama.
         
@@ -181,7 +184,7 @@ Answer:"""
             conversation_segment: Text containing recent conversation exchanges
             
         Returns:
-            Topic name as lowercase string with hyphens, or None if extraction fails
+            Tuple of (topic_name: Optional[str], cost_info: Optional[Dict])
         """
         try:
             prompt = f"""Extract the main topic from this conversation in 1-3 words. Use lowercase with hyphens.
@@ -196,13 +199,16 @@ Conversation: {conversation_segment}
 
 Topic:"""
 
-            # Use ollama for silent topic extraction
+            # Get the topic detection model from config (default to ollama/llama3)
+            topic_model = config.get("topic_detection_model", "ollama/llama3")
+            
+            # Use configured model for topic extraction
             if config.get("debug", False):
                 typer.echo(f"\n🔍 DEBUG: Topic extraction prompt:")
-                typer.echo(f"   Model: ollama/llama3")
+                typer.echo(f"   Model: {topic_model}")
                 typer.echo(f"   Prompt preview: {prompt[:300]}...")
             
-            response, _ = query_llm(prompt, model="ollama/llama3")
+            response, cost_info = query_llm(prompt, model=topic_model)
             
             if response:
                 # Clean and normalize the response
@@ -214,12 +220,12 @@ Topic:"""
                 # Remove any extra characters, keep only letters, numbers, hyphens
                 topic = re.sub(r'[^a-z0-9-]', '', topic)
                 
-                return topic if topic else None
+                return (topic if topic else None), cost_info
                 
         except Exception as e:
             if config.get("debug", False):
                 typer.echo(f"⚠️  Topic extraction error: {e}")
-            return None
+            return None, None
     
     def should_create_first_topic(self, user_node_id: str) -> bool:
         """
@@ -404,12 +410,12 @@ topic_manager = TopicManager()
 
 
 # Expose the main functions at module level for backward compatibility
-def detect_topic_change_separately(recent_messages: List[Dict[str, Any]], new_message: str) -> Tuple[bool, Optional[str]]:
+def detect_topic_change_separately(recent_messages: List[Dict[str, Any]], new_message: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
     """See TopicManager.detect_topic_change_separately for documentation."""
     return topic_manager.detect_topic_change_separately(recent_messages, new_message)
 
 
-def extract_topic_ollama(conversation_segment: str) -> Optional[str]:
+def extract_topic_ollama(conversation_segment: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     """See TopicManager.extract_topic_ollama for documentation."""
     return topic_manager.extract_topic_ollama(conversation_segment)
 

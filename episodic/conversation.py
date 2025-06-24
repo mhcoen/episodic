@@ -279,15 +279,25 @@ class ConversationManager:
         # Detect topic change BEFORE querying the main LLM
         topic_changed = False
         new_topic_name = None
+        topic_cost_info = None
         
         # Get recent messages for context
         recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
         if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
-            topic_changed, new_topic_name = detect_topic_change_separately(recent_nodes, user_input)
+            topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(recent_nodes, user_input)
+            
+            # Add topic detection costs to session
+            if topic_cost_info:
+                self.session_costs["total_input_tokens"] += topic_cost_info.get("input_tokens", 0)
+                self.session_costs["total_output_tokens"] += topic_cost_info.get("output_tokens", 0)
+                self.session_costs["total_tokens"] += topic_cost_info.get("total_tokens", 0)
+                self.session_costs["total_cost_usd"] += topic_cost_info.get("cost_usd", 0.0)
             
             if config.get("debug", False) and topic_changed:
                 typer.echo(f"\n🔍 DEBUG: Topic change detected before LLM query")
                 typer.echo(f"   New topic: {new_topic_name}")
+                if topic_cost_info:
+                    typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
 
         # Query the LLM with context
         try:
@@ -400,7 +410,14 @@ class ConversationManager:
                             typer.echo(f"   Total length: {len(segment)} chars")
                             typer.echo(f"   Number of nodes: {len(conversation_chain)}")
                         
-                        topic_name = extract_topic_ollama(segment)
+                        topic_name, extract_cost_info = extract_topic_ollama(segment)
+                        
+                        # Add extraction costs to session
+                        if extract_cost_info:
+                            self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                            self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                            self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                            self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
                         
                         if topic_name:
                             # Find the first user node to use as the start of the topic

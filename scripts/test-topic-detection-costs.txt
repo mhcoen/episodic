@@ -1,0 +1,19 @@
+# Test script to verify topic detection cost tracking
+/set topic_detection_model gpt-3.5-turbo
+/set cost true
+/set debug true
+/set topics true
+/model ollama/llama3
+
+# First topic - math
+What is 2+2?
+What is 10*10?
+
+# Topic change - should trigger paid topic detection
+Tell me about dogs
+
+# Another topic change
+What's the weather like today?
+
+/topics
+/compression-stats

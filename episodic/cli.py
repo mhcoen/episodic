@@ -751,6 +751,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  show_compression_notifications: {config.get('show_compression_notifications', True)}")
         typer.echo(f"  compression_min_nodes: {config.get('compression_min_nodes', 10)}")
         typer.echo(f"  compression_model: {config.get('compression_model', 'ollama/llama3')}")
+        typer.echo(f"  topic_detection_model: {config.get('topic_detection_model', 'ollama/llama3')}")
         return
 
     # Handle the 'cost' parameter
@@ -927,10 +928,18 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("compression_model", value)
             typer.echo(f"Compression model set to {value}")
 
+    # Handle the 'topic_detection_model' parameter
+    elif param.lower() == "topic_detection_model":
+        if not value:
+            typer.echo(f"Current topic detection model: {config.get('topic_detection_model', 'ollama/llama3')}")
+        else:
+            config.set("topic_detection_model", value)
+            typer.echo(f"Topic detection model set to {value}")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1515,7 +1524,7 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model)")
+    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model)")
     typer.echo("  /prompts             - Manage system prompts")
     typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
     typer.echo("  /script <filename>   - Run scripted conversation from text file")

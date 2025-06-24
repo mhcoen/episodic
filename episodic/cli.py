@@ -37,6 +37,10 @@ from episodic.conversation import (
     ConversationManager, handle_chat_message, get_session_costs,
     wrapped_text_print, wrapped_llm_print
 )
+from episodic.benchmark import (
+    benchmark_operation, benchmark_resource, display_benchmark_summary,
+    reset_benchmarks
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -752,6 +756,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  compression_min_nodes: {config.get('compression_min_nodes', 10)}")
         typer.echo(f"  compression_model: {config.get('compression_model', 'ollama/llama3')}")
         typer.echo(f"  topic_detection_model: {config.get('topic_detection_model', 'ollama/llama3')}")
+        typer.echo(f"  benchmark: {config.get('benchmark', False)}")
+        typer.echo(f"  benchmark_display: {config.get('benchmark_display', False)}")
         return
 
     # Handle the 'cost' parameter
@@ -936,10 +942,33 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("topic_detection_model", value)
             typer.echo(f"Topic detection model set to {value}")
 
+    # Handle the 'benchmark' parameter
+    elif param.lower() == "benchmark":
+        if not value:
+            current = config.get("benchmark", False)
+            typer.echo(f"Current benchmark: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("benchmark", val)
+            typer.echo(f"Benchmark: {'ON' if val else 'OFF'}")
+            if not val:
+                # Reset benchmarks when disabled
+                reset_benchmarks()
+
+    # Handle the 'benchmark_display' parameter
+    elif param.lower() == "benchmark_display":
+        if not value:
+            current = config.get("benchmark_display", False)
+            typer.echo(f"Current benchmark display: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("benchmark_display", val)
+            typer.echo(f"Benchmark display: {'ON' if val else 'OFF'}")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model, benchmark, benchmark_display")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1509,6 +1538,11 @@ def compression_queue():
         typer.echo(f"Error retrieving queue info: {e}")
 
 
+def benchmark():
+    """Display benchmark statistics for the current session."""
+    display_benchmark_summary()
+
+
 def help():
     """Show available commands."""
     typer.echo("Available commands:")
@@ -1524,7 +1558,7 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model)")
+    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model, benchmark, benchmark_display)")
     typer.echo("  /prompts             - Manage system prompts")
     typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
     typer.echo("  /script <filename>   - Run scripted conversation from text file")
@@ -1532,6 +1566,7 @@ def help():
     typer.echo("  /compression-queue   - Show pending auto-compression jobs")
     typer.echo("  /compression-stats   - Show compression statistics")
     typer.echo("  /compress-current-topic - Manually compress the current topic")
+    typer.echo("  /benchmark           - Show performance benchmark statistics")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 
@@ -1552,6 +1587,10 @@ def display_session_summary() -> None:
     else:
         typer.secho(f"Total cost: ", nl=False, fg=typer.colors.WHITE)
         typer.secho(f"${0: .{ZERO_COST_PRECISION}f} USD", fg=get_system_color())
+    
+    # Display benchmark summary if enabled
+    if config.get("benchmark", False):
+        display_benchmark_summary()
 
 
 def _initialize_talk_session() -> None:
@@ -1796,6 +1835,8 @@ def _handle_command(command_text: str) -> bool:
             compress_current_topic()
         elif command == "cost":
             cost()
+        elif command == "benchmark":
+            benchmark()
         else:
             typer.echo(f"Unknown command: {command}")
             typer.echo("Type '/help' for available commands.")

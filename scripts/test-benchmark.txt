@@ -1,0 +1,17 @@
+# Test script for benchmarking functionality
+/set benchmark true
+/set benchmark_display true
+/set cost true
+/set debug false
+/set topics true
+/model ollama/llama3
+
+# Simple conversation to test benchmarking
+What is 2+2?
+What is 10*10?
+
+# Topic change
+Tell me about dogs
+
+# Check benchmark stats
+/benchmark

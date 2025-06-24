@@ -22,6 +22,7 @@ from episodic.llm import query_llm
 from episodic.config import config
 from episodic.prompt_manager import PromptManager
 from episodic.compression import queue_topic_for_compression
+from episodic.benchmark import benchmark_resource
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -136,11 +137,12 @@ Answer:"""
                 typer.echo(f"   New message preview: {new_message[:100]}...")
             
             # Use configured model for detection
-            response, cost_info = query_llm(
-                prompt, 
-                model=topic_model,
-                max_tokens=20  # Very short response expected
-            )
+            with benchmark_resource("LLM Call", f"topic detection - {topic_model}"):
+                response, cost_info = query_llm(
+                    prompt, 
+                    model=topic_model,
+                    max_tokens=20  # Very short response expected
+                )
             
             if response:
                 response = response.strip()
@@ -208,7 +210,8 @@ Topic:"""
                 typer.echo(f"   Model: {topic_model}")
                 typer.echo(f"   Prompt preview: {prompt[:300]}...")
             
-            response, cost_info = query_llm(prompt, model=topic_model)
+            with benchmark_resource("LLM Call", f"topic extraction - {topic_model}"):
+                response, cost_info = query_llm(prompt, model=topic_model)
             
             if response:
                 # Clean and normalize the response

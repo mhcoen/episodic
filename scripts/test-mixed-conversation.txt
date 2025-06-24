@@ -1,0 +1,55 @@
+# Mixed Natural Conversation Test
+# Tests topic detection in a more natural, meandering conversation
+
+/prompts use default
+/set debug false
+/set topics true
+/set show_compression_notifications true
+/set auto_compress_topics true
+/set compression_min_nodes 5
+
+# Natural conversation flow with topic drift
+I'm learning Python, what IDE do you recommend?
+Should I use VS Code or PyCharm?
+What extensions are useful for Python in VS Code?
+Actually, speaking of tools, what's a good task management app?
+I've been trying to be more productive lately
+Do you know any good productivity techniques?
+The Pomodoro technique sounds interesting
+But I get distracted easily when working from home
+Do you have tips for focus when remote working?
+I should probably set up a better workspace
+What makes a good ergonomic desk setup?
+My back has been hurting from bad posture
+Are standing desks worth it?
+I've been thinking about getting more exercise too
+What's a good exercise for back pain?
+Swimming is supposed to be good for that, right?
+But the pools are so crowded these days
+Maybe I should try yoga instead
+Have you heard of hot yoga?
+The heat reminds me - my AC bill was huge last month
+Any tips for reducing energy costs?
+I've been thinking about solar panels
+How do solar panels work anyway?
+It's fascinating how we can generate electricity from light
+Speaking of electricity, my phone battery dies so fast
+Why do batteries degrade over time?
+I need to upgrade my phone soon
+What should I look for in a new smartphone?
+The cameras on new phones are incredible
+I've been getting into photography lately
+What's the rule of thirds in photography?
+Do you need expensive equipment to take good photos?
+I mainly just want to document my travels
+Speaking of which, I'm planning a trip to Japan
+What's the best time of year to visit Japan?
+I want to see the cherry blossoms
+But I also want to avoid the crowds
+Maybe I should learn some Japanese first
+What's the best app for learning languages?
+Is Japanese hard to learn for English speakers?
+
+# Check results
+/topics
+/compression-stats

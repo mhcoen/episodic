@@ -1,0 +1,58 @@
+# Science Topics Test
+# Tests topic detection across different scientific domains
+
+/prompts use default
+/set debug false
+/set topics true
+/set show_compression_notifications true
+/set auto_compress_topics true
+/set compression_min_nodes 5
+
+# Topic 1: Biology and evolution
+What is DNA and how does it work?
+Can you explain natural selection?
+What's the difference between prokaryotes and eukaryotes?
+How does photosynthesis work?
+What are stem cells?
+How do vaccines work?
+What's the role of mitochondria?
+
+# Topic 2: Chemistry
+What's the periodic table organized by?
+How do chemical bonds form?
+What's the difference between acids and bases?
+Can you explain oxidation and reduction?
+What happens in a chemical reaction?
+How do catalysts work?
+What's the difference between organic and inorganic chemistry?
+
+# Topic 3: Physics and astronomy  
+What causes gravity?
+How fast does light travel?
+What's the theory of relativity about?
+What are black holes?
+How do stars form?
+What's dark matter?
+Can you explain quantum entanglement?
+
+# Topic 4: Climate and weather
+What causes climate change?
+How do hurricanes form?
+What's the greenhouse effect?
+Why do we have seasons?
+What's the difference between weather and climate?
+How do ocean currents affect climate?
+What is El Niño?
+
+# Topic 5: Technology and engineering
+How do semiconductors work?
+What's machine learning?
+How does GPS work?
+What's the difference between AI and ML?
+How do nuclear reactors work?
+What's quantum computing?
+How does 5G differ from 4G?
+
+# Check results
+/topics
+/compression-stats

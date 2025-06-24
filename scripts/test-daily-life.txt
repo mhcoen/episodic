@@ -1,0 +1,58 @@
+# Daily Life Topics Test
+# Tests topic detection across everyday subjects
+
+/prompts use default
+/set debug false
+/set topics true
+/set show_compression_notifications true
+/set auto_compress_topics true
+/set compression_min_nodes 5
+
+# Topic 1: Cooking and recipes
+What's the best way to cook rice?
+How do I make a basic pasta sauce?
+What temperature should I bake chicken at?
+How can I tell if an avocado is ripe?
+What's the difference between baking soda and baking powder?
+How do I properly season a cast iron pan?
+What herbs go well with fish?
+
+# Topic 2: Exercise and fitness
+What's a good beginner workout routine?
+How often should I exercise per week?
+What's the difference between cardio and strength training?
+How do I prevent muscle soreness?
+What should I eat before working out?
+Is it better to exercise in the morning or evening?
+How do I improve my running endurance?
+
+# Topic 3: Personal finance
+How should I start budgeting?
+What's the difference between a 401k and IRA?
+How much should I save for emergencies?
+What affects my credit score?
+Should I pay off debt or invest?
+How do compound interest work?
+What's the 50/30/20 budget rule?
+
+# Topic 4: Travel planning
+What documents do I need for international travel?
+How far in advance should I book flights?
+What's the best way to avoid jet lag?
+Should I exchange currency before traveling?
+What should I pack for a week-long trip?
+How do I find good local restaurants when traveling?
+Is travel insurance worth it?
+
+# Topic 5: Home and garden
+How often should I water indoor plants?
+What's the best way to remove stains from carpet?
+How do I unclog a sink naturally?
+When should I change air filters?
+What plants are good for beginners?
+How do I reduce energy bills?
+What's the best way to organize a small closet?
+
+# Check results
+/topics
+/compression-stats

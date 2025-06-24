@@ -1,0 +1,53 @@
+# Programming Workflow Test
+# Tests topic detection across programming concepts, debugging, and tools
+
+/prompts use default
+/set debug false
+/set topics true
+/set show_compression_notifications true
+/set auto_compress_topics true
+/set compression_min_nodes 5
+
+# Topic 1: Python basics
+How do I create a list in Python?
+What's the difference between a list and a tuple?
+How do I iterate over a dictionary?
+Can you show me list comprehension syntax?
+What are Python decorators?
+How do I handle exceptions in Python?
+
+# Topic 2: Debugging issues
+I'm getting a KeyError in my code, what does that mean?
+How do I use a debugger in Python?
+What's the best way to debug a memory leak?
+How can I profile my code for performance issues?
+What tools help with debugging async code?
+How do I read a stack trace?
+
+# Topic 3: Git and version control
+How do I create a new git branch?
+What's the difference between merge and rebase?
+How do I undo the last commit?
+What's a good gitignore for Python projects?
+How do I resolve merge conflicts?
+Can you explain git stash?
+
+# Topic 4: Web development
+What's the difference between GET and POST requests?
+How do I set up CORS headers?
+What's RESTful API design?
+How do I handle authentication in a web app?
+What's the difference between cookies and sessions?
+How do I optimize frontend performance?
+
+# Topic 5: Databases
+What's the difference between SQL and NoSQL?
+How do I design a database schema?
+What are database indexes and when should I use them?
+How do I prevent SQL injection?
+What's database normalization?
+When should I use a JOIN vs multiple queries?
+
+# Check results
+/topics
+/compression-stats

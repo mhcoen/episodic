@@ -6,7 +6,7 @@ import io
 import textwrap
 import shutil
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 # Disable tokenizer parallelism to avoid warnings in CLI context
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -292,6 +292,11 @@ Conversation: {conversation_segment}
 Topic:"""
 
         # Use ollama for silent topic extraction
+        if config.get("debug", False):
+            typer.echo(f"\n🔍 DEBUG: Topic extraction prompt:")
+            typer.echo(f"   Model: ollama/llama3")
+            typer.echo(f"   Prompt preview: {prompt[:300]}...")
+        
         response, _ = query_llm(prompt, model="ollama/llama3")
         
         if response:
@@ -311,6 +316,130 @@ Topic:"""
         if config.get("debug", False):
             typer.echo(f"⚠️  Topic extraction error: {e}")
         return None
+
+def detect_topic_change_separately(recent_messages: List[Dict[str, Any]], new_message: str) -> Tuple[bool, Optional[str]]:
+    """
+    Detect if the topic has changed by analyzing recent messages and the new message.
+    
+    This function runs separately from the main conversation flow, using a focused
+    LLM call to determine if the topic has shifted.
+    
+    Args:
+        recent_messages: List of recent conversation nodes (3-5 messages)
+        new_message: The new user message to analyze
+        
+    Returns:
+        Tuple of (topic_changed: bool, new_topic_name: Optional[str])
+    """
+    try:
+        # Check if we should skip topic detection due to recency
+        recent_topics = get_recent_topics(limit=1)
+        if recent_topics:
+            current_topic = recent_topics[0]
+            # Count messages since topic started
+            messages_in_topic = 0
+            for msg in reversed(recent_messages):
+                if msg.get('id') == current_topic['start_node_id']:
+                    break
+                messages_in_topic += 1
+            
+            # Skip topic detection if current topic has fewer than 6 messages (3 exchanges)
+            min_messages_before_change = config.get('min_messages_before_topic_change', 6)
+            if messages_in_topic < min_messages_before_change:
+                if config.get("debug", False):
+                    typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {messages_in_topic} messages (min: {min_messages_before_change})")
+                return False, None
+        # Build context from recent messages
+        context_parts = []
+        for msg in recent_messages[-6:]:  # Last 3 exchanges (6 messages)
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '').strip()
+            if content:
+                # Truncate long messages for context
+                truncated = content[:200] + '...' if len(content) > 200 else content
+                context_parts.append(f"{role}: {truncated}")
+        
+        context = "\n".join(context_parts)
+        
+        # Create focused prompt for topic change detection
+        prompt = f"""Analyze if there is a MAJOR topic change in this conversation.
+
+IMPORTANT: Only detect changes when switching between COMPLETELY DIFFERENT subjects.
+Minor variations within the same general subject are NOT topic changes.
+
+Previous conversation:
+{context}
+
+New user message:
+user: {new_message}
+
+Has the topic changed SIGNIFICANTLY? Answer with ONLY:
+- "YES: [new-topic-name]" if there is a MAJOR topic change (use 1-3 words, lowercase with hyphens)
+- "NO" if continuing the same general subject area
+
+Examples of NO CHANGE (continuing same topic):
+- "What color is the sky?" → "What color are roses?" (both about colors)
+- "What is 2+2?" → "What is 10*10?" (both about math)
+- "How do I debug Python?" → "What about performance optimization?" (both about programming)
+- "Tell me about dogs" → "What about cats?" (both about animals)
+- "Explain quantum physics" → "What about relativity?" (both about physics)
+
+Examples of YES CHANGE (major topic shift):
+- "How do I debug Python?" → "What's the weather today?" → "YES: weather"
+- "Tell me about quantum physics" → "What's a good restaurant nearby?" → "YES: restaurants"
+- "What is 2+2?" → "Tell me about ancient Rome" → "YES: ancient-rome"
+
+Answer:"""
+
+        if config.get("debug", False):
+            typer.echo(f"\n🔍 DEBUG: Topic change detection")
+            typer.echo(f"   Model: ollama/llama3")
+            typer.echo(f"   Recent messages: {len(recent_messages)}")
+            typer.echo(f"   New message preview: {new_message[:100]}...")
+        
+        # Use ollama for fast detection
+        response, _ = query_llm(
+            prompt, 
+            model="ollama/llama3",
+            max_tokens=20  # Very short response expected
+        )
+        
+        if response:
+            response = response.strip()
+            
+            if config.get("debug", False):
+                typer.echo(f"   LLM response: {response}")
+            
+            if response.upper().startswith("YES:"):
+                # Extract the new topic name
+                topic_part = response[4:].strip()
+                # Clean the topic name
+                topic = topic_part.lower().strip()
+                topic = topic.strip('"\'')
+                topic = topic.replace(' ', '-')
+                import re
+                topic = re.sub(r'[^a-z0-9-]', '', topic)
+                
+                if topic:
+                    if config.get("debug", False):
+                        typer.echo(f"   ✅ Topic changed to: {topic}")
+                    return True, topic
+                else:
+                    if config.get("debug", False):
+                        typer.echo(f"   ⚠️ Topic changed but couldn't extract name")
+                    return True, None
+            else:
+                if config.get("debug", False):
+                    typer.echo(f"   ➡️ Continuing same topic")
+                return False, None
+        
+        return False, None
+        
+    except Exception as e:
+        if config.get("debug", False):
+            typer.echo(f"⚠️ Topic change detection error: {e}")
+        return False, None
+
 
 def build_conversation_segment(nodes: List[Dict[str, Any]], max_length: int = 500) -> str:
     """
@@ -2287,6 +2416,19 @@ def _handle_chat_message(user_input: str) -> None:
     
     # Add the user message to the database
     user_node_id, user_short_id = insert_node(user_input, current_node_id, role="user")
+    
+    # Detect topic change BEFORE querying the main LLM
+    topic_changed = False
+    new_topic_name = None
+    
+    # Get recent messages for context
+    recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
+    if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
+        topic_changed, new_topic_name = detect_topic_change_separately(recent_nodes, user_input)
+        
+        if config.get("debug", False) and topic_changed:
+            typer.echo(f"\n🔍 DEBUG: Topic change detected before LLM query")
+            typer.echo(f"   New topic: {new_topic_name}")
 
     # Query the LLM with context
     try:
@@ -2312,17 +2454,8 @@ def _handle_chat_message(user_input: str) -> None:
         if config.get("show_drift", True):
             _display_semantic_drift(user_node_id)
 
-        # Check if response indicates a topic change (but don't process it yet)
-        first_line = response.strip().split('\n')[0].lower()
-        has_topic_change = first_line.startswith('change-')
+        # Use the response directly (no need to check for topic change indicators)
         display_response = response
-        
-        # If topic change detected, prepare the display response
-        if has_topic_change:
-            # Remove the change indicator line from the displayed response
-            lines = response.split('\n')
-            if lines and lines[0].lower().startswith('change-'):
-                display_response = '\n'.join(lines[1:]).strip()
         
         # Collect all status messages to display in one block
         status_messages = []
@@ -2355,12 +2488,9 @@ def _handle_chat_message(user_input: str) -> None:
             wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
 
         # Add the assistant's response to the database with provider and model information
-        # Use the cleaned response (without change indicators) for storage
-        storage_response = display_response
-        
         provider = get_current_provider()
         assistant_node_id, assistant_short_id = insert_node(
-            storage_response, 
+            display_response, 
             user_node_id, 
             role="assistant",
             provider=provider,
@@ -2371,14 +2501,26 @@ def _handle_chat_message(user_input: str) -> None:
         current_node_id = assistant_node_id
         set_head(assistant_node_id)
         
-        # NOW detect and process topic changes after assistant node is created
-        topic_confidence = None
-        if has_topic_change:
-            topic_confidence = detect_and_extract_topic_from_response(response, user_node_id, assistant_node_id)
-            if topic_confidence:
-                confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(topic_confidence, "📝")
-                typer.echo("")
-                typer.secho(f"{confidence_emoji} Topic change detected ({topic_confidence} confidence)", fg=get_system_color())
+        # Process topic changes based on our earlier detection
+        if topic_changed and new_topic_name:
+            # End the previous topic if one exists
+            recent_topics = get_recent_topics(limit=1)
+            if recent_topics:
+                previous_topic = recent_topics[0]
+                # Update the previous topic to end at the last assistant message before this user message
+                # Find the parent of the user node (should be the last assistant message)
+                parent_node = get_node(user_node_id).get('parent_id')
+                if parent_node:
+                    update_topic_end_node(previous_topic['name'], previous_topic['start_node_id'], parent_node)
+                    # Queue the old topic for compression
+                    queue_topic_for_compression(previous_topic['start_node_id'], parent_node, previous_topic['name'])
+                    if config.get("debug", False):
+                        typer.echo(f"   📦 Queued topic '{previous_topic['name']}' for compression")
+            
+            # Create the new topic starting from this user message
+            store_topic(new_topic_name, user_node_id, assistant_node_id, 'detected')
+            typer.echo("")
+            typer.secho(f"🔄 Topic changed to: {new_topic_name}", fg=get_system_color())
         else:
             # No topic change - extend the current topic if one exists
             recent_topics = get_recent_topics(limit=1)
@@ -2395,6 +2537,13 @@ def _handle_chat_message(user_input: str) -> None:
                     
                     # Build segment from the entire conversation so far
                     segment = build_conversation_segment(conversation_chain, max_length=2000)
+                    
+                    if config.get("debug", False):
+                        typer.echo(f"\n🔍 DEBUG: Extracting first topic from conversation:")
+                        typer.echo(f"   Conversation preview: {segment[:200]}...")
+                        typer.echo(f"   Total length: {len(segment)} chars")
+                        typer.echo(f"   Number of nodes: {len(conversation_chain)}")
+                    
                     topic_name = extract_topic_ollama(segment)
                     
                     if topic_name:

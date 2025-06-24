@@ -1143,9 +1143,11 @@ def script(filename: str):
             typer.echo(f"\n[{i}/{len(queries)}] > {query}")
             
             # Check if it's a command (starts with /) or a chat message
-            if query.startswith('/'):
+            # Strip leading whitespace to allow commands like "  /help"
+            stripped_query = query.lstrip()
+            if stripped_query.startswith('/'):
                 # Process as a command (remove the leading /)
-                should_exit = _handle_command(query[1:])
+                should_exit = _handle_command(stripped_query[1:])
                 if should_exit:
                     typer.echo("Script terminated by exit command.")
                     break
@@ -1843,9 +1845,11 @@ def talk_loop() -> None:
                 continue
 
             # Check if it's a command (starts with /)
-            if user_input.startswith('/'):
+            # Strip leading whitespace to allow commands like "  /help"
+            stripped_input = user_input.lstrip()
+            if stripped_input.startswith('/'):
                 # Remove the / prefix and parse the command
-                command_text = user_input[1:].strip()
+                command_text = stripped_input[1:].strip()
                 if not command_text:
                     typer.echo("Empty command. Type '/help' for available commands.")
                     continue
@@ -1856,6 +1860,7 @@ def talk_loop() -> None:
                     break
             else:
                 # This is a chat message, not a command
+                # Use the original input to preserve any intentional leading spaces in messages
                 _handle_chat_message(user_input)
                 
         except KeyboardInterrupt:

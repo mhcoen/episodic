@@ -39,6 +39,11 @@ class Config:
                 if "show_drift" not in self.config:
                     self.config["show_drift"] = True
                     self._save()
+                
+                # Ensure auto_compress_topics is set to True by default
+                if "auto_compress_topics" not in self.config:
+                    self.config["auto_compress_topics"] = True
+                    self._save()
             except json.JSONDecodeError:
                 # If the file is corrupted, start with an empty config
                 self.config = {}
@@ -48,7 +53,8 @@ class Config:
                 "active_prompt": "default",
                 "debug": False,
                 "show_cost": False,
-                "show_drift": True
+                "show_drift": True,
+                "auto_compress_topics": True
             }
             self._save()
 

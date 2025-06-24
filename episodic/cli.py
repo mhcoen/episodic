@@ -18,7 +18,8 @@ from prompt_toolkit.formatted_text import HTML
 from episodic.db import (
     insert_node, get_node, get_ancestry, initialize_db, 
     resolve_node_ref, get_head, set_head, database_exists,
-    get_recent_nodes, store_topic, get_recent_topics
+    get_recent_nodes, store_topic, get_recent_topics,
+    store_compression, get_compression_stats
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.llm_config import get_current_provider, get_default_model, get_available_providers
@@ -28,6 +29,7 @@ from episodic.configuration import *
 from episodic.configuration import get_llm_color, get_system_color, get_prompt_color, get_model_context_limit
 from episodic.ml import ConversationalDrift
 from litellm import cost_per_token
+from episodic.compression import queue_topic_for_compression, start_auto_compression, compression_manager
 
 # Create a Typer app for command handling
 app = typer.Typer(add_completion=False)
@@ -376,6 +378,15 @@ def detect_and_extract_topic_from_response(response: str, current_node_id: str) 
                 
                 # Store the topic
                 store_topic(topic_name, start_node_id, current_node_id, confidence)
+                
+                # Queue previous topic for compression if auto-compression is enabled
+                if previous_topics and config.get('auto_compress_topics', True):
+                    prev_topic = previous_topics[0]
+                    queue_topic_for_compression(
+                        prev_topic['start_node_id'],
+                        prev_topic['end_node_id'],
+                        prev_topic['topic_name']
+                    )
                 
                 if config.get("debug", False):
                     typer.echo(f"   📝 Extracted topic: '{topic_name}' with confidence: {confidence}")
@@ -1409,6 +1420,301 @@ def script(filename: str):
         typer.echo(f"Error running script: {e}")
 
 
+@app.command()
+def compress(
+    branch_id: Optional[str] = typer.Argument(None, help="Node ID to compress branch from (defaults to current node)"),
+    strategy: str = typer.Option("simple", "--strategy", "-s", help="Compression strategy: simple, key-moments"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be compressed without making changes")
+):
+    """Compress conversation history by summarizing branches."""
+    global current_node_id
+    
+    try:
+        # Determine which node to compress from
+        if not branch_id:
+            branch_id = current_node_id or get_head()
+            if not branch_id:
+                typer.echo("Error: No current node. Specify a node ID.")
+                return
+        else:
+            branch_id = resolve_node_ref(branch_id)
+        
+        # Get the branch to compress
+        branch_nodes = get_ancestry(branch_id)
+        if not branch_nodes or len(branch_nodes) < 3:
+            typer.echo("Error: Branch too short to compress (need at least 3 nodes).")
+            return
+        
+        typer.echo(f"Compressing branch from root to {branch_nodes[-1]['short_id']}...")
+        typer.echo(f"Branch contains {len(branch_nodes)} nodes")
+        
+        # Start timing compression
+        import time
+        compression_start_time = time.time()
+        
+        if strategy == "simple":
+            # Simple strategy: Summarize the entire branch
+            summary = _compress_branch_simple(branch_nodes, dry_run)
+        elif strategy == "key-moments":
+            # Key moments strategy: Extract important exchanges
+            summary = _compress_branch_key_moments(branch_nodes, dry_run)
+        else:
+            typer.echo(f"Error: Unknown compression strategy '{strategy}'")
+            return
+        
+        if dry_run:
+            typer.echo("\n--- DRY RUN: No changes made ---")
+            typer.echo("Summary that would be created:")
+            wrapped_text_print(summary, fg=get_system_color())
+        else:
+            # Create a new compressed node
+            content = f"[COMPRESSED BRANCH SUMMARY]\n\n{summary}"
+            # Get the parent of the first node in the branch (usually root)
+            parent_id = branch_nodes[0]['parent_id'] if branch_nodes else None
+            compressed_id, compressed_short_id = insert_node(content, parent_id, role="system")
+            
+            # Update the last node to point to the compressed node
+            # This is a simplified approach - in a full implementation we might
+            # restructure the DAG more intelligently
+            typer.echo(f"\nCreated compressed node: {compressed_short_id}")
+            typer.echo(f"Original branch preserved. Use compressed node as parent for future conversations on this topic.")
+            
+            # Calculate compression metrics
+            import time
+            compression_end_time = time.time()
+            compression_duration = compression_end_time - compression_start_time if 'compression_start_time' in locals() else 0
+            
+            # Token estimation (rough approximation: 1 token ≈ 0.75 words)
+            original_words = sum(len(node['content'].split()) for node in branch_nodes)
+            compressed_words = len(summary.split())
+            original_tokens_est = int(original_words / 0.75)
+            compressed_tokens_est = int(compressed_words / 0.75)
+            
+            ratio = (1 - compressed_words / original_words) * 100
+            token_reduction = original_tokens_est - compressed_tokens_est
+            
+            typer.echo(f"\n📊 Compression Metrics:")
+            typer.echo(f"  Compression ratio: {ratio:.1f}% reduction")
+            typer.echo(f"  Words: {original_words:,} → {compressed_words:,}")
+            typer.echo(f"  Tokens (est): {original_tokens_est:,} → {compressed_tokens_est:,} (saved ~{token_reduction:,} tokens)")
+            typer.echo(f"  Compression time: {compression_duration:.2f}s")
+            
+            # Store compression metadata in database
+            try:
+                store_compression(
+                    compressed_node_id=compressed_id,
+                    original_branch_head=branch_nodes[-1]['id'],
+                    original_node_count=len(branch_nodes),
+                    original_words=original_words,
+                    compressed_words=compressed_words,
+                    compression_ratio=ratio,
+                    strategy=strategy,
+                    duration_seconds=compression_duration
+                )
+                typer.echo(f"\n💾 Compression metadata stored in database")
+            except Exception as e:
+                typer.echo(f"\n⚠️  Warning: Could not store compression metadata: {e}")
+            
+    except Exception as e:
+        typer.echo(f"Error compressing branch: {e}")
+
+
+def _compress_branch_simple(nodes: List[Dict], dry_run: bool = False) -> str:
+    """Simple compression: summarize the entire conversation."""
+    # Build conversation text
+    conversation_parts = []
+    for node in nodes:
+        role = node.get('role', 'user')
+        if role == 'system' and '[COMPRESSED' in node.get('content', ''):
+            # Skip existing compressions
+            continue
+        role_name = "User" if role == "user" else "Assistant"
+        conversation_parts.append(f"{role_name}: {node['content']}")
+    
+    full_conversation = "\n\n".join(conversation_parts)
+    
+    # Create summarization prompt
+    prompt = f"""Please create a concise summary of the following conversation. 
+Focus on key topics discussed, important decisions made, and any conclusions reached.
+Preserve essential context that would be needed to resume this conversation later.
+
+Conversation:
+{full_conversation}
+
+Summary:"""
+    
+    if dry_run:
+        return "[Would generate summary using LLM]\n\nExample summary:\nThis conversation covered [topics]. Key points included [main ideas]. The discussion concluded with [outcomes]."
+    
+    # Use LLM to generate summary
+    try:
+        summary, _ = query_llm(
+            prompt=prompt,
+            model=get_default_model(),
+            system_message="You are a helpful assistant that creates concise, informative summaries.",
+            max_tokens=500
+        )
+        return summary
+    except Exception as e:
+        return f"[Error generating summary: {e}]"
+
+
+def _compress_branch_key_moments(nodes: List[Dict], dry_run: bool = False) -> str:
+    """Key moments compression: extract important exchanges with intelligent detection."""
+    # Track topic changes and key moments
+    key_moments = []
+    topics_seen = set()
+    previous_topics = None
+    
+    for i, node in enumerate(nodes):
+        content = node.get('content', '').lower()
+        role = node.get('role', 'user')
+        
+        # Detect topic changes (using simple keyword detection)
+        current_topics = set()
+        topic_keywords = {
+            'python': ['python', 'decorator', 'function', 'class', 'import'],
+            'ml': ['machine learning', 'deep learning', 'neural', 'ai', 'model'],
+            'api': ['api', 'rest', 'graphql', 'endpoint', 'http'],
+            'architecture': ['microservice', 'architecture', 'design', 'pattern'],
+            'database': ['database', 'sql', 'query', 'table', 'schema'],
+        }
+        
+        for topic, keywords in topic_keywords.items():
+            if any(kw in content for kw in keywords):
+                current_topics.add(topic)
+        
+        # Determine if this is a key moment
+        is_key = False
+        reason = ""
+        
+        # Always include first and last nodes
+        if i == 0:
+            is_key = True
+            reason = "conversation start"
+        elif i == len(nodes) - 1:
+            is_key = True
+            reason = "conversation end"
+        # Topic changes
+        elif current_topics and current_topics != previous_topics:
+            is_key = True
+            reason = f"topic change to {', '.join(current_topics)}"
+            topics_seen.update(current_topics)
+        # Questions (especially from users)
+        elif '?' in content and role == 'user':
+            is_key = True
+            reason = "user question"
+        # Important markers
+        elif any(marker in content for marker in [
+            'important', 'key point', 'summary', 'conclusion', 
+            'let me explain', 'the main', 'in summary', 'to summarize',
+            'best practice', 'recommendation', 'solution'
+        ]):
+            is_key = True
+            reason = "important content"
+        # Code examples (useful to preserve)
+        elif '```' in node.get('content', '') or 'def ' in node.get('content', ''):
+            is_key = True
+            reason = "code example"
+        
+        if is_key:
+            key_moments.append({
+                'node': node,
+                'index': i,
+                'reason': reason
+            })
+        
+        previous_topics = current_topics
+    
+    if dry_run:
+        summary = f"[Would extract {len(key_moments)} key moments from {len(nodes)} total nodes]\n\n"
+        summary += "Key moments identified:\n"
+        for km in key_moments[:10]:  # Show first 10
+            summary += f"  - Node {km['node']['short_id']}: {km['reason']}\n"
+        if len(key_moments) > 10:
+            summary += f"  ... and {len(key_moments) - 10} more\n"
+        summary += f"\nTopics covered: {', '.join(sorted(topics_seen)) if topics_seen else 'various'}"
+        return summary
+    
+    # Build intelligent summary from key moments
+    if not key_moments:
+        return "No key moments identified in conversation."
+    
+    # Group by topics/sections
+    summary_parts = [f"Conversation Summary ({len(key_moments)} key moments from {len(nodes)} total exchanges):\n"]
+    
+    # Add topic overview if detected
+    if topics_seen:
+        summary_parts.append(f"Topics discussed: {', '.join(sorted(topics_seen))}\n")
+    
+    # Add key moments with context
+    for i, km in enumerate(key_moments):
+        node = km['node']
+        role = node.get('role', 'user')
+        role_name = "User" if role == "user" else "Assistant"
+        
+        # Include reason for key moment
+        summary_parts.append(f"[{km['reason'].title()}] {role_name}:")
+        
+        # Include more content for code examples, less for regular text
+        if km['reason'] == "code example":
+            summary_parts.append(node['content'][:500] + ("..." if len(node['content']) > 500 else ""))
+        else:
+            summary_parts.append(node['content'][:250] + ("..." if len(node['content']) > 250 else ""))
+        
+        summary_parts.append("")  # Empty line between moments
+    
+    return "\n".join(summary_parts)
+
+
+@app.command()
+def compression_stats():
+    """Show compression statistics."""
+    try:
+        stats = get_compression_stats()
+        
+        typer.echo("📊 Compression Statistics:")
+        typer.echo(f"\nTotal compressions: {stats['total_compressions']}")
+        
+        if stats['total_compressions'] > 0:
+            typer.echo(f"Total words saved: {stats['total_words_saved']:,}")
+            typer.echo(f"Average compression ratio: {stats['average_compression_ratio']:.1f}%")
+            
+            if stats['strategies_used']:
+                typer.echo("\nStrategies used:")
+                for strategy, data in stats['strategies_used'].items():
+                    typer.echo(f"  - {strategy}: {data['count']} times (avg {data['avg_ratio']:.1f}% reduction)")
+        else:
+            typer.echo("\nNo compressions performed yet.")
+            typer.echo("Use '/compress' to compress a conversation branch.")
+            
+    except Exception as e:
+        typer.echo(f"Error retrieving compression stats: {e}")
+
+
+def compression_queue():
+    """Show pending compression jobs in the queue."""
+    try:
+        queue_info = compression_manager.get_queue_info()
+        stats = compression_manager.get_stats()
+        
+        typer.echo("\n📊 Compression Queue Status")
+        typer.echo(f"Pending jobs: {len(queue_info)}")
+        typer.echo(f"Total compressed: {stats['total_compressed']}")
+        typer.echo(f"Failed compressions: {stats['failed_compressions']}")
+        typer.echo(f"Total words saved: {stats['total_words_saved']:,}")
+        
+        if queue_info:
+            typer.echo("\nPending jobs:")
+            for job in queue_info:
+                typer.echo(f"  - Topic: '{job['topic']}' (priority: {job['priority']}, attempts: {job['attempts']})")
+        else:
+            typer.echo("\nNo pending compression jobs.")
+            
+    except Exception as e:
+        typer.echo(f"Error retrieving queue info: {e}")
+
+
 def help():
     """Show available commands."""
     typer.echo("Available commands:")
@@ -1428,6 +1734,8 @@ def help():
     typer.echo("  /prompts             - Manage system prompts")
     typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
     typer.echo("  /script <filename>   - Run scripted conversation from text file")
+    typer.echo("  /compress [node_id]  - Compress conversation branch into summary")
+    typer.echo("  /compression-queue   - Show pending auto-compression jobs")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 
@@ -1467,6 +1775,10 @@ def _initialize_talk_session() -> None:
         typer.echo("No conversation history found. Creating initial node...")
         init()
         current_node_id = get_head()
+    
+    # Start background compression manager if enabled
+    if config.get('auto_compress_topics', True):
+        start_auto_compression()
 
 def _create_prompt_session() -> PromptSession:
     """Create and configure the prompt session for talk mode.
@@ -1667,6 +1979,17 @@ def _handle_command(command_text: str) -> bool:
                 return False
             filename = command_args[0]
             script(filename=filename)
+        elif command == "compress":
+            # Parse arguments
+            branch_id = command_args[0] if command_args else None
+            
+            # Parse flags
+            strategy = _parse_flag_value(command_args, ["--strategy", "-s"]) or "simple"
+            dry_run = "--dry-run" in command_args
+            
+            compress(branch_id=branch_id, strategy=strategy, dry_run=dry_run)
+        elif command == "compression-queue":
+            compression_queue()
         elif command == "cost":
             cost()
         else:

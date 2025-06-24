@@ -1,0 +1,69 @@
+# Async Compression Test Script
+# This script tests the automatic background compression system
+# Load with: /script test-async-compression.txt
+
+# First, enable notifications and debug mode to see what's happening
+/set debug true
+/set show_compression_notifications true
+/set auto_compress_topics true
+
+# Check initial compression stats
+/compression-stats
+/compression-queue
+
+# Start first topic: Quantum Computing
+Tell me about quantum computing
+What are qubits and how do they work?
+Can you explain superposition in simple terms?
+What's the difference between quantum and classical computing?
+How close are we to practical quantum computers?
+What are the main challenges in building quantum computers?
+
+# Change topic - this should trigger compression of quantum computing topic
+Now let's talk about Italian cooking instead
+What makes authentic Italian pasta different?
+Can you share a simple carbonara recipe?
+What are the key ingredients in Italian cooking?
+Tell me about different types of Italian pasta shapes
+What's the proper way to cook al dente pasta?
+
+# Change topic again - this should trigger compression of Italian cooking topic  
+I'd like to learn about machine learning now
+What's the difference between supervised and unsupervised learning?
+Can you explain what a neural network is?
+How does backpropagation work?
+What are some common ML algorithms for beginners?
+What's the difference between AI and machine learning?
+
+# Change topic once more - this should trigger compression of ML topic
+Let's discuss climate change
+What are the main causes of climate change?
+How do greenhouse gases work?
+What can individuals do to help?
+What are the predicted impacts of climate change?
+How do scientists measure global temperature changes?
+
+# Check the compression queue and stats
+/compression-queue
+/compression-stats
+
+# List recent nodes to see compressed topics
+/last 30
+
+# Final topic to ensure previous compressions complete
+Tell me about the history of the internet
+When was the internet invented?
+Who were the key people involved?
+What was ARPANET?
+
+# Give compressions time to complete, then check final results
+/compression-queue
+/compression-stats
+/topics 10
+
+# Disable debug mode
+/set debug false
+/set show_compression_notifications false
+
+# Summary message
+/echo Test complete! Check the compressed nodes above marked with [Compressed Topic: ...]. You should see compressions for quantum-computing, italian-cooking, and machine-learning topics.

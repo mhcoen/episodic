@@ -208,6 +208,22 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 FOREIGN KEY(end_node_id) REFERENCES nodes(id)
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS compressions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                compressed_node_id TEXT NOT NULL,
+                original_branch_head TEXT NOT NULL,
+                original_node_count INTEGER NOT NULL,
+                original_words INTEGER NOT NULL,
+                compressed_words INTEGER NOT NULL,
+                compression_ratio REAL NOT NULL,
+                strategy TEXT NOT NULL,
+                duration_seconds REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(compressed_node_id) REFERENCES nodes(id),
+                FOREIGN KEY(original_branch_head) REFERENCES nodes(id)
+            )
+        """)
         conn.commit()
 
         # Run migrations if requested
@@ -745,3 +761,92 @@ def get_all_topics():
         List of all topic dictionaries
     """
     return get_recent_topics(limit=1000)  # Large limit to get all
+
+
+def store_compression(compressed_node_id: str, original_branch_head: str, 
+                     original_node_count: int, original_words: int, compressed_words: int,
+                     compression_ratio: float, strategy: str, duration_seconds: float = None):
+    """
+    Store compression metadata in the database.
+    
+    Args:
+        compressed_node_id: ID of the newly created compressed node
+        original_branch_head: ID of the last node in the original branch
+        original_node_count: Number of nodes in the original branch
+        original_words: Total word count in original branch
+        compressed_words: Word count in compressed summary
+        compression_ratio: Percentage reduction
+        strategy: Compression strategy used ('simple', 'key-moments')
+        duration_seconds: Time taken to compress (optional)
+    
+    Returns:
+        The ID of the inserted compression record
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO compressions (
+                compressed_node_id, original_branch_head, original_node_count,
+                original_words, compressed_words, compression_ratio,
+                strategy, duration_seconds
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (compressed_node_id, original_branch_head, original_node_count,
+              original_words, compressed_words, compression_ratio,
+              strategy, duration_seconds))
+        return c.lastrowid
+
+
+def get_compression_stats():
+    """
+    Get compression statistics from the database.
+    
+    Returns:
+        Dictionary with compression statistics
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        
+        # Check if compressions table exists
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='compressions'")
+        if not c.fetchone():
+            return {
+                'total_compressions': 0,
+                'total_words_saved': 0,
+                'average_compression_ratio': 0,
+                'strategies_used': {}
+            }
+        
+        # Get overall stats
+        c.execute("""
+            SELECT 
+                COUNT(*) as total_compressions,
+                SUM(original_words - compressed_words) as total_words_saved,
+                AVG(compression_ratio) as avg_ratio
+            FROM compressions
+        """)
+        
+        row = c.fetchone()
+        total_compressions = row[0] or 0
+        total_words_saved = row[1] or 0
+        avg_ratio = row[2] or 0
+        
+        # Get strategy breakdown
+        c.execute("""
+            SELECT strategy, COUNT(*) as count, AVG(compression_ratio) as avg_ratio
+            FROM compressions
+            GROUP BY strategy
+        """)
+        
+        strategies = {}
+        for row in c.fetchall():
+            strategies[row[0]] = {
+                'count': row[1],
+                'avg_ratio': row[2]
+            }
+        
+        return {
+            'total_compressions': total_compressions,
+            'total_words_saved': total_words_saved,
+            'average_compression_ratio': avg_ratio,
+            'strategies_used': strategies
+        }

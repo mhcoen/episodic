@@ -3,8 +3,6 @@ import shlex
 import os
 import warnings
 import io
-import textwrap
-import shutil
 import logging
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -28,13 +26,16 @@ from episodic.prompt_manager import PromptManager
 from episodic.config import config
 from episodic.configuration import *
 from episodic.configuration import get_llm_color, get_system_color, get_prompt_color, get_model_context_limit
-from episodic.ml import ConversationalDrift
 from litellm import cost_per_token
 from episodic.compression import queue_topic_for_compression, start_auto_compression, compression_manager
 from episodic.topics import (
     detect_topic_change_separately, extract_topic_ollama, should_create_first_topic,
     build_conversation_segment, is_node_in_topic_range, count_nodes_in_topic,
     _display_topic_evolution, TopicManager
+)
+from episodic.conversation import (
+    ConversationManager, handle_chat_message, get_session_costs,
+    wrapped_text_print, wrapped_llm_print
 )
 
 # Set up logging
@@ -49,68 +50,12 @@ default_model = DEFAULT_MODEL
 default_system = DEFAULT_SYSTEM_MESSAGE
 default_context_depth = DEFAULT_CONTEXT_DEPTH
 default_semdepth = 4  # Default semantic depth for drift calculation
-session_costs = {
-    "total_input_tokens": 0,
-    "total_output_tokens": 0,
-    "total_tokens": 0,
-    "total_cost_usd": 0.0
-}
 
-# Global drift calculator for real-time drift detection
-drift_calculator = None
+# Create conversation manager instance
+conversation_manager = ConversationManager()
 
-def _get_wrap_width():
-    """Get the appropriate text wrapping width for the terminal."""
-    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
-    margin = 4
-    max_width = 100  # Maximum line length for readability
-    return min(max_width, max(40, terminal_width - margin))
 
-def wrapped_text_print(text: str, **typer_kwargs):
-    """Print text with automatic wrapping while preserving formatting."""
-    # Check if wrapping is enabled
-    if not config.get("text_wrap", True):
-        typer.secho(str(text), **typer_kwargs)
-        return
-    
-    wrap_width = _get_wrap_width()
-    
-    # Process text to preserve formatting while wrapping long lines
-    lines = str(text).split('\n')
-    wrapped_lines = []
-    
-    for line in lines:
-        if len(line) <= wrap_width:
-            # Line is short enough, keep as-is
-            wrapped_lines.append(line)
-        else:
-            # Line is too long, wrap it while preserving indentation
-            # Detect indentation (spaces or tabs at start of line)
-            stripped = line.lstrip()
-            indent = line[:len(line) - len(stripped)]
-            
-            # Wrap the content while preserving indentation
-            if stripped:  # Only wrap if there's actual content
-                wrapped = textwrap.fill(
-                    stripped, 
-                    width=wrap_width,
-                    initial_indent=indent,
-                    subsequent_indent=indent + "  "  # Add slight extra indent for continuation
-                )
-                wrapped_lines.append(wrapped)
-            else:
-                # Empty or whitespace-only line, keep as-is
-                wrapped_lines.append(line)
-    
-    # Join the processed lines back together
-    wrapped_text = '\n'.join(wrapped_lines)
-    
-    # Print with the specified formatting
-    typer.secho(wrapped_text, **typer_kwargs)
 
-def wrapped_llm_print(text: str, **typer_kwargs):
-    """Print LLM text with automatic wrapping while preserving formatting."""
-    wrapped_text_print(text, **typer_kwargs)
 
 def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs):
     """Print text with automatic wrapping accounting for an existing prefix indent."""
@@ -120,6 +65,8 @@ def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs
         return
     
     # Calculate available width accounting for the prefix
+    import shutil
+    import textwrap
     terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
     margin = 4
     max_width = 100  # Maximum line length for readability
@@ -158,243 +105,13 @@ def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs
     # Print with the specified formatting
     typer.secho(wrapped_text, **typer_kwargs)
 
-def _get_drift_calculator():
-    """Get or create the global drift calculator instance."""
-    global drift_calculator
-    
-    # Check if drift detection is disabled in config
-    if not config.get("show_drift", True):
-        return None
-        
-    if drift_calculator is None:
-        try:
-            drift_calculator = ConversationalDrift()
-        except Exception as e:
-            # If drift calculator fails to initialize (e.g., missing dependencies),
-            # disable drift detection for this session
-            if config.get("debug", False):
-                typer.echo(f"⚠️  Drift detection disabled: {e}")
-            drift_calculator = False  # Mark as disabled
-    return drift_calculator if drift_calculator is not False else None
-
-def _build_semdepth_context(nodes: List[Dict[str, Any]], semdepth: int, text_field: str = "content") -> str:
-    """
-    Build combined context from the last N nodes for semantic analysis.
-    
-    Args:
-        nodes: List of conversation nodes in chronological order
-        semdepth: Number of most recent nodes to combine
-        text_field: Field containing text content
-        
-    Returns:
-        Combined text from the last semdepth nodes
-    """
-    if not nodes or semdepth < 1:
-        return ""
-    
-    # Get the last semdepth nodes
-    context_nodes = nodes[-semdepth:] if len(nodes) >= semdepth else nodes
-    
-    # Combine their content
-    combined_text = []
-    for node in context_nodes:
-        content = node.get(text_field, "").strip()
-        if content:
-            combined_text.append(content)
-    
-    return "\n".join(combined_text)
-
-def _display_semantic_drift(current_user_node_id: str) -> None:
-    """
-    Calculate and display semantic drift between consecutive user messages.
-    
-    Only compares user inputs to detect when the user changes topics,
-    ignoring assistant responses which just follow the user's lead.
-    
-    Args:
-        current_user_node_id: ID of the current user message node
-    """
-    calc = _get_drift_calculator()
-    if not calc:
-        return  # Drift detection disabled
-    
-    try:
-        # Get conversation history from root to current node
-        conversation_chain = get_ancestry(current_user_node_id)
-        
-        # Filter to user messages only
-        user_messages = [node for node in conversation_chain 
-                        if node.get("role") == "user" and node.get("content", "").strip()]
-        
-        # Need at least 2 user messages for comparison
-        if len(user_messages) < 2:
-            if config.get("debug", False):
-                typer.echo(f"   (Need 2 user messages for drift, have {len(user_messages)})")
-            return
-        
-        # Compare current user message to previous user message
-        current_user = user_messages[-1]
-        previous_user = user_messages[-2]
-        
-        # Calculate semantic drift between consecutive user inputs
-        drift_score = calc.calculate_drift(previous_user, current_user, text_field="content")
-        
-        # Format drift display based on score level
-        if drift_score >= 0.8:
-            drift_emoji = "🔄"
-            drift_desc = "High topic shift"
-        elif drift_score >= 0.6:
-            drift_emoji = "📈"
-            drift_desc = "Moderate drift"
-        elif drift_score >= 0.3:
-            drift_emoji = "➡️"
-            drift_desc = "Low drift"
-        else:
-            drift_emoji = "🎯"
-            drift_desc = "Minimal drift"
-        
-        # Display drift information
-        prev_short_id = previous_user.get("short_id", "??")
-        typer.secho(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_system_color())
-        
-        # Show additional context if debug mode is enabled
-        if config.get("debug", False):
-            prev_content = previous_user.get("content", "")[:80]
-            curr_content = current_user.get("content", "")[:80]
-            typer.echo(f"   Previous: {prev_content}{'...' if len(previous_user.get('content', '')) > 80 else ''}")
-            typer.echo(f"   Current:  {curr_content}{'...' if len(current_user.get('content', '')) > 80 else ''}")
-            
-            # Show embedding cache efficiency
-            cache_size = calc.get_cache_size()
-            typer.echo(f"   Embedding cache: {cache_size} entries")
-        
-    except Exception as e:
-        # If drift calculation fails, silently continue (don't disrupt conversation flow)
-        if config.get("debug", False):
-            typer.echo(f"⚠️  Drift calculation error: {e}")
 
 
 
 
 
 
-def detect_and_extract_topic_from_response(response: str, user_node_id: str, assistant_node_id: str) -> Optional[str]:
-    """
-    Detect topic changes from LLM response and extract topic if change detected.
-    
-    Args:
-        response: The LLM's response text
-        user_node_id: ID of the user's question node that triggered this response
-        assistant_node_id: ID of the assistant's response node
-        
-    Returns:
-        Confidence level if topic change detected, None otherwise
-    """
-    try:
-        # Check if response indicates topic change
-        first_line = response.strip().split('\n')[0].lower()
-        if not first_line.startswith('change-'):
-            return None
-            
-        # Extract confidence level
-        confidence = first_line.split('-')[1] if '-' in first_line else 'unknown'
-        
-        # Get full conversation history
-        conversation_chain = get_ancestry(assistant_node_id)
-        
-        if conversation_chain:
-            # Find previous topics to determine boundaries
-            previous_topics = get_recent_topics(limit=1)
-            
-            if previous_topics:
-                # We have a previous topic - update its end boundary and create new topic
-                prev_topic = previous_topics[0]
-                
-                # Find the parent of the topic-changing user node (last node of previous topic)
-                user_node = get_node(user_node_id)
-                if user_node and user_node.get('parent_id'):
-                    # Update the previous topic to end at the node before the topic change
-                    update_topic_end_node(prev_topic['name'], prev_topic['start_node_id'], user_node.get('parent_id'))
-                    
-                    # Queue previous topic for compression if auto-compression is enabled
-                    if config.get('auto_compress_topics', True):
-                        queue_topic_for_compression(
-                            prev_topic['start_node_id'],
-                            user_node.get('parent_id'),
-                            prev_topic['name']
-                        )
-                
-                # Extract topic name for the new topic from just the new exchange
-                new_topic_nodes = []
-                for i, node in enumerate(conversation_chain):
-                    if node.get('id') == user_node_id:
-                        # Include nodes from topic change onwards
-                        new_topic_nodes = conversation_chain[i:]
-                        break
-                
-                if new_topic_nodes:
-                    # Extract topic from the new topic nodes (limit to first few for clarity)
-                    new_topic_segment = build_conversation_segment(new_topic_nodes[:4], max_length=800)
-                    topic_name = extract_topic_ollama(new_topic_segment)
-                    
-                    if topic_name:
-                        # Store the new topic starting from the topic-changing user message
-                        store_topic(topic_name, user_node_id, assistant_node_id, confidence)
-            else:
-                # This is the first topic change - need to retroactively create the first topic
-                if len(conversation_chain) > 2:  # Need at least a few nodes
-                    # Find all nodes before the topic change
-                    prev_topic_nodes = []
-                    for i, node in enumerate(conversation_chain):
-                        if node.get('id') == user_node_id:
-                            prev_topic_nodes = conversation_chain[:i]
-                            break
-                    
-                    if prev_topic_nodes:
-                        # Extract topic from all nodes of the previous conversation
-                        prev_segment = build_conversation_segment(prev_topic_nodes, max_length=2000)
-                        prev_topic_name = extract_topic_ollama(prev_segment)
-                        
-                        if prev_topic_name:
-                            # Find first user node as start
-                            first_user_node = None
-                            last_node_before_change = None
-                            
-                            for node in prev_topic_nodes:
-                                if node.get('role') == 'user' and first_user_node is None:
-                                    first_user_node = node
-                                last_node_before_change = node
-                            
-                            if first_user_node and last_node_before_change:
-                                # Store the previous topic with all its nodes
-                                store_topic(prev_topic_name, first_user_node['id'], last_node_before_change['id'], 'retroactive')
-                
-                # Now extract and store the new topic
-                new_topic_nodes = []
-                for i, node in enumerate(conversation_chain):
-                    if node.get('id') == user_node_id:
-                        new_topic_nodes = conversation_chain[i:]
-                        break
-                
-                if new_topic_nodes:
-                    # Extract topic from new nodes
-                    new_topic_segment = build_conversation_segment(new_topic_nodes[:4], max_length=800)
-                    topic_name = extract_topic_ollama(new_topic_segment)
-                    
-                    if topic_name:
-                        # Store the new topic
-                        store_topic(topic_name, user_node_id, assistant_node_id, confidence)
-                
-                if config.get("debug", False):
-                    typer.echo(f"   📝 Extracted topic: '{topic_name}' with confidence: {confidence}")
-                
-            return confidence
-                
-    except Exception as e:
-        if config.get("debug", False):
-            typer.echo(f"⚠️  Topic extraction error: {e}")
-    
-    return None
+
 
 
 
@@ -1810,6 +1527,7 @@ def help():
 # Main talk loop
 def display_session_summary() -> None:
     """Display session summary with token usage and costs if any LLM interactions occurred."""
+    session_costs = get_session_costs()
     if session_costs["total_tokens"] > 0:
         typer.echo("Session Summary:")
         typer.secho(f"Total input tokens: ", nl=False, fg=typer.colors.WHITE)
@@ -1843,6 +1561,9 @@ def _initialize_talk_session() -> None:
         typer.echo("No conversation history found. Creating initial node...")
         init()
         current_node_id = get_head()
+    
+    # Initialize conversation manager
+    conversation_manager.set_current_node_id(current_node_id)
     
     # Start background compression manager if enabled
     if config.get('auto_compress_topics', True):
@@ -2080,157 +1801,20 @@ def _handle_chat_message(user_input: str) -> None:
         
     Processes the message through the LLM and updates the conversation DAG.
     """
-    global current_node_id, default_model, default_system, default_context_depth, session_costs
+    global current_node_id
     
-    # Add the user message to the database
-    user_node_id, user_short_id = insert_node(user_input, current_node_id, role="user")
-    
-    # Detect topic change BEFORE querying the main LLM
-    topic_changed = False
-    new_topic_name = None
-    
-    # Get recent messages for context
-    recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
-    if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
-        topic_changed, new_topic_name = detect_topic_change_separately(recent_nodes, user_input)
-        
-        if config.get("debug", False) and topic_changed:
-            typer.echo(f"\n🔍 DEBUG: Topic change detected before LLM query")
-            typer.echo(f"   New topic: {new_topic_name}")
-
-    # Query the LLM with context
     try:
-        # Get the context depth
-        depth = default_context_depth
-
-        # Query with context
-        response, cost_info = query_with_context(
-            user_node_id, 
+        # Use the conversation manager to handle the message
+        assistant_node_id, display_response = handle_chat_message(
+            user_input,
             model=default_model,
             system_message=default_system,
-            context_depth=depth
+            context_depth=default_context_depth
         )
-
-        # Update session costs
-        if cost_info:
-            session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
-            session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
-            session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
-            session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
-
-        # Calculate and display semantic drift if enabled
-        if config.get("show_drift", True):
-            _display_semantic_drift(user_node_id)
-
-        # Use the response directly (no need to check for topic change indicators)
-        display_response = response
         
-        # Collect all status messages to display in one block
-        status_messages = []
-
-        # Add cost information if enabled
-        if config.get("show_cost", False) and cost_info:
-            # Calculate context usage
-            current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
-            context_limit = get_model_context_limit(default_model)
-            context_percentage = (current_tokens / context_limit) * 100
-            
-            # Format context percentage with appropriate precision
-            if context_percentage < 1.0:
-                context_display = f"{context_percentage:.1f}%"
-            else:
-                context_display = f"{int(context_percentage)}%"
-            
-            status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
-
-        # Display the response block with proper spacing
-        if status_messages:
-            # Show blank line, then status messages, then LLM response
-            typer.echo("")
-            for msg in status_messages:
-                typer.secho(msg, fg=get_system_color())
-            wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
-        else:
-            # No status messages, just show blank line then LLM response
-            typer.echo("")  # Blank line
-            wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
-
-        # Add the assistant's response to the database with provider and model information
-        provider = get_current_provider()
-        assistant_node_id, assistant_short_id = insert_node(
-            display_response, 
-            user_node_id, 
-            role="assistant",
-            provider=provider,
-            model=default_model
-        )
-
-        # Update the current node to the assistant's response
+        # Update the current node
         current_node_id = assistant_node_id
-        set_head(assistant_node_id)
         
-        # Process topic changes based on our earlier detection
-        if topic_changed and new_topic_name:
-            # End the previous topic if one exists
-            recent_topics = get_recent_topics(limit=1)
-            if recent_topics:
-                previous_topic = recent_topics[0]
-                # Update the previous topic to end at the last assistant message before this user message
-                # Find the parent of the user node (should be the last assistant message)
-                parent_node = get_node(user_node_id).get('parent_id')
-                if parent_node:
-                    update_topic_end_node(previous_topic['name'], previous_topic['start_node_id'], parent_node)
-                    # Queue the old topic for compression
-                    queue_topic_for_compression(previous_topic['start_node_id'], parent_node, previous_topic['name'])
-                    if config.get("debug", False):
-                        typer.echo(f"   📦 Queued topic '{previous_topic['name']}' for compression")
-            
-            # Create the new topic starting from this user message
-            store_topic(new_topic_name, user_node_id, assistant_node_id, 'detected')
-            typer.echo("")
-            typer.secho(f"🔄 Topic changed to: {new_topic_name}", fg=get_system_color())
-        else:
-            # No topic change - extend the current topic if one exists
-            recent_topics = get_recent_topics(limit=1)
-            if recent_topics:
-                current_topic = recent_topics[0]
-                # If no topic change was detected, we're continuing the current topic
-                # Update it to include the new assistant response
-                update_topic_end_node(current_topic['name'], current_topic['start_node_id'], assistant_node_id)
-            else:
-                # No topics exist yet - check if we should create the first topic
-                if should_create_first_topic(user_node_id):
-                    # Get conversation for topic extraction
-                    conversation_chain = get_ancestry(assistant_node_id)
-                    
-                    # Build segment from the entire conversation so far
-                    segment = build_conversation_segment(conversation_chain, max_length=2000)
-                    
-                    if config.get("debug", False):
-                        typer.echo(f"\n🔍 DEBUG: Extracting first topic from conversation:")
-                        typer.echo(f"   Conversation preview: {segment[:200]}...")
-                        typer.echo(f"   Total length: {len(segment)} chars")
-                        typer.echo(f"   Number of nodes: {len(conversation_chain)}")
-                    
-                    topic_name = extract_topic_ollama(segment)
-                    
-                    if topic_name:
-                        # Find the first user node to use as the start of the topic
-                        first_user_node = None
-                        for node in reversed(conversation_chain):
-                            if node.get('role') == 'user':
-                                first_user_node = node
-                        
-                        if first_user_node:
-                            # Store the topic spanning from first user message to current assistant message
-                            store_topic(topic_name, first_user_node['id'], assistant_node_id, 'initial')
-                            typer.echo("")
-                            typer.secho(f"📌 Created first topic: {topic_name}", fg=get_system_color())
-        
-        # Show topic evolution if enabled (after topic detection)
-        if config.get("show_topics", False):
-            _display_topic_evolution(assistant_node_id)
-
     except Exception as e:
         typer.echo(f"Error querying LLM: {str(e)}")
 

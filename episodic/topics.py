@@ -86,11 +86,11 @@ class TopicManager:
             context = "\n".join(context_parts)
             
             # Load topic detection prompt
-            topic_detection_prompt = self.prompt_manager.get_prompt("topic_detection")
+            topic_detection_prompt_content = self.prompt_manager.get("topic_detection")
             
-            if topic_detection_prompt:
+            if topic_detection_prompt_content:
                 # Use the loaded prompt template
-                prompt_template = topic_detection_prompt['content']
+                prompt_template = topic_detection_prompt_content
                 prompt = prompt_template.format(
                     recent_conversation=context,
                     new_message=f"user: {new_message}"

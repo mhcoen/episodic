@@ -1,0 +1,11 @@
+# Test benchmark display functionality
+
+/set benchmark true
+/set benchmark_display true
+/set debug true
+
+# Send a simple message to trigger benchmarking
+Hello, can you help me with Python?
+
+# Check benchmark summary
+/benchmark

@@ -1,0 +1,16 @@
+# Test edge cases for topic extraction
+/init
+/set debug true
+
+# Test 1: Very short messages that might not provide enough context
+Hi
+Ok
+Yes
+
+# Test 2: Add some real content to trigger topic creation
+What is machine learning?
+How does neural networks work?
+Can you explain backpropagation?
+
+# Check results
+/topics

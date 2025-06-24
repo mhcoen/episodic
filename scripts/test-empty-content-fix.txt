@@ -1,0 +1,15 @@
+# Test the empty content fix
+/init
+/set debug true
+
+# Create some test content that might have caused the issue
+# First, let's just send empty messages or whitespace
+   
+     
+# Now some real content to trigger topic creation
+What is Python?
+How does Python work?
+What are Python functions?
+
+# Check if any bad topics were created
+/topics

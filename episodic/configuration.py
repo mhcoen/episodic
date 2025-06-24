@@ -39,12 +39,16 @@ COLOR_SCHEMES = {
     "dark": {
         "llm_response": "BRIGHT_GREEN",      # LLM responses - distinct from white user text
         "system_info": "BRIGHT_CYAN",       # All episodic system information
-        "prompt": "CYAN"                    # Prompt symbol color
+        "prompt": "CYAN",                   # Prompt symbol color
+        "text": "WHITE",                    # General text (labels, etc)
+        "heading": "BRIGHT_WHITE"           # Section headings
     },
     "light": {
         "llm_response": "BLUE",             # LLM responses for light background
         "system_info": "MAGENTA",           # All episodic system information  
-        "prompt": "BLUE"                    # Prompt symbol color
+        "prompt": "BLUE",                   # Prompt symbol color
+        "text": "BLACK",                    # General text (labels, etc)
+        "heading": "BLACK"                  # Section headings (could be BRIGHT_BLACK if needed)
     }
 }
 
@@ -99,6 +103,18 @@ def get_prompt_color():
     """Get the color for the prompt."""
     color_name = get_color_scheme()["prompt"]
     return f"<ansi{color_name.lower()}>\n> </ansi{color_name.lower()}>"
+
+def get_text_color():
+    """Get the color for general text (labels, etc)."""
+    import typer
+    color_name = get_color_scheme()["text"]
+    return getattr(typer.colors, color_name)
+
+def get_heading_color():
+    """Get the color for section headings."""
+    import typer
+    color_name = get_color_scheme()["heading"]
+    return getattr(typer.colors, color_name)
 
 # Cost display formatting
 COST_PRECISION = 6  # Number of decimal places for cost display

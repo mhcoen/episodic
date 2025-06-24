@@ -1,5 +1,6 @@
 import typer
 import shlex
+import shutil
 import os
 import warnings
 import io
@@ -25,7 +26,7 @@ from episodic.llm_config import get_current_provider, get_default_model, get_ava
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
 from episodic.configuration import *
-from episodic.configuration import get_llm_color, get_system_color, get_prompt_color, get_model_context_limit
+from episodic.configuration import get_llm_color, get_system_color, get_prompt_color, get_model_context_limit, get_text_color, get_heading_color
 from litellm import cost_per_token
 from episodic.compression import queue_topic_for_compression, start_auto_compression, compression_manager
 from episodic.topics import (
@@ -252,28 +253,28 @@ def show(node_id: str):
         node = get_node(resolved_id)
         if node:
             # Display node ID with color
-            typer.secho("Node ID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho("Node ID: ", nl=False, fg=get_text_color())
             typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
-            typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(" (UUID: ", nl=False, fg=get_text_color())
             typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
-            typer.secho(")", fg=typer.colors.WHITE)
+            typer.secho(")", fg=get_text_color())
             
             # Display parent with color
             if node['parent_id']:
                 parent = get_node(node['parent_id'])
                 parent_short_id = parent['short_id'] if parent else "Unknown"
-                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("Parent: ", nl=False, fg=get_text_color())
                 typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
-                typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(" (UUID: ", nl=False, fg=get_text_color())
                 typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
-                typer.secho(")", fg=typer.colors.WHITE)
+                typer.secho(")", fg=get_text_color())
             else:
-                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("Parent: ", nl=False, fg=get_text_color())
                 typer.secho("None", fg=get_system_color())
 
             # Display role information with color
             role = node.get('role')
-            typer.secho("Role: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho("Role: ", nl=False, fg=get_text_color())
             typer.secho(f"{format_role_display(role)}", fg=get_system_color())
 
             # Display provider and model information with color
@@ -281,15 +282,15 @@ def show(node_id: str):
             model = node.get('model')
             if provider or model:
                 model_info = f"{provider}/{model}" if provider and model else provider or model
-                typer.secho("Model: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("Model: ", nl=False, fg=get_text_color())
                 typer.secho(f"{model_info}", fg=get_system_color())
 
             # Display message with wrapping and appropriate color based on role
-            typer.secho("Message: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho("Message: ", nl=False, fg=get_text_color())
             role = node.get('role', 'user')
             message_prefix_length = len("Message: ")
             if role == 'user':
-                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=typer.colors.WHITE)
+                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_text_color())
             else:  # assistant/LLM role
                 wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
         else:
@@ -318,28 +319,28 @@ def print_node(node_id: Optional[str] = None):
         node = get_node(node_id)
         if node:
             # Display node ID with color
-            typer.secho("Node ID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho("Node ID: ", nl=False, fg=get_text_color())
             typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
-            typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(" (UUID: ", nl=False, fg=get_text_color())
             typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
-            typer.secho(")", fg=typer.colors.WHITE)
+            typer.secho(")", fg=get_text_color())
             
             # Display parent with color
             if node['parent_id']:
                 parent = get_node(node['parent_id'])
                 parent_short_id = parent['short_id'] if parent else "Unknown"
-                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("Parent: ", nl=False, fg=get_text_color())
                 typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
-                typer.secho(" (UUID: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho(" (UUID: ", nl=False, fg=get_text_color())
                 typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
-                typer.secho(")", fg=typer.colors.WHITE)
+                typer.secho(")", fg=get_text_color())
             else:
-                typer.secho("Parent: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("Parent: ", nl=False, fg=get_text_color())
                 typer.secho("None", fg=get_system_color())
 
             # Display role information with color
             role = node.get('role')
-            typer.secho("Role: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho("Role: ", nl=False, fg=get_text_color())
             typer.secho(f"{format_role_display(role)}", fg=get_system_color())
 
             # Display provider and model information with color
@@ -347,15 +348,15 @@ def print_node(node_id: Optional[str] = None):
             model = node.get('model')
             if provider or model:
                 model_info = f"{provider}/{model}" if provider and model else provider or model
-                typer.secho("Model: ", nl=False, fg=typer.colors.WHITE)
+                typer.secho("Model: ", nl=False, fg=get_text_color())
                 typer.secho(f"{model_info}", fg=get_system_color())
 
             # Display message with wrapping and appropriate color based on role
-            typer.secho("Message: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho("Message: ", nl=False, fg=get_text_color())
             role = node.get('role', 'user')
             message_prefix_length = len("Message: ")
             if role == 'user':
-                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=typer.colors.WHITE)
+                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_text_color())
             else:  # assistant/LLM role
                 wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
         else:
@@ -487,11 +488,11 @@ def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Nu
             
             # Display prefix in system color
             typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
-            typer.secho(f": ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f": ", nl=False, fg=get_text_color())
             
             # Display content with wrapping that accounts for prefix length
             if role == 'user':
-                wrapped_text_print_with_indent(limited_content, prefix_length, fg=typer.colors.WHITE)
+                wrapped_text_print_with_indent(limited_content, prefix_length, fg=get_text_color())
             else:  # assistant/LLM role
                 wrapped_text_print_with_indent(limited_content, prefix_length, fg=get_llm_color())
     except Exception as e:
@@ -503,13 +504,13 @@ def cost():
     global session_costs
     
     typer.echo("Session Cost Summary:")
-    typer.secho(f"  Input tokens: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"  Input tokens: ", nl=False, fg=get_text_color())
     typer.secho(f"{session_costs['total_input_tokens']}", fg=get_system_color())
-    typer.secho(f"  Output tokens: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"  Output tokens: ", nl=False, fg=get_text_color())
     typer.secho(f"{session_costs['total_output_tokens']}", fg=get_system_color())
-    typer.secho(f"  Total tokens: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"  Total tokens: ", nl=False, fg=get_text_color())
     typer.secho(f"{session_costs['total_tokens']}", fg=get_system_color())
-    typer.secho(f"  Total cost: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f"  Total cost: ", nl=False, fg=get_text_color())
     typer.secho(f"${session_costs['total_cost_usd']:.{COST_PRECISION}f} USD", fg=get_system_color())
 
 @app.command()
@@ -520,11 +521,11 @@ def handle_model(name: Optional[str] = None):
     # Get the current model first
     if name is None:
         current_model = default_model
-        typer.secho(f"Current model: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"Current model: ", nl=False, fg=get_text_color())
         typer.secho(f"{current_model}", nl=False, fg=get_system_color())
-        typer.secho(f" (Provider: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
         typer.secho(f"{get_current_provider()}", nl=False, fg=get_system_color())
-        typer.secho(")", fg=typer.colors.WHITE)
+        typer.secho(")", fg=get_text_color())
 
         # Get provider models using our own configuration
         from episodic.llm_config import get_available_providers, get_provider_models
@@ -575,11 +576,11 @@ def handle_model(name: Optional[str] = None):
                             else:
                                 pricing = "Pricing not available"
 
-                        typer.secho(f"  ", nl=False, fg=typer.colors.WHITE)
+                        typer.secho(f"  ", nl=False, fg=get_text_color())
                         typer.secho(f"{current_idx:2d}", nl=False, fg=get_system_color())
-                        typer.secho(f". ", nl=False, fg=typer.colors.WHITE)
+                        typer.secho(f". ", nl=False, fg=get_text_color())
                         typer.secho(f"{model_name:20s}", nl=False, fg=get_system_color())
-                        typer.secho(f"\t({pricing})", fg=typer.colors.WHITE)
+                        typer.secho(f"\t({pricing})", fg=get_text_color())
                         current_idx += 1
 
         except Exception as e:
@@ -653,7 +654,7 @@ def ancestry(node_id: str):
         for ancestor in ancestry:
             # Display ancestor with colors and wrapping (shorter prefix for readability)
             typer.secho(f"{ancestor['short_id']}", nl=False, fg=get_system_color())
-            typer.secho(": ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(": ", nl=False, fg=get_text_color())
             
             # Use shorter prefix for better readability
             prefix_length = len(f"{ancestor['short_id']}: ")
@@ -661,7 +662,7 @@ def ancestry(node_id: str):
             # Display content with role-based coloring and wrapping
             role = ancestor.get('role', 'user')
             if role == 'user':
-                wrapped_text_print_with_indent(ancestor['content'], prefix_length, fg=typer.colors.WHITE)
+                wrapped_text_print_with_indent(ancestor['content'], prefix_length, fg=get_text_color())
             else:  # assistant/LLM role
                 wrapped_text_print_with_indent(ancestor['content'], prefix_length, fg=get_llm_color())
     except ValueError as e:
@@ -741,23 +742,57 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
 
     # If no parameter is provided, show all parameters and their current values
     if not param:
-        typer.echo("Current parameters:")
-        typer.echo(f"  cost: {config.get('show_cost', False)}")
-        typer.echo(f"  drift: {config.get('show_drift', True)}")
-        typer.echo(f"  depth: {default_context_depth}")
-        typer.echo(f"  semdepth: {default_semdepth}")
-        typer.echo(f"  debug: {config.get('debug', False)}")
-        typer.echo(f"  cache: {config.get('use_context_cache', True)}")
-        typer.echo(f"  topics: {config.get('show_topics', False)}")
-        typer.echo(f"  color: {config.get('color_mode', DEFAULT_COLOR_MODE)}")
-        typer.echo(f"  wrap: {config.get('text_wrap', True)}")
-        typer.echo(f"  auto_compress_topics: {config.get('auto_compress_topics', True)}")
-        typer.echo(f"  show_compression_notifications: {config.get('show_compression_notifications', True)}")
-        typer.echo(f"  compression_min_nodes: {config.get('compression_min_nodes', 10)}")
-        typer.echo(f"  compression_model: {config.get('compression_model', 'ollama/llama3')}")
-        typer.echo(f"  topic_detection_model: {config.get('topic_detection_model', 'ollama/llama3')}")
-        typer.echo(f"  benchmark: {config.get('benchmark', False)}")
-        typer.echo(f"  benchmark_display: {config.get('benchmark_display', False)}")
+        typer.secho("Current parameters:", fg=get_heading_color(), bold=True)
+        
+        # Core conversation settings
+        typer.secho("\nConversation:", fg=get_heading_color())
+        typer.secho("  depth: ", nl=False, fg=get_text_color())
+        typer.secho(f"{default_context_depth}", fg=get_system_color())
+        typer.secho("  cache: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('use_context_cache', True)}", fg=get_system_color())
+        
+        # Display settings
+        typer.secho("\nDisplay:", fg=get_heading_color())
+        typer.secho("  color: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
+        typer.secho("  wrap: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('text_wrap', True)}", fg=get_system_color())
+        typer.secho("  cost: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
+        typer.secho("  topics: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('show_topics', False)}", fg=get_system_color())
+        
+        # Analysis features
+        typer.secho("\nAnalysis:", fg=get_heading_color())
+        typer.secho("  drift: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('show_drift', True)}", fg=get_system_color())
+        typer.secho("  semdepth: ", nl=False, fg=get_text_color())
+        typer.secho(f"{default_semdepth}", fg=get_system_color())
+        
+        # Topic detection & compression
+        typer.secho("\nTopic Management:", fg=get_heading_color())
+        typer.secho("  topic_detection_model: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
+        typer.secho("  auto_compress_topics: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('auto_compress_topics', True)}", fg=get_system_color())
+        typer.secho("  compression_model: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('compression_model', 'ollama/llama3')}", fg=get_system_color())
+        typer.secho("  compression_min_nodes: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('compression_min_nodes', 10)}", fg=get_system_color())
+        typer.secho("  show_compression_notifications: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('show_compression_notifications', True)}", fg=get_system_color())
+        
+        # Performance monitoring
+        typer.secho("\nPerformance:", fg=get_heading_color())
+        typer.secho("  benchmark: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('benchmark', False)}", fg=get_system_color())
+        typer.secho("  benchmark_display: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('benchmark_display', False)}", fg=get_system_color())
+        
+        # Debug
+        typer.secho("\nDebugging:", fg=get_heading_color())
+        typer.secho("  debug: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('debug', False)}", fg=get_system_color())
         return
 
     # Handle the 'cost' parameter
@@ -968,7 +1003,19 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model, benchmark, benchmark_display")
+        typer.secho("Available parameters:", fg=get_text_color())
+        typer.secho("  Conversation: ", nl=False, fg=get_heading_color())
+        typer.secho("depth, cache", fg=get_system_color())
+        typer.secho("  Display: ", nl=False, fg=get_heading_color())
+        typer.secho("color, wrap, cost, topics", fg=get_system_color())
+        typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
+        typer.secho("drift, semdepth", fg=get_system_color())
+        typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
+        typer.secho("topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications", fg=get_system_color())
+        typer.secho("  Performance: ", nl=False, fg=get_heading_color())
+        typer.secho("benchmark, benchmark_display", fg=get_system_color())
+        typer.secho("  Debugging: ", nl=False, fg=get_heading_color())
+        typer.secho("debug", fg=get_system_color())
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1126,20 +1173,20 @@ def topics(
             # Show topic info with proper alignment
             typer.secho(f"{i:>{number_width}}. ", nl=False, fg=get_system_color())
             typer.secho(f"{topic['name']:<25}", nl=False, fg=get_llm_color())
-            typer.secho(f" (", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f" (", nl=False, fg=get_text_color())
             typer.secho(f"{confidence}", nl=False, fg=get_system_color())
-            typer.secho(f" confidence, ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f" confidence, ", nl=False, fg=get_text_color())
             typer.secho(f"{node_count}", nl=False, fg=get_system_color())
-            typer.secho(f" nodes)", fg=typer.colors.WHITE)
+            typer.secho(f" nodes)", fg=get_text_color())
             
             # Indent the range and created lines to align with topic name
             indent = " " * (number_width + 2)  # Account for number + ". "
-            typer.secho(f"{indent}Range: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{indent}Range: ", nl=False, fg=get_text_color())
             typer.secho(f"{topic['start_short_id']}", nl=False, fg=get_system_color())
-            typer.secho(f" → ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f" → ", nl=False, fg=get_text_color())
             typer.secho(f"{topic['end_short_id']}", fg=get_system_color())
             
-            typer.secho(f"{indent}Created: ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{indent}Created: ", nl=False, fg=get_text_color())
             typer.secho(f"{topic['created_at']}", fg=get_system_color())
             
             if i < len(topic_list):  # Don't add extra line after last item
@@ -1545,40 +1592,68 @@ def benchmark():
 
 def help():
     """Show available commands."""
-    typer.secho("\n═══ BASIC COMMANDS ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
-    typer.echo("  /help                - Show this help message")
-    typer.echo("  /last [N]            - List recent nodes (default: 5)")
-    typer.echo("  /model               - Show or change the current model")
-    typer.echo("  /head [node_id]      - Show current node or change to specified node")
+    cmd_color = get_system_color()
+    desc_color = get_text_color()
     
-    typer.secho("\n═══ CONVERSATION MANAGEMENT ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
-    typer.echo("  /add <content>       - Add a new node with the given content")
-    typer.echo("  /show <node_id>      - Show details of a specific node")
-    typer.echo("  /print [node_id]     - Print node info (defaults to current node)")
-    typer.echo("  /ancestry <node_id>  - Trace the ancestry of a node")
-    typer.echo("  /visualize           - Visualize the conversation DAG")
+    typer.secho("\n═══ BASIC COMMANDS ═══", fg=get_heading_color(), bold=True)
+    typer.secho("  /help", fg=cmd_color, bold=True, nl=False)
+    typer.secho("                - Show this help message", fg=desc_color)
+    typer.secho("  /last [N]", fg=cmd_color, bold=True, nl=False)
+    typer.secho("            - List recent nodes (default: 5)", fg=desc_color)
+    typer.secho("  /model", fg=cmd_color, bold=True, nl=False)
+    typer.secho("               - Show or change the current model", fg=desc_color)
+    typer.secho("  /head [node_id]", fg=cmd_color, bold=True, nl=False)
+    typer.secho("      - Show current node or change to specified node", fg=desc_color)
     
-    typer.secho("\n═══ TOPICS & ORGANIZATION ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
-    typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
-    typer.echo("  /compress [node_id]  - Compress conversation branch into summary")
-    typer.echo("  /compress-current-topic - Manually compress the current topic")
-    typer.echo("  /compression-queue   - Show pending auto-compression jobs")
-    typer.echo("  /compression-stats   - Show compression statistics")
+    typer.secho("\n═══ CONVERSATION MANAGEMENT ═══", fg=get_heading_color(), bold=True)
+    typer.secho("  /add <content>", fg=cmd_color, bold=True, nl=False)
+    typer.secho("       - Add a new node with the given content", fg=desc_color)
+    typer.secho("  /show <node_id>", fg=cmd_color, bold=True, nl=False)
+    typer.secho("      - Show details of a specific node", fg=desc_color)
+    typer.secho("  /print [node_id]", fg=cmd_color, bold=True, nl=False)
+    typer.secho("     - Print node info (defaults to current node)", fg=desc_color)
+    typer.secho("  /ancestry <node_id>", fg=cmd_color, bold=True, nl=False)
+    typer.secho("  - Trace the ancestry of a node", fg=desc_color)
+    typer.secho("  /visualize", fg=cmd_color, bold=True, nl=False)
+    typer.secho("           - Visualize the conversation DAG", fg=desc_color)
     
-    typer.secho("\n═══ CONFIGURATION & SETTINGS ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
-    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model, benchmark, benchmark_display)")
-    typer.echo("  /prompts             - Manage system prompts")
-    typer.echo("  /verify              - Verify the current model with a test prompt")
+    typer.secho("\n═══ TOPICS & ORGANIZATION ═══", fg=get_heading_color(), bold=True)
+    typer.secho("  /topics [N] [--all]", fg=cmd_color, bold=True, nl=False)
+    typer.secho("  - Show recent conversation topics (default: 10)", fg=desc_color)
+    typer.secho("  /compress [node_id]", fg=cmd_color, bold=True, nl=False)
+    typer.secho("  - Compress conversation branch into summary", fg=desc_color)
+    typer.secho("  /compress-current-topic", fg=cmd_color, bold=True, nl=False)
+    typer.secho(" - Manually compress the current topic", fg=desc_color)
+    typer.secho("  /compression-queue", fg=cmd_color, bold=True, nl=False)
+    typer.secho("   - Show pending auto-compression jobs", fg=desc_color)
+    typer.secho("  /compression-stats", fg=cmd_color, bold=True, nl=False)
+    typer.secho("   - Show compression statistics", fg=desc_color)
     
-    typer.secho("\n═══ ADVANCED & DIAGNOSTIC ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
-    typer.echo("  /init [--erase]      - Initialize the database (--erase to erase existing)")
-    typer.echo("  /script <filename>   - Run scripted conversation from text file")
-    typer.echo("  /benchmark           - Show performance benchmark statistics")
+    typer.secho("\n═══ CONFIGURATION & SETTINGS ═══", fg=get_heading_color(), bold=True)
+    typer.secho("  /set [param] [value]", fg=cmd_color, bold=True, nl=False)
+    typer.secho(" - Configure parameters (see /set for full list)", fg=desc_color)
+    typer.secho("  /prompts", fg=cmd_color, bold=True, nl=False)
+    typer.secho("             - Manage system prompts", fg=desc_color)
+    typer.secho("  /verify", fg=cmd_color, bold=True, nl=False)
+    typer.secho("              - Verify the current model with a test prompt", fg=desc_color)
     
-    typer.secho("\n═══ EXIT ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
-    typer.echo("  /exit, /quit         - Exit the application")
+    typer.secho("\n═══ ADVANCED & DIAGNOSTIC ═══", fg=get_heading_color(), bold=True)
+    typer.secho("  /init [--erase]", fg=cmd_color, bold=True, nl=False)
+    typer.secho("      - Initialize the database (--erase to erase existing)", fg=desc_color)
+    typer.secho("  /script <filename>", fg=cmd_color, bold=True, nl=False)
+    typer.secho("   - Run scripted conversation from text file", fg=desc_color)
+    typer.secho("  /benchmark", fg=cmd_color, bold=True, nl=False)
+    typer.secho("           - Show performance benchmark statistics", fg=desc_color)
+    
+    typer.secho("\n═══ EXIT ═══", fg=get_heading_color(), bold=True)
+    typer.secho("  /exit", fg=cmd_color, bold=True, nl=False)
+    typer.secho(", ", fg=desc_color, nl=False)
+    typer.secho("/quit", fg=cmd_color, bold=True, nl=False)
+    typer.secho("         - Exit the application", fg=desc_color)
 
-    typer.echo("\nType a message without a leading / to chat with the LLM.")
+    typer.secho("\nType a message without a leading ", fg=desc_color, nl=False)
+    typer.secho("/", fg=cmd_color, bold=True, nl=False)
+    typer.secho(" to chat with the LLM.", fg=desc_color)
 
 # Main talk loop
 def display_session_summary() -> None:
@@ -1586,16 +1661,16 @@ def display_session_summary() -> None:
     session_costs = get_session_costs()
     if session_costs["total_tokens"] > 0:
         typer.echo("Session Summary:")
-        typer.secho(f"Total input tokens: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"Total input tokens: ", nl=False, fg=get_text_color())
         typer.secho(f"{session_costs['total_input_tokens']}", fg=get_system_color())
-        typer.secho(f"Total output tokens: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"Total output tokens: ", nl=False, fg=get_text_color())
         typer.secho(f"{session_costs['total_output_tokens']}", fg=get_system_color())
-        typer.secho(f"Total tokens: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"Total tokens: ", nl=False, fg=get_text_color())
         typer.secho(f"{session_costs['total_tokens']}", fg=get_system_color())
-        typer.secho(f"Total cost: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"Total cost: ", nl=False, fg=get_text_color())
         typer.secho(f"${session_costs['total_cost_usd']:.{COST_PRECISION}f} USD", fg=get_system_color())
     else:
-        typer.secho(f"Total cost: ", nl=False, fg=typer.colors.WHITE)
+        typer.secho(f"Total cost: ", nl=False, fg=get_text_color())
         typer.secho(f"${0: .{ZERO_COST_PRECISION}f} USD", fg=get_system_color())
     
     # Display benchmark summary if enabled
@@ -1683,17 +1758,18 @@ def _initialize_model() -> None:
     # Get the current provider and model after initialization
     provider = get_current_provider()
     current_model_name = get_default_model()
-    typer.secho(f"Current model: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho("Current model: ", nl=False, fg=get_text_color())
     typer.secho(f"{current_model_name}", nl=False, fg=get_system_color())
-    typer.secho(f" (Provider: ", nl=False, fg=typer.colors.WHITE)
+    typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
     typer.secho(f"{provider}", nl=False, fg=get_system_color())
-    typer.secho(")", fg=typer.colors.WHITE)
+    typer.secho(")", fg=get_text_color())
 
 def _print_welcome_message() -> None:
     """Print the welcome message for talk mode."""
     typer.echo("Welcome to Episodic. You are now in talk mode.")
     typer.echo("Type a message to chat with the LLM, or use / to access commands.")
-    typer.echo("Examples: '/help', '/init', '/add Hello', '/exit'")
+    typer.echo("For available commands, type ", nl=False)
+    typer.secho("/help", fg=get_system_color())
 
 def _handle_command(command_text: str) -> bool:
     """Handle a command input. 

@@ -1,0 +1,16 @@
+# Test topic creation with debug enabled
+/set debug true
+
+# Start with some Python questions
+What is a Python list?
+How do I append to a list?
+What's the difference between append and extend?
+
+# This should trigger our first topic creation after a few messages
+
+# Now switch to a completely different domain to trigger topic change
+What's the weather like today?
+Can you recommend a good restaurant?
+
+# Check what topics were created
+/topics

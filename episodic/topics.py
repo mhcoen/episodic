@@ -68,20 +68,22 @@ class TopicManager:
                         current_topic['end_node_id']
                     )
                 
-                # Skip topic detection if current topic has fewer than 6 messages (3 exchanges)
-                min_messages_before_change = config.get('min_messages_before_topic_change', 6)
+                # Skip topic detection if current topic has fewer than 8 messages (4 exchanges)
+                min_messages_before_change = config.get('min_messages_before_topic_change', 8)
                 if messages_in_topic < min_messages_before_change:
                     if config.get("debug", False):
                         typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {messages_in_topic} messages (min: {min_messages_before_change})")
                     return False, None, None
-            # Build context from recent messages
+            # Build context from recent messages - use fewer for clearer topic detection
             context_parts = []
-            for msg in recent_messages[-6:]:  # Last 3 exchanges (6 messages)
+            # Take the last 4 messages and reverse to get chronological order
+            messages_for_context = list(reversed(recent_messages[-4:]))
+            for msg in messages_for_context:
                 role = msg.get('role', 'unknown')
                 content = msg.get('content', '').strip()
                 if content:
                     # Truncate long messages for context
-                    truncated = content[:200] + '...' if len(content) > 200 else content
+                    truncated = content[:150] + '...' if len(content) > 150 else content
                     context_parts.append(f"{role}: {truncated}")
             
             context = "\n".join(context_parts)
@@ -96,6 +98,10 @@ class TopicManager:
                     recent_conversation=context,
                     new_message=f"user: {new_message}"
                 )
+                
+                if config.get("debug", False):
+                    typer.echo(f"   Context preview: {context[:200]}...")
+                    typer.echo(f"   Prompt length: {len(prompt)} chars")
             else:
                 # Fallback to default prompt if file not found
                 prompt = f"""Analyze if there is a MAJOR topic change in this conversation.
@@ -213,17 +219,34 @@ Topic:"""
             with benchmark_resource("LLM Call", f"topic extraction - {topic_model}"):
                 response, cost_info = query_llm(prompt, model=topic_model)
             
+            if config.get("debug", False):
+                typer.echo(f"   Raw LLM response: '{response}'")
+            
             if response:
                 # Clean and normalize the response
                 topic = response.strip().lower()
+                if config.get("debug", False):
+                    typer.echo(f"   After lowercase: '{topic}'")
                 # Remove quotes if present
                 topic = topic.strip('"\'')
+                if config.get("debug", False):
+                    typer.echo(f"   After quote removal: '{topic}'")
                 # Replace spaces with hyphens
                 topic = topic.replace(' ', '-')
+                if config.get("debug", False):
+                    typer.echo(f"   After space replacement: '{topic}'")
                 # Remove any extra characters, keep only letters, numbers, hyphens
                 topic = re.sub(r'[^a-z0-9-]', '', topic)
+                if config.get("debug", False):
+                    typer.echo(f"   After regex cleanup: '{topic}'")
                 
-                return (topic if topic else None), cost_info
+                # Return cleaned topic or None if empty
+                if topic and topic != "no-topic":
+                    return topic, cost_info
+                else:
+                    if config.get("debug", False):
+                        typer.echo(f"⚠️  Topic extraction returned empty or 'no-topic': '{response}'")
+                    return None, cost_info
                 
         except Exception as e:
             if config.get("debug", False):
@@ -284,18 +307,39 @@ Topic:"""
         segment_parts = []
         current_length = 0
         
+        if config.get("debug", False):
+            typer.echo(f"   Building segment from {len(nodes)} nodes (max_length={max_length})")
+        
         for node in reversed(nodes):  # Start from most recent
             content = node.get("content", "").strip()
             role = node.get("role", "unknown")
             
             if content:
                 part = f"{role}: {content}"
-                if current_length + len(part) > max_length:
+                # If this is the first part and it's too long, truncate it
+                if not segment_parts and len(part) > max_length:
+                    part = part[:max_length-3] + "..."
+                    segment_parts.insert(0, part)
+                    current_length = len(part)
+                    if config.get("debug", False):
+                        typer.echo(f"   Truncated first part to fit max_length")
                     break
-                segment_parts.insert(0, part)  # Insert at beginning to maintain order
-                current_length += len(part)
+                elif current_length + len(part) <= max_length:
+                    segment_parts.insert(0, part)  # Insert at beginning to maintain order
+                    current_length += len(part)
+                else:
+                    if config.get("debug", False):
+                        typer.echo(f"   Stopping - would exceed max_length")
+                    break
+            else:
+                if config.get("debug", False):
+                    typer.echo(f"   Skipping node with empty content (role={role})")
         
-        return "\n".join(segment_parts)
+        result = "\n".join(segment_parts)
+        if config.get("debug", False):
+            typer.echo(f"   Final segment length: {len(result)} chars")
+        
+        return result
     
     def is_node_in_topic_range(
         self, 
@@ -344,6 +388,16 @@ Topic:"""
         # Get ancestry of the end node
         topic_ancestry = get_ancestry(topic_end_id)
         
+        # Debug: Check if start_id exists in ancestry
+        ancestry_ids = [node['id'] for node in topic_ancestry]
+        if config.get("debug", False) and topic_start_id not in ancestry_ids:
+            typer.echo(f"\n🔍 DEBUG: Topic boundary issue detected!")
+            typer.echo(f"   Start node {topic_start_id} not found in ancestry of end node {topic_end_id}")
+            typer.echo(f"   Ancestry chain has {len(topic_ancestry)} nodes")
+            if len(topic_ancestry) > 0:
+                typer.echo(f"   First in chain: {topic_ancestry[-1]['short_id']} ({topic_ancestry[-1]['id']})")
+                typer.echo(f"   Last in chain: {topic_ancestry[0]['short_id']} ({topic_ancestry[0]['id']})")
+        
         # Count nodes from start to end
         count = 0
         found_start = False
@@ -354,6 +408,11 @@ Topic:"""
                 count += 1
             if node['id'] == topic_end_id:
                 break
+        
+        # If we didn't find the start node, it might be due to branching
+        # In this case, return at least 2 (start and end nodes exist)
+        if not found_start and count == 0:
+            return 2  # Minimum topic size
         
         return count
     

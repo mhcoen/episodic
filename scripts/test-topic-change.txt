@@ -1,0 +1,12 @@
+# Test topic change detection
+/init
+/set debug true
+
+# Start with Python
+What is Python?
+
+# Now dramatically change topic
+What's the weather like in Paris?
+
+# Check what happened
+/topics

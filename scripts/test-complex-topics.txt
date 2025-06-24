@@ -1,0 +1,59 @@
+# Complex Multi-Topic Conversation Test
+# Tests topic detection across various subject transitions
+
+# Start with programming
+What is a Python list comprehension?
+
+# Continue programming (should stay in same topic)
+How do I handle exceptions in Python?
+
+# Continue programming (should stay in same topic)
+What's the difference between async and sync functions?
+
+# Switch to cooking (should create new topic)
+What temperature should I bake a chicken at?
+
+# Continue cooking (should stay in same topic)
+How long does it take to cook pasta?
+
+# Switch to space (should create new topic)
+How far is Mars from Earth?
+
+# Continue space (should stay in same topic)
+What is the largest planet in our solar system?
+
+# Switch to history (should create new topic)
+When did World War II end?
+
+# Continue history (should stay in same topic)
+Who was the first president of the United States?
+
+# Switch back to programming (should create new topic)
+How do I install numpy in Python?
+
+# Continue programming (should stay in same topic)
+What is a decorator in Python?
+
+# Switch to movies (should create new topic)
+Who directed The Godfather?
+
+# Continue movies (should stay in same topic)
+What year was Star Wars released?
+
+# Switch to geography (should create new topic)
+What is the capital of France?
+
+# Continue geography (should stay in same topic)
+Which country has the largest population?
+
+# Quick topic changes to test sensitivity
+What is 2+2?
+What's the weather like?
+How do I make coffee?
+What is gravity?
+
+# Return to a previous topic (programming)
+How do I use list slicing in Python?
+
+# End with a new topic (sports)
+Who won the last World Cup?

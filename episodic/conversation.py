@@ -37,7 +37,7 @@ from episodic.topics import (
     should_create_first_topic, build_conversation_segment,
     _display_topic_evolution
 )
-from episodic.benchmark import benchmark_operation, benchmark_resource
+from episodic.benchmark import benchmark_operation, benchmark_resource, display_pending_benchmark
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -275,6 +275,10 @@ class ConversationManager:
         Processes the message through the LLM and updates the conversation DAG.
         """
         with benchmark_operation("Message Processing"):
+            # Get recent messages for context BEFORE adding the new message
+            with benchmark_resource("Database", "get recent nodes"):
+                recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
+            
             # Add the user message to the database
             with benchmark_resource("Database", "insert user node"):
                 user_node_id, user_short_id = insert_node(user_input, self.current_node_id, role="user")
@@ -283,10 +287,6 @@ class ConversationManager:
             topic_changed = False
             new_topic_name = None
             topic_cost_info = None
-            
-            # Get recent messages for context
-            with benchmark_resource("Database", "get recent nodes"):
-                recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
             
             if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
                 with benchmark_operation("Topic Detection"):
@@ -299,11 +299,10 @@ class ConversationManager:
                 self.session_costs["total_tokens"] += topic_cost_info.get("total_tokens", 0)
                 self.session_costs["total_cost_usd"] += topic_cost_info.get("cost_usd", 0.0)
             
+            # Store debug info to display later
+            debug_topic_info = None
             if config.get("debug", False) and topic_changed:
-                typer.echo(f"\n🔍 DEBUG: Topic change detected before LLM query")
-                typer.echo(f"   New topic: {new_topic_name}")
-                if topic_cost_info:
-                    typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
+                debug_topic_info = (new_topic_name, topic_cost_info)
 
             # Query the LLM with context
             try:
@@ -326,6 +325,14 @@ class ConversationManager:
                 # Calculate and display semantic drift if enabled
                 if config.get("show_drift", True):
                     self.display_semantic_drift(user_node_id)
+                
+                # Display debug topic info if it was stored
+                if debug_topic_info:
+                    new_topic_name, topic_cost_info = debug_topic_info
+                    typer.echo(f"\n🔍 DEBUG: Topic change detected")
+                    typer.echo(f"   New topic: {new_topic_name}")
+                    if topic_cost_info:
+                        typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
 
                 # Use the response directly
                 display_response = response
@@ -419,7 +426,14 @@ class ConversationManager:
                                 typer.echo(f"   Total length: {len(segment)} chars")
                                 typer.echo(f"   Number of nodes: {len(conversation_chain)}")
                             
-                            topic_name, extract_cost_info = extract_topic_ollama(segment)
+                            # Only extract topic if we have actual content
+                            if segment and segment.strip():
+                                topic_name, extract_cost_info = extract_topic_ollama(segment)
+                            else:
+                                topic_name = None
+                                extract_cost_info = None
+                                if config.get("debug", False):
+                                    typer.echo("   ⚠️  No conversation content found for topic extraction")
                             
                             # Add extraction costs to session
                             if extract_cost_info:
@@ -427,6 +441,12 @@ class ConversationManager:
                                 self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
                                 self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
                                 self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
+                            
+                            # Use a generic fallback if extraction failed
+                            if not topic_name:
+                                topic_name = "conversation"
+                                if config.get("debug", False):
+                                    typer.echo("   Using fallback topic name: 'conversation'")
                             
                             if topic_name:
                                 # Find the first user node to use as the start of the topic
@@ -448,6 +468,9 @@ class ConversationManager:
                 return assistant_node_id, display_response
 
             except Exception as e:
+                # Clear any pending benchmarks on error to avoid accumulation
+                from episodic.benchmark import benchmark_manager
+                benchmark_manager.pending_displays.clear()
                 typer.echo(f"Error: {e}")
                 raise
 
@@ -464,7 +487,10 @@ def handle_chat_message(
     context_depth: int = DEFAULT_CONTEXT_DEPTH
 ) -> Tuple[str, str]:
     """See ConversationManager.handle_chat_message for documentation."""
-    return conversation_manager.handle_chat_message(user_input, model, system_message, context_depth)
+    result = conversation_manager.handle_chat_message(user_input, model, system_message, context_depth)
+    # Display any pending benchmarks after the entire message processing is complete
+    display_pending_benchmark()
+    return result
 
 
 def get_session_costs() -> Dict[str, Any]:

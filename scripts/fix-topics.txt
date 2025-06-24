@@ -1,0 +1,17 @@
+# Fix the topics by clearing and recreating
+/init
+/set debug false
+/set benchmark_display false
+
+# Now test with fresh topics
+What is a Python list?
+How do I use list comprehensions?
+What are Python decorators?
+
+# This should create the first topic
+
+# Now completely change domain
+What's your favorite movie?
+Can you recommend a good book to read?
+
+/topics

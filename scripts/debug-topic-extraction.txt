@@ -1,0 +1,10 @@
+# Debug topic extraction
+/init
+/set debug true
+
+# Create a few messages about Python
+What is a Python list?
+How do I sort a list?
+What are list methods?
+
+# This should trigger first topic creation - watch the LLM response

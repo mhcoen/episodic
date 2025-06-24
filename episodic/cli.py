@@ -5,6 +5,7 @@ import warnings
 import io
 import textwrap
 import shutil
+import logging
 from typing import Optional, List, Dict, Any
 
 # Disable tokenizer parallelism to avoid warnings in CLI context
@@ -19,7 +20,7 @@ from episodic.db import (
     insert_node, get_node, get_ancestry, initialize_db, 
     resolve_node_ref, get_head, set_head, database_exists,
     get_recent_nodes, store_topic, get_recent_topics,
-    store_compression, get_compression_stats
+    store_compression, get_compression_stats, update_topic_end_node
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.llm_config import get_current_provider, get_default_model, get_available_providers
@@ -30,6 +31,9 @@ from episodic.configuration import get_llm_color, get_system_color, get_prompt_c
 from episodic.ml import ConversationalDrift
 from litellm import cost_per_token
 from episodic.compression import queue_topic_for_compression, start_auto_compression, compression_manager
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Create a Typer app for command handling
 app = typer.Typer(add_completion=False)
@@ -335,13 +339,50 @@ def build_conversation_segment(nodes: List[Dict[str, Any]], max_length: int = 50
     
     return "\n".join(segment_parts)
 
-def detect_and_extract_topic_from_response(response: str, current_node_id: str) -> Optional[str]:
+def should_create_first_topic(user_node_id: str) -> bool:
+    """
+    Check if we should proactively create the first topic.
+    
+    Returns True if:
+    - No topics exist yet
+    - We have at least 3-4 message exchanges (6-8 nodes total)
+    
+    Args:
+        user_node_id: ID of the current user node
+        
+    Returns:
+        True if we should create the first topic, False otherwise
+    """
+    # Check if any topics exist
+    existing_topics = get_recent_topics(limit=1)
+    if existing_topics:
+        return False  # Topics already exist
+    
+    # Count the conversation depth
+    try:
+        # Get the full conversation chain to count exchanges
+        conversation_chain = get_ancestry(user_node_id)
+        
+        # Count user messages (each user message represents an exchange)
+        user_message_count = sum(1 for node in conversation_chain if node.get('role') == 'user')
+        
+        # We want at least 3 user messages (3 exchanges) before creating first topic
+        # This can be configured via the 'first_topic_threshold' config option
+        threshold = config.get('first_topic_threshold', 3)
+        return user_message_count >= threshold
+        
+    except Exception as e:
+        logger.warning(f"Error checking conversation depth for first topic: {e}")
+        return False
+
+def detect_and_extract_topic_from_response(response: str, user_node_id: str, assistant_node_id: str) -> Optional[str]:
     """
     Detect topic changes from LLM response and extract topic if change detected.
     
     Args:
         response: The LLM's response text
-        current_node_id: ID of the current conversation node
+        user_node_id: ID of the user's question node that triggered this response
+        assistant_node_id: ID of the assistant's response node
         
     Returns:
         Confidence level if topic change detected, None otherwise
@@ -355,49 +396,159 @@ def detect_and_extract_topic_from_response(response: str, current_node_id: str) 
         # Extract confidence level
         confidence = first_line.split('-')[1] if '-' in first_line else 'unknown'
         
-        # Get recent conversation for topic extraction
-        conversation_chain = get_ancestry(current_node_id)
+        # Get full conversation history
+        conversation_chain = get_ancestry(assistant_node_id)
         
-        # Build conversation segment for topic extraction (last 5-10 exchanges)
-        recent_nodes = conversation_chain[-10:] if len(conversation_chain) > 10 else conversation_chain
-        conversation_segment = build_conversation_segment(recent_nodes)
-        
-        if conversation_segment:
-            # Extract topic name
-            topic_name = extract_topic_ollama(conversation_segment)
+        if conversation_chain:
+            # Find previous topics to determine boundaries
+            previous_topics = get_recent_topics(limit=1)
             
-            if topic_name:
-                # Find the start of this topic (for now, use the previous topic end or conversation start)
-                # This is simplified - we could make it more sophisticated later
-                previous_topics = get_recent_topics(limit=1)
-                if previous_topics:
-                    start_node_id = previous_topics[0]['end_node_id'] 
-                else:
-                    # First topic - start from beginning of current conversation segment
-                    start_node_id = recent_nodes[0]['id'] if recent_nodes else current_node_id
+            if previous_topics:
+                # We have a previous topic - update its end boundary and create new topic
+                prev_topic = previous_topics[0]
                 
-                # Store the topic
-                store_topic(topic_name, start_node_id, current_node_id, confidence)
+                # Find the parent of the topic-changing user node (last node of previous topic)
+                user_node = get_node(user_node_id)
+                if user_node and user_node.get('parent_id'):
+                    # Update the previous topic to end at the node before the topic change
+                    update_topic_end_node(prev_topic['name'], prev_topic['start_node_id'], user_node.get('parent_id'))
+                    
+                    # Queue previous topic for compression if auto-compression is enabled
+                    if config.get('auto_compress_topics', True):
+                        queue_topic_for_compression(
+                            prev_topic['start_node_id'],
+                            user_node.get('parent_id'),
+                            prev_topic['name']
+                        )
                 
-                # Queue previous topic for compression if auto-compression is enabled
-                if previous_topics and config.get('auto_compress_topics', True):
-                    prev_topic = previous_topics[0]
-                    queue_topic_for_compression(
-                        prev_topic['start_node_id'],
-                        prev_topic['end_node_id'],
-                        prev_topic['topic_name']
-                    )
+                # Extract topic name for the new topic from just the new exchange
+                new_topic_nodes = []
+                for i, node in enumerate(conversation_chain):
+                    if node.get('id') == user_node_id:
+                        # Include nodes from topic change onwards
+                        new_topic_nodes = conversation_chain[i:]
+                        break
+                
+                if new_topic_nodes:
+                    # Extract topic from the new topic nodes (limit to first few for clarity)
+                    new_topic_segment = build_conversation_segment(new_topic_nodes[:4], max_length=800)
+                    topic_name = extract_topic_ollama(new_topic_segment)
+                    
+                    if topic_name:
+                        # Store the new topic starting from the topic-changing user message
+                        store_topic(topic_name, user_node_id, assistant_node_id, confidence)
+            else:
+                # This is the first topic change - need to retroactively create the first topic
+                if len(conversation_chain) > 2:  # Need at least a few nodes
+                    # Find all nodes before the topic change
+                    prev_topic_nodes = []
+                    for i, node in enumerate(conversation_chain):
+                        if node.get('id') == user_node_id:
+                            prev_topic_nodes = conversation_chain[:i]
+                            break
+                    
+                    if prev_topic_nodes:
+                        # Extract topic from all nodes of the previous conversation
+                        prev_segment = build_conversation_segment(prev_topic_nodes, max_length=2000)
+                        prev_topic_name = extract_topic_ollama(prev_segment)
+                        
+                        if prev_topic_name:
+                            # Find first user node as start
+                            first_user_node = None
+                            last_node_before_change = None
+                            
+                            for node in prev_topic_nodes:
+                                if node.get('role') == 'user' and first_user_node is None:
+                                    first_user_node = node
+                                last_node_before_change = node
+                            
+                            if first_user_node and last_node_before_change:
+                                # Store the previous topic with all its nodes
+                                store_topic(prev_topic_name, first_user_node['id'], last_node_before_change['id'], 'retroactive')
+                
+                # Now extract and store the new topic
+                new_topic_nodes = []
+                for i, node in enumerate(conversation_chain):
+                    if node.get('id') == user_node_id:
+                        new_topic_nodes = conversation_chain[i:]
+                        break
+                
+                if new_topic_nodes:
+                    # Extract topic from new nodes
+                    new_topic_segment = build_conversation_segment(new_topic_nodes[:4], max_length=800)
+                    topic_name = extract_topic_ollama(new_topic_segment)
+                    
+                    if topic_name:
+                        # Store the new topic
+                        store_topic(topic_name, user_node_id, assistant_node_id, confidence)
                 
                 if config.get("debug", False):
                     typer.echo(f"   📝 Extracted topic: '{topic_name}' with confidence: {confidence}")
                 
-                return confidence
+            return confidence
                 
     except Exception as e:
         if config.get("debug", False):
             typer.echo(f"⚠️  Topic extraction error: {e}")
     
     return None
+
+def is_node_in_topic_range(node_id: str, topic_start_id: str, topic_end_id: str) -> bool:
+    """
+    Check if a node is within a topic's range.
+    
+    Args:
+        node_id: The node to check
+        topic_start_id: Start node of the topic
+        topic_end_id: End node of the topic
+        
+    Returns:
+        True if node is within the topic range
+    """
+    # Get ancestry of the end node to find all nodes in the topic
+    topic_ancestry = get_ancestry(topic_end_id)
+    
+    # Check if our node is in this ancestry and after/at the start node
+    found_start = False
+    for node in topic_ancestry:
+        if node['id'] == topic_start_id:
+            found_start = True
+        if found_start and node['id'] == node_id:
+            return True
+        if node['id'] == topic_end_id:
+            # Reached the end, check if node_id is the end node
+            return node_id == topic_end_id
+    
+    return False
+
+
+def count_nodes_in_topic(topic_start_id: str, topic_end_id: str) -> int:
+    """
+    Count the number of nodes in a topic range.
+    
+    Args:
+        topic_start_id: Start node of the topic
+        topic_end_id: End node of the topic
+        
+    Returns:
+        Number of nodes in the topic (including start and end)
+    """
+    # Get ancestry of the end node
+    topic_ancestry = get_ancestry(topic_end_id)
+    
+    # Count nodes from start to end
+    count = 0
+    found_start = False
+    for node in topic_ancestry:
+        if node['id'] == topic_start_id:
+            found_start = True
+        if found_start:
+            count += 1
+        if node['id'] == topic_end_id:
+            break
+    
+    return count
+
 
 def _display_topic_evolution(current_node_id: str) -> None:
     """
@@ -408,23 +559,42 @@ def _display_topic_evolution(current_node_id: str) -> None:
     """
     try:
         # Get recent topics to show evolution
-        recent_topics = get_recent_topics(limit=3)
+        recent_topics = get_recent_topics(limit=5)
         
         if len(recent_topics) < 2:
             # Not enough topic history to show evolution
             return
-            
-        # Get the current topic (most recent) and previous topic
-        current_topic = recent_topics[0]
-        previous_topic = recent_topics[1]
+        
+        # Find the current topic that contains the current node
+        current_topic = None
+        previous_topic = None
+        
+        # Look through topics to find which one we're currently in
+        for i, topic in enumerate(recent_topics):
+            # Check if current node is within this topic's range
+            # A node is in a topic if it's a descendant of the start node
+            # and an ancestor of or equal to the end node
+            if is_node_in_topic_range(current_node_id, topic['start_node_id'], topic['end_node_id']):
+                current_topic = topic
+                # Get the previous topic if available
+                if i + 1 < len(recent_topics):
+                    previous_topic = recent_topics[i + 1]
+                break
+        
+        # If we didn't find a current topic, use the most recent one
+        if not current_topic and recent_topics:
+            current_topic = recent_topics[0]
+            if len(recent_topics) > 1:
+                previous_topic = recent_topics[1]
         
         # Format the evolution display
-        prev_name = previous_topic['name']
-        curr_name = current_topic['name']
-        
-        # Only show if topics are actually different
-        if prev_name != curr_name:
-            typer.echo(f"\nTopic evolution: {prev_name} (fading) → {curr_name} (emerging)")
+        if current_topic and previous_topic:
+            prev_name = previous_topic['name']
+            curr_name = current_topic['name']
+            
+            # Only show if topics are actually different
+            if prev_name != curr_name:
+                typer.echo(f"\nTopic evolution: {prev_name} (completed) → {curr_name} (active)")
             
     except Exception as e:
         if config.get("debug", False):
@@ -1063,6 +1233,10 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.echo(f"  topics: {config.get('show_topics', False)}")
         typer.echo(f"  color: {config.get('color_mode', DEFAULT_COLOR_MODE)}")
         typer.echo(f"  wrap: {config.get('text_wrap', True)}")
+        typer.echo(f"  auto_compress_topics: {config.get('auto_compress_topics', True)}")
+        typer.echo(f"  show_compression_notifications: {config.get('show_compression_notifications', True)}")
+        typer.echo(f"  compression_min_nodes: {config.get('compression_min_nodes', 10)}")
+        typer.echo(f"  compression_model: {config.get('compression_model', 'ollama/llama3')}")
         return
 
     # Handle the 'cost' parameter
@@ -1189,10 +1363,60 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("text_wrap", val)
             typer.echo(f"Text wrapping: {'ON' if val else 'OFF'}")
 
+    # Handle the 'auto_compress_topics' parameter
+    elif param.lower() == "auto_compress_topics":
+        if not value:
+            current = config.get("auto_compress_topics", True)
+            typer.echo(f"Current auto compression: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("auto_compress_topics", val)
+            typer.echo(f"Auto compression: {'ON' if val else 'OFF'}")
+            # Restart compression manager if needed
+            if val:
+                from episodic.compression import start_auto_compression
+                start_auto_compression()
+            else:
+                from episodic.compression import stop_auto_compression
+                stop_auto_compression()
+
+    # Handle the 'show_compression_notifications' parameter
+    elif param.lower() == "show_compression_notifications":
+        if not value:
+            current = config.get("show_compression_notifications", True)
+            typer.echo(f"Current compression notifications: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("show_compression_notifications", val)
+            typer.echo(f"Compression notifications: {'ON' if val else 'OFF'}")
+
+    # Handle the 'compression_min_nodes' parameter
+    elif param.lower() == "compression_min_nodes":
+        if not value:
+            typer.echo(f"Current compression minimum nodes: {config.get('compression_min_nodes', 10)}")
+        else:
+            try:
+                min_nodes = int(value)
+                if min_nodes < 3:
+                    typer.echo("Compression minimum nodes must be at least 3")
+                    return
+                config.set("compression_min_nodes", min_nodes)
+                typer.echo(f"Compression minimum nodes set to {min_nodes}")
+            except ValueError:
+                typer.echo("Invalid value for compression_min_nodes. Please provide a positive integer >= 3")
+
+    # Handle the 'compression_model' parameter
+    elif param.lower() == "compression_model":
+        if not value:
+            typer.echo(f"Current compression model: {config.get('compression_model', 'ollama/llama3')}")
+        else:
+            config.set("compression_model", value)
+            typer.echo(f"Compression model set to {value}")
+
     # Handle unknown parameter
     else:
         typer.echo(f"Unknown parameter: {param}")
-        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap")
+        typer.echo("Available parameters: cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model")
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
@@ -1345,13 +1569,16 @@ def topics(
         
         for i, topic in enumerate(topic_list, 1):
             confidence = topic['confidence'] or 'unknown'
+            node_count = count_nodes_in_topic(topic['start_node_id'], topic['end_node_id'])
             
             # Show topic info with proper alignment
             typer.secho(f"{i:>{number_width}}. ", nl=False, fg=get_system_color())
             typer.secho(f"{topic['name']:<25}", nl=False, fg=get_llm_color())
             typer.secho(f" (", nl=False, fg=typer.colors.WHITE)
             typer.secho(f"{confidence}", nl=False, fg=get_system_color())
-            typer.secho(f" confidence)", fg=typer.colors.WHITE)
+            typer.secho(f" confidence, ", nl=False, fg=typer.colors.WHITE)
+            typer.secho(f"{node_count}", nl=False, fg=get_system_color())
+            typer.secho(f" nodes)", fg=typer.colors.WHITE)
             
             # Indent the range and created lines to align with topic name
             indent = " " * (number_width + 2)  # Account for number + ". "
@@ -1671,6 +1898,7 @@ def _compress_branch_key_moments(nodes: List[Dict], dry_run: bool = False) -> st
 def compression_stats():
     """Show compression statistics."""
     try:
+        # Get manual compression stats from database
         stats = get_compression_stats()
         
         typer.echo("📊 Compression Statistics:")
@@ -1684,12 +1912,53 @@ def compression_stats():
                 typer.echo("\nStrategies used:")
                 for strategy, data in stats['strategies_used'].items():
                     typer.echo(f"  - {strategy}: {data['count']} times (avg {data['avg_ratio']:.1f}% reduction)")
-        else:
+        
+        # Get async compression stats if available
+        try:
+            from episodic.compression import compression_manager
+            if compression_manager:
+                async_stats = compression_manager.get_stats()
+                if async_stats['total_compressed'] > 0 or async_stats['failed_compressions'] > 0:
+                    typer.echo("\nAuto-compression Statistics:")
+                    typer.echo(f"  - Completed: {async_stats['total_compressed']}")
+                    typer.echo(f"  - Failed: {async_stats['failed_compressions']}")
+                    typer.echo(f"  - Words saved: {async_stats['total_words_saved']:,}")
+                    typer.echo(f"  - Queue size: {async_stats['queue_size']}")
+        except:
+            pass  # Async compression not available or not started
+            
+        if stats['total_compressions'] == 0:
             typer.echo("\nNo compressions performed yet.")
             typer.echo("Use '/compress' to compress a conversation branch.")
             
     except Exception as e:
         typer.echo(f"Error retrieving compression stats: {e}")
+
+@app.command()
+def compress_current_topic():
+    """Manually compress the current topic."""
+    from episodic.compression import queue_topic_for_compression
+    
+    # Get the most recent topic
+    recent_topics = get_recent_topics(limit=1)
+    if not recent_topics:
+        typer.echo("No topics found to compress.")
+        return
+    
+    current_topic = recent_topics[0]
+    typer.echo(f"Compressing current topic: '{current_topic['name']}'")
+    typer.echo(f"  Start node: {current_topic['start_node_id']}")
+    typer.echo(f"  End node: {current_topic['end_node_id']}")
+    
+    # Queue it for compression with high priority
+    queue_topic_for_compression(
+        current_topic['start_node_id'],
+        current_topic['end_node_id'],
+        current_topic['name'],
+        priority=1  # High priority
+    )
+    
+    typer.echo("Topic queued for compression.")
 
 
 def compression_queue():
@@ -1730,12 +1999,14 @@ def help():
     typer.echo("  /visualize           - Visualize the conversation DAG")
     typer.echo("  /model               - Show or change the current model")
     typer.echo("  /verify              - Verify the current model with a test prompt")
-    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics)")
+    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model)")
     typer.echo("  /prompts             - Manage system prompts")
     typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
     typer.echo("  /script <filename>   - Run scripted conversation from text file")
     typer.echo("  /compress [node_id]  - Compress conversation branch into summary")
     typer.echo("  /compression-queue   - Show pending auto-compression jobs")
+    typer.echo("  /compression-stats   - Show compression statistics")
+    typer.echo("  /compress-current-topic - Manually compress the current topic")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 
@@ -1990,6 +2261,10 @@ def _handle_command(command_text: str) -> bool:
             compress(branch_id=branch_id, strategy=strategy, dry_run=dry_run)
         elif command == "compression-queue":
             compression_queue()
+        elif command == "compression-stats":
+            compression_stats()
+        elif command == "compress-current-topic":
+            compress_current_topic()
         elif command == "cost":
             cost()
         else:
@@ -2037,25 +2312,20 @@ def _handle_chat_message(user_input: str) -> None:
         if config.get("show_drift", True):
             _display_semantic_drift(user_node_id)
 
-        # Detect topic changes and extract topics from LLM response
-        topic_confidence = detect_and_extract_topic_from_response(response, user_node_id)
+        # Check if response indicates a topic change (but don't process it yet)
+        first_line = response.strip().split('\n')[0].lower()
+        has_topic_change = first_line.startswith('change-')
         display_response = response
         
-        # Show topic evolution if enabled
-        if config.get("show_topics", False):
-            _display_topic_evolution(user_node_id)
-        
-        # Collect all status messages to display in one block
-        status_messages = []
-        
-        if topic_confidence:
-            confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(topic_confidence, "📝")
-            status_messages.append(f"{confidence_emoji} Topic change detected ({topic_confidence} confidence)")
-            
+        # If topic change detected, prepare the display response
+        if has_topic_change:
             # Remove the change indicator line from the displayed response
             lines = response.split('\n')
             if lines and lines[0].lower().startswith('change-'):
                 display_response = '\n'.join(lines[1:]).strip()
+        
+        # Collect all status messages to display in one block
+        status_messages = []
 
         # Add cost information if enabled
         if config.get("show_cost", False) and cost_info:
@@ -2086,7 +2356,7 @@ def _handle_chat_message(user_input: str) -> None:
 
         # Add the assistant's response to the database with provider and model information
         # Use the cleaned response (without change indicators) for storage
-        storage_response = display_response if topic_confidence else response
+        storage_response = display_response
         
         provider = get_current_provider()
         assistant_node_id, assistant_short_id = insert_node(
@@ -2100,6 +2370,49 @@ def _handle_chat_message(user_input: str) -> None:
         # Update the current node to the assistant's response
         current_node_id = assistant_node_id
         set_head(assistant_node_id)
+        
+        # NOW detect and process topic changes after assistant node is created
+        topic_confidence = None
+        if has_topic_change:
+            topic_confidence = detect_and_extract_topic_from_response(response, user_node_id, assistant_node_id)
+            if topic_confidence:
+                confidence_emoji = {"high": "🔄", "medium": "📈", "low": "➡️"}.get(topic_confidence, "📝")
+                typer.echo("")
+                typer.secho(f"{confidence_emoji} Topic change detected ({topic_confidence} confidence)", fg=get_system_color())
+        else:
+            # No topic change - extend the current topic if one exists
+            recent_topics = get_recent_topics(limit=1)
+            if recent_topics:
+                current_topic = recent_topics[0]
+                # If no topic change was detected, we're continuing the current topic
+                # Update it to include the new assistant response
+                update_topic_end_node(current_topic['name'], current_topic['start_node_id'], assistant_node_id)
+            else:
+                # No topics exist yet - check if we should create the first topic
+                if should_create_first_topic(user_node_id):
+                    # Get conversation for topic extraction
+                    conversation_chain = get_ancestry(assistant_node_id)
+                    
+                    # Build segment from the entire conversation so far
+                    segment = build_conversation_segment(conversation_chain, max_length=2000)
+                    topic_name = extract_topic_ollama(segment)
+                    
+                    if topic_name:
+                        # Find the first user node to use as the start of the topic
+                        first_user_node = None
+                        for node in reversed(conversation_chain):
+                            if node.get('role') == 'user':
+                                first_user_node = node
+                        
+                        if first_user_node:
+                            # Store the topic spanning from first user message to current assistant message
+                            store_topic(topic_name, first_user_node['id'], assistant_node_id, 'initial')
+                            typer.echo("")
+                            typer.secho(f"📌 Created first topic: {topic_name}", fg=get_system_color())
+        
+        # Show topic evolution if enabled (after topic detection)
+        if config.get("show_topics", False):
+            _display_topic_evolution(assistant_node_id)
 
     except Exception as e:
         typer.echo(f"Error querying LLM: {str(e)}")

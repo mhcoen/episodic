@@ -1,0 +1,34 @@
+# Simple Topic Test with Forced Brevity
+# Tests topic detection with minimal responses
+
+/prompts use default
+
+# Enable settings
+/set debug true
+/set topics true
+/set show_compression_notifications true
+/set auto_compress_topics true
+/set compression_min_nodes 3
+
+# Topic 1: Numbers (very simple)
+What is 2+2?
+What is 10*10?
+What is 50/5?
+What is 100-75?
+
+# Topic 2: Colors (clear change)
+Now about colors - what color is the sky?
+What color are roses typically?
+What colors make purple?
+What is the hex code for pure red?
+
+# Topic 3: Geography (another change)
+Let's switch to geography - what is the capital of France?
+What is the largest ocean?
+How many continents are there?
+What is the tallest mountain?
+
+# Check results
+/topics
+/compression-queue
+/compression-stats

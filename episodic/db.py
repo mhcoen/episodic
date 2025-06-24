@@ -763,6 +763,24 @@ def get_all_topics():
     return get_recent_topics(limit=1000)  # Large limit to get all
 
 
+def update_topic_end_node(topic_name: str, start_node_id: str, new_end_node_id: str):
+    """
+    Update the end node of an existing topic.
+    
+    Args:
+        topic_name: Name of the topic to update
+        start_node_id: Start node ID (for verification)
+        new_end_node_id: New end node ID to set
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            UPDATE topics 
+            SET end_node_id = ?
+            WHERE name = ? AND start_node_id = ?
+        """, (new_end_node_id, topic_name, start_node_id))
+
+
 def store_compression(compressed_node_id: str, original_branch_head: str, 
                      original_node_count: int, original_words: int, compressed_words: int,
                      compression_ratio: float, strategy: str, duration_seconds: float = None):

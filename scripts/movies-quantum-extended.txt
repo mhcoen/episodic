@@ -1,0 +1,46 @@
+# Extended Movies to Quantum Test
+# Tests topic detection with longer conversations and clear topic establishment
+
+/prompts use default
+
+# Enable settings for testing
+/set debug true
+/set topics true
+/set show_compression_notifications true
+/set auto_compress_topics true
+/set compression_min_nodes 3
+
+# Initial instruction for brevity
+Give extremely brief answers - just the essential facts.
+
+# Topic 1: Movies (factual questions)
+What year was the first Star Wars movie released?
+Who directed The Godfather?
+What is the highest-grossing film of all time?
+How many Oscars did Titanic win?
+What film won Best Picture in 2023?
+Who played the Joker in The Dark Knight?
+
+# Topic 2: Quantum Physics (clear topic change)
+Now about physics - what is Planck's constant?
+What does the Heisenberg uncertainty principle state?
+At what temperature does helium become superfluid?
+What particles are fermions?
+How many quarks are in a proton?
+What is quantum tunneling?
+
+# Topic 3: Cooking (another clear change)
+Switching to cooking - what temperature kills salmonella?
+What is the Maillard reaction?
+At what temperature does water boil at sea level?
+What pH level indicates acidity?
+How many teaspoons in a tablespoon?
+What temperature is medium-rare steak?
+
+# Check results
+/topics
+/compression-queue
+/last 20
+
+# Summary
+/echo Test complete - should show 3 distinct topics with proper boundaries and compression jobs

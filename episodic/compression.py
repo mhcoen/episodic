@@ -13,7 +13,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
 from episodic.db import (
-    get_node, get_nodes_between, insert_node, store_compression,
+    get_node, insert_node, store_compression,
     get_recent_topics, get_ancestry
 )
 from episodic.llm import query_llm
@@ -88,6 +88,9 @@ class AsyncCompressionManager:
     
     def _compression_worker(self):
         """Background worker that processes compression jobs."""
+        if config.get('debug', False):
+            typer.echo(f"🔧 Compression worker started")
+        
         while not self.shutdown_event.is_set():
             try:
                 # Get job with timeout to check shutdown periodically
@@ -95,6 +98,9 @@ class AsyncCompressionManager:
                 
                 if job is None:  # Sentinel value for shutdown
                     break
+                
+                if config.get('debug', False):
+                    typer.echo(f"🔧 Processing compression job for topic '{job.topic_name}'")
                 
                 # Process the compression job
                 success = self._compress_topic_segment(job)
@@ -104,6 +110,8 @@ class AsyncCompressionManager:
                     job.attempts += 1
                     job.priority += 2  # Lower priority for retry
                     self.compression_queue.put((job.priority, job))
+                    if config.get('debug', False):
+                        typer.echo(f"🔄 Retrying compression for topic '{job.topic_name}' (attempt {job.attempts})")
                 elif not success:
                     self.stats['failed_compressions'] += 1
                     if config.get('debug', False):
@@ -125,11 +133,19 @@ class AsyncCompressionManager:
             True if compression succeeded, False otherwise
         """
         try:
+            if config.get('debug', False):
+                typer.echo(f"🔧 Compressing topic '{job.topic_name}' from {job.start_node_id} to {job.end_node_id}")
+            
             # Get nodes in the topic segment
             nodes = self._get_topic_nodes(job.start_node_id, job.end_node_id)
             
+            if config.get('debug', False):
+                typer.echo(f"🔧 Found {len(nodes)} nodes in topic segment")
+            
             if len(nodes) < config.get('compression_min_nodes', 5):
                 # Skip compression for very short topics
+                if config.get('debug', False):
+                    typer.echo(f"🔧 Skipping compression - only {len(nodes)} nodes (min: {config.get('compression_min_nodes', 5)})")
                 return True
             
             # Build conversation text
@@ -161,7 +177,7 @@ Concise summary:"""
             )
             
             # Calculate compression metrics
-            original_words = sum(len(node.get('message', '').split()) for node in nodes)
+            original_words = sum(len(node.get('content', '').split()) for node in nodes)
             compressed_words = len(summary.split())
             compression_ratio = (1 - compressed_words / original_words) * 100 if original_words > 0 else 0
             
@@ -194,30 +210,43 @@ Concise summary:"""
     
     def _get_topic_nodes(self, start_node_id: str, end_node_id: str) -> List[Dict]:
         """Get all nodes between start and end of a topic."""
-        # This is a simplified version - in production would need proper DAG traversal
-        end_ancestry = get_ancestry(end_node_id)
-        
-        # Find nodes between start and end
-        nodes = []
-        collecting = False
-        for node in end_ancestry:
-            if node['id'] == start_node_id:
-                collecting = True
-            if collecting:
-                nodes.append(node)
-            if node['id'] == end_node_id:
-                break
-        
-        return nodes
+        try:
+            # This is a simplified version - in production would need proper DAG traversal
+            end_ancestry = get_ancestry(end_node_id)
+            
+            if not end_ancestry:
+                if config.get('debug', False):
+                    typer.echo(f"⚠️  No ancestry found for end node: {end_node_id}")
+                return []
+            
+            # Find nodes between start and end
+            nodes = []
+            collecting = False
+            for node in end_ancestry:
+                if node['id'] == start_node_id:
+                    collecting = True
+                if collecting:
+                    nodes.append(node)
+                if node['id'] == end_node_id:
+                    break
+            
+            if config.get('debug', False) and not collecting:
+                typer.echo(f"⚠️  Start node {start_node_id} not found in ancestry of {end_node_id}")
+            
+            return nodes
+        except Exception as e:
+            if config.get('debug', False):
+                typer.echo(f"⚠️  Error getting topic nodes: {e}")
+            return []
     
     def _format_nodes_for_compression(self, nodes: List[Dict]) -> str:
         """Format nodes for compression prompt."""
         lines = []
         for node in nodes:
             role = "You" if node.get('role') == 'assistant' else "User"
-            message = node.get('message', '').strip()
-            if message:
-                lines.append(f"{role}: {message}")
+            content = node.get('content', '').strip()
+            if content:
+                lines.append(f"{role}: {content}")
         return "\n\n".join(lines)
     
     def get_stats(self) -> Dict[str, Any]:

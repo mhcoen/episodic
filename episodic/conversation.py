@@ -37,6 +37,7 @@ from episodic.topics import (
     should_create_first_topic, build_conversation_segment,
     _display_topic_evolution
 )
+from episodic.benchmark import benchmark_operation, benchmark_resource
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -273,18 +274,23 @@ class ConversationManager:
             
         Processes the message through the LLM and updates the conversation DAG.
         """
-        # Add the user message to the database
-        user_node_id, user_short_id = insert_node(user_input, self.current_node_id, role="user")
+        with benchmark_operation("Message Processing"):
+            # Add the user message to the database
+            with benchmark_resource("Database", "insert user node"):
+                user_node_id, user_short_id = insert_node(user_input, self.current_node_id, role="user")
         
-        # Detect topic change BEFORE querying the main LLM
-        topic_changed = False
-        new_topic_name = None
-        topic_cost_info = None
-        
-        # Get recent messages for context
-        recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
-        if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
-            topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(recent_nodes, user_input)
+            # Detect topic change BEFORE querying the main LLM
+            topic_changed = False
+            new_topic_name = None
+            topic_cost_info = None
+            
+            # Get recent messages for context
+            with benchmark_resource("Database", "get recent nodes"):
+                recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
+            
+            if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
+                with benchmark_operation("Topic Detection"):
+                    topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(recent_nodes, user_input)
             
             # Add topic detection costs to session
             if topic_cost_info:
@@ -299,148 +305,151 @@ class ConversationManager:
                 if topic_cost_info:
                     typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
 
-        # Query the LLM with context
-        try:
-            # Query with context
-            response, cost_info = query_with_context(
-                user_node_id, 
-                model=model,
-                system_message=system_message,
-                context_depth=context_depth
-            )
+            # Query the LLM with context
+            try:
+                # Query with context
+                with benchmark_resource("LLM Call", model):
+                    response, cost_info = query_with_context(
+                        user_node_id, 
+                        model=model,
+                        system_message=system_message,
+                        context_depth=context_depth
+                    )
 
-            # Update session costs
-            if cost_info:
-                self.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
-                self.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
-                self.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
-                self.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
+                # Update session costs
+                if cost_info:
+                    self.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
+                    self.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
+                    self.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
+                    self.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
 
-            # Calculate and display semantic drift if enabled
-            if config.get("show_drift", True):
-                self.display_semantic_drift(user_node_id)
+                # Calculate and display semantic drift if enabled
+                if config.get("show_drift", True):
+                    self.display_semantic_drift(user_node_id)
 
-            # Use the response directly
-            display_response = response
+                # Use the response directly
+                display_response = response
             
-            # Collect all status messages to display in one block
-            status_messages = []
+                # Collect all status messages to display in one block
+                status_messages = []
 
-            # Add cost information if enabled
-            if config.get("show_cost", False) and cost_info:
-                # Calculate context usage
-                current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
-                context_limit = get_model_context_limit(model)
-                context_percentage = (current_tokens / context_limit) * 100
-                
-                # Format context percentage with appropriate precision
-                if context_percentage < 1.0:
-                    context_display = f"{context_percentage:.1f}%"
+                # Add cost information if enabled
+                if config.get("show_cost", False) and cost_info:
+                    # Calculate context usage
+                    current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
+                    context_limit = get_model_context_limit(model)
+                    context_percentage = (current_tokens / context_limit) * 100
+                    
+                    # Format context percentage with appropriate precision
+                    if context_percentage < 1.0:
+                        context_display = f"{context_percentage:.1f}%"
+                    else:
+                        context_display = f"{int(context_percentage)}%"
+                    
+                    status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
+
+                # Display the response block with proper spacing
+                if status_messages:
+                    # Show blank line, then status messages, then LLM response
+                    typer.echo("")
+                    for msg in status_messages:
+                        typer.secho(msg, fg=get_system_color())
+                    self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
                 else:
-                    context_display = f"{int(context_percentage)}%"
+                    # No status messages, just show blank line then LLM response
+                    typer.echo("")  # Blank line
+                    self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
+
+                # Add the assistant's response to the database with provider and model information
+                provider = get_current_provider()
+                with benchmark_resource("Database", "insert assistant node"):
+                    assistant_node_id, assistant_short_id = insert_node(
+                        display_response, 
+                        user_node_id, 
+                        role="assistant",
+                        provider=provider,
+                        model=model
+                    )
+
+                # Update the current node to the assistant's response
+                self.current_node_id = assistant_node_id
+                with benchmark_resource("Database", "set head"):
+                    set_head(assistant_node_id)
                 
-                status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
-
-            # Display the response block with proper spacing
-            if status_messages:
-                # Show blank line, then status messages, then LLM response
-                typer.echo("")
-                for msg in status_messages:
-                    typer.secho(msg, fg=get_system_color())
-                self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
-            else:
-                # No status messages, just show blank line then LLM response
-                typer.echo("")  # Blank line
-                self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
-
-            # Add the assistant's response to the database with provider and model information
-            provider = get_current_provider()
-            assistant_node_id, assistant_short_id = insert_node(
-                display_response, 
-                user_node_id, 
-                role="assistant",
-                provider=provider,
-                model=model
-            )
-
-            # Update the current node to the assistant's response
-            self.current_node_id = assistant_node_id
-            set_head(assistant_node_id)
-            
-            # Process topic changes based on our earlier detection
-            if topic_changed and new_topic_name:
-                # End the previous topic if one exists
-                recent_topics = get_recent_topics(limit=1)
-                if recent_topics:
-                    previous_topic = recent_topics[0]
-                    # Update the previous topic to end at the last assistant message before this user message
-                    # Find the parent of the user node (should be the last assistant message)
-                    parent_node = get_node(user_node_id).get('parent_id')
-                    if parent_node:
-                        update_topic_end_node(previous_topic['name'], previous_topic['start_node_id'], parent_node)
-                        # Queue the old topic for compression
-                        queue_topic_for_compression(previous_topic['start_node_id'], parent_node, previous_topic['name'])
-                        if config.get("debug", False):
-                            typer.echo(f"   📦 Queued topic '{previous_topic['name']}' for compression")
+                # Process topic changes based on our earlier detection
+                if topic_changed and new_topic_name:
+                    # End the previous topic if one exists
+                    recent_topics = get_recent_topics(limit=1)
+                    if recent_topics:
+                        previous_topic = recent_topics[0]
+                        # Update the previous topic to end at the last assistant message before this user message
+                        # Find the parent of the user node (should be the last assistant message)
+                        parent_node = get_node(user_node_id).get('parent_id')
+                        if parent_node:
+                            update_topic_end_node(previous_topic['name'], previous_topic['start_node_id'], parent_node)
+                            # Queue the old topic for compression
+                            queue_topic_for_compression(previous_topic['start_node_id'], parent_node, previous_topic['name'])
+                            if config.get("debug", False):
+                                typer.echo(f"   📦 Queued topic '{previous_topic['name']}' for compression")
                 
-                # Create the new topic starting from this user message
-                store_topic(new_topic_name, user_node_id, assistant_node_id, 'detected')
-                typer.echo("")
-                typer.secho(f"🔄 Topic changed to: {new_topic_name}", fg=get_system_color())
-            else:
-                # No topic change - extend the current topic if one exists
-                recent_topics = get_recent_topics(limit=1)
-                if recent_topics:
-                    current_topic = recent_topics[0]
-                    # If no topic change was detected, we're continuing the current topic
-                    # Update it to include the new assistant response
-                    update_topic_end_node(current_topic['name'], current_topic['start_node_id'], assistant_node_id)
+                    # Create the new topic starting from this user message
+                    store_topic(new_topic_name, user_node_id, assistant_node_id, 'detected')
+                    typer.echo("")
+                    typer.secho(f"🔄 Topic changed to: {new_topic_name}", fg=get_system_color())
                 else:
-                    # No topics exist yet - check if we should create the first topic
-                    if should_create_first_topic(user_node_id):
-                        # Get conversation for topic extraction
-                        conversation_chain = get_ancestry(assistant_node_id)
-                        
-                        # Build segment from the entire conversation so far
-                        segment = build_conversation_segment(conversation_chain, max_length=2000)
-                        
-                        if config.get("debug", False):
-                            typer.echo(f"\n🔍 DEBUG: Extracting first topic from conversation:")
-                            typer.echo(f"   Conversation preview: {segment[:200]}...")
-                            typer.echo(f"   Total length: {len(segment)} chars")
-                            typer.echo(f"   Number of nodes: {len(conversation_chain)}")
-                        
-                        topic_name, extract_cost_info = extract_topic_ollama(segment)
-                        
-                        # Add extraction costs to session
-                        if extract_cost_info:
-                            self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
-                            self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
-                            self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
-                            self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
-                        
-                        if topic_name:
-                            # Find the first user node to use as the start of the topic
-                            first_user_node = None
-                            for node in reversed(conversation_chain):
-                                if node.get('role') == 'user':
-                                    first_user_node = node
+                    # No topic change - extend the current topic if one exists
+                    recent_topics = get_recent_topics(limit=1)
+                    if recent_topics:
+                        current_topic = recent_topics[0]
+                        # If no topic change was detected, we're continuing the current topic
+                        # Update it to include the new assistant response
+                        update_topic_end_node(current_topic['name'], current_topic['start_node_id'], assistant_node_id)
+                    else:
+                        # No topics exist yet - check if we should create the first topic
+                        if should_create_first_topic(user_node_id):
+                            # Get conversation for topic extraction
+                            conversation_chain = get_ancestry(assistant_node_id)
                             
-                            if first_user_node:
-                                # Store the topic spanning from first user message to current assistant message
-                                store_topic(topic_name, first_user_node['id'], assistant_node_id, 'initial')
-                                typer.echo("")
-                                typer.secho(f"📌 Created first topic: {topic_name}", fg=get_system_color())
+                            # Build segment from the entire conversation so far
+                            segment = build_conversation_segment(conversation_chain, max_length=2000)
+                            
+                            if config.get("debug", False):
+                                typer.echo(f"\n🔍 DEBUG: Extracting first topic from conversation:")
+                                typer.echo(f"   Conversation preview: {segment[:200]}...")
+                                typer.echo(f"   Total length: {len(segment)} chars")
+                                typer.echo(f"   Number of nodes: {len(conversation_chain)}")
+                            
+                            topic_name, extract_cost_info = extract_topic_ollama(segment)
+                            
+                            # Add extraction costs to session
+                            if extract_cost_info:
+                                self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                                self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                                self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                                self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
+                            
+                            if topic_name:
+                                # Find the first user node to use as the start of the topic
+                                first_user_node = None
+                                for node in reversed(conversation_chain):
+                                    if node.get('role') == 'user':
+                                        first_user_node = node
+                                
+                                if first_user_node:
+                                    # Store the topic spanning from first user message to current assistant message
+                                    store_topic(topic_name, first_user_node['id'], assistant_node_id, 'initial')
+                                    typer.echo("")
+                                    typer.secho(f"📌 Created first topic: {topic_name}", fg=get_system_color())
             
-            # Show topic evolution if enabled (after topic detection)
-            if config.get("show_topics", False):
-                _display_topic_evolution(assistant_node_id)
-            
-            return assistant_node_id, display_response
+                # Show topic evolution if enabled (after topic detection)
+                if config.get("show_topics", False):
+                    _display_topic_evolution(assistant_node_id)
+                
+                return assistant_node_id, display_response
 
-        except Exception as e:
-            typer.echo(f"Error: {e}")
-            raise
+            except Exception as e:
+                typer.echo(f"Error: {e}")
+                raise
 
 
 # Create a global instance for convenience

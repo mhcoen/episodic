@@ -1545,28 +1545,38 @@ def benchmark():
 
 def help():
     """Show available commands."""
-    typer.echo("Available commands:")
+    typer.secho("\n═══ BASIC COMMANDS ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
     typer.echo("  /help                - Show this help message")
-    typer.echo("  /exit, /quit         - Exit the application")
-    typer.echo("  /init [--erase]      - Initialize the database (--erase to erase existing)")
+    typer.echo("  /last [N]            - List recent nodes (default: 5)")
+    typer.echo("  /model               - Show or change the current model")
+    typer.echo("  /head [node_id]      - Show current node or change to specified node")
+    
+    typer.secho("\n═══ CONVERSATION MANAGEMENT ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
     typer.echo("  /add <content>       - Add a new node with the given content")
     typer.echo("  /show <node_id>      - Show details of a specific node")
     typer.echo("  /print [node_id]     - Print node info (defaults to current node)")
-    typer.echo("  /head [node_id]      - Show current node or change to specified node")
-    typer.echo("  /last [N]            - List recent nodes (default: 5)")
     typer.echo("  /ancestry <node_id>  - Trace the ancestry of a node")
     typer.echo("  /visualize           - Visualize the conversation DAG")
-    typer.echo("  /model               - Show or change the current model")
-    typer.echo("  /verify              - Verify the current model with a test prompt")
-    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model, benchmark, benchmark_display)")
-    typer.echo("  /prompts             - Manage system prompts")
+    
+    typer.secho("\n═══ TOPICS & ORGANIZATION ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
     typer.echo("  /topics [N] [--all]  - Show recent conversation topics (default: 10)")
-    typer.echo("  /script <filename>   - Run scripted conversation from text file")
     typer.echo("  /compress [node_id]  - Compress conversation branch into summary")
+    typer.echo("  /compress-current-topic - Manually compress the current topic")
     typer.echo("  /compression-queue   - Show pending auto-compression jobs")
     typer.echo("  /compression-stats   - Show compression statistics")
-    typer.echo("  /compress-current-topic - Manually compress the current topic")
+    
+    typer.secho("\n═══ CONFIGURATION & SETTINGS ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
+    wrapped_text_print("  /set [param] [value] - Configure parameters (cost, drift, depth, semdepth, debug, cache, topics, color, wrap, auto_compress_topics, show_compression_notifications, compression_min_nodes, compression_model, topic_detection_model, benchmark, benchmark_display)")
+    typer.echo("  /prompts             - Manage system prompts")
+    typer.echo("  /verify              - Verify the current model with a test prompt")
+    
+    typer.secho("\n═══ ADVANCED & DIAGNOSTIC ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
+    typer.echo("  /init [--erase]      - Initialize the database (--erase to erase existing)")
+    typer.echo("  /script <filename>   - Run scripted conversation from text file")
     typer.echo("  /benchmark           - Show performance benchmark statistics")
+    
+    typer.secho("\n═══ EXIT ═══", fg=typer.colors.BRIGHT_WHITE, bold=True)
+    typer.echo("  /exit, /quit         - Exit the application")
 
     typer.echo("\nType a message without a leading / to chat with the LLM.")
 

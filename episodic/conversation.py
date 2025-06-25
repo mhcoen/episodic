@@ -454,6 +454,8 @@ class ConversationManager:
                             at_line_start = True
                             in_list_item = False
                             list_indent = ""
+                            in_bold = False
+                            bold_buffer = ""
                             
                             
                             for chunk in process_stream_response(stream_generator, model):
@@ -495,14 +497,14 @@ class ConversationManager:
                                                     current_position = 0
                                             
                                             # Print the word
-                                            typer.secho(current_word, fg=get_llm_color(), nl=False)
+                                            typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
                                             current_position += word_len
                                             current_word = ""
                                             at_line_start = False
                                         
                                         # Handle the delimiter
                                         if char == ' ' and current_position < wrap_width:
-                                            typer.secho(" ", fg=get_llm_color(), nl=False)
+                                            typer.secho(" ", fg=get_llm_color(), nl=False, bold=in_bold)
                                             current_position += 1
                                         elif char == '\n':
                                             typer.secho("\n", fg=get_llm_color(), nl=False)
@@ -511,8 +513,32 @@ class ConversationManager:
                                             # Check if we're ending a list item (next line doesn't start with a number)
                                             # We'll reset this when we see the next line's content
                                     else:
-                                        # Build up the current word
-                                        current_word += char
+                                        # Check for bold markers
+                                        if char == '*':
+                                            bold_buffer += char
+                                            if len(bold_buffer) == 2:
+                                                # We have "**" - toggle bold
+                                                if current_word:
+                                                    # Print any accumulated word first
+                                                    typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
+                                                    current_position += len(current_word)
+                                                    current_word = ""
+                                                    at_line_start = False
+                                                # Toggle bold state
+                                                in_bold = not in_bold
+                                                bold_buffer = ""
+                                            continue
+                                        elif bold_buffer:
+                                            # We had a single *, not bold marker
+                                            current_word += bold_buffer + char
+                                            bold_buffer = ""
+                                        else:
+                                            # Regular character
+                                            current_word += char
+                            
+                            # Handle any remaining bold buffer
+                            if bold_buffer:
+                                current_word += bold_buffer
                             
                             # Print any remaining word
                             if current_word:
@@ -521,7 +547,7 @@ class ConversationManager:
                                     typer.secho("\n", fg=get_llm_color(), nl=False)
                                     if in_list_item and not at_line_start:
                                         typer.secho(list_indent, fg=get_llm_color(), nl=False)
-                                typer.secho(current_word, fg=get_llm_color(), nl=False)
+                                typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
                         
                         # Get the full response and cost info
                         display_response = ''.join(full_response_parts)

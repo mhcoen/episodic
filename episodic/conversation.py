@@ -90,7 +90,8 @@ class ConversationManager:
         """Get the appropriate text wrapping width for the terminal."""
         terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
         margin = 4
-        max_width = config.get("max_wrap_width", 100)  # Configurable maximum
+        max_width = 100  # Maximum line length for readability
+        # Use terminal width or 100, whichever is smaller (with minimum of 40)
         return min(max_width, max(40, terminal_width - margin))
     
     def wrapped_text_print(self, text: str, **typer_kwargs) -> None:

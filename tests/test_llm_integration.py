@@ -128,13 +128,16 @@ class TestCacheManagement(unittest.TestCase):
         self.assertFalse(result)
         self.assertIsNone(mock_litellm.cache)
     
-    @patch('episodic.llm.litellm')
     @patch('episodic.llm.config')
-    def test_disable_cache(self, mock_config, mock_litellm):
+    def test_disable_cache(self, mock_config):
         """Test cache disabling."""
-        llm.disable_cache()
+        # Mock the actual litellm module that disable_cache imports
+        import litellm
+        with patch.object(litellm, 'cache', Mock()):
+            llm.disable_cache()
+            # The disable_cache function sets it to None
+            self.assertIsNone(litellm.cache)
         
-        self.assertIsNone(mock_litellm.cache)
         mock_config.set.assert_called_with("use_context_cache", False)
     
     @patch('episodic.llm.initialize_cache')

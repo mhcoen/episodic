@@ -64,7 +64,7 @@ class PromptManager:
 
     def get_metadata(self, name: str) -> Optional[Dict]:
         """Get metadata for a prompt."""
-        return self.metadata.get(name)
+        return self.metadata.get(name, {} if name in self.prompts else None)
 
     def get_active_prompt(self, config_get_func, default: str = "default") -> str:
         """Get the active prompt name from config, or use default if none is set."""
@@ -78,3 +78,40 @@ class PromptManager:
             # If the active prompt doesn't exist, fall back to default
             content = self.get(default)
         return content or "You are a helpful assistant."
+
+
+# Global instance for convenience
+_prompt_manager = None
+
+def get_prompt_manager():
+    """Get or create the global prompt manager instance."""
+    global _prompt_manager
+    if _prompt_manager is None:
+        _prompt_manager = PromptManager()
+    return _prompt_manager
+
+
+# Convenience functions for backward compatibility
+def get_available_prompts() -> List[str]:
+    """Get list of available prompt names."""
+    return get_prompt_manager().list()
+
+
+def load_prompt(name: str) -> Optional[Dict]:
+    """Load a prompt by name, returning content and metadata."""
+    pm = get_prompt_manager()
+    content = pm.get(name)
+    if content is None:
+        return None
+    
+    metadata = pm.get_metadata(name) or {}
+    return {
+        'content': content,
+        **metadata
+    }
+
+
+def get_active_prompt() -> str:
+    """Get the active prompt name from config."""
+    from .config import config
+    return config.get("active_prompt", "default")

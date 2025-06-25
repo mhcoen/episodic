@@ -38,9 +38,8 @@ class TestDatabaseIntegration(unittest.TestCase):
     
     def test_database_node_roundtrip(self):
         """Test that nodes can be stored and retrieved from database."""
-        # Initialize database
-        result = initialize_db()
-        self.assertIsNotNone(result)
+        # Initialize database (it may return None if nodes already exist)
+        initialize_db()
         
         # Create and insert a node
         test_content = "This is a test node"

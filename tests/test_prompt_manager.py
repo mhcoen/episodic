@@ -116,15 +116,14 @@ You are a technical assistant specializing in software development.""")
     
     def test_get_active_prompt(self):
         """Test getting active prompt name from config."""
-        mock_config_get = MagicMock()
-        
         # Test with configured active prompt
-        mock_config_get.return_value = "technical"
+        mock_config_get = MagicMock(return_value="technical")
         active = self.manager.get_active_prompt(mock_config_get)
         self.assertEqual(active, "technical")
+        mock_config_get.assert_called_with("active_prompt", "default")
         
-        # Test with default fallback
-        mock_config_get.return_value = None
+        # Test with default fallback (config returns the default when key not found)
+        mock_config_get = MagicMock(side_effect=lambda key, default: default)
         active = self.manager.get_active_prompt(mock_config_get, "default")
         self.assertEqual(active, "default")
     

@@ -495,6 +495,35 @@ def get_descendants(node_id):
 
     return descendants
 
+def get_children(node_id):
+    """
+    Get immediate children of a node.
+    
+    Args:
+        node_id: ID of the parent node
+        
+    Returns:
+        List of child node dictionaries
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT id, short_id, content, parent_id, role, provider, model
+            FROM nodes
+            WHERE parent_id = ?
+            ORDER BY ROWID
+        """, (node_id,))
+        
+        columns = ['id', 'short_id', 'content', 'parent_id', 'role', 'provider', 'model']
+        children = []
+        for row in c.fetchall():
+            child = {}
+            for i, column in enumerate(columns):
+                child[column] = row[i]
+            children.append(child)
+        
+        return children
+
 def delete_node(node_id):
     """
     Delete a node and all its descendants from the database.

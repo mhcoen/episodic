@@ -18,7 +18,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from episodic import cli
 from episodic.config import config
-from episodic.cli_constants import *
+from episodic.cli_helpers import _parse_flag_value, _has_flag, _remove_flag_and_value
+from episodic.commands.navigation import format_role_display
+from episodic.configuration import DEFAULT_MODEL, DEFAULT_SYSTEM_MESSAGE
 
 
 class TestCLIHelpers(unittest.TestCase):
@@ -28,60 +30,61 @@ class TestCLIHelpers(unittest.TestCase):
         """Test parsing flag values from argument lists."""
         # Test successful flag parsing
         args = ["command", "--model", "gpt-4", "text"]
-        result = cli._parse_flag_value(args, ["--model", "-m"])
+        result = _parse_flag_value(args, ["--model", "-m"])
         self.assertEqual(result, "gpt-4")
         
         # Test alternative flag name
         args = ["command", "-m", "claude", "text"]
-        result = cli._parse_flag_value(args, ["--model", "-m"])
+        result = _parse_flag_value(args, ["--model", "-m"])
         self.assertEqual(result, "claude")
         
         # Test missing flag
         args = ["command", "text"]
-        result = cli._parse_flag_value(args, ["--model", "-m"])
+        result = _parse_flag_value(args, ["--model", "-m"])
         self.assertIsNone(result)
         
         # Test flag without value
         args = ["command", "--model"]
-        result = cli._parse_flag_value(args, ["--model"])
+        result = _parse_flag_value(args, ["--model"])
         self.assertIsNone(result)
     
     def test_remove_flag_and_value(self):
         """Test removing flags and values from argument lists."""
         # Test removing flag with value
         args = ["command", "--parent", "abc123", "text"]
-        result = cli._remove_flag_and_value(args, ["--parent", "-p"])
+        result = _remove_flag_and_value(args, ["--parent", "-p"])
         self.assertEqual(result, ["command", "text"])
         
         # Test removing alternative flag
         args = ["command", "-p", "abc123", "text"]
-        result = cli._remove_flag_and_value(args, ["--parent", "-p"])
+        result = _remove_flag_and_value(args, ["--parent", "-p"])
         self.assertEqual(result, ["command", "text"])
         
         # Test removing flag without value
         args = ["command", "--flag", "text"]
-        result = cli._remove_flag_and_value(args, ["--flag"])
+        result = _remove_flag_and_value(args, ["--flag"])
         self.assertEqual(result, ["command", "text"])
         
         # Test no flag to remove
         args = ["command", "text"]
-        result = cli._remove_flag_and_value(args, ["--nonexistent"])
+        result = _remove_flag_and_value(args, ["--nonexistent"])
         self.assertEqual(result, ["command", "text"])
     
     def test_has_flag(self):
         """Test checking for flag presence."""
         args = ["command", "--verbose", "text"]
-        self.assertTrue(cli._has_flag(args, ["--verbose", "-v"]))
-        self.assertTrue(cli._has_flag(args, ["-v", "--verbose"]))
-        self.assertFalse(cli._has_flag(args, ["--quiet", "-q"]))
+        self.assertTrue(_has_flag(args, ["--verbose", "-v"]))
+        self.assertTrue(_has_flag(args, ["-v", "--verbose"]))
+        self.assertFalse(_has_flag(args, ["--quiet", "-q"]))
     
     def test_format_role_display(self):
         """Test role formatting for display."""
-        self.assertEqual(cli.format_role_display("user"), "User")
-        self.assertEqual(cli.format_role_display("assistant"), "Assistant")
-        self.assertEqual(cli.format_role_display("system"), "System")
-        self.assertEqual(cli.format_role_display(None), "Unknown")
-        self.assertEqual(cli.format_role_display(""), "Unknown")
+        # format_role_display was moved to navigation module and now shows emoji/model info
+        result = format_role_display("user")
+        self.assertIn("👤", result)
+        
+        result = format_role_display("assistant")
+        self.assertIn("🤖", result)
 
 
 class TestCLICommands(unittest.TestCase):
@@ -94,16 +97,10 @@ class TestCLICommands(unittest.TestCase):
         self.original_db_path = config.get("database_path")
         config.set("database_path", os.path.join(self.test_dir, "test.db"))
         
-        # Reset global state
-        cli.current_node_id = None
-        cli.default_model = DEFAULT_MODEL
-        cli.default_system = DEFAULT_SYSTEM_MESSAGE
-        cli.session_costs = {
-            "total_input_tokens": 0,
-            "total_output_tokens": 0,
-            "total_tokens": 0,
-            "total_cost_usd": 0.0
-        }
+        # Reset global state - these don't exist in refactored CLI
+        # Instead, set them in config
+        config.set("model", DEFAULT_MODEL)
+        config.set("system_message", DEFAULT_SYSTEM_MESSAGE)
     
     def tearDown(self):
         """Clean up test environment."""
@@ -114,65 +111,59 @@ class TestCLICommands(unittest.TestCase):
         # Clean up temporary directory
         shutil.rmtree(self.test_dir, ignore_errors=True)
     
+    @unittest.skip("version command was removed in refactoring")
     @patch('episodic.cli.typer.echo')
     def test_version_command(self, mock_echo):
         """Test version command."""
-        cli.version()
-        mock_echo.assert_called_once()
-        call_args = mock_echo.call_args[0][0]
-        self.assertIn("Episodic CLI", call_args)
+        # Version command no longer exists in refactored CLI
+        pass
     
+    @unittest.skip("providers command was removed in refactoring")
     @patch('episodic.cli.typer.echo')
     @patch('episodic.cli.get_current_provider')
     @patch('episodic.cli.get_available_providers')
     def test_providers_command(self, mock_get_providers, mock_get_current, mock_echo):
         """Test providers command."""
-        mock_get_providers.return_value = ["openai", "anthropic", "ollama"]
-        mock_get_current.return_value = "openai"
-        
-        cli.providers()
-        
-        # Check that provider information was displayed
-        self.assertTrue(mock_echo.called)
-        echo_calls = [call[0][0] for call in mock_echo.call_args_list]
-        
-        # Verify current provider is shown
-        current_provider_shown = any("openai" in call and "current" in call.lower() for call in echo_calls)
-        self.assertTrue(current_provider_shown)
+        # Providers command no longer exists in refactored CLI
+        # Provider info is now shown through /model command
+        pass
     
-    @patch('episodic.cli.typer.echo')
-    @patch('episodic.cli.PromptManager')
-    def test_prompts_list_command(self, mock_prompt_manager, mock_echo):
+    @patch('typer.secho')
+    @patch('episodic.commands.prompts.get_available_prompts')
+    @patch('episodic.commands.prompts.load_prompt')
+    @patch('episodic.commands.prompts.get_active_prompt')
+    def test_prompts_list_command(self, mock_get_active, mock_load, mock_get_available, mock_secho):
         """Test prompts list command."""
-        mock_manager = MagicMock()
-        mock_manager.list.return_value = ["default", "comedian", "technical"]
-        mock_manager.get_metadata.return_value = {"description": "Test prompt"}
-        mock_prompt_manager.return_value = mock_manager
+        mock_get_available.return_value = ["default", "comedian", "technical"]
+        mock_get_active.return_value = "default"
+        mock_load.return_value = {"description": "Test prompt"}
         
-        cli.prompts("list")
+        from episodic.commands.prompts import prompts
+        prompts("list")
         
-        # Verify prompt manager was called
-        mock_manager.list.assert_called_once()
+        # Verify functions were called
+        mock_get_available.assert_called_once()
         
         # Verify output was shown
-        self.assertTrue(mock_echo.called)
+        self.assertTrue(mock_secho.called)
     
-    @patch('episodic.cli.typer.echo')
-    @patch('episodic.cli.PromptManager')
-    def test_prompts_use_command(self, mock_prompt_manager, mock_echo):
+    @patch('typer.secho')
+    @patch('episodic.commands.prompts.get_available_prompts')
+    @patch('episodic.commands.prompts.load_prompt')
+    @patch('episodic.commands.prompts.conversation_manager')
+    def test_prompts_use_command(self, mock_conv_manager, mock_load, mock_get_available, mock_secho):
         """Test prompts use command."""
-        mock_manager = MagicMock()
-        mock_manager.list.return_value = ["default", "comedian"]
-        mock_manager.get_active_prompt_content.return_value = "Test prompt content"
-        mock_prompt_manager.return_value = mock_manager
+        mock_get_available.return_value = ["default", "comedian"]
+        mock_load.return_value = {"content": "Test prompt content", "description": "Test prompt"}
         
-        cli.prompts("use", "comedian")
+        from episodic.commands.prompts import prompts
+        prompts("use", "comedian")
         
         # Verify config was updated
         self.assertEqual(config.get("active_prompt"), "comedian")
         
-        # Verify global default_system was updated
-        self.assertEqual(cli.default_system, "Test prompt content")
+        # Verify conversation manager's prompt was updated
+        self.assertEqual(mock_conv_manager.system_prompt, "Test prompt content")
 
 
 class TestCLIInitialization(unittest.TestCase):

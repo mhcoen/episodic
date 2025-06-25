@@ -80,14 +80,20 @@ class TestPromptCachingImplementation(unittest.TestCase):
     
     def test_disable_cache_function(self):
         """Test the disable_cache function."""
-        with patch('episodic.llm.litellm') as mock_litellm:
+        # Mock the actual litellm module that disable_cache imports
+        with patch('litellm.cache', new=Mock()) as mock_cache:
             llm.disable_cache()
             
             # Should update config
             self.assertFalse(config.get("use_context_cache"))
             
-            # Should disable litellm cache
-            self.assertIsNone(mock_litellm.cache)
+        # After patching, litellm.cache should have been set to None
+        # We need to check this by patching at the import level
+        import litellm
+        with patch.object(litellm, 'cache', Mock()):
+            llm.disable_cache()
+            # The disable_cache function sets it to None
+            self.assertIsNone(litellm.cache)
     
     @patch('episodic.llm.supports_prompt_caching')
     def test_anthropic_cache_control_application(self, mock_supports_caching):
@@ -198,7 +204,15 @@ class TestCacheMetricsAndCostCalculation(unittest.TestCase):
         self.mock_response.usage.prompt_tokens_details = Mock()
         self.mock_response.usage.prompt_tokens_details.cached_tokens = 800
         
-        mock_cost.return_value = [0.01]
+        # Mock cost_per_token to return consistent values
+        # First call: total_cost calculation (full prompt + completion)
+        # Second call: actual_cost calculation (non-cached prompt + completion)
+        # Third call: cached_cost calculation (cached tokens only)
+        mock_cost.side_effect = [
+            [0.01],  # total_cost: 1000 prompt + 100 completion = 0.01
+            [0.003], # actual_cost: 200 non-cached + 100 completion = 0.003
+            [0.008]  # cached_cost: 800 cached tokens = 0.008 (before discount)
+        ]
         
         with patch('episodic.llm.get_current_provider', return_value='openai'):
             with patch('episodic.llm.get_model_string', return_value='openai/gpt-4'):
@@ -214,7 +228,10 @@ class TestCacheMetricsAndCostCalculation(unittest.TestCase):
         self.assertIn("cache_savings_usd", cost_info)
         
         # Cost should be lower due to caching
+        # total_cost = 0.01, total_cost_with_cache = 0.003 + (0.008 * 0.5) = 0.007
+        # savings = 0.01 - 0.007 = 0.003
         self.assertGreater(cost_info["cache_savings_usd"], 0)
+        self.assertAlmostEqual(cost_info["cache_savings_usd"], 0.003, places=6)
     
     def test_cache_metrics_without_prompt_tokens_details(self):
         """Test handling when prompt_tokens_details is not available."""
@@ -253,17 +270,17 @@ class TestCacheIntegrationWithCLI(unittest.TestCase):
         else:
             config.delete("use_context_cache")
     
-    @patch('episodic.llm.enable_cache')
+    @patch('episodic.commands.settings.enable_cache')
     def test_cli_cache_enable_command(self, mock_enable):
         """Test CLI command to enable cache."""
-        from episodic.cli import set as cli_set
+        from episodic.commands.settings import set as cli_set
         cli_set("cache", "on")
         mock_enable.assert_called_once()
     
-    @patch('episodic.llm.disable_cache')
+    @patch('episodic.commands.settings.disable_cache')
     def test_cli_cache_disable_command(self, mock_disable):
         """Test CLI command to disable cache."""
-        from episodic.cli import set as cli_set
+        from episodic.commands.settings import set as cli_set
         cli_set("cache", "off")
         mock_disable.assert_called_once()
     

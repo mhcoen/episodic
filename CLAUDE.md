@@ -1,9 +1,21 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Episodic is a conversational DAG-based memory agent that creates persistent, navigable conversations with language models. It stores conversation history as a directed acyclic graph where each node represents a conversational exchange.
+
 ## Current Session Context
 
 ### Last Working Session (2025-06-25)
-Fixed topic naming to analyze content when topics close, rather than using the triggering message. Re-implemented the /summary command after it was lost during code revert.
+- Fixed streaming output duplication in constant-rate mode
+- Improved word wrapping and list indentation
+- Added markdown bold (**text**) support
+- Cleaned up CLI code and removed unused imports
+- Fixed test suite issues (cache tests, config initialization)
+- Simplified testing approach - removed over-engineered test infrastructure
+- Updated documentation to reflect simplified testing
 
 ### Key System Understanding
 
@@ -43,18 +55,80 @@ Fixed topic naming to analyze content when topics close, rather than using the t
 - `scripts/test-topic-naming.txt` - Simple topic transitions
 - `scripts/test-final-topic.txt` - Tests final topic handling
 
-### Common Commands for Testing
+### Common Development Commands
+
+#### Installation & Setup
 ```bash
-# Full test with debug
-echo -e "/init --erase\n/set debug on\n/script scripts/test-complex-topics.txt\n/topics\n/exit" | python -m episodic
+# Install in development mode
+pip install -e .
 
-# Check topics after test
-python -m episodic
-> /topics
-> /exit
-
-# Test summary
-> /summary
-> /summary 5
-> /summary all
+# Install required dependencies
+pip install typer  # Required for CLI functionality
 ```
+
+#### Running the Application
+```bash
+# Start the main CLI interface
+python -m episodic
+
+# Within the CLI, initialize database
+> /init
+
+# Start visualization server
+> /visualize
+```
+
+#### Testing
+```bash
+# Run all unit tests
+python -m unittest discover episodic "test_*.py"
+
+# Run specific test modules
+python -m unittest episodic.test_core
+python -m unittest episodic.test_db
+python -m unittest episodic.test_integration
+
+# Run interactive/manual tests
+python -m episodic.test_interactive_features
+
+# Test coverage
+pip install coverage
+coverage run -m unittest discover episodic "test_*.py"
+coverage report -m
+```
+
+### Architecture
+
+#### Core Components
+- **Node/ConversationDAG** (`core.py`): Core data structures representing conversation nodes and the DAG
+- **Database Layer** (`db.py`): SQLite-based persistence with thread-safe connection handling
+- **LLM Integration** (`llm.py`): Multi-provider LLM interface using LiteLLM with context caching
+- **CLI Interface** (`cli.py`): Typer-based command-line interface with talk-first design
+- **Visualization** (`visualization.py`): NetworkX and Plotly-based graph visualization with real-time updates
+- **Configuration** (`config.py`): Application configuration management
+
+#### Key Design Patterns
+- **Thread-safe database operations**: Uses thread-local connections and context managers
+- **Provider-agnostic LLM calls**: Abstracts different LLM providers (OpenAI, Anthropic, Ollama, etc.) through LiteLLM
+- **Short node IDs**: Human-readable 2-character IDs for easy navigation
+- **Branching conversations**: DAG structure allows conversation branching and merging
+- **Real-time visualization**: HTTP polling for live graph updates
+
+#### Database Schema
+- Nodes table with id, short_id, message, timestamp, parent_id, model_name, system_prompt, response
+- SQLite with full-text search capabilities
+- Configurable database path via EPISODIC_DB_PATH environment variable
+
+#### LLM Integration Details
+- Prompt caching enabled by default for performance (using LiteLLM prompt caching)
+- Cost tracking for token usage with cache discount calculations
+- Multiple provider support via LiteLLM
+- Model selection via numbered list or direct specification
+- Configurable context depth for conversation history
+
+### Development Notes
+- Entry point is `episodic/__main__.py` which delegates to `cli.py`
+- Tests include both automated unit tests and interactive manual tests
+- HTTP polling-based real-time functionality verification
+- Prompt management system with role-based prompts in `prompts/` directory
+- Configuration stored in episodic.db alongside conversation data

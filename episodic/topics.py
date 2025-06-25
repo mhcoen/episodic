@@ -466,7 +466,9 @@ Topic:"""
                 
                 # Only show if topics are actually different
                 if prev_name != curr_name:
-                    typer.echo(f"\nTopic evolution: {prev_name} (completed) → {curr_name} (active)")
+                    # Topic evolution display disabled - provides little value since topics are named retroactively
+                    pass
+                    # typer.echo(f"\nTopic evolution: {prev_name} (completed) → {curr_name} (active)")
                 
         except Exception as e:
             if config.get("debug", False):

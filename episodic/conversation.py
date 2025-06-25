@@ -451,6 +451,9 @@ class ConversationManager:
                             current_word = ""
                             current_position = 0
                             wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
+                            at_line_start = True
+                            in_list_item = False
+                            list_indent = ""
                             
                             
                             for chunk in process_stream_response(stream_generator, model):
@@ -466,17 +469,36 @@ class ConversationManager:
                                     if char in ' \n':
                                         # End of word or line
                                         if current_word:
+                                            # Check if this is a list item at start of line
+                                            if at_line_start:
+                                                if (len(current_word) <= 3 and current_word.endswith('.') and current_word[:-1].isdigit()) or current_word in ['-', '*', '•']:
+                                                    # This is a list marker
+                                                    in_list_item = True
+                                                    list_indent = "      "  # 6 spaces to align with text after "1. "
+                                                elif not current_word[0].isdigit() and current_word not in ['-', '*', '•']:
+                                                    # Not a list item, reset list state
+                                                    in_list_item = False
+                                                    list_indent = ""
+                                            
                                             # Check if we need to wrap before printing this word
                                             word_len = len(current_word)
-                                            if current_position > 0 and current_position + word_len + 1 > wrap_width:
+                                            effective_width = wrap_width - len(list_indent) if in_list_item and not at_line_start else wrap_width
+                                            
+                                            if current_position > 0 and current_position + word_len + 1 > effective_width:
                                                 # Wrap to next line
                                                 typer.secho("\n", fg=get_llm_color(), nl=False)
-                                                current_position = 0
+                                                if in_list_item and not at_line_start:
+                                                    # Add indent for wrapped lines in lists
+                                                    typer.secho(list_indent, fg=get_llm_color(), nl=False)
+                                                    current_position = len(list_indent)
+                                                else:
+                                                    current_position = 0
                                             
                                             # Print the word
                                             typer.secho(current_word, fg=get_llm_color(), nl=False)
                                             current_position += word_len
                                             current_word = ""
+                                            at_line_start = False
                                         
                                         # Handle the delimiter
                                         if char == ' ' and current_position < wrap_width:
@@ -485,14 +507,20 @@ class ConversationManager:
                                         elif char == '\n':
                                             typer.secho("\n", fg=get_llm_color(), nl=False)
                                             current_position = 0
+                                            at_line_start = True
+                                            # Check if we're ending a list item (next line doesn't start with a number)
+                                            # We'll reset this when we see the next line's content
                                     else:
                                         # Build up the current word
                                         current_word += char
                             
                             # Print any remaining word
                             if current_word:
-                                if current_position > 0 and current_position + len(current_word) > wrap_width:
+                                effective_width = wrap_width - len(list_indent) if in_list_item and not at_line_start else wrap_width
+                                if current_position > 0 and current_position + len(current_word) > effective_width:
                                     typer.secho("\n", fg=get_llm_color(), nl=False)
+                                    if in_list_item and not at_line_start:
+                                        typer.secho(list_indent, fg=get_llm_color(), nl=False)
                                 typer.secho(current_word, fg=get_llm_color(), nl=False)
                         
                         # Get the full response and cost info

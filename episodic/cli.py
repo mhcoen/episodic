@@ -9,8 +9,14 @@ import sys
 import os
 import shlex
 import time
+import readline
+import atexit
 from typing import Optional, List
 from datetime import datetime
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.formatted_text import HTML
 
 from episodic.config import config
 from episodic.configuration import (
@@ -305,11 +311,17 @@ def execute_script(filename: str):
                     else:
                         break
             
-            typer.secho("\n─" * 50, fg=get_heading_color())
+            typer.secho("\n" + "─" * 50, fg=get_heading_color())
             typer.secho("✅ Script execution completed", fg=get_system_color())
             
         except Exception as e:
             typer.secho(f"Error reading script: {str(e)}", fg="red", err=True)
+
+
+def setup_readline():
+    """Set up readline for command history with arrow keys."""
+    # No longer needed - prompt_toolkit handles this
+    pass
 
 
 def save_to_history(message: str):
@@ -336,6 +348,9 @@ def setup_environment():
     """Set up the environment for the CLI."""
     # Initialize database
     init_db()
+    
+    # Set up readline for command history
+    setup_readline()
     
     # Load active prompt
     active_prompt = config.get("active_prompt", "default")
@@ -371,16 +386,44 @@ def talk_loop() -> None:
     typer.secho("Welcome to Episodic! Type '/help' for commands or start chatting.", 
                fg=get_system_color())
     
+    # Set up prompt_toolkit session with history
+    history_file = os.path.expanduser("~/.episodic_history")
+    session = PromptSession(
+        history=FileHistory(history_file),
+        auto_suggest=AutoSuggestFromHistory(),
+        enable_history_search=True
+    )
+    
     while True:
         try:
-            # Get user input with styled prompt
-            user_input = typer.prompt("", prompt_suffix=get_prompt()).strip()
+            # Get the prompt with color
+            color_mode = config.get("color_mode", "full")
+            if color_mode == "none":
+                prompt_html = "> "
+            else:
+                # Get color based on color scheme
+                from episodic.configuration import get_color_scheme
+                color_map = {
+                    'green': '#00ff00',
+                    'blue': '#0000ff',
+                    'cyan': '#00ffff',
+                    'magenta': '#ff00ff',
+                    'yellow': '#ffff00',
+                    'red': '#ff0000',
+                    'white': '#ffffff'
+                }
+                color_name = get_color_scheme()["prompt"].lower()
+                hex_color = color_map.get(color_name, '#00ff00')
+                prompt_html = HTML(f'<ansigreen><b>&gt; </b></ansigreen>')
+            
+            # Get user input with full readline support
+            user_input = session.prompt(prompt_html).strip()
             
             # Skip empty input
             if not user_input:
                 continue
             
-            # Save to history
+            # Save to history (for our custom history file too)
             save_to_history(user_input)
             
             # Check if it's a command

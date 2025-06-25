@@ -105,8 +105,15 @@ def _display_node_details(node: Dict) -> None:
 def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing database")):
     """Initialize the database."""
     from episodic.benchmark import benchmark_operation
+    from episodic.db import database_exists
     
     with benchmark_operation("Database initialization"):
+        # Check if database already exists
+        if database_exists() and not erase:
+            typer.secho("⚠️  Database already exists!", fg="yellow")
+            typer.secho("Use '/init --erase' or '/init -e' to erase and start fresh.", fg=get_system_color())
+            return
+        
         if erase:
             typer.secho("🗑️  Erasing existing database...", fg=get_system_color())
         

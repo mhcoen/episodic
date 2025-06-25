@@ -446,11 +446,50 @@ class ConversationManager:
                             printer_thread.join()
                             
                         else:
-                            # Immediate streaming - print chunks as they arrive
+                            # Immediate streaming with proper word wrapping
+                            current_line = ""
+                            line_length = 0
+                            wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
+                            
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
-                                # Print each chunk immediately without buffering
-                                typer.secho(chunk, fg=get_llm_color(), nl=False)
+                                
+                                # If wrapping is disabled, just print the chunk
+                                if not wrap_width:
+                                    typer.secho(chunk, fg=get_llm_color(), nl=False)
+                                    continue
+                                
+                                # Process each character in the chunk for wrapping
+                                for char in chunk:
+                                    if char == '\n':
+                                        # Print the current line and start a new one
+                                        typer.secho(current_line, fg=get_llm_color())
+                                        current_line = ""
+                                        line_length = 0
+                                    else:
+                                        # Add character to current line
+                                        current_line += char
+                                        line_length += 1
+                                        
+                                        # Check if we need to wrap
+                                        if line_length >= wrap_width:
+                                            # Find last space for word boundary
+                                            last_space = current_line.rfind(' ')
+                                            if last_space > 0 and last_space < len(current_line) - 1:
+                                                # Print up to the last space
+                                                typer.secho(current_line[:last_space], fg=get_llm_color())
+                                                # Continue with the rest, indented
+                                                current_line = "   " + current_line[last_space+1:]
+                                                line_length = len(current_line)
+                                            else:
+                                                # No good break point, print as is and continue
+                                                typer.secho(current_line, fg=get_llm_color(), nl=False)
+                                                current_line = ""
+                                                line_length = 0
+                            
+                            # Print any remaining content
+                            if current_line:
+                                typer.secho(current_line, fg=get_llm_color(), nl=False)
                         
                         # Get the full response and cost info
                         display_response = ''.join(full_response_parts)

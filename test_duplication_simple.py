@@ -32,7 +32,7 @@ def test_streaming():
     # Enable streaming
     config.set("stream_responses", True)
     config.set("debug", False)  # Disable debug for clean output
-    config.set("stream_constant_rate", False)  # Test immediate streaming
+    config.set("stream_constant_rate", True)  # Test constant-rate streaming
     
     print("=== Testing with streaming enabled ===")
     

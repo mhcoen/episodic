@@ -1697,9 +1697,9 @@ Summary:"""
                 
         except Exception as e:
             typer.echo(f"Error generating summary: {e}")
-        if config.get("debug", False):
-            import traceback
-            traceback.print_exc()
+            if config.get("debug", False):
+                import traceback
+                traceback.print_exc()
 
 
 def help():

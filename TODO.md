@@ -1,38 +1,58 @@
 # Episodic Project TODO
 
-## Semantic Drift Performance Optimization
+## Completed ✅
+
+### Topic Detection & Management
+- [x] **Implement LLM-based topic detection** - Uses ollama/llama3 for efficient detection
+- [x] **Add topic extraction function** - `extract_topic_ollama()` implemented
+- [x] **Database schema** - Topics table with name, start/end nodes, confidence
+- [x] **Implement `/topics` command** - Shows topics with ranges and node counts
+- [x] **Topic storage/retrieval** - Full CRUD operations for topics
+- [x] **Optional topic display** - `/set show_topics true` shows topic evolution
+- [x] **Fix topic naming** - Topics named based on content, not trigger message
+- [x] **Topic detection prompt optimization** - Simplified for ollama/llama3 compatibility
+
+### Compression System
+- [x] **Async background compression** - Thread-based worker with priority queue
+- [x] **Auto-compression on topic change** - Topics compressed when closed
+- [x] **Compression statistics** - `/compression-stats` command
+- [x] **Configurable compression** - Model, min nodes, notifications via `/set`
+
+### UI/UX Improvements
+- [x] **Color scheme adaptation** - Supports light/dark terminals
+- [x] **Colored help display** - Commands and descriptions with proper formatting
+- [x] **Benchmark system** - Performance tracking with `/benchmark` command
+- [x] **Summary command** - `/summary [N|all]` for conversation summaries
+- [x] **Benchmark display after commands** - Shows benchmarks after commands when enabled
+
+## In Progress 🚧
+
+### Topic Management Enhancements
+- [ ] **Running topic guess** - Update tentative topic names periodically
+- [ ] **Fix first topic creation** - Initial topic not always created properly
+
+## Pending 📋
 
 ### High Priority
-- [ ] **Reduce drift calculation slowdown** - Switch back to faster embedding model (`all-MiniLM-L6-v2` vs current `paraphrase-mpnet-base-v2`) to improve CLI responsiveness
-- [ ] **Implement LLM-based topic detection** - Replace embedding-based drift with LLM prompt-based detection for better accuracy on conversational text
-- [ ] **Add async drift processing** - Calculate drift in background to eliminate user-facing delays
+- [ ] **Manual compression trigger** - `/compress topic-name` command
+- [ ] **Topic-based navigation** - Jump to specific topics in history
 
 ### Medium Priority  
-- [ ] **Improve drift accuracy** - Current embedding approach shows high drift (0.6-0.9) for semantically similar short sentences
-- [ ] **Better caching strategy** - Optimize embedding cache to reduce redundant calculations
+- [ ] **Improve drift accuracy** - Current embedding approach shows high drift for similar sentences
+- [ ] **Async drift processing** - Calculate drift in background to reduce delays
 
 ### Low Priority
-- [ ] **Tokenizer warning cleanup** - Already addressed with `TOKENIZERS_PARALLELISM=false`
+- [ ] **Move debug messages** - Topic detection debug should appear after LLM response
+- [ ] **Topic refinement UI** - Allow manual topic name editing
+- [ ] **Export topics** - Export topic summaries to markdown
 
-## Silent LLM Topic Extraction Implementation
-
-### Phase 1: Basic Infrastructure
-- [ ] **Add topic extraction function** - Create `extract_topic_ollama()` function with prompt design
-- [ ] **Database schema** - Add topics table to store topic names and conversation ranges
-- [ ] **Integration point** - Hook topic extraction into existing LLM change detection
-
-### Phase 2: `/topics` Command
-- [ ] **Implement `/topics` command** - Show recent topics with conversation ranges and confidence
-- [ ] **Topic storage/retrieval** - Store extracted topics with node ranges in database
-- [ ] **Testing and refinement** - Test topic extraction quality and adjust prompts
-
-### Phase 3: Optional Features  
-- [ ] **Optional topic display** - Add `/set topics true` to show topic evolution in CLI
-- [ ] **Topic navigation** - Allow jumping to topic ranges in conversation history
-- [ ] **Topic refinement** - Improve extraction prompts based on real usage
+## Technical Debt 🔧
+- [ ] **Reduce drift calculation overhead** - Consider faster embedding model
+- [ ] **Better embedding cache strategy** - Optimize to reduce redundant calculations
+- [ ] **Clean up test files** - Remove old test scripts and consolidate
 
 ## Notes
-- Current drift detection compares consecutive user messages only (not assistant responses)
-- LLM-based detection would use confidence levels: change-high, change-medium, change-low
-- Silent topic extraction uses Ollama (free) to avoid interrupting conversation flow
-- Performance vs accuracy tradeoff between fast/inaccurate vs slow/better models
+- Topic detection uses configurable model (default: ollama/llama3)
+- Compression happens automatically when topics close
+- Current active topic shows as "ongoing-discussion" until closed
+- Running topic guess is configurable via `/set running_topic_guess`

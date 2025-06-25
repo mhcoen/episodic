@@ -40,7 +40,7 @@ from episodic.conversation import (
 )
 from episodic.benchmark import (
     benchmark_operation, benchmark_resource, display_benchmark_summary,
-    reset_benchmarks
+    reset_benchmarks, display_pending_benchmark
 )
 
 # Set up logging
@@ -1599,69 +1599,70 @@ def summary(count: Optional[int] = None):
     """
     global current_node_id
     
-    try:
-        # Handle special case for 'all'
-        if count == -1:  # We'll use -1 to represent 'all'
-            # Get all messages from root
-            all_nodes = get_ancestry(current_node_id)
-            nodes_to_summarize = all_nodes
-            summary_desc = "entire conversation"
-        else:
-            # Determine what to summarize
-            if count is None:
-                # Check if we're in a topic
-                recent_topics = get_recent_topics(limit=1)
-                if recent_topics:
-                    current_topic = recent_topics[0]
-                    # Get nodes in current topic
-                    topic_nodes = []
-                    ancestry = get_ancestry(current_node_id)
-                    
-                    # Find nodes within topic boundaries
-                    in_topic = False
-                    for node in ancestry:
-                        if node['id'] == current_topic['start_node_id']:
-                            in_topic = True
-                        if in_topic:
-                            topic_nodes.append(node)
-                        if node['id'] == current_topic['end_node_id']:
-                            break
-                    
-                    if len(topic_nodes) > 0:
-                        nodes_to_summarize = topic_nodes
-                        summary_desc = f"current topic '{current_topic['name']}'"
+    with benchmark_operation("Summary Generation"):
+        try:
+            # Handle special case for 'all'
+            if count == -1:  # We'll use -1 to represent 'all'
+                # Get all messages from root
+                all_nodes = get_ancestry(current_node_id)
+                nodes_to_summarize = all_nodes
+                summary_desc = "entire conversation"
+            else:
+                # Determine what to summarize
+                if count is None:
+                    # Check if we're in a topic
+                    recent_topics = get_recent_topics(limit=1)
+                    if recent_topics:
+                        current_topic = recent_topics[0]
+                        # Get nodes in current topic
+                        topic_nodes = []
+                        ancestry = get_ancestry(current_node_id)
+                        
+                        # Find nodes within topic boundaries
+                        in_topic = False
+                        for node in ancestry:
+                            if node['id'] == current_topic['start_node_id']:
+                                in_topic = True
+                            if in_topic:
+                                topic_nodes.append(node)
+                            if node['id'] == current_topic['end_node_id']:
+                                break
+                        
+                        if len(topic_nodes) > 0:
+                            nodes_to_summarize = topic_nodes
+                            summary_desc = f"current topic '{current_topic['name']}'"
+                        else:
+                            # Fallback to last 20 messages
+                            nodes_to_summarize = get_recent_nodes(limit=20)
+                            summary_desc = "last 20 messages"
                     else:
-                        # Fallback to last 20 messages
+                        # No topics, use last 20 messages
                         nodes_to_summarize = get_recent_nodes(limit=20)
                         summary_desc = "last 20 messages"
                 else:
-                    # No topics, use last 20 messages
-                    nodes_to_summarize = get_recent_nodes(limit=20)
-                    summary_desc = "last 20 messages"
-            else:
-                # Use specified count
-                nodes_to_summarize = get_recent_nodes(limit=count)
-                summary_desc = f"last {count} messages"
-        
-        if not nodes_to_summarize:
-            typer.echo("No messages to summarize.")
-            return
-        
-        # Build conversation text for summary
-        conversation_parts = []
-        for node in reversed(nodes_to_summarize):  # Reverse to get chronological order
-            role = node.get('role', 'unknown')
-            content = node.get('content', '').strip()
-            if content:
-                if role == 'user':
-                    conversation_parts.append(f"User: {content}")
-                elif role == 'assistant':
-                    conversation_parts.append(f"Assistant: {content}")
-        
-        conversation_text = "\n\n".join(conversation_parts)
-        
-        # Generate summary using LLM
-        summary_prompt = f"""Please provide a concise summary of the following conversation ({summary_desc}).
+                    # Use specified count
+                    nodes_to_summarize = get_recent_nodes(limit=count)
+                    summary_desc = f"last {count} messages"
+            
+            if not nodes_to_summarize:
+                typer.echo("No messages to summarize.")
+                return
+            
+            # Build conversation text for summary
+            conversation_parts = []
+            for node in reversed(nodes_to_summarize):  # Reverse to get chronological order
+                role = node.get('role', 'unknown')
+                content = node.get('content', '').strip()
+                if content:
+                    if role == 'user':
+                        conversation_parts.append(f"User: {content}")
+                    elif role == 'assistant':
+                        conversation_parts.append(f"Assistant: {content}")
+            
+            conversation_text = "\n\n".join(conversation_parts)
+            
+            # Generate summary using LLM
+            summary_prompt = f"""Please provide a concise summary of the following conversation ({summary_desc}).
 
 Include:
 - Main topics discussed
@@ -1673,29 +1674,29 @@ Conversation:
 {conversation_text}
 
 Summary:"""
-        
-        typer.echo(f"\nGenerating summary of {summary_desc}...")
-        
-        with benchmark_resource("LLM Call", "conversation summary"):
-            response, cost_info = query_llm(
-                summary_prompt,
-                model=default_model,
-                max_tokens=500
-            )
-        
-        if response:
-            typer.secho("\n📝 Conversation Summary", fg=get_heading_color(), bold=True)
-            typer.echo(f"Scope: {summary_desc} ({len(nodes_to_summarize)} messages)")
-            typer.echo("")
-            wrapped_text_print(response, fg=get_text_color())
             
-            if cost_info and config.get("show_cost", False):
-                typer.echo(f"\nCost: ${cost_info.get('cost_usd', 0.0):.6f} USD")
-        else:
-            typer.echo("Failed to generate summary.")
+            typer.echo(f"\nGenerating summary of {summary_desc}...")
             
-    except Exception as e:
-        typer.echo(f"Error generating summary: {e}")
+            with benchmark_resource("LLM Call", "conversation summary"):
+                response, cost_info = query_llm(
+                    summary_prompt,
+                    model=default_model,
+                    max_tokens=500
+                )
+            
+            if response:
+                typer.secho("\n📝 Conversation Summary", fg=get_heading_color(), bold=True)
+                typer.echo(f"Scope: {summary_desc} ({len(nodes_to_summarize)} messages)")
+                typer.echo("")
+                wrapped_text_print(response, fg=get_text_color())
+                
+                if cost_info and config.get("show_cost", False):
+                    typer.echo(f"\nCost: ${cost_info.get('cost_usd', 0.0):.6f} USD")
+            else:
+                typer.echo("Failed to generate summary.")
+                
+        except Exception as e:
+            typer.echo(f"Error generating summary: {e}")
         if config.get("debug", False):
             import traceback
             traceback.print_exc()
@@ -2059,6 +2060,10 @@ def _handle_command(command_text: str) -> bool:
             typer.echo("Type '/help' for available commands.")
     except Exception as e:
         typer.echo(f"Error executing command: {str(e)}")
+    
+    # Display any pending benchmarks after command execution
+    if config.get("benchmark_display", False):
+        display_pending_benchmark()
     
     return False  # Don't exit
 

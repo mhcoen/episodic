@@ -446,11 +446,10 @@ class ConversationManager:
                             printer_thread.join()
                             
                         else:
-                            # Immediate streaming with word-by-word output and wrapping
-                            current_line = ""
-                            line_length = 0
+                            # Immediate streaming with word-by-word output
+                            current_word = ""
+                            current_position = 0
                             wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
-                            accumulated_word = ""
                             
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
@@ -460,45 +459,39 @@ class ConversationManager:
                                     typer.secho(chunk, fg=get_llm_color(), nl=False)
                                     continue
                                 
-                                # Process each character in the chunk
+                                # Process the chunk
                                 for char in chunk:
-                                    if char == '\n':
-                                        # Print any accumulated word
-                                        if accumulated_word:
-                                            typer.secho(accumulated_word, fg=get_llm_color(), nl=False)
-                                            accumulated_word = ""
-                                        # End the current line
-                                        typer.echo("")
-                                        current_line = ""
-                                        line_length = 0
-                                    elif char == ' ':
-                                        # We've completed a word
-                                        if accumulated_word:
-                                            # Check if adding this word would exceed wrap width
-                                            word_length = len(accumulated_word) + 1  # +1 for the space
-                                            if line_length + word_length > wrap_width and line_length > 0:
-                                                # Need to wrap - start a new line
-                                                typer.echo("")
-                                                typer.secho("   ", fg=get_llm_color(), nl=False)
-                                                current_line = "   "
-                                                line_length = 3
+                                    if char in ' \n':
+                                        # End of word or line
+                                        if current_word:
+                                            # Check if we need to wrap before printing this word
+                                            word_len = len(current_word)
+                                            if current_position > 0 and current_position + word_len + 1 > wrap_width:
+                                                # Wrap to next line with indent
+                                                typer.secho("\n   ", fg=get_llm_color(), nl=False)
+                                                current_position = 3
                                             
-                                            # Print the word with its trailing space
-                                            typer.secho(accumulated_word + " ", fg=get_llm_color(), nl=False)
-                                            current_line += accumulated_word + " "
-                                            line_length += word_length
-                                            accumulated_word = ""
+                                            # Print the word
+                                            typer.secho(current_word, fg=get_llm_color(), nl=False)
+                                            current_position += word_len
+                                            current_word = ""
+                                        
+                                        # Handle the delimiter
+                                        if char == ' ' and current_position < wrap_width:
+                                            typer.secho(" ", fg=get_llm_color(), nl=False)
+                                            current_position += 1
+                                        elif char == '\n':
+                                            typer.secho("\n", fg=get_llm_color(), nl=False)
+                                            current_position = 0
                                     else:
-                                        # Accumulate characters into current word
-                                        accumulated_word += char
+                                        # Build up the current word
+                                        current_word += char
                             
                             # Print any remaining word
-                            if accumulated_word:
-                                # Check if we need to wrap for the final word
-                                if line_length + len(accumulated_word) > wrap_width and line_length > 0:
-                                    typer.echo("")
-                                    typer.secho("   ", fg=get_llm_color(), nl=False)
-                                typer.secho(accumulated_word, fg=get_llm_color(), nl=False)
+                            if current_word:
+                                if current_position > 0 and current_position + len(current_word) > wrap_width:
+                                    typer.secho("\n   ", fg=get_llm_color(), nl=False)
+                                typer.secho(current_word, fg=get_llm_color(), nl=False)
                         
                         # Get the full response and cost info
                         display_response = ''.join(full_response_parts)

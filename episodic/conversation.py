@@ -446,10 +446,11 @@ class ConversationManager:
                             printer_thread.join()
                             
                         else:
-                            # Immediate streaming with proper word wrapping
+                            # Immediate streaming with word-by-word output and wrapping
                             current_line = ""
                             line_length = 0
                             wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
+                            accumulated_word = ""
                             
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
@@ -459,37 +460,45 @@ class ConversationManager:
                                     typer.secho(chunk, fg=get_llm_color(), nl=False)
                                     continue
                                 
-                                # Process each character in the chunk for wrapping
+                                # Process each character in the chunk
                                 for char in chunk:
                                     if char == '\n':
-                                        # Print the current line and start a new one
-                                        typer.secho(current_line, fg=get_llm_color())
+                                        # Print any accumulated word
+                                        if accumulated_word:
+                                            typer.secho(accumulated_word, fg=get_llm_color(), nl=False)
+                                            accumulated_word = ""
+                                        # End the current line
+                                        typer.echo("")
                                         current_line = ""
                                         line_length = 0
+                                    elif char == ' ':
+                                        # We've completed a word
+                                        if accumulated_word:
+                                            # Check if adding this word would exceed wrap width
+                                            word_length = len(accumulated_word) + 1  # +1 for the space
+                                            if line_length + word_length > wrap_width and line_length > 0:
+                                                # Need to wrap - start a new line
+                                                typer.echo("")
+                                                typer.secho("   ", fg=get_llm_color(), nl=False)
+                                                current_line = "   "
+                                                line_length = 3
+                                            
+                                            # Print the word with its trailing space
+                                            typer.secho(accumulated_word + " ", fg=get_llm_color(), nl=False)
+                                            current_line += accumulated_word + " "
+                                            line_length += word_length
+                                            accumulated_word = ""
                                     else:
-                                        # Add character to current line
-                                        current_line += char
-                                        line_length += 1
-                                        
-                                        # Check if we need to wrap
-                                        if line_length >= wrap_width:
-                                            # Find last space for word boundary
-                                            last_space = current_line.rfind(' ')
-                                            if last_space > 0 and last_space < len(current_line) - 1:
-                                                # Print up to the last space
-                                                typer.secho(current_line[:last_space], fg=get_llm_color())
-                                                # Continue with the rest, indented
-                                                current_line = "   " + current_line[last_space+1:]
-                                                line_length = len(current_line)
-                                            else:
-                                                # No good break point, print as is and continue
-                                                typer.secho(current_line, fg=get_llm_color(), nl=False)
-                                                current_line = ""
-                                                line_length = 0
+                                        # Accumulate characters into current word
+                                        accumulated_word += char
                             
-                            # Print any remaining content
-                            if current_line:
-                                typer.secho(current_line, fg=get_llm_color(), nl=False)
+                            # Print any remaining word
+                            if accumulated_word:
+                                # Check if we need to wrap for the final word
+                                if line_length + len(accumulated_word) > wrap_width and line_length > 0:
+                                    typer.echo("")
+                                    typer.secho("   ", fg=get_llm_color(), nl=False)
+                                typer.secho(accumulated_word, fg=get_llm_color(), nl=False)
                         
                         # Get the full response and cost info
                         display_response = ''.join(full_response_parts)

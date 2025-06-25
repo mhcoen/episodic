@@ -122,7 +122,7 @@ class ConversationManager:
                         stripped, 
                         width=wrap_width,
                         initial_indent=indent,
-                        subsequent_indent=indent + "  "  # Add slight extra indent for continuation
+                        subsequent_indent=indent  # Same indent as first line
                     )
                     wrapped_lines.append(wrapped)
                 else:
@@ -341,7 +341,7 @@ class ConversationManager:
                         typer.echo("")
                         
                         # Stream the response with proper formatting
-                        typer.secho("🤖 ", fg=get_llm_color(), nl=False)
+                        typer.secho("🤖", fg=get_llm_color())  # Robot emoji with newline
                         
                         # Process the stream and display it
                         from episodic.llm import process_stream_response
@@ -383,7 +383,7 @@ class ConversationManager:
                                                             line,
                                                             width=wrap_width,
                                                             initial_indent="",
-                                                            subsequent_indent="   "
+                                                            subsequent_indent=""
                                                         )
                                                         typer.secho(wrapped, fg=get_llm_color())
                                                     else:
@@ -467,9 +467,9 @@ class ConversationManager:
                                             # Check if we need to wrap before printing this word
                                             word_len = len(current_word)
                                             if current_position > 0 and current_position + word_len + 1 > wrap_width:
-                                                # Wrap to next line with indent
-                                                typer.secho("\n   ", fg=get_llm_color(), nl=False)
-                                                current_position = 3
+                                                # Wrap to next line
+                                                typer.secho("\n", fg=get_llm_color(), nl=False)
+                                                current_position = 0
                                             
                                             # Print the word
                                             typer.secho(current_word, fg=get_llm_color(), nl=False)
@@ -490,7 +490,7 @@ class ConversationManager:
                             # Print any remaining word
                             if current_word:
                                 if current_position > 0 and current_position + len(current_word) > wrap_width:
-                                    typer.secho("\n   ", fg=get_llm_color(), nl=False)
+                                    typer.secho("\n", fg=get_llm_color(), nl=False)
                                 typer.secho(current_word, fg=get_llm_color(), nl=False)
                         
                         # Get the full response and cost info
@@ -574,11 +574,13 @@ class ConversationManager:
                             typer.echo("")
                             for msg in status_messages:
                                 typer.secho(msg, fg=get_system_color())
-                            self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
+                            typer.secho("🤖", fg=get_llm_color())
+                            self.wrapped_llm_print(display_response, fg=get_llm_color())
                         else:
                             # No status messages, just show blank line then LLM response
                             typer.echo("")  # Blank line
-                            self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
+                            typer.secho("🤖", fg=get_llm_color())
+                            self.wrapped_llm_print(display_response, fg=get_llm_color())
 
                 # Update session costs
                 if cost_info:

@@ -157,22 +157,11 @@ Answer:"""
                     typer.echo(f"   LLM response: {response}")
                 
                 if response.upper().startswith("YES:"):
-                    # Extract the new topic name
-                    topic_part = response[4:].strip()
-                    # Clean the topic name
-                    topic = topic_part.lower().strip()
-                    topic = topic.strip('"\'')
-                    topic = topic.replace(' ', '-')
-                    topic = re.sub(r'[^a-z0-9-]', '', topic)
-                    
-                    if topic:
-                        if config.get("debug", False):
-                            typer.echo(f"   ✅ Topic changed to: {topic}")
-                        return True, topic, cost_info
-                    else:
-                        if config.get("debug", False):
-                            typer.echo(f"   ⚠️ Topic changed but couldn't extract name")
-                        return True, None, cost_info
+                    # Don't extract topic name here - just return that a change was detected
+                    # The topic name will be extracted from the PREVIOUS topic's content
+                    if config.get("debug", False):
+                        typer.echo(f"   ✅ Topic change detected")
+                    return True, None, cost_info
                 else:
                     if config.get("debug", False):
                         typer.echo(f"   ➡️ Continuing same topic")

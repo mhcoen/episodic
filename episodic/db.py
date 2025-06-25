@@ -781,6 +781,28 @@ def update_topic_end_node(topic_name: str, start_node_id: str, new_end_node_id: 
         """, (new_end_node_id, topic_name, start_node_id))
 
 
+def update_topic_name(old_name: str, start_node_id: str, new_name: str):
+    """
+    Update the name of an existing topic.
+    
+    Args:
+        old_name: Current name of the topic
+        start_node_id: Start node ID (for verification)
+        new_name: New name for the topic
+    
+    Returns:
+        Number of rows updated
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            UPDATE topics 
+            SET name = ?
+            WHERE name = ? AND start_node_id = ?
+        """, (new_name, old_name, start_node_id))
+        return c.rowcount
+
+
 def store_compression(compressed_node_id: str, original_branch_head: str, 
                      original_node_count: int, original_words: int, compressed_words: int,
                      compression_ratio: float, strategy: str, duration_seconds: float = None):

@@ -1,0 +1,19 @@
+# Test script for new topic naming logic
+# Should demonstrate proper topic naming based on content
+
+# Start with Python discussion
+What is a Python decorator?
+How do I use list comprehensions?
+What's the difference between a list and a tuple?
+
+# Switch to cooking - previous topic should be named "python" or similar
+How do I make pasta carbonara?
+What temperature should I bake bread at?
+
+# Switch to space - previous topic should be named "cooking" or similar  
+How far is Mars from Earth?
+What is a black hole?
+
+# Switch to history - previous topic should be named "space" or similar
+When did the Roman Empire fall?
+Who was Cleopatra?

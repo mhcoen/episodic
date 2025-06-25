@@ -20,7 +20,7 @@ import typer
 from episodic.db import (
     insert_node, get_node, get_ancestry, get_head, set_head,
     get_recent_nodes, get_recent_topics, update_topic_end_node,
-    store_topic
+    store_topic, update_topic_name
 )
 from episodic.llm import query_with_context
 from episodic.llm_config import get_current_provider
@@ -384,25 +384,68 @@ class ConversationManager:
                     set_head(assistant_node_id)
                 
                 # Process topic changes based on our earlier detection
-                if topic_changed and new_topic_name:
-                    # End the previous topic if one exists
+                if topic_changed:
+                    # Topic change detected - close previous topic and start new one
                     recent_topics = get_recent_topics(limit=1)
                     if recent_topics:
                         previous_topic = recent_topics[0]
-                        # Update the previous topic to end at the last assistant message before this user message
                         # Find the parent of the user node (should be the last assistant message)
-                        parent_node = get_node(user_node_id).get('parent_id')
-                        if parent_node:
-                            update_topic_end_node(previous_topic['name'], previous_topic['start_node_id'], parent_node)
+                        user_node = get_node(user_node_id)
+                        if user_node and user_node.get('parent_id'):
+                            parent_node_id = user_node['parent_id']
+                            
+                            # Extract the topic name from the previous topic's content
+                            topic_nodes = []
+                            ancestry = get_ancestry(parent_node_id)
+                            
+                            # Collect nodes from the previous topic
+                            for node in ancestry:
+                                if node['id'] == previous_topic['start_node_id']:
+                                    topic_nodes.append(node)
+                                    # Continue collecting until we reach the end
+                                    for subsequent_node in ancestry[ancestry.index(node):]:
+                                        topic_nodes.append(subsequent_node)
+                                        if subsequent_node['id'] == parent_node_id:
+                                            break
+                                    break
+                            
+                            # Build conversation segment from the previous topic
+                            if topic_nodes:
+                                segment = build_conversation_segment(topic_nodes, max_length=2000)
+                                
+                                # Extract a proper name for the previous topic
+                                topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                
+                                # Add extraction costs to session
+                                if extract_cost_info:
+                                    self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                                    self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                                    self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                                    self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
+                                
+                                final_topic_name = topic_name if topic_name else previous_topic['name']
+                            else:
+                                final_topic_name = previous_topic['name']
+                            
+                            # Update the topic name if it changed
+                            if final_topic_name != previous_topic['name']:
+                                rows_updated = update_topic_name(previous_topic['name'], previous_topic['start_node_id'], final_topic_name)
+                                if config.get("debug", False):
+                                    typer.echo(f"   ✅ Updated topic name: '{previous_topic['name']}' → '{final_topic_name}' ({rows_updated} rows)")
+                            
+                            # Update the previous topic's end node
+                            update_topic_end_node(final_topic_name, previous_topic['start_node_id'], parent_node_id)
+                            
                             # Queue the old topic for compression
-                            queue_topic_for_compression(previous_topic['start_node_id'], parent_node, previous_topic['name'])
+                            queue_topic_for_compression(previous_topic['start_node_id'], parent_node_id, final_topic_name)
                             if config.get("debug", False):
-                                typer.echo(f"   📦 Queued topic '{previous_topic['name']}' for compression")
+                                typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
                 
-                    # Create the new topic starting from this user message
-                    store_topic(new_topic_name, user_node_id, assistant_node_id, 'detected')
+                    # Create a new topic starting from this user message
+                    # We'll name it generically and update it later when it's closed
+                    store_topic("ongoing-discussion", user_node_id, assistant_node_id, 'detected')
                     typer.echo("")
-                    typer.secho(f"🔄 Topic changed to: {new_topic_name}", fg=get_system_color())
+                    typer.secho(f"🔄 Topic changed", fg=get_system_color())
                 else:
                     # No topic change - extend the current topic if one exists
                     recent_topics = get_recent_topics(limit=1)

@@ -1,0 +1,19 @@
+# Topic change testing script
+# Comments start with # and are ignored
+
+Tell me about movies
+What's the best science fiction film?
+I think Blade Runner is great
+
+How does quantum mechanics work?
+What is wave-particle duality?
+Can you explain superposition?
+
+What about baseball?
+Who are the best pitchers?
+
+Can you help me debug Python code?
+What's the difference between lists and tuples?
+
+Let's talk about cooking
+What's your favorite recipe?

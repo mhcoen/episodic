@@ -757,6 +757,12 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho(f"{config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
         typer.secho("  wrap: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('text_wrap', True)}", fg=get_system_color())
+        typer.secho("  stream: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_responses', True)}", fg=get_system_color())
+        typer.secho("  stream_rate: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_rate', 15)} words/sec", fg=get_system_color())
+        typer.secho("  stream_constant_rate: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_constant_rate', False)}", fg=get_system_color())
         typer.secho("  cost: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
         typer.secho("  topics: ", nl=False, fg=get_text_color())
@@ -897,6 +903,50 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("show_topics", val)
             typer.echo(f"Topics display set to {val}")
 
+    # Handle the 'stream' parameter for streaming responses
+    elif param.lower() == "stream":
+        if not value:
+            # Toggle the current value if no value is provided
+            current = config.get("stream_responses", True)
+            config.set("stream_responses", not current)
+            typer.echo(f"Response streaming: {'ON' if not current else 'OFF'}")
+        else:
+            # Set to the provided value
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("stream_responses", val)
+            typer.echo(f"Response streaming: {'ON' if val else 'OFF'}")
+
+    # Handle the 'stream_rate' parameter
+    elif param.lower() == "stream_rate":
+        if not value:
+            typer.echo(f"Current stream rate: {config.get('stream_rate', 15)} words/sec")
+        else:
+            try:
+                rate = int(value)
+                if rate < 1:
+                    typer.echo("Stream rate must be at least 1 word per second")
+                    return
+                if rate > 100:
+                    typer.echo("Stream rate must be no more than 100 words per second")
+                    return
+                config.set("stream_rate", rate)
+                typer.echo(f"Stream rate set to {rate} words/sec")
+            except ValueError:
+                typer.echo("Invalid value for stream_rate. Please provide a positive integer (1-100)")
+
+    # Handle the 'stream_constant_rate' parameter
+    elif param.lower() == "stream_constant_rate":
+        if not value:
+            # Toggle the current value if no value is provided
+            current = config.get("stream_constant_rate", False)
+            config.set("stream_constant_rate", not current)
+            typer.echo(f"Constant-rate streaming: {'ON' if not current else 'OFF'}")
+        else:
+            # Set to the provided value
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("stream_constant_rate", val)
+            typer.echo(f"Constant-rate streaming: {'ON' if val else 'OFF'}")
+
     # Handle the 'color' parameter
     elif param.lower() == "color":
         if not value:
@@ -1024,7 +1074,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("  Conversation: ", nl=False, fg=get_heading_color())
         typer.secho("depth, cache", fg=get_system_color())
         typer.secho("  Display: ", nl=False, fg=get_heading_color())
-        typer.secho("color, wrap, cost, topics", fg=get_system_color())
+        typer.secho("color, wrap, stream, stream_rate, stream_constant_rate, cost, topics", fg=get_system_color())
         typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
         typer.secho("drift, semdepth", fg=get_system_color())
         typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())

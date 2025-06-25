@@ -54,7 +54,10 @@ class Config:
                 "debug": False,
                 "show_cost": False,
                 "show_drift": True,
-                "auto_compress_topics": True
+                "auto_compress_topics": True,
+                "stream_responses": True,
+                "stream_rate": 15,  # Words per second for constant-rate streaming
+                "stream_constant_rate": False  # Whether to use constant-rate streaming
             }
             self._save()
 

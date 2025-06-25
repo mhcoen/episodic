@@ -175,10 +175,22 @@ def _execute_llm_query(
     messages: List[Dict[str, str]],
     model: str,
     temperature: float,
-    max_tokens: int
-) -> tuple[str, dict]:
+    max_tokens: int,
+    stream: bool = False
+) -> Union[tuple[str, dict], tuple[Any, None]]:
     """
     Internal function to execute LLM queries with prompt caching support.
+    
+    Args:
+        messages: List of message dictionaries
+        model: Model name
+        temperature: Temperature for generation
+        max_tokens: Maximum tokens to generate
+        stream: If True, returns a generator for streaming responses
+        
+    Returns:
+        If stream=False: (response_text, cost_info)
+        If stream=True: (stream_generator, None) - cost info will be calculated during streaming
     """
     provider = get_current_provider()
     full_model = get_model_string(model)
@@ -201,7 +213,8 @@ def _execute_llm_query(
             messages=messages,
             api_base=provider_config.get("api_base"),
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            stream=stream
         )
     elif provider == "ollama":
         provider_config = get_provider_config("ollama")
@@ -211,16 +224,22 @@ def _execute_llm_query(
             api_base=provider_config.get("api_base"),
             temperature=temperature,
             max_tokens=max_tokens,
-            stream=False
+            stream=stream
         )
     else:
         response = litellm.completion(
             model=full_model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            stream=stream
         )
 
+    # If streaming, return the generator directly
+    if stream:
+        return response, None
+
+    # Non-streaming response handling
     total_cost = sum(cost_per_token(
         model=full_model,
         prompt_tokens=response.usage.prompt_tokens,
@@ -289,8 +308,9 @@ def query_with_context(
     system_message: str = "You are a helpful assistant.",
     temperature: float = 0.7,
     max_tokens: int = 1000,
-    context_depth: int = 5
-) -> tuple[str, dict]:
+    context_depth: int = 5,
+    stream: bool = False
+) -> Union[tuple[str, dict], tuple[Any, None]]:
     """
     Query the LLM with context from the conversation history.
 
@@ -301,9 +321,11 @@ def query_with_context(
         temperature: The temperature to use for the query
         max_tokens: The maximum number of tokens to generate
         context_depth: The number of ancestor nodes to include in the context
+        stream: If True, returns a streaming response
 
     Returns:
-        A tuple of (response_text, cost_info)
+        If stream=False: A tuple of (response_text, cost_info)
+        If stream=True: A tuple of (stream_generator, None)
     """
     from episodic.db import get_node, get_ancestry
 
@@ -334,7 +356,33 @@ def query_with_context(
     messages.extend(context_messages)
     messages.append({"role": "user", "content": prompt})
 
-    return _execute_llm_query(messages, model, temperature, max_tokens)
+    return _execute_llm_query(messages, model, temperature, max_tokens, stream=stream)
+
+def process_stream_response(stream_generator, model: str):
+    """
+    Process a streaming response, yielding chunks as they come.
+    
+    Args:
+        stream_generator: The streaming response generator from LiteLLM
+        model: The model string for cost calculation
+        
+    Yields:
+        Content chunks as they arrive from the stream
+    """
+    try:
+        for chunk in stream_generator:
+            if hasattr(chunk, 'choices') and chunk.choices:
+                # Extract content from the chunk
+                delta = chunk.choices[0].delta
+                if hasattr(delta, 'content') and delta.content:
+                    yield delta.content
+    except GeneratorExit:
+        # Handle early termination gracefully
+        pass
+    except Exception as e:
+        logger.error(f"Error processing stream: {e}")
+        raise
+
 
 # Backward compatibility for code that might be using get_openai_client directly
 def get_openai_client():

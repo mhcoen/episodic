@@ -14,6 +14,9 @@ import shutil
 import textwrap
 import logging
 import time
+import threading
+import queue
+import re
 from typing import Optional, List, Dict, Any, Tuple
 
 import typer
@@ -307,14 +310,234 @@ class ConversationManager:
 
             # Query the LLM with context
             try:
+                # Check if streaming is enabled (default to True)
+                use_streaming = config.get("stream_responses", True)
+                
                 # Query with context
                 with benchmark_resource("LLM Call", model):
-                    response, cost_info = query_with_context(
-                        user_node_id, 
-                        model=model,
-                        system_message=system_message,
-                        context_depth=context_depth
-                    )
+                    if use_streaming:
+                        # Get streaming response
+                        stream_generator, _ = query_with_context(
+                            user_node_id, 
+                            model=model,
+                            system_message=system_message,
+                            context_depth=context_depth,
+                            stream=True
+                        )
+                        
+                        # Calculate and display semantic drift if enabled (before streaming)
+                        if config.get("show_drift", True):
+                            self.display_semantic_drift(user_node_id)
+                        
+                        # Display debug topic info if it was stored
+                        if debug_topic_info:
+                            new_topic_name, topic_cost_info = debug_topic_info
+                            typer.echo(f"\n🔍 DEBUG: Topic change detected")
+                            typer.echo(f"   New topic: {new_topic_name}")
+                            if topic_cost_info:
+                                typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
+                        
+                        # Display blank line before response
+                        typer.echo("")
+                        
+                        # Stream the response with proper formatting
+                        typer.secho("🤖 ", fg=get_llm_color(), nl=False)
+                        
+                        # Process the stream and display it
+                        from episodic.llm import process_stream_response
+                        full_response_parts = []
+                        
+                        # Get streaming rate configuration
+                        stream_rate = config.get("stream_rate", 15)  # Default to 15 words per second
+                        use_constant_rate = config.get("stream_constant_rate", False)
+                        
+                        if use_constant_rate and stream_rate > 0:
+                            # Use constant-rate streaming with word queue
+                            word_queue = queue.Queue()
+                            stop_event = threading.Event()
+                            
+                            # Function to print words at a constant rate
+                            def constant_rate_printer():
+                                current_line = ""
+                                words_per_second = stream_rate
+                                delay = 1.0 / words_per_second
+                                
+                                while not stop_event.is_set() or not word_queue.empty():
+                                    try:
+                                        word = word_queue.get(timeout=0.1)
+                                        if word is None:  # Sentinel value
+                                            break
+                                        
+                                        # Add word to current line
+                                        current_line += word
+                                        
+                                        # Check if we have complete lines to print
+                                        if '\n' in current_line:
+                                            lines = current_line.split('\n')
+                                            # Print all complete lines
+                                            for line in lines[:-1]:
+                                                if config.get("text_wrap", True):
+                                                    wrap_width = self.get_wrap_width()
+                                                    if len(line) > wrap_width:
+                                                        wrapped = textwrap.fill(
+                                                            line,
+                                                            width=wrap_width,
+                                                            initial_indent="",
+                                                            subsequent_indent="   "
+                                                        )
+                                                        typer.secho(wrapped, fg=get_llm_color())
+                                                    else:
+                                                        typer.secho(line, fg=get_llm_color())
+                                                else:
+                                                    typer.secho(line, fg=get_llm_color())
+                                            # Keep the incomplete last line
+                                            current_line = lines[-1]
+                                        else:
+                                            # Print the word without newline
+                                            typer.secho(word, fg=get_llm_color(), nl=False)
+                                            # Don't accumulate printed words
+                                            current_line = ""
+                                        
+                                        # Sleep for constant rate
+                                        time.sleep(delay)
+                                    except queue.Empty:
+                                        continue
+                                
+                                # Print any remaining content
+                                if current_line.strip():
+                                    typer.secho(current_line, fg=get_llm_color())
+                                else:
+                                    # Ensure we have a newline at the end
+                                    typer.echo("")
+                            
+                            # Start the printer thread
+                            printer_thread = threading.Thread(target=constant_rate_printer)
+                            printer_thread.start()
+                            
+                            # Process chunks and split into words
+                            accumulated_text = ""
+                            for chunk in process_stream_response(stream_generator, model):
+                                full_response_parts.append(chunk)
+                                accumulated_text += chunk
+                                
+                                # Split accumulated text into words while preserving whitespace
+                                # Use regex to split on word boundaries but keep the whitespace
+                                words = re.findall(r'\S+\s*|\n', accumulated_text)
+                                
+                                # Add complete words to the queue
+                                for word in words[:-1]:  # Keep last potentially incomplete word
+                                    word_queue.put(word)
+                                
+                                # Keep the last potentially incomplete word
+                                if words:
+                                    accumulated_text = words[-1] if not words[-1].endswith((' ', '\n')) else ''
+                                    if not accumulated_text:
+                                        word_queue.put(words[-1])
+                                else:
+                                    accumulated_text = ''
+                            
+                            # Add any remaining text
+                            if accumulated_text:
+                                word_queue.put(accumulated_text)
+                            
+                            # Signal completion and wait for printer to finish
+                            word_queue.put(None)  # Sentinel value
+                            stop_event.set()
+                            printer_thread.join()
+                            
+                        else:
+                            # Immediate streaming - print chunks as they arrive
+                            for chunk in process_stream_response(stream_generator, model):
+                                full_response_parts.append(chunk)
+                                # Print each chunk immediately without buffering
+                                typer.secho(chunk, fg=get_llm_color(), nl=False)
+                        
+                        # Get the full response and cost info
+                        display_response = ''.join(full_response_parts)
+                        
+                        # Since we can't get accurate cost info from streaming yet,
+                        # make a non-streaming call to get accurate costs
+                        # This is a temporary workaround until litellm provides better streaming cost info
+                        _, cost_info = query_with_context(
+                            user_node_id, 
+                            model=model,
+                            system_message=system_message,
+                            context_depth=context_depth,
+                            stream=False
+                        )
+                        
+                        # Add newline after streaming
+                        typer.echo("")
+                        
+                        # Display cost info after streaming if enabled
+                        if config.get("show_cost", False) and cost_info:
+                            # Calculate context usage
+                            current_tokens = cost_info.get('input_tokens', 0)
+                            context_limit = get_model_context_limit(model)
+                            context_percentage = (current_tokens / context_limit) * 100
+                            
+                            # Format context percentage with appropriate precision
+                            if context_percentage < 1.0:
+                                context_display = f"{context_percentage:.1f}%"
+                            else:
+                                context_display = f"{int(context_percentage)}%"
+                            
+                            cost_msg = f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full"
+                            typer.secho(cost_msg, fg=get_system_color())
+                        
+                    else:
+                        # Non-streaming response
+                        response, cost_info = query_with_context(
+                            user_node_id, 
+                            model=model,
+                            system_message=system_message,
+                            context_depth=context_depth,
+                            stream=False
+                        )
+                        display_response = response
+                        
+                        # Calculate and display semantic drift if enabled
+                        if config.get("show_drift", True):
+                            self.display_semantic_drift(user_node_id)
+                        
+                        # Display debug topic info if it was stored
+                        if debug_topic_info:
+                            new_topic_name, topic_cost_info = debug_topic_info
+                            typer.echo(f"\n🔍 DEBUG: Topic change detected")
+                            typer.echo(f"   New topic: {new_topic_name}")
+                            if topic_cost_info:
+                                typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
+                        
+                        # Collect all status messages to display in one block
+                        status_messages = []
+                        
+
+                        # Add cost information if enabled
+                        if config.get("show_cost", False) and cost_info:
+                            # Calculate context usage
+                            current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
+                            context_limit = get_model_context_limit(model)
+                            context_percentage = (current_tokens / context_limit) * 100
+                            
+                            # Format context percentage with appropriate precision
+                            if context_percentage < 1.0:
+                                context_display = f"{context_percentage:.1f}%"
+                            else:
+                                context_display = f"{int(context_percentage)}%"
+                            
+                            status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
+
+                        # Display the response block with proper spacing
+                        if status_messages:
+                            # Show blank line, then status messages, then LLM response
+                            typer.echo("")
+                            for msg in status_messages:
+                                typer.secho(msg, fg=get_system_color())
+                            self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
+                        else:
+                            # No status messages, just show blank line then LLM response
+                            typer.echo("")  # Blank line
+                            self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
 
                 # Update session costs
                 if cost_info:
@@ -322,51 +545,6 @@ class ConversationManager:
                     self.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
                     self.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
                     self.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
-
-                # Calculate and display semantic drift if enabled
-                if config.get("show_drift", True):
-                    self.display_semantic_drift(user_node_id)
-                
-                # Display debug topic info if it was stored
-                if debug_topic_info:
-                    new_topic_name, topic_cost_info = debug_topic_info
-                    typer.echo(f"\n🔍 DEBUG: Topic change detected")
-                    typer.echo(f"   New topic: {new_topic_name}")
-                    if topic_cost_info:
-                        typer.echo(f"   Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}")
-
-                # Use the response directly
-                display_response = response
-            
-                # Collect all status messages to display in one block
-                status_messages = []
-
-                # Add cost information if enabled
-                if config.get("show_cost", False) and cost_info:
-                    # Calculate context usage
-                    current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
-                    context_limit = get_model_context_limit(model)
-                    context_percentage = (current_tokens / context_limit) * 100
-                    
-                    # Format context percentage with appropriate precision
-                    if context_percentage < 1.0:
-                        context_display = f"{context_percentage:.1f}%"
-                    else:
-                        context_display = f"{int(context_percentage)}%"
-                    
-                    status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
-
-                # Display the response block with proper spacing
-                if status_messages:
-                    # Show blank line, then status messages, then LLM response
-                    typer.echo("")
-                    for msg in status_messages:
-                        typer.secho(msg, fg=get_system_color())
-                    self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
-                else:
-                    # No status messages, just show blank line then LLM response
-                    typer.echo("")  # Blank line
-                    self.wrapped_llm_print(f"🤖 {display_response}", fg=get_llm_color())
 
                 # Add the assistant's response to the database with provider and model information
                 provider = get_current_provider()

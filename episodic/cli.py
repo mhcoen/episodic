@@ -4,8 +4,8 @@ import shutil
 import os
 import warnings
 import io
-import logging
-from typing import Optional, List, Dict, Any, Tuple
+import textwrap
+from typing import Optional, List, Dict
 
 # Disable tokenizer parallelism to avoid warnings in CLI context
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -19,20 +19,26 @@ from episodic.db import (
     insert_node, get_node, get_ancestry, initialize_db, 
     resolve_node_ref, get_head, set_head, database_exists,
     get_recent_nodes, store_topic, get_recent_topics,
-    store_compression, get_compression_stats, update_topic_end_node
+    store_compression, get_compression_stats
 )
 from episodic.llm import query_llm, query_with_context
 from episodic.llm_config import get_current_provider, get_default_model, get_available_providers
 from episodic.prompt_manager import PromptManager
 from episodic.config import config
-from episodic.configuration import *
-from episodic.configuration import get_llm_color, get_system_color, get_prompt_color, get_model_context_limit, get_text_color, get_heading_color
+from episodic.configuration import (
+    DEFAULT_MODEL, DEFAULT_SYSTEM_MESSAGE, DEFAULT_CONTEXT_DEPTH,
+    DEFAULT_HISTORY_FILE, DEFAULT_LIST_COUNT, DEFAULT_COLOR_MODE, DEFAULT_VISUALIZATION_PORT,
+    EXIT_COMMANDS, LOCAL_PROVIDERS, PRICING_TOKEN_COUNT, COST_PRECISION, ZERO_COST_PRECISION,
+    MAIN_LOOP_SLEEP_INTERVAL,
+    get_llm_color, get_system_color, get_prompt_color,
+    get_text_color, get_heading_color
+)
 from litellm import cost_per_token
 from episodic.compression import queue_topic_for_compression, start_auto_compression, compression_manager
 from episodic.topics import (
     detect_topic_change_separately, extract_topic_ollama, should_create_first_topic,
     build_conversation_segment, is_node_in_topic_range, count_nodes_in_topic,
-    _display_topic_evolution, TopicManager
+    TopicManager
 )
 from episodic.conversation import (
     ConversationManager, handle_chat_message, get_session_costs,
@@ -43,8 +49,6 @@ from episodic.benchmark import (
     reset_benchmarks, display_pending_benchmark
 )
 
-# Set up logging
-logger = logging.getLogger(__name__)
 
 # Create a Typer app for command handling
 app = typer.Typer(add_completion=False)
@@ -60,8 +64,6 @@ default_semdepth = 4  # Default semantic depth for drift calculation
 conversation_manager = ConversationManager()
 
 
-
-
 def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs):
     """Print text with automatic wrapping accounting for an existing prefix indent."""
     # Check if wrapping is enabled
@@ -70,8 +72,6 @@ def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs
         return
     
     # Calculate available width accounting for the prefix
-    import shutil
-    import textwrap
     terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
     margin = 4
     max_width = 100  # Maximum line length for readability
@@ -109,15 +109,6 @@ def wrapped_text_print_with_indent(text: str, indent_length: int, **typer_kwargs
     
     # Print with the specified formatting
     typer.secho(wrapped_text, **typer_kwargs)
-
-
-
-
-
-
-
-
-
 
 
 def _parse_flag_value(args: List[str], flag_names: List[str]) -> Optional[str]:
@@ -190,6 +181,55 @@ def format_role_display(role: Optional[str]) -> str:
     else:
         return "Unknown"
 
+
+def _display_node_details(node: Dict) -> None:
+    """Display detailed information about a node.
+    
+    Args:
+        node: The node dictionary to display
+    """
+    # Display node ID with color
+    typer.secho("Node ID: ", nl=False, fg=get_text_color())
+    typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
+    typer.secho(" (UUID: ", nl=False, fg=get_text_color())
+    typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
+    typer.secho(")", fg=get_text_color())
+    
+    # Display parent with color
+    if node['parent_id']:
+        parent = get_node(node['parent_id'])
+        parent_short_id = parent['short_id'] if parent else "Unknown"
+        typer.secho("Parent: ", nl=False, fg=get_text_color())
+        typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
+        typer.secho(" (UUID: ", nl=False, fg=get_text_color())
+        typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
+        typer.secho(")", fg=get_text_color())
+    else:
+        typer.secho("Parent: ", nl=False, fg=get_text_color())
+        typer.secho("None", fg=get_system_color())
+
+    # Display role information with color
+    role = node.get('role')
+    typer.secho("Role: ", nl=False, fg=get_text_color())
+    typer.secho(f"{format_role_display(role)}", fg=get_system_color())
+
+    # Display provider and model information with color
+    provider = node.get('provider')
+    model = node.get('model')
+    if provider or model:
+        model_info = f"{provider}/{model}" if provider and model else provider or model
+        typer.secho("Model: ", nl=False, fg=get_text_color())
+        typer.secho(f"{model_info}", fg=get_system_color())
+
+    # Display message with wrapping and appropriate color based on role
+    typer.secho("Message: ", nl=False, fg=get_text_color())
+    role = node.get('role', 'user')
+    message_prefix_length = len("Message: ")
+    if role == 'user':
+        wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_text_color())
+    else:  # assistant/LLM role
+        wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
+
 # Command handlers
 @app.command()
 def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing database")):
@@ -252,47 +292,7 @@ def show(node_id: str):
         resolved_id = resolve_node_ref(node_id)
         node = get_node(resolved_id)
         if node:
-            # Display node ID with color
-            typer.secho("Node ID: ", nl=False, fg=get_text_color())
-            typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
-            typer.secho(" (UUID: ", nl=False, fg=get_text_color())
-            typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
-            typer.secho(")", fg=get_text_color())
-            
-            # Display parent with color
-            if node['parent_id']:
-                parent = get_node(node['parent_id'])
-                parent_short_id = parent['short_id'] if parent else "Unknown"
-                typer.secho("Parent: ", nl=False, fg=get_text_color())
-                typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
-                typer.secho(" (UUID: ", nl=False, fg=get_text_color())
-                typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
-                typer.secho(")", fg=get_text_color())
-            else:
-                typer.secho("Parent: ", nl=False, fg=get_text_color())
-                typer.secho("None", fg=get_system_color())
-
-            # Display role information with color
-            role = node.get('role')
-            typer.secho("Role: ", nl=False, fg=get_text_color())
-            typer.secho(f"{format_role_display(role)}", fg=get_system_color())
-
-            # Display provider and model information with color
-            provider = node.get('provider')
-            model = node.get('model')
-            if provider or model:
-                model_info = f"{provider}/{model}" if provider and model else provider or model
-                typer.secho("Model: ", nl=False, fg=get_text_color())
-                typer.secho(f"{model_info}", fg=get_system_color())
-
-            # Display message with wrapping and appropriate color based on role
-            typer.secho("Message: ", nl=False, fg=get_text_color())
-            role = node.get('role', 'user')
-            message_prefix_length = len("Message: ")
-            if role == 'user':
-                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_text_color())
-            else:  # assistant/LLM role
-                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
+            _display_node_details(node)
         else:
             typer.echo(f"Node not found: {node_id}")
     except ValueError as e:
@@ -318,47 +318,7 @@ def print_node(node_id: Optional[str] = None):
         # Get and display the node
         node = get_node(node_id)
         if node:
-            # Display node ID with color
-            typer.secho("Node ID: ", nl=False, fg=get_text_color())
-            typer.secho(f"{node['short_id']}", nl=False, fg=get_system_color())
-            typer.secho(" (UUID: ", nl=False, fg=get_text_color())
-            typer.secho(f"{node['id']}", nl=False, fg=get_system_color())
-            typer.secho(")", fg=get_text_color())
-            
-            # Display parent with color
-            if node['parent_id']:
-                parent = get_node(node['parent_id'])
-                parent_short_id = parent['short_id'] if parent else "Unknown"
-                typer.secho("Parent: ", nl=False, fg=get_text_color())
-                typer.secho(f"{parent_short_id}", nl=False, fg=get_system_color())
-                typer.secho(" (UUID: ", nl=False, fg=get_text_color())
-                typer.secho(f"{node['parent_id']}", nl=False, fg=get_system_color())
-                typer.secho(")", fg=get_text_color())
-            else:
-                typer.secho("Parent: ", nl=False, fg=get_text_color())
-                typer.secho("None", fg=get_system_color())
-
-            # Display role information with color
-            role = node.get('role')
-            typer.secho("Role: ", nl=False, fg=get_text_color())
-            typer.secho(f"{format_role_display(role)}", fg=get_system_color())
-
-            # Display provider and model information with color
-            provider = node.get('provider')
-            model = node.get('model')
-            if provider or model:
-                model_info = f"{provider}/{model}" if provider and model else provider or model
-                typer.secho("Model: ", nl=False, fg=get_text_color())
-                typer.secho(f"{model_info}", fg=get_system_color())
-
-            # Display message with wrapping and appropriate color based on role
-            typer.secho("Message: ", nl=False, fg=get_text_color())
-            role = node.get('role', 'user')
-            message_prefix_length = len("Message: ")
-            if role == 'user':
-                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_text_color())
-            else:  # assistant/LLM role
-                wrapped_text_print_with_indent(node['content'], message_prefix_length, fg=get_llm_color())
+            _display_node_details(node)
         else:
             typer.echo("Node not found.")
     except Exception as e:
@@ -501,7 +461,7 @@ def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Nu
 @app.command()
 def cost():
     """Display the current session cost."""
-    global session_costs
+    session_costs = get_session_costs()
     
     typer.echo("Session Cost Summary:")
     typer.secho(f"  Input tokens: ", nl=False, fg=get_text_color())

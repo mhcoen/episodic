@@ -36,10 +36,22 @@ class TestConfig(unittest.TestCase):
         # Config file should be created
         self.assertTrue(os.path.exists(self.config_file))
         
-        # Should contain empty JSON object
+        # Should contain default values
         with open(self.config_file, 'r') as f:
             data = json.load(f)
-        self.assertEqual(data, {})
+        
+        # Check that default values are set
+        expected_defaults = {
+            "active_prompt": "default",
+            "debug": False,
+            "show_cost": False,
+            "show_drift": True,
+            "auto_compress_topics": True,
+            "stream_responses": True,
+            "stream_rate": 15,
+            "stream_constant_rate": False
+        }
+        self.assertEqual(data, expected_defaults)
     
     def test_set_and_get_values(self):
         """Test setting and getting configuration values."""

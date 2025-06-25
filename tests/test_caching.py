@@ -253,16 +253,18 @@ class TestCacheIntegrationWithCLI(unittest.TestCase):
         else:
             config.delete("use_context_cache")
     
-    @patch('episodic.cli.enable_cache')
+    @patch('episodic.llm.enable_cache')
     def test_cli_cache_enable_command(self, mock_enable):
         """Test CLI command to enable cache."""
-        self.cli.set("cache", "on")
+        from episodic.cli import set as cli_set
+        cli_set("cache", "on")
         mock_enable.assert_called_once()
     
-    @patch('episodic.cli.disable_cache')
+    @patch('episodic.llm.disable_cache')
     def test_cli_cache_disable_command(self, mock_disable):
         """Test CLI command to disable cache."""
-        self.cli.set("cache", "off")
+        from episodic.cli import set as cli_set
+        cli_set("cache", "off")
         mock_disable.assert_called_once()
     
     def test_cache_setting_persistence(self):

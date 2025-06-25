@@ -88,5 +88,15 @@ class Config:
         self.config[key] = value
         self._save()
 
+    def delete(self, key: str) -> None:
+        """Delete a configuration value.
+
+        Args:
+            key: The configuration key to delete
+        """
+        if key in self.config:
+            del self.config[key]
+            self._save()
+
 # Create a global instance for easy access
 config = Config()

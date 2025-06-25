@@ -781,6 +781,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho(f"{config.get('compression_min_nodes', 10)}", fg=get_system_color())
         typer.secho("  show_compression_notifications: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_compression_notifications', True)}", fg=get_system_color())
+        typer.secho("  min_messages_before_topic_change: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('min_messages_before_topic_change', 8)}", fg=get_system_color())
         
         # Performance monitoring
         typer.secho("\nPerformance:", fg=get_heading_color())
@@ -977,6 +979,21 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("topic_detection_model", value)
             typer.echo(f"Topic detection model set to {value}")
 
+    # Handle the 'min_messages_before_topic_change' parameter
+    elif param.lower() == "min_messages_before_topic_change":
+        if not value:
+            typer.echo(f"Current min messages before topic change: {config.get('min_messages_before_topic_change', 8)}")
+        else:
+            try:
+                min_messages = int(value)
+                if min_messages < 1:
+                    typer.echo("Min messages before topic change must be at least 1")
+                    return
+                config.set("min_messages_before_topic_change", min_messages)
+                typer.echo(f"Min messages before topic change set to {min_messages}")
+            except ValueError:
+                typer.echo("Invalid value for min_messages_before_topic_change. Please provide a positive integer")
+
     # Handle the 'benchmark' parameter
     elif param.lower() == "benchmark":
         if not value:
@@ -1011,7 +1028,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
         typer.secho("drift, semdepth", fg=get_system_color())
         typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
-        typer.secho("topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications", fg=get_system_color())
+        typer.secho("topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
         typer.secho("  Performance: ", nl=False, fg=get_heading_color())
         typer.secho("benchmark, benchmark_display", fg=get_system_color())
         typer.secho("  Debugging: ", nl=False, fg=get_heading_color())

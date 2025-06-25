@@ -13,6 +13,7 @@ import os
 import shutil
 import textwrap
 import logging
+import time
 from typing import Optional, List, Dict, Any, Tuple
 
 import typer
@@ -442,8 +443,10 @@ class ConversationManager:
                                 typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
                 
                     # Create a new topic starting from this user message
-                    # We'll name it generically and update it later when it's closed
-                    store_topic("ongoing-discussion", user_node_id, assistant_node_id, 'detected')
+                    # Generate a unique placeholder name that will be updated when the topic is closed
+                    timestamp = int(time.time())
+                    placeholder_topic_name = f"ongoing-discussion-{timestamp}"
+                    store_topic(placeholder_topic_name, user_node_id, assistant_node_id, 'detected')
                     typer.echo("")
                     typer.secho(f"🔄 Topic changed", fg=get_system_color())
                 else:

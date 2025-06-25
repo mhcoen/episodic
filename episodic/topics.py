@@ -68,11 +68,20 @@ class TopicManager:
                         current_topic['end_node_id']
                     )
                 
-                # Skip topic detection if current topic has fewer than 8 messages (4 exchanges)
+                # Skip topic detection if current topic has fewer than threshold messages
+                # But allow detection if we have many topics already (to avoid one giant topic)
                 min_messages_before_change = config.get('min_messages_before_topic_change', 8)
-                if messages_in_topic < min_messages_before_change:
+                total_topics = len(get_recent_topics(limit=100))
+                
+                # More lenient for first few topics, stricter once we have established topics
+                if total_topics <= 2:
+                    effective_min = max(4, min_messages_before_change // 2)  # Half threshold for first topics
+                else:
+                    effective_min = min_messages_before_change
+                    
+                if messages_in_topic < effective_min:
                     if config.get("debug", False):
-                        typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {messages_in_topic} messages (min: {min_messages_before_change})")
+                        typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {messages_in_topic} messages (min: {effective_min}, total topics: {total_topics})")
                     return False, None, None
             # Build context from recent messages - use fewer for clearer topic detection
             context_parts = []
@@ -228,6 +237,10 @@ Topic:"""
                 topic = re.sub(r'[^a-z0-9-]', '', topic)
                 if config.get("debug", False):
                     typer.echo(f"   After regex cleanup: '{topic}'")
+                # Remove leading and trailing dashes
+                topic = topic.strip('-')
+                if config.get("debug", False):
+                    typer.echo(f"   After dash trimming: '{topic}'")
                 
                 # Return cleaned topic or None if empty
                 if topic and topic != "no-topic":
@@ -398,12 +411,16 @@ Topic:"""
             if node['id'] == topic_end_id:
                 break
         
-        # If we didn't find the start node, it might be due to branching
-        # In this case, return at least 2 (start and end nodes exist)
+        # If we didn't find the start node, it might be due to branching or broken chains
+        # In this case, count nodes from the end node backwards
         if not found_start and count == 0:
-            return 2  # Minimum topic size
+            # Count all nodes in the ancestry up to a reasonable limit
+            # This handles broken chains gracefully
+            count = min(len(topic_ancestry), 20)  # Cap at 20 to avoid counting entire history
+            if config.get("debug", False):
+                typer.echo(f"   ⚠️  Using fallback count due to broken chain: {count} nodes")
         
-        return count
+        return max(count, 2)  # Ensure minimum of 2
     
     def display_topic_evolution(self, current_node_id: str) -> None:
         """

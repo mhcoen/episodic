@@ -291,7 +291,8 @@ def execute_script(filename: str):
                     continue
                 
                 # Show what we're executing
-                typer.secho(f"\n[{i}] ", fg=get_text_color(), dim=True, nl=False)
+                typer.secho(f"\n[{i}]", fg=get_text_color(), bold=True, nl=False)
+                typer.secho(f" ", nl=False)
                 typer.secho(f"> {line}", fg=get_system_color())
                 
                 # Execute the command/message

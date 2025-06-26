@@ -72,15 +72,20 @@ def topics(
             # Message count
             if start_node:
                 ancestry = get_ancestry(topic['end_node_id'] or topic['start_node_id'])
-                node_count = count_nodes_in_topic(topic, ancestry)
+                node_count = count_nodes_in_topic(topic['start_node_id'], topic['end_node_id'])
                 typer.secho(f" ({node_count} messages)", fg=get_text_color(), dim=True)
             else:
                 typer.echo("")
             
             # Confidence score if available
             if topic.get('confidence'):
-                confidence_pct = int(topic['confidence'] * 100)
-                typer.secho(f"    Confidence: {confidence_pct}%", fg=get_text_color(), dim=True)
+                # Handle both numeric and string confidence values
+                confidence = topic['confidence']
+                if isinstance(confidence, (int, float)):
+                    confidence_pct = int(confidence * 100)
+                    typer.secho(f"    Confidence: {confidence_pct}%", fg=get_text_color(), dim=True)
+                elif isinstance(confidence, str) and confidence != 'detected':
+                    typer.secho(f"    Confidence: {confidence}", fg=get_text_color(), dim=True)
             
             # Show preview if verbose
             if verbose and start_node:

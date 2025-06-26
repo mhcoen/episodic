@@ -757,15 +757,22 @@ def get_recent_topics(limit: int = 10):
     """
     with get_connection() as conn:
         c = conn.cursor()
-        c.execute("""
+        
+        # Build query with optional LIMIT
+        query = """
             SELECT t.name, t.start_node_id, t.end_node_id, t.confidence, t.created_at,
                    n1.short_id as start_short_id, n2.short_id as end_short_id
             FROM topics t
             JOIN nodes n1 ON t.start_node_id = n1.id
-            JOIN nodes n2 ON t.end_node_id = n2.id
+            LEFT JOIN nodes n2 ON t.end_node_id = n2.id
             ORDER BY t.created_at DESC
-            LIMIT ?
-        """, (limit,))
+        """
+        
+        if limit is not None:
+            query += " LIMIT ?"
+            c.execute(query, (limit,))
+        else:
+            c.execute(query)
         
         topics = []
         for row in c.fetchall():

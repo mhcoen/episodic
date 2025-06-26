@@ -342,7 +342,7 @@ class ConversationManager:
                         typer.echo("")
                         
                         # Stream the response with proper formatting
-                        typer.secho("🤖", fg=get_llm_color())  # Robot emoji with newline
+                        typer.secho("🤖 ", fg=get_llm_color(), nl=False)  # Robot emoji without newline
                         
                         # Process the stream and display it
                         from episodic.llm import process_stream_response
@@ -630,12 +630,12 @@ class ConversationManager:
                             typer.echo("")
                             for msg in status_messages:
                                 typer.secho(msg, fg=get_system_color())
-                            typer.secho("🤖", fg=get_llm_color())
+                            typer.secho("🤖 ", fg=get_llm_color(), nl=False)
                             self.wrapped_llm_print(display_response, fg=get_llm_color())
                         else:
                             # No status messages, just show blank line then LLM response
                             typer.echo("")  # Blank line
-                            typer.secho("🤖", fg=get_llm_color())
+                            typer.secho("🤖 ", fg=get_llm_color(), nl=False)
                             self.wrapped_llm_print(display_response, fg=get_llm_color())
 
                 # Update session costs
@@ -718,6 +718,52 @@ class ConversationManager:
                             queue_topic_for_compression(previous_topic['start_node_id'], parent_node_id, final_topic_name)
                             if config.get("debug", False):
                                 typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
+                    else:
+                        # No previous topics exist - this is the first topic change
+                        # Create a topic for the initial conversation before this point
+                        user_node = get_node(user_node_id)
+                        if user_node and user_node.get('parent_id'):
+                            parent_node_id = user_node['parent_id']
+                            
+                            # Get all nodes from the beginning up to the parent of the current user node
+                            conversation_chain = get_ancestry(parent_node_id)
+                            
+                            # Find the first user node in the conversation
+                            first_user_node = None
+                            for node in reversed(conversation_chain):
+                                if node.get('role') == 'user':
+                                    first_user_node = node
+                            
+                            if first_user_node and len(conversation_chain) > 2:  # Need at least a few nodes
+                                # Build segment from the initial conversation
+                                segment = build_conversation_segment(conversation_chain, max_length=2000)
+                                
+                                if config.get("debug", False):
+                                    typer.echo(f"\n🔍 DEBUG: Creating topic for initial conversation:")
+                                    typer.echo(f"   From node {first_user_node['short_id']} to {parent_node_id}")
+                                    typer.echo(f"   Conversation preview: {segment[:200]}...")
+                                
+                                # Extract topic name
+                                topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                
+                                # Add extraction costs to session
+                                if extract_cost_info:
+                                    self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                                    self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                                    self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                                    self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
+                                
+                                # Use fallback if extraction failed
+                                if not topic_name:
+                                    topic_name = "initial-conversation"
+                                
+                                # Store the initial topic
+                                store_topic(topic_name, first_user_node['id'], parent_node_id, 'initial')
+                                typer.echo("")
+                                typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
+                                
+                                # Queue for compression
+                                queue_topic_for_compression(first_user_node['id'], parent_node_id, topic_name)
                 
                     # Create a new topic starting from this user message
                     # Generate a unique placeholder name that will be updated when the topic is closed
@@ -787,6 +833,9 @@ class ConversationManager:
                 # Show topic evolution if enabled (after topic detection)
                 if config.get("show_topics", False):
                     _display_topic_evolution(assistant_node_id)
+                
+                # Add blank line after LLM response
+                typer.echo("")
                 
                 return assistant_node_id, display_response
 

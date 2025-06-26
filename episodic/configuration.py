@@ -41,14 +41,14 @@ COLOR_SCHEMES = {
         "system_info": "BRIGHT_CYAN",       # All episodic system information
         "prompt": "CYAN",                   # Prompt symbol color
         "text": "WHITE",                    # General text (labels, etc)
-        "heading": "BRIGHT_WHITE"           # Section headings
+        "heading": "BRIGHT_YELLOW"          # Section headings - changed to yellow for better bold visibility
     },
     "light": {
         "llm_response": "BLUE",             # LLM responses for light background
         "system_info": "MAGENTA",           # All episodic system information  
         "prompt": "BLUE",                   # Prompt symbol color
         "text": "BLACK",                    # General text (labels, etc)
-        "heading": "BLACK"                  # Section headings (could be BRIGHT_BLACK if needed)
+        "heading": "BRIGHT_BLUE"            # Section headings - changed to bright blue for better visibility
     }
 }
 

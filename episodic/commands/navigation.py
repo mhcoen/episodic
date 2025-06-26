@@ -247,8 +247,8 @@ def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Nu
         if node.get('parent_id'):
             parent = get_node(node['parent_id'])
             if parent:
-                typer.secho(f"  Parent: [{parent['short_id']}]", 
-                           fg=get_text_color(), dim=True)
+                typer.secho(f"  Parent: ", fg=get_text_color(), dim=True, nl=False)
+                typer.secho(f"[{parent['short_id']}]", fg=get_text_color(), bold=True)
         
         # Content preview based on role
         if node['content']:

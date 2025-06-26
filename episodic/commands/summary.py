@@ -49,10 +49,11 @@ def summary(count: Optional[int] = None):
     # Build conversation text
     conversation_parts = []
     for node in reversed(nodes):  # Show in chronological order
-        if node.get('message'):
-            conversation_parts.append(f"User: {node['message']}")
-        if node.get('response'):
-            conversation_parts.append(f"Assistant: {node['response']}")
+        if node.get('content') and node.get('role'):
+            if node['role'] == 'user':
+                conversation_parts.append(f"User: {node['content']}")
+            elif node['role'] == 'assistant':
+                conversation_parts.append(f"Assistant: {node['content']}")
     
     if not conversation_parts:
         typer.secho("No conversation content to summarize", fg=get_system_color())
@@ -85,33 +86,31 @@ Please structure the summary clearly with sections if there are multiple distinc
         with benchmark_operation("Generate summary"):
             # Use streaming for the summary
             if config.get("stream_responses", True):
-                typer.secho("\n🤖 Summary:", fg=get_llm_color(), bold=True)
+                typer.secho("\n🤖 Summary: ", fg=get_llm_color(), bold=True, nl=False)
                 
-                # Stream the response
-                from episodic.llm import query_llm_stream
+                # Use the LLM with streaming
+                from episodic.llm import _execute_llm_query, process_stream_response
                 model = config.get("model", "gpt-3.5-turbo")
                 
-                total_cost = 0
-                for token in query_llm_stream(
-                    prompt, 
-                    model=model,
-                    system_message="You are a helpful assistant that creates clear, concise summaries.",
-                    max_tokens=500
-                ):
-                    if isinstance(token, dict) and 'cost_info' in token:
-                        # This is the final cost info
-                        cost_info = token['cost_info']
-                        if cost_info and config.get("show_cost", False):
-                            total_cost = cost_info.get('cost_usd', 0)
-                    else:
-                        # This is a content token
-                        wrapped_llm_print(token, nl=False)
+                messages = [
+                    {"role": "system", "content": "You are a helpful assistant that creates clear, concise summaries."},
+                    {"role": "user", "content": prompt}
+                ]
                 
-                typer.echo("")  # Final newline
+                stream_generator, _ = _execute_llm_query(
+                    messages, 
+                    model=model,
+                    temperature=0.7,
+                    max_tokens=500,
+                    stream=True
+                )
+                
+                # Process the stream
+                display_response, cost_info = process_stream_response(stream_generator, model)
                 
                 # Show cost if enabled
-                if config.get("show_cost", False) and total_cost > 0:
-                    typer.secho(f"\n💰 Summary cost: ${total_cost:.4f}", 
+                if config.get("show_cost", False) and cost_info and cost_info.get('cost_usd', 0) > 0:
+                    typer.secho(f"\n💰 Summary cost: ${cost_info['cost_usd']:.4f}", 
                                fg=get_text_color(), dim=True)
             else:
                 # Non-streaming response

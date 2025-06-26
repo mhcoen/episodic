@@ -217,30 +217,17 @@ Topic:"""
             with benchmark_resource("LLM Call", f"topic extraction - {topic_model}"):
                 response, cost_info = query_llm(prompt, model=topic_model)
             
-            if config.get("debug", False):
-                typer.echo(f"   Raw LLM response: '{response}'")
-            
             if response:
                 # Clean and normalize the response
                 topic = response.strip().lower()
-                if config.get("debug", False):
-                    typer.echo(f"   After lowercase: '{topic}'")
                 # Remove quotes if present
                 topic = topic.strip('"\'')
-                if config.get("debug", False):
-                    typer.echo(f"   After quote removal: '{topic}'")
                 # Replace spaces with hyphens
                 topic = topic.replace(' ', '-')
-                if config.get("debug", False):
-                    typer.echo(f"   After space replacement: '{topic}'")
                 # Remove any extra characters, keep only letters, numbers, hyphens
                 topic = re.sub(r'[^a-z0-9-]', '', topic)
-                if config.get("debug", False):
-                    typer.echo(f"   After regex cleanup: '{topic}'")
                 # Remove leading and trailing dashes
                 topic = topic.strip('-')
-                if config.get("debug", False):
-                    typer.echo(f"   After dash trimming: '{topic}'")
                 
                 # Return cleaned topic or None if empty
                 if topic and topic != "no-topic":
@@ -387,6 +374,10 @@ Topic:"""
         Returns:
             Number of nodes in the topic (including start and end)
         """
+        # Handle ongoing topics (no end node)
+        if not topic_end_id:
+            return 0
+            
         # Get ancestry of the end node
         topic_ancestry = get_ancestry(topic_end_id)
         

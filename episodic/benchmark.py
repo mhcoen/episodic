@@ -84,8 +84,12 @@ class BenchmarkManager:
         
         # Store for later display if enabled
         if self.should_display():
-            # Save the operation with its resources
-            self.pending_displays.append((name, elapsed, dict(resources)))
+            # Only display top-level operations (not nested ones)
+            # A nested operation has a non-empty operation_stack after popping
+            is_nested = len(self.operation_stack) > 0
+            if not is_nested:
+                # Save the operation with its resources
+                self.pending_displays.append((name, elapsed, dict(resources)))
             
         # If there's a parent operation, add this operation's resources to it
         if self.resource_stack:

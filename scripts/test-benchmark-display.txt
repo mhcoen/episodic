@@ -1,11 +1,6 @@
-# Test benchmark display functionality
-
+/init --erase
 /set benchmark true
 /set benchmark_display true
-/set debug true
-
-# Send a simple message to trigger benchmarking
-Hello, can you help me with Python?
-
-# Check benchmark summary
-/benchmark
+Tell me about Mars rovers
+What are the main challenges of sending humans to Mars?
+How long would the journey take?

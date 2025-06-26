@@ -106,12 +106,18 @@ class LLMManager:
                 # For non-streaming, extract text and calculate cost
                 response_text = response.choices[0].message.content
                 
-                # Calculate cost info (simplified version)
+                # Calculate cost info using litellm's cost calculation
+                try:
+                    from litellm import completion_cost
+                    cost = completion_cost(completion_response=response)
+                except:
+                    cost = 0.0
+                
                 cost_info = {
                     'input_tokens': response.usage.prompt_tokens if hasattr(response, 'usage') else 0,
                     'output_tokens': response.usage.completion_tokens if hasattr(response, 'usage') else 0,
                     'total_tokens': response.usage.total_tokens if hasattr(response, 'usage') else 0,
-                    'cost': 0.0  # Would need proper cost calculation
+                    'cost_usd': cost
                 }
                 
                 if config.get('debug', False):

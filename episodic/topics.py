@@ -155,8 +155,7 @@ Answer:"""
             with benchmark_resource("LLM Call", f"topic detection - {topic_model}"):
                 response, cost_info = query_llm(
                     prompt, 
-                    model=topic_model,
-                    max_tokens=20  # Very short response expected
+                    model=topic_model
                 )
             
             if response:

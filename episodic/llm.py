@@ -175,7 +175,6 @@ def _execute_llm_query(
     messages: List[Dict[str, str]],
     model: str,
     temperature: float,
-    max_tokens: int,
     stream: bool = False
 ) -> Union[tuple[str, dict], tuple[Any, None]]:
     """
@@ -185,7 +184,6 @@ def _execute_llm_query(
         messages: List of message dictionaries
         model: Model name
         temperature: Temperature for generation
-        max_tokens: Maximum tokens to generate
         stream: If True, returns a generator for streaming responses
         
     Returns:
@@ -213,7 +211,6 @@ def _execute_llm_query(
             messages=messages,
             api_base=provider_config.get("api_base"),
             temperature=temperature,
-            max_tokens=max_tokens,
             stream=stream
         )
     elif provider == "ollama":
@@ -223,7 +220,6 @@ def _execute_llm_query(
             messages=messages,
             api_base=provider_config.get("api_base"),
             temperature=temperature,
-            max_tokens=max_tokens,
             stream=stream
         )
     else:
@@ -231,7 +227,6 @@ def _execute_llm_query(
             model=full_model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,
             stream=stream
         )
 
@@ -293,21 +288,19 @@ def query_llm(
     prompt: str,
     model: str = "gpt-4o-mini",
     system_message: str = "You are a helpful assistant.",
-    temperature: float = 0.7,
-    max_tokens: int = 1000
+    temperature: float = 0.7
 ) -> tuple[str, dict]:
     messages = [
         {"role": "system", "content": system_message},
         {"role": "user", "content": prompt}
     ]
-    return _execute_llm_query(messages, model, temperature, max_tokens)
+    return _execute_llm_query(messages, model, temperature)
 
 def query_with_context(
     node_id: str,
     model: str = "gpt-4o-mini",
     system_message: str = "You are a helpful assistant.",
     temperature: float = 0.7,
-    max_tokens: int = 1000,
     context_depth: int = 5,
     stream: bool = False
 ) -> Union[tuple[str, dict], tuple[Any, None]]:
@@ -319,7 +312,6 @@ def query_with_context(
         model: The model to use for the query
         system_message: The system message to include at the beginning of the context
         temperature: The temperature to use for the query
-        max_tokens: The maximum number of tokens to generate
         context_depth: The number of ancestor nodes to include in the context
         stream: If True, returns a streaming response
 
@@ -356,7 +348,7 @@ def query_with_context(
     messages.extend(context_messages)
     messages.append({"role": "user", "content": prompt})
 
-    return _execute_llm_query(messages, model, temperature, max_tokens, stream=stream)
+    return _execute_llm_query(messages, model, temperature, stream=stream)
 
 def process_stream_response(stream_generator, model: str):
     """

@@ -351,8 +351,216 @@ class ConversationManager:
                         # Get streaming rate configuration
                         stream_rate = config.get("stream_rate", 15)  # Default to 15 words per second
                         use_constant_rate = config.get("stream_constant_rate", False)
+                        use_natural_rhythm = config.get("stream_natural_rhythm", False)
+                        use_char_streaming = config.get("stream_char_mode", False)
                         
-                        if use_constant_rate and stream_rate > 0:
+                        if use_char_streaming:
+                            # Character-by-character streaming with line delays and formatting
+                            char_delay = 1.0 / config.get("stream_char_rate", 1000)  # Default 1000 chars/sec
+                            line_delay = config.get("stream_line_delay", 0.1)  # Default 100ms between lines
+                            
+                            current_line = ""
+                            current_position = 0
+                            wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
+                            in_bold = False
+                            bold_marker_count = 0
+                            
+                            for chunk in process_stream_response(stream_generator, model):
+                                full_response_parts.append(chunk)
+                                
+                                for char in chunk:
+                                    # Handle bold markers
+                                    if char == '*':
+                                        bold_marker_count += 1
+                                        if bold_marker_count == 2:
+                                            # Toggle bold state, don't print the markers
+                                            in_bold = not in_bold
+                                            bold_marker_count = 0
+                                            continue
+                                        else:
+                                            # Don't print yet, might be part of bold marker
+                                            continue
+                                    else:
+                                        # Not an asterisk, print any pending asterisks
+                                        if bold_marker_count == 1:
+                                            # Single asterisk, print it
+                                            typer.secho('*', fg=get_llm_color(), nl=False, bold=in_bold)
+                                            current_position += 1
+                                        bold_marker_count = 0
+                                    
+                                    # Handle newlines
+                                    if char == '\n':
+                                        typer.secho('\n', fg=get_llm_color(), nl=False)
+                                        current_position = 0
+                                        current_line = ""
+                                        time.sleep(line_delay)
+                                    else:
+                                        # Track current line for word wrap
+                                        current_line += char
+                                        
+                                        # Check if we need to wrap
+                                        if wrap_width and current_position >= wrap_width:
+                                            # Find last space to break at word boundary
+                                            last_space = current_line.rfind(' ')
+                                            if last_space > 0 and last_space > len(current_line) - 20:
+                                                # Wrap at last space
+                                                typer.secho('\n', fg=get_llm_color(), nl=False)
+                                                current_position = len(current_line) - last_space - 1
+                                                current_line = current_line[last_space + 1:]
+                                            else:
+                                                # No good break point, wrap here
+                                                typer.secho('\n', fg=get_llm_color(), nl=False)
+                                                current_position = 0
+                                                current_line = ""
+                                        
+                                        # Print the character
+                                        typer.secho(char, fg=get_llm_color(), nl=False, bold=in_bold)
+                                        current_position += 1
+                                        
+                                        # Add delay for non-whitespace
+                                        if char not in ' \t':
+                                            time.sleep(char_delay)
+                            
+                            # Handle any remaining asterisk
+                            if bold_marker_count == 1:
+                                typer.secho('*', fg=get_llm_color(), nl=False, bold=in_bold)
+                            
+                        elif use_natural_rhythm and stream_rate > 0:
+                            # Use natural rhythm streaming with sinusoidal variation
+                            word_queue = queue.Queue()
+                            stop_event = threading.Event()
+                            
+                            # Function to print words with natural rhythm
+                            def natural_rhythm_printer():
+                                import math
+                                import random
+                                
+                                current_line = ""
+                                words_per_second = stream_rate
+                                base_interval = 1.0 / words_per_second  # Base interval in seconds
+                                
+                                # Rhythm parameters
+                                amplitude = base_interval * 0.3  # 30% variation
+                                period = 4.0  # 4-second cycle (like breathing)
+                                start_time = time.time()
+                                
+                                # Punctuation delays (in seconds)
+                                punctuation_delays = {
+                                    '.': 0.3,
+                                    '!': 0.3,
+                                    '?': 0.3,
+                                    ',': 0.15,
+                                    ';': 0.2,
+                                    ':': 0.2,
+                                    ')': 0.1,
+                                    '"': 0.1,
+                                }
+                                
+                                while not stop_event.is_set() or not word_queue.empty():
+                                    try:
+                                        word = word_queue.get(timeout=0.1)
+                                        if word is None:  # Sentinel value
+                                            break
+                                        
+                                        # Calculate current phase in rhythm cycle
+                                        elapsed = time.time() - start_time
+                                        phase = (elapsed % period) / period
+                                        
+                                        # Calculate interval with sinusoidal variation
+                                        rhythm_factor = math.sin(2 * math.pi * phase)
+                                        interval = base_interval + amplitude * rhythm_factor
+                                        
+                                        # Add small random jitter (±10ms)
+                                        jitter = random.uniform(-0.01, 0.01)
+                                        interval += jitter
+                                        
+                                        # Ensure interval is positive
+                                        interval = max(0.02, interval)
+                                        
+                                        # Add word to current line
+                                        current_line += word
+                                        
+                                        # Check if we have complete lines to print
+                                        if '\n' in current_line:
+                                            lines = current_line.split('\n')
+                                            # Print all complete lines
+                                            for line in lines[:-1]:
+                                                if config.get("text_wrap", True):
+                                                    wrap_width = self.get_wrap_width()
+                                                    if len(line) > wrap_width:
+                                                        wrapped = textwrap.fill(
+                                                            line,
+                                                            width=wrap_width,
+                                                            initial_indent="",
+                                                            subsequent_indent=""
+                                                        )
+                                                        typer.secho(wrapped, fg=get_llm_color())
+                                                    else:
+                                                        typer.secho(line, fg=get_llm_color())
+                                                else:
+                                                    typer.secho(line, fg=get_llm_color())
+                                            # Keep the incomplete last line
+                                            current_line = lines[-1]
+                                        else:
+                                            # Print the word without newline
+                                            typer.secho(word, fg=get_llm_color(), nl=False)
+                                            # Don't accumulate printed words
+                                            current_line = ""
+                                        
+                                        # Check for punctuation at end of word and add delay
+                                        if word.strip():
+                                            last_char = word.strip()[-1]
+                                            if last_char in punctuation_delays:
+                                                interval += punctuation_delays[last_char]
+                                        
+                                        # Sleep for calculated interval
+                                        time.sleep(interval)
+                                    except queue.Empty:
+                                        continue
+                                
+                                # Print any remaining content
+                                if current_line.strip():
+                                    typer.secho(current_line, fg=get_llm_color())
+                                else:
+                                    # Ensure we have a newline at the end
+                                    typer.echo("")
+                            
+                            # Start the printer thread
+                            printer_thread = threading.Thread(target=natural_rhythm_printer)
+                            printer_thread.start()
+                            
+                            # Process chunks and split into words
+                            accumulated_text = ""
+                            for chunk in process_stream_response(stream_generator, model):
+                                full_response_parts.append(chunk)
+                                accumulated_text += chunk
+                                
+                                # Split accumulated text into words while preserving whitespace
+                                # Use regex to split on word boundaries but keep the whitespace
+                                words = re.findall(r'\S+\s*|\n', accumulated_text)
+                                
+                                # Add complete words to the queue
+                                for word in words[:-1]:  # Keep last potentially incomplete word
+                                    word_queue.put(word)
+                                
+                                # Keep the last potentially incomplete word
+                                if words:
+                                    accumulated_text = words[-1] if not words[-1].endswith((' ', '\n')) else ''
+                                    if not accumulated_text:
+                                        word_queue.put(words[-1])
+                                else:
+                                    accumulated_text = ''
+                            
+                            # Add any remaining text
+                            if accumulated_text:
+                                word_queue.put(accumulated_text)
+                            
+                            # Signal completion and wait for printer to finish
+                            word_queue.put(None)  # Sentinel value
+                            stop_event.set()
+                            printer_thread.join()
+                            
+                        elif use_constant_rate and stream_rate > 0:
                             # Use constant-rate streaming with word queue
                             word_queue = queue.Queue()
                             stop_event = threading.Event()
@@ -447,107 +655,10 @@ class ConversationManager:
                             printer_thread.join()
                             
                         else:
-                            # Immediate streaming with word-by-word output
-                            current_word = ""
-                            current_position = 0
-                            wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
-                            at_line_start = True
-                            in_list_item = False
-                            list_indent = ""
-                            in_bold = False
-                            bold_buffer = ""
-                            
-                            
+                            # Default immediate streaming (no delay)
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
-                                
-                                # If wrapping is disabled, just print the chunk
-                                if not wrap_width:
-                                    typer.secho(chunk, fg=get_llm_color(), nl=False)
-                                    continue
-                                
-                                # Process the chunk
-                                for char in chunk:
-                                    if char in ' \n':
-                                        # End of word or line
-                                        if current_word:
-                                            # Check if this is a list item at start of line
-                                            if at_line_start:
-                                                if (len(current_word) <= 3 and current_word.endswith('.') and current_word[:-1].isdigit()) or current_word in ['-', '*', '•']:
-                                                    # This is a list marker
-                                                    in_list_item = True
-                                                    list_indent = "      "  # 6 spaces to align with text after "1. "
-                                                elif not current_word[0].isdigit() and current_word not in ['-', '*', '•']:
-                                                    # Not a list item, reset list state
-                                                    in_list_item = False
-                                                    list_indent = ""
-                                            
-                                            # Check if we need to wrap before printing this word
-                                            word_len = len(current_word)
-                                            effective_width = wrap_width - len(list_indent) if in_list_item and not at_line_start else wrap_width
-                                            
-                                            if current_position > 0 and current_position + word_len + 1 > effective_width:
-                                                # Wrap to next line
-                                                typer.secho("\n", fg=get_llm_color(), nl=False)
-                                                if in_list_item and not at_line_start:
-                                                    # Add indent for wrapped lines in lists
-                                                    typer.secho(list_indent, fg=get_llm_color(), nl=False)
-                                                    current_position = len(list_indent)
-                                                else:
-                                                    current_position = 0
-                                            
-                                            # Print the word
-                                            typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
-                                            current_position += word_len
-                                            current_word = ""
-                                            at_line_start = False
-                                        
-                                        # Handle the delimiter
-                                        if char == ' ' and current_position < wrap_width:
-                                            typer.secho(" ", fg=get_llm_color(), nl=False, bold=in_bold)
-                                            current_position += 1
-                                        elif char == '\n':
-                                            typer.secho("\n", fg=get_llm_color(), nl=False)
-                                            current_position = 0
-                                            at_line_start = True
-                                            # Check if we're ending a list item (next line doesn't start with a number)
-                                            # We'll reset this when we see the next line's content
-                                    else:
-                                        # Check for bold markers
-                                        if char == '*':
-                                            bold_buffer += char
-                                            if len(bold_buffer) == 2:
-                                                # We have "**" - toggle bold
-                                                if current_word:
-                                                    # Print any accumulated word first
-                                                    typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
-                                                    current_position += len(current_word)
-                                                    current_word = ""
-                                                    at_line_start = False
-                                                # Toggle bold state
-                                                in_bold = not in_bold
-                                                bold_buffer = ""
-                                            continue
-                                        elif bold_buffer:
-                                            # We had a single *, not bold marker
-                                            current_word += bold_buffer + char
-                                            bold_buffer = ""
-                                        else:
-                                            # Regular character
-                                            current_word += char
-                            
-                            # Handle any remaining bold buffer
-                            if bold_buffer:
-                                current_word += bold_buffer
-                            
-                            # Print any remaining word
-                            if current_word:
-                                effective_width = wrap_width - len(list_indent) if in_list_item and not at_line_start else wrap_width
-                                if current_position > 0 and current_position + len(current_word) > effective_width:
-                                    typer.secho("\n", fg=get_llm_color(), nl=False)
-                                    if in_list_item and not at_line_start:
-                                        typer.secho(list_indent, fg=get_llm_color(), nl=False)
-                                typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
+                                typer.secho(chunk, fg=get_llm_color(), nl=False)
                         
                         # Get the full response and cost info
                         display_response = ''.join(full_response_parts)

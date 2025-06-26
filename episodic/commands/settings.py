@@ -47,6 +47,14 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho(f"{config.get('stream_rate', 15)} words/sec", fg=get_system_color())
         typer.secho("  stream_constant_rate: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_constant_rate', False)}", fg=get_system_color())
+        typer.secho("  stream_natural_rhythm: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_natural_rhythm', False)}", fg=get_system_color())
+        typer.secho("  stream_char_mode: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_char_mode', False)}", fg=get_system_color())
+        typer.secho("  stream_char_rate: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_char_rate', 1000)} chars/sec", fg=get_system_color())
+        typer.secho("  stream_line_delay: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('stream_line_delay', 0.1)}s", fg=get_system_color())
         typer.secho("  cost: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
         typer.secho("  topics: ", nl=False, fg=get_text_color())
@@ -166,6 +174,60 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             val = value.lower() in ["on", "true", "yes", "1"]
             config.set("stream_constant_rate", val)
             typer.echo(f"Constant rate streaming: {'ON' if val else 'OFF'}")
+
+    # Handle 'stream_natural_rhythm' parameter
+    elif param.lower() == "stream_natural_rhythm":
+        if not value:
+            current = config.get("stream_natural_rhythm", False)
+            typer.echo(f"Current natural rhythm streaming: {current}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("stream_natural_rhythm", val)
+            typer.echo(f"Natural rhythm streaming: {'ON' if val else 'OFF'}")
+
+    # Handle 'stream_char_mode' parameter
+    elif param.lower() == "stream_char_mode":
+        if not value:
+            current = config.get("stream_char_mode", False)
+            typer.echo(f"Current character streaming mode: {current}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("stream_char_mode", val)
+            typer.echo(f"Character streaming mode: {'ON' if val else 'OFF'}")
+
+    # Handle 'stream_char_rate' parameter
+    elif param.lower() == "stream_char_rate":
+        if not value:
+            typer.echo(f"Current character rate: {config.get('stream_char_rate', 1000)} chars/sec")
+        else:
+            try:
+                rate = int(value)
+                if rate < 100:
+                    typer.echo("Character rate must be at least 100 chars/sec")
+                elif rate > 10000:
+                    typer.echo("Character rate must be at most 10000 chars/sec")
+                else:
+                    config.set("stream_char_rate", rate)
+                    typer.echo(f"Character rate set to {rate} chars/sec")
+            except ValueError:
+                typer.echo("Character rate must be a number")
+
+    # Handle 'stream_line_delay' parameter
+    elif param.lower() == "stream_line_delay":
+        if not value:
+            typer.echo(f"Current line delay: {config.get('stream_line_delay', 0.1)}s")
+        else:
+            try:
+                delay = float(value)
+                if delay < 0:
+                    typer.echo("Line delay must be non-negative")
+                elif delay > 1.0:
+                    typer.echo("Line delay must be at most 1 second")
+                else:
+                    config.set("stream_line_delay", delay)
+                    typer.echo(f"Line delay set to {delay}s")
+            except ValueError:
+                typer.echo("Line delay must be a number")
 
     # Handle the 'depth' parameter for context depth
     elif param.lower() == "depth":

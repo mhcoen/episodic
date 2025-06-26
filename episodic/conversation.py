@@ -53,6 +53,7 @@ class ConversationManager:
     def __init__(self):
         """Initialize the ConversationManager."""
         self.current_node_id = None
+        self.current_topic = None  # Track current topic (name, start_node_id)
         self.drift_calculator = None
         self.session_costs = {
             "total_input_tokens": 0,
@@ -82,9 +83,28 @@ class ConversationManager:
         """Set the current node ID."""
         self.current_node_id = node_id
     
+    def set_current_topic(self, topic_name: str, start_node_id: str) -> None:
+        """Set the current topic."""
+        self.current_topic = (topic_name, start_node_id)
+    
+    def get_current_topic(self) -> Optional[Tuple[str, str]]:
+        """Get the current topic (name, start_node_id) or None."""
+        return self.current_topic
+    
     def initialize_conversation(self) -> None:
         """Initialize the conversation state from the database."""
         self.current_node_id = get_head()
+        
+        # Initialize current topic from database
+        if self.current_node_id:
+            # Find the topic that contains the current head node
+            recent_topics = get_recent_topics(limit=10)
+            for topic in recent_topics:
+                # Check if current node is within this topic's range
+                # For now, just use the most recent topic
+                if topic.get('end_node_id'):
+                    self.set_current_topic(topic['name'], topic['start_node_id'])
+                    break
     
     def get_wrap_width(self) -> int:
         """Get the appropriate text wrapping width for the terminal."""
@@ -934,37 +954,39 @@ class ConversationManager:
                                         queue_topic_for_compression(first_user_node_id, parent_node_id, topic_name)
                 
                     # Create a new topic starting from this user message
-                    # Generate a unique placeholder name that will be updated when the topic is closed
+                    # Use a placeholder name that will be updated when this topic ends
                     timestamp = int(time.time())
-                    placeholder_topic_name = f"ongoing-discussion-{timestamp}"
-                    # Initially set the end node to the user node, will be updated to include assistant response
-                    store_topic(placeholder_topic_name, user_node_id, user_node_id, 'detected')
+                    placeholder_topic_name = f"ongoing-{timestamp}"
                     
-                    # Now update the new topic to include the assistant response
-                    update_topic_end_node(placeholder_topic_name, user_node_id, assistant_node_id)
+                    # Create the topic with placeholder name
+                    store_topic(placeholder_topic_name, user_node_id, assistant_node_id, 'detected')
+                    
+                    # Set as current topic
+                    self.set_current_topic(placeholder_topic_name, user_node_id)
                     
                     typer.echo("")
                     typer.secho(f"🔄 Topic changed", fg=get_system_color())
                 else:
                     # No topic change - extend the current topic if one exists
-                    recent_topics = get_recent_topics(limit=1)
-                    if recent_topics:
-                        current_topic = recent_topics[0]
-                        # If no topic change was detected, we're continuing the current topic
+                    current_topic = self.get_current_topic()
+                    if current_topic:
+                        topic_name, start_node_id = current_topic
                         # Update it to include the new assistant response
-                        update_topic_end_node(current_topic['name'], current_topic['start_node_id'], assistant_node_id)
+                        update_topic_end_node(topic_name, start_node_id, assistant_node_id)
+                        if config.get("debug", False):
+                            typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' to include new response")
                     else:
                         # No topics exist yet and no topic change detected
-                        # Check if this is the very first exchange (node 02-03)
+                        # Check if ANY topics exist in the database
                         from episodic.db import get_connection
                         with get_connection() as conn:
                             c = conn.cursor()
-                            c.execute("SELECT COUNT(*) FROM nodes WHERE role IN ('user', 'assistant')")
-                            node_count = c.fetchone()[0]
+                            c.execute("SELECT COUNT(*) FROM topics")
+                            topic_count = c.fetchone()[0]
                         
-                        # If this is the first exchange (2 nodes: first user + first assistant)
-                        if node_count == 2:
-                            # Extract topic from this first exchange
+                        # If no topics exist at all, create the first one
+                        if topic_count == 0:
+                            # Extract topic from this exchange
                             segment = f"User: {user_input}\n\nAssistant: {display_response[:500]}..."
                             
                             with benchmark_operation("Topic Name Extraction"):
@@ -973,14 +995,24 @@ class ConversationManager:
                             if not topic_name:
                                 topic_name = "conversation"
                             
-                            # Create the initial topic for this first exchange
+                            # Create the initial topic for JUST this exchange
+                            # It starts at the current user node and ends at the current assistant node
                             store_topic(topic_name, user_node_id, assistant_node_id, 'initial')
+                            # Set as current topic
+                            self.set_current_topic(topic_name, user_node_id)
                             typer.echo("")
                             typer.secho(f"📌 Created initial topic: {topic_name}", fg=get_system_color())
+                            
+                            # Add extraction costs if any
+                            if extract_cost_info:
+                                self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                                self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                                self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                                self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
                         else:
-                            # Wait for topic change
+                            # Topics exist but no change detected - should have extended existing topic above
                             if config.get("debug", False):
-                                typer.echo("🔍 DEBUG: No topic change detected, continuing without topic")
+                                typer.echo("🔍 DEBUG: No topic change detected, continuing conversation")
             
                 # Show topic evolution if enabled (after topic detection)
                 if config.get("show_topics", False):

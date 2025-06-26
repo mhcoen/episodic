@@ -17,3 +17,4 @@ __pycache__/
 
 # Defunct/legacy files
 defunct/
+/episodic.db.backup

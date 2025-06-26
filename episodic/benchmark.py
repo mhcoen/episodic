@@ -90,8 +90,15 @@ class BenchmarkManager:
         # If there's a parent operation, add this operation's resources to it
         if self.resource_stack:
             parent_resources = self.resource_stack[-1]
-            for resource_type, resource_time in resources.items():
-                parent_resources[resource_type] += resource_time
+            for resource_type, resource_info in resources.items():
+                if resource_type not in parent_resources:
+                    parent_resources[resource_type] = {'time': 0.0, 'count': 0}
+                if isinstance(resource_info, dict):
+                    parent_resources[resource_type]['time'] += resource_info.get('time', 0.0)
+                    parent_resources[resource_type]['count'] += resource_info.get('count', 0)
+                else:
+                    # Old format compatibility
+                    parent_resources[resource_type]['time'] += resource_info
     
     def display_pending(self):
         """Display any pending benchmark results."""
@@ -110,9 +117,14 @@ class BenchmarkManager:
         
         # Track for current operation if one is active
         if self.resource_stack:
-            self.resource_stack[-1][resource_type] += elapsed
+            current_resources = self.resource_stack[-1]
+            # Track both time and count
+            if resource_type not in current_resources:
+                current_resources[resource_type] = {'time': 0.0, 'count': 0}
+            current_resources[resource_type]['time'] += elapsed
+            current_resources[resource_type]['count'] += 1
             
-    def _display_operation_benchmark(self, operation: str, elapsed: float, resources: Dict[str, float]):
+    def _display_operation_benchmark(self, operation: str, elapsed: float, resources: Dict[str, Any]):
         """Display benchmark results for a single operation."""
         typer.secho(f"[Benchmark]", nl=False, fg=get_system_color(), bold=True)
         typer.secho(f" {operation}: ", nl=False, fg=get_system_color())
@@ -120,10 +132,16 @@ class BenchmarkManager:
         
         # Show resource breakdown if any
         if resources:
-            for resource_type, resource_time in sorted(resources.items()):
-                # Count resources of this type
-                count = sum(1 for k, v in self.resource_stats[resource_type].items() 
-                           if v.last_time > 0)
+            for resource_type, resource_info in sorted(resources.items()):
+                # Handle both old format (just time) and new format (dict with time and count)
+                if isinstance(resource_info, dict):
+                    resource_time = resource_info.get('time', 0.0)
+                    count = resource_info.get('count', 0)
+                else:
+                    # Old format compatibility
+                    resource_time = resource_info
+                    count = 0
+                
                 typer.secho(f"  - {resource_type}: ", nl=False, fg=get_text_color())
                 typer.secho(f"{resource_time:.2f}s", nl=False, fg=get_system_color())
                 if count > 0:

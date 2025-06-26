@@ -91,9 +91,9 @@ class TopicManager:
                 role = msg.get('role', 'unknown')
                 content = msg.get('content', '').strip()
                 if content:
-                    # Truncate long messages for context
-                    truncated = content[:150] + '...' if len(content) > 150 else content
-                    context_parts.append(f"{role}: {truncated}")
+                    # Include full content for better context understanding
+                    # Truncation can lose important topic information
+                    context_parts.append(f"{role}: {content}")
             
             context = "\n".join(context_parts)
             
@@ -115,8 +115,10 @@ class TopicManager:
                 # Fallback to default prompt if file not found
                 prompt = f"""Analyze if there is a MAJOR topic change in this conversation.
 
-IMPORTANT: Only detect changes when switching between COMPLETELY DIFFERENT subjects.
-Minor variations within the same general subject are NOT topic changes.
+IMPORTANT RULES:
+1. Only detect changes when switching to a COMPLETELY DIFFERENT domain of knowledge
+2. Continuing to ask about the same subject, even with variations, is NOT a topic change
+3. Default to "NO" unless you are absolutely certain the topic has changed dramatically
 
 Previous conversation:
 {context}
@@ -124,21 +126,22 @@ Previous conversation:
 New user message:
 user: {new_message}
 
-Has the topic changed SIGNIFICANTLY? Answer with ONLY:
-- "YES: [new-topic-name]" if there is a MAJOR topic change (use 1-3 words, lowercase with hyphens)
-- "NO" if continuing the same general subject area
+Has the topic changed to a COMPLETELY DIFFERENT subject? Answer with ONLY:
+- "YES: [new-topic-name]" if switching to an entirely different domain
+- "NO" if still discussing the same general area
 
-Examples of NO CHANGE (continuing same topic):
-- "What color is the sky?" → "What color are roses?" (both about colors)
-- "What is 2+2?" → "What is 10*10?" (both about math)
-- "How do I debug Python?" → "What about performance optimization?" (both about programming)
-- "Tell me about dogs" → "What about cats?" (both about animals)
-- "Explain quantum physics" → "What about relativity?" (both about physics)
+Examples that should be "NO":
+- Asking more questions about the same subject
+- Requesting clarification or more details
+- Asking for examples of the same thing
+- Variations on the same theme
+- Related or connected topics
 
-Examples of YES CHANGE (major topic shift):
-- "How do I debug Python?" → "What's the weather today?" → "YES: weather"
-- "Tell me about quantum physics" → "What's a good restaurant nearby?" → "YES: restaurants"
-- "What is 2+2?" → "Tell me about ancient Rome" → "YES: ancient-rome"
+Only answer "YES" for dramatic shifts like:
+- Technical discussion → Personal life
+- Science → Entertainment
+- Programming → Food/Cooking
+- Math → Travel plans
 
 Answer:"""
 
@@ -164,16 +167,26 @@ Answer:"""
                 if config.get("debug", False):
                     typer.echo(f"   LLM response: {response}")
                 
+                # Check for clear YES response
                 if response.upper().startswith("YES:"):
                     # Don't extract topic name here - just return that a change was detected
                     # The topic name will be extracted from the PREVIOUS topic's content
                     if config.get("debug", False):
                         typer.echo(f"   ✅ Topic change detected")
                     return True, None, cost_info
-                else:
+                
+                # Check for contradictory responses where LLM says NO but describes it as different
+                response_lower = response.lower()
+                if response_lower.startswith("no") and any(phrase in response_lower for phrase in 
+                    ["different subject", "different topic", "different from", "which is different", "completely different"]):
                     if config.get("debug", False):
-                        typer.echo(f"   ➡️ Continuing same topic")
-                    return False, None, cost_info
+                        typer.echo(f"   ⚠️  LLM said NO but described topics as different - treating as YES")
+                    return True, None, cost_info
+                
+                # Default to no change
+                if config.get("debug", False):
+                    typer.echo(f"   ➡️ Continuing same topic")
+                return False, None, cost_info
         
         except Exception as e:
             logger.warning(f"Topic change detection error: {e}")
@@ -192,17 +205,18 @@ Answer:"""
             Tuple of (topic_name: Optional[str], cost_info: Optional[Dict])
         """
         try:
-            prompt = f"""Extract the main topic from this conversation in 1-3 words. Use lowercase with hyphens.
+            prompt = f"""Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
 
 Examples:
-- Conversation about movies and directors → "movies"
-- Discussion of quantum physics concepts → "quantum-physics" 
-- Debugging code and performance → "programming"
-- Talking about semantic drift → "semantic-drift"
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talking about semantic drift → semantic-drift
 
-Conversation: {conversation_segment}
+Conversation:
+{conversation_segment}
 
-Topic:"""
+Topic name:"""
 
             # Get the topic detection model from config (default to ollama/llama3)
             topic_model = config.get("topic_detection_model", "ollama/llama3")
@@ -217,6 +231,10 @@ Topic:"""
                 response, cost_info = query_llm(prompt, model=topic_model)
             
             if response:
+                # Debug: Show raw response
+                if config.get("debug", False):
+                    typer.echo(f"   DEBUG: Raw topic extraction response: '{response}'")
+                
                 # Clean and normalize the response
                 topic = response.strip().lower()
                 # Remove quotes if present
@@ -228,13 +246,43 @@ Topic:"""
                 # Remove leading and trailing dashes
                 topic = topic.strip('-')
                 
-                # Return cleaned topic or None if empty
+                # Validate the topic name
                 if topic and topic != "no-topic":
-                    return topic, cost_info
-                else:
-                    if config.get("debug", False):
-                        typer.echo(f"⚠️  Topic extraction returned empty or 'no-topic': '{response}'")
-                    return None, cost_info
+                    # Check if the topic is too long (more than 5 words worth)
+                    if len(topic) > 50:
+                        if config.get("debug", False):
+                            typer.echo(f"⚠️  Topic name too long ({len(topic)} chars): '{topic[:50]}...'")
+                        # Try to extract just the first few words
+                        parts = topic.split('-')[:3]
+                        topic = '-'.join(parts)
+                    
+                    # Additional validation - check if it looks like the model included extra text
+                    if any(phrase in topic for phrase in ['extract', 'topic', 'conversation', 'words', 'lowercase', 'hyphens']):
+                        if config.get("debug", False):
+                            typer.echo(f"⚠️  Topic contains prompt keywords: '{topic}'")
+                        # Try to find the actual topic after common phrases
+                        for delimiter in [':', 'is', 'are', '-']:
+                            if delimiter in topic:
+                                parts = topic.split(delimiter)
+                                # Take the last part that doesn't contain prompt keywords
+                                for part in reversed(parts):
+                                    cleaned_part = part.strip('-')
+                                    if cleaned_part and not any(kw in cleaned_part for kw in ['extract', 'topic', 'conversation', 'words']):
+                                        topic = cleaned_part
+                                        break
+                    
+                    # Final length check
+                    if len(topic) > 30:
+                        topic = topic[:30].rsplit('-', 1)[0]  # Cut at last hyphen before 30 chars
+                    
+                    if topic and len(topic) >= 2:  # Minimum 2 characters
+                        if config.get("debug", False):
+                            typer.echo(f"   DEBUG: Final topic name: '{topic}'")
+                        return topic, cost_info
+                
+                if config.get("debug", False):
+                    typer.echo(f"⚠️  Topic extraction failed or invalid: '{response}'")
+                return None, cost_info
                 
         except Exception as e:
             if config.get("debug", False):

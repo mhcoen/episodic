@@ -794,19 +794,28 @@ class ConversationManager:
                             ancestry = get_ancestry(parent_node_id)
                             
                             # Collect nodes from the previous topic
-                            for node in ancestry:
+                            found_start = False
+                            for i, node in enumerate(ancestry):
                                 if node['id'] == previous_topic['start_node_id']:
-                                    topic_nodes.append(node)
-                                    # Continue collecting until we reach the end
-                                    for subsequent_node in ancestry[ancestry.index(node):]:
-                                        topic_nodes.append(subsequent_node)
-                                        if subsequent_node['id'] == parent_node_id:
+                                    found_start = True
+                                    # Collect all nodes from start to end (parent_node_id)
+                                    for j in range(i, len(ancestry)):
+                                        topic_nodes.append(ancestry[j])
+                                        if ancestry[j]['id'] == parent_node_id:
                                             break
                                     break
+                            
+                            if config.get("debug", False) and not found_start:
+                                typer.echo(f"   WARNING: Start node {previous_topic['start_node_id']} not found in ancestry")
                             
                             # Build conversation segment from the previous topic
                             if topic_nodes:
                                 segment = build_conversation_segment(topic_nodes, max_length=2000)
+                                
+                                if config.get("debug", False):
+                                    typer.echo(f"\n🔍 DEBUG: Extracting name for previous topic '{previous_topic['name']}'")
+                                    typer.echo(f"   Topic has {len(topic_nodes)} nodes")
+                                    typer.echo(f"   Segment preview: {segment[:200]}...")
                                 
                                 # Extract a proper name for the previous topic
                                 with benchmark_operation("Topic Name Extraction"):
@@ -819,8 +828,13 @@ class ConversationManager:
                                     self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
                                     self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
                                 
+                                if config.get("debug", False):
+                                    typer.echo(f"   Extracted topic name: {topic_name if topic_name else 'None (extraction failed)'}")
+                                
                                 final_topic_name = topic_name if topic_name else previous_topic['name']
                             else:
+                                if config.get("debug", False):
+                                    typer.echo(f"   WARNING: No topic nodes found for '{previous_topic['name']}'")
                                 final_topic_name = previous_topic['name']
                             
                             # Update the topic name if it changed
@@ -888,7 +902,13 @@ class ConversationManager:
                     # Generate a unique placeholder name that will be updated when the topic is closed
                     timestamp = int(time.time())
                     placeholder_topic_name = f"ongoing-discussion-{timestamp}"
-                    store_topic(placeholder_topic_name, user_node_id, assistant_node_id, 'detected')
+                    # Note: We pass None as end_node_id because this is a new, ongoing topic
+                    # It will be updated as the conversation continues
+                    store_topic(placeholder_topic_name, user_node_id, None, 'detected')
+                    
+                    # Now update the new topic to include the assistant response
+                    update_topic_end_node(placeholder_topic_name, user_node_id, assistant_node_id)
+                    
                     typer.echo("")
                     typer.secho(f"🔄 Topic changed", fg=get_system_color())
                 else:

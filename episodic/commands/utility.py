@@ -78,6 +78,7 @@ def help():
     commands = [
         ("/visualize", "Open graph visualization in browser"),
         ("/script <file>", "Execute commands from a file"),
+        ("/save <file>", "Save session commands to script"),
         ("/help", "Show this help message"),
         ("/exit, /quit, /q", "Exit the application"),
     ]

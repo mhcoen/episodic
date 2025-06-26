@@ -45,6 +45,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `debug` - Shows detailed topic detection info
 
 ### Recent Discoveries
+- **IMPORTANT**: All conversations are currently completely linear - the DAG is a straight line that is never modified. There is no branching implemented yet.
 - Topic boundary issues occur when nodes branch (non-linear history)
 - The `--` prefix in topic names (like "--space") comes from the prompt response
 - First topic creation has timing issues - may not trigger properly
@@ -111,7 +112,7 @@ coverage report -m
 - **Thread-safe database operations**: Uses thread-local connections and context managers
 - **Provider-agnostic LLM calls**: Abstracts different LLM providers (OpenAI, Anthropic, Ollama, etc.) through LiteLLM
 - **Short node IDs**: Human-readable 2-character IDs for easy navigation
-- **Branching conversations**: DAG structure allows conversation branching and merging
+- **Linear conversation structure**: Currently all conversations are completely linear - the DAG is a straight line that is never modified (no branching implemented yet)
 - **Real-time visualization**: HTTP polling for live graph updates
 
 #### Database Schema

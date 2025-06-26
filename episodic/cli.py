@@ -53,6 +53,7 @@ app = typer.Typer()
 # Global variables
 chat_history_file = DEFAULT_HISTORY_FILE
 current_node_id = None
+session_commands = []  # Track commands entered in this session
 
 
 def handle_chat_message(user_input: str) -> None:
@@ -243,6 +244,12 @@ def handle_command(command_str: str) -> bool:
             else:
                 execute_script(args[0])
         
+        elif cmd == "/save":
+            if not args:
+                typer.secho("Usage: /save <filename>", fg="red")
+            else:
+                save_session_script(args[0])
+        
         elif cmd == "/benchmark":
             benchmark()
         
@@ -263,6 +270,40 @@ def handle_command(command_str: str) -> bool:
     display_pending_benchmark()
     
     return False
+
+
+def save_session_script(filename: str):
+    """Save the current session's commands to a script file."""
+    import os
+    
+    # Ensure scripts directory exists
+    scripts_dir = "scripts"
+    os.makedirs(scripts_dir, exist_ok=True)
+    
+    # Add .txt extension if not present
+    if not filename.endswith('.txt'):
+        filename += '.txt'
+    
+    # Full path to script file
+    script_path = os.path.join(scripts_dir, filename)
+    
+    # Filter out the /save command itself from the session
+    commands_to_save = [cmd for cmd in session_commands if not cmd.startswith('/save')]
+    
+    if not commands_to_save:
+        typer.secho("No commands to save in this session.", fg=get_system_color())
+        return
+    
+    try:
+        with open(script_path, 'w', encoding='utf-8') as f:
+            # Write each command on a new line
+            for cmd in commands_to_save:
+                f.write(cmd + '\n')
+        
+        typer.secho(f"✅ Saved {len(commands_to_save)} commands to: {script_path}", fg=get_system_color())
+        typer.secho(f"   You can reload with: /script {filename}", fg=get_text_color())
+    except Exception as e:
+        typer.secho(f"Error saving script: {str(e)}", fg="red")
 
 
 def execute_script(filename: str):
@@ -387,6 +428,9 @@ def talk_loop() -> None:
     typer.secho("Welcome to Episodic! Type '/help' for commands or start chatting.", 
                fg=get_system_color())
     
+    # Initialize the conversation manager with the current head node
+    conversation_manager.initialize_conversation()
+    
     # Set up prompt_toolkit session with history
     history_file = os.path.expanduser("~/.episodic_history")
     session = PromptSession(
@@ -426,6 +470,9 @@ def talk_loop() -> None:
             
             # Save to history (for our custom history file too)
             save_to_history(user_input)
+            
+            # Track commands in this session
+            session_commands.append(user_input)
             
             # Check if it's a command
             if user_input.startswith('/'):

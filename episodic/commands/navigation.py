@@ -121,6 +121,11 @@ def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing
         
         if erase:
             typer.secho("✅ Database erased and reinitialized", fg=get_system_color())
+            # Reset conversation manager state
+            from episodic.conversation import conversation_manager
+            conversation_manager.current_node_id = None
+            conversation_manager.current_topic = None
+            conversation_manager.reset_session_costs()
         else:
             typer.secho("✅ Database initialized", fg=get_system_color())
 

@@ -13,8 +13,10 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
 from episodic.db import (
-    get_node, insert_node, store_compression,
-    get_recent_topics, get_ancestry
+    get_node, get_recent_topics, get_ancestry
+)
+from episodic.db_compression import (
+    create_compression_tables, store_compression_v2
 )
 from episodic.llm import query_llm
 from episodic.config import config
@@ -168,23 +170,23 @@ Concise summary:"""
             if not summary:
                 return False
             
-            # Create compressed node
+            # Prepare compressed content
             compressed_content = f"[Compressed Topic: {job.topic_name}]\n\n{summary}"
-            compressed_id, compressed_short_id = insert_node(
-                compressed_content, 
-                job.end_node_id,
-                role="system"
-            )
             
             # Calculate compression metrics
             original_words = sum(len(node.get('content', '').split()) for node in nodes)
             compressed_words = len(summary.split())
             compression_ratio = (1 - compressed_words / original_words) * 100 if original_words > 0 else 0
             
-            # Store compression metadata
-            store_compression(
-                compressed_node_id=compressed_id,
-                original_branch_head=job.start_node_id,
+            # Get all node IDs in the compressed range
+            node_ids = [node['id'] for node in nodes]
+            
+            # Store compression without inserting into conversation tree
+            compression_id = store_compression_v2(
+                content=compressed_content,
+                start_node_id=job.start_node_id,
+                end_node_id=job.end_node_id,
+                node_ids=node_ids,
                 original_node_count=len(nodes),
                 original_words=original_words,
                 compressed_words=compressed_words,
@@ -289,6 +291,8 @@ compression_manager = AsyncCompressionManager()
 
 def start_auto_compression():
     """Start the automatic compression system."""
+    # Ensure compression tables exist
+    create_compression_tables()
     compression_manager.start()
 
 

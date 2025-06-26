@@ -8,11 +8,26 @@ This document provides information for developers who want to contribute to Epis
 episodic/
 ├── __init__.py
 ├── __main__.py
-├── cli.py
-├── core.py
-├── db.py
-├── llm.py
-├── visualization.py
+├── cli.py                    # Main CLI loop and command dispatcher
+├── core.py                   # Core data structures (Node, ConversationDAG)
+├── db.py                     # Database operations
+├── db_compression.py         # Compression storage system
+├── llm.py                    # LLM integration via LiteLLM
+├── llm_config.py            # LLM provider configuration
+├── conversation.py          # Conversation management
+├── topics.py                # Topic detection and management
+├── compression.py           # Async compression system
+├── config.py                # Configuration management
+├── visualization.py         # Graph visualization
+├── commands/                # Command implementations
+│   ├── __init__.py
+│   ├── navigation.py        # Navigation commands (/head, /show, etc.)
+│   ├── settings.py          # Configuration commands (/set, /verify)
+│   ├── topics.py            # Topic commands (/topics, /rename-topics)
+│   ├── compression.py       # Compression commands
+│   ├── prompts.py           # Prompt management
+│   ├── summary.py           # Summary generation
+│   └── ...
 └── ...
 ```
 

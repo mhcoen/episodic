@@ -33,9 +33,11 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 #### Important Code Locations
 - Topic detection: `episodic/topics.py:detect_topic_change_separately()`
+- Topic threshold behavior: `episodic/topics.py:_should_check_for_topic_change()` (lines 75-89)
 - Topic naming: `episodic/conversation.py:387-442` (in handle_chat_message)
-- Summary command: `episodic/cli.py:1593-1701`
-- Command parsing: `episodic/cli.py:2039-2056`
+- Compression storage: `episodic/db_compression.py` (new compression mapping system)
+- Summary command: `episodic/commands/summary.py`
+- Command parsing: `episodic/cli.py:handle_command()`
 
 ### Configuration Options
 - `topic_detection_model` - Default: ollama/llama3
@@ -46,6 +48,11 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ### Recent Discoveries
 - **IMPORTANT**: All conversations are currently completely linear - the DAG is a straight line that is never modified. There is no branching implemented yet.
+- **CRITICAL**: Topic detection has undocumented threshold behavior - first 2 topics use half threshold (4 messages), then full threshold (8 messages) applies (see `topics.py:_should_check_for_topic_change()`)
+- Compression system now stores summaries separately in compressions_v2 and compression_nodes tables - they do NOT pollute the conversation tree
+- Unit tests modify production config file (~/.episodic/config.json) - tests need isolation
+- `/init --erase` now properly resets conversation manager state (current_node_id, current_topic, session costs)
+- ConversationManager now tracks current topic with `set_current_topic()` and `get_current_topic()`
 - Topic boundary issues occur when nodes branch (non-linear history)
 - The `--` prefix in topic names (like "--space") comes from the prompt response
 - First topic creation has timing issues - may not trigger properly
@@ -55,6 +62,10 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `scripts/test-complex-topics.txt` - 21 queries across multiple topics
 - `scripts/test-topic-naming.txt` - Simple topic transitions
 - `scripts/test-final-topic.txt` - Tests final topic handling
+- `scripts/three-topics-test.txt` - Tests three topic changes accounting for threshold behavior
+
+### New Commands
+- `/rename-topics` - Renames all placeholder "ongoing-*" topics by analyzing their content
 
 ### Common Development Commands
 

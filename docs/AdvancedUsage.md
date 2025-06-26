@@ -6,6 +6,132 @@ This document covers advanced features and usage patterns for Episodic.
 
 Episodic now uses a simplified CLI structure where the talk loop is the main interface, and commands are accessed by prefixing them with a "/" character.
 
+## Topics and Automatic Organization
+
+Episodic automatically detects topic changes in your conversations and organizes them:
+
+```bash
+# View your conversation topics
+> /topics
+📑 Conversation Topics (5 recent)
+======================================================================
+
+[1] ✓ quantum-computing
+    Created: 2025-06-26 10:15
+    Range: 02 → 0f (14 messages)
+    Confidence: high
+
+[2] ✓ machine-learning
+    Created: 2025-06-26 10:20
+    Range: 0g → 0p (10 messages)
+
+# View all topics
+> /topics --all
+
+# Rename placeholder topics
+> /rename-topics
+🔄 Analyzing ongoing topics...
+✅ Renamed 'ongoing-1750929426' to 'space-exploration'
+```
+
+Topics are automatically compressed in the background when they close, reducing storage while preserving key information.
+
+## Compression System
+
+Episodic includes an intelligent compression system that runs in the background:
+
+```bash
+# View compression statistics
+> /compression-stats
+📊 Compression Statistics
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total compressions: 5
+Words saved: 2,500
+Average reduction: 75.3%
+
+# Manually compress conversation
+> /compress --dry-run
+Would compress 25 nodes (3,000 words → ~750 words)
+
+# View pending compressions
+> /compression-queue
+📥 Pending Compressions (2 jobs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Topic: quantum-physics (priority: 5)
+2. Topic: web-development (priority: 7)
+```
+
+## Configuration Management
+
+Episodic offers extensive configuration options:
+
+```bash
+# View all settings
+> /set
+Current settings:
+  debug: false
+  cache: true
+  cost: false
+  show_topics: true
+  compression_model: ollama/llama3
+  topic_detection_model: ollama/llama3
+  auto_compress_topics: true
+
+# Change settings
+> /set debug on
+Debug mode enabled
+
+> /set show_topics false
+Topic display disabled
+
+# Verify configuration
+> /verify
+✅ Database connection: OK
+✅ LLM provider (openai): OK
+✅ Model availability: OK
+```
+
+## Session Management and Scripts
+
+Save and replay conversation sessions:
+
+```bash
+# Save current session
+> /save my-research-session
+✅ Saved 15 commands to: scripts/my-research-session.txt
+
+# Execute a script
+> /script my-research-session.txt
+📜 Executing script: my-research-session.txt
+──────────────────────────────────────────────────
+[1] > What is quantum entanglement?
+...
+✅ Script execution completed
+```
+
+## Performance Monitoring
+
+Track performance with the benchmark system:
+
+```bash
+# Enable benchmarking
+> /set benchmark on
+Benchmarking enabled
+
+# View benchmarks
+> /benchmark
+📊 Performance Benchmarks
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Message Processing:
+  Average: 245ms
+  Min: 120ms
+  Max: 580ms
+  
+Database Operations:
+  Insert: 5ms avg
+  Query: 3ms avg
+```
+
 ```bash
 # Start the application
 python -m episodic

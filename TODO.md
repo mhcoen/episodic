@@ -11,12 +11,16 @@
 - [x] **Optional topic display** - `/set show_topics true` shows topic evolution
 - [x] **Fix topic naming** - Topics named based on content, not trigger message
 - [x] **Topic detection prompt optimization** - Simplified for ollama/llama3 compatibility
+- [x] **Add `/rename-topics` command** - Renames placeholder "ongoing-*" topics
+- [x] **Fix overlapping topics** - Topics now have proper boundaries
+- [x] **Current topic tracking** - ConversationManager tracks current topic
 
 ### Compression System
 - [x] **Async background compression** - Thread-based worker with priority queue
 - [x] **Auto-compression on topic change** - Topics compressed when closed
 - [x] **Compression statistics** - `/compression-stats` command
 - [x] **Configurable compression** - Model, min nodes, notifications via `/set`
+- [x] **Fix compression nodes in tree** - Compressions stored separately, not as nodes
 
 ### UI/UX Improvements
 - [x] **Color scheme adaptation** - Supports light/dark terminals
@@ -36,7 +40,15 @@
 - [x] **Simplify test infrastructure** - Removed over-engineered test setup
 - [x] **Update documentation** - Cleaned up outdated testing docs
 
+### Navigation & State Management
+- [x] **Fix `/init --erase`** - Now properly resets conversation manager state
+- [x] **Fix topics starting from node 02** - Query first user node directly
+
 ## In Progress 🚧
+
+### Critical Issues
+- [ ] **Fix dynamic topic threshold behavior** - Document and make configurable the behavior where first 2 topics use half threshold
+- [ ] **Test configuration isolation** - Tests modify production config file (~/.episodic/config.json)
 
 ### Topic Management Enhancements
 - [ ] **Running topic guess** - Update tentative topic names periodically
@@ -70,3 +82,6 @@
 - Compression happens automatically when topics close
 - Current active topic shows as "ongoing-discussion" until closed
 - Running topic guess is configurable via `/set running_topic_guess`
+- **IMPORTANT**: Topic detection has dynamic threshold - first 2 topics need 4+ messages, subsequent topics need 8+ messages
+- Compressions are stored in separate tables (compressions_v2, compression_nodes) and don't pollute conversation tree
+- Unit tests need isolation - currently modify user's production config file

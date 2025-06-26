@@ -1,0 +1,29 @@
+# Test script for three topic changes
+# Accounting for dynamic threshold behavior:
+# - First 2 topics: 4+ messages needed
+# - Third topic: 8+ messages needed
+
+# Topic 1: Space exploration (need 4+ messages to establish)
+Tell me about the Mars rovers
+What are the main challenges of sending humans to Mars?
+How long would a trip to Mars take with current technology?
+What kind of supplies would astronauts need for a Mars mission?
+Could we terraform Mars in the future?
+
+# Topic 2: Cooking Italian food (need 4+ messages to trigger change)
+I want to learn how to make authentic Italian pasta
+What's the secret to a good carbonara?
+Should I use fresh or dried pasta for different dishes?
+What are the essential ingredients for a proper Italian pantry?
+How do I make a traditional marinara sauce?
+
+# Topic 3: Machine learning (need 8+ messages to trigger change - full threshold)
+Can you explain what neural networks are?
+What's the difference between supervised and unsupervised learning?
+How does backpropagation work in neural networks?
+What are some common activation functions and when to use them?
+Tell me about convolutional neural networks
+What's the purpose of dropout in neural networks?
+How do transformers differ from traditional RNNs?
+What are some best practices for training deep learning models?
+Can you explain gradient descent optimization?

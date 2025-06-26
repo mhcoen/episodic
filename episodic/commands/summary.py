@@ -101,12 +101,42 @@ Please structure the summary clearly with sections if there are multiple distinc
                     messages, 
                     model=model,
                     temperature=0.7,
-                    max_tokens=500,
                     stream=True
                 )
                 
                 # Process the stream
-                display_response, cost_info = process_stream_response(stream_generator, model)
+                full_response_parts = []
+                for chunk in process_stream_response(stream_generator, model):
+                    typer.echo(chunk, nl=False)
+                    full_response_parts.append(chunk)
+                
+                display_response = ''.join(full_response_parts)
+                typer.echo()  # Final newline
+                
+                # Calculate cost info for streaming response
+                from litellm import token_counter, cost_per_token
+                
+                # Count tokens in the response
+                output_tokens = token_counter(model=model, text=display_response)
+                
+                # Count tokens in the prompt (more accurate than estimation)
+                prompt_tokens = token_counter(model=model, text=prompt)
+                system_tokens = token_counter(model=model, text="You are a helpful assistant that creates clear, concise summaries.")
+                input_tokens = prompt_tokens + system_tokens
+                
+                # Calculate actual cost
+                total_cost = sum(cost_per_token(
+                    model=model,
+                    prompt_tokens=input_tokens,
+                    completion_tokens=output_tokens
+                ))
+                
+                cost_info = {
+                    'input_tokens': input_tokens,
+                    'output_tokens': output_tokens,
+                    'total_tokens': input_tokens + output_tokens,
+                    'cost_usd': total_cost
+                }
                 
                 # Show cost if enabled
                 if config.get("show_cost", False) and cost_info and cost_info.get('cost_usd', 0) > 0:
@@ -117,8 +147,7 @@ Please structure the summary clearly with sections if there are multiple distinc
                 summary_text, cost_info = query_llm(
                     prompt,
                     model=config.get("model", "gpt-3.5-turbo"),
-                    system_message="You are a helpful assistant that creates clear, concise summaries.",
-                    max_tokens=500
+                    system_message="You are a helpful assistant that creates clear, concise summaries."
                 )
                 
                 typer.secho("\n🤖 Summary:", fg=get_llm_color(), bold=True)
@@ -133,7 +162,10 @@ Please structure the summary clearly with sections if there are multiple distinc
         
         # Update session costs
         if 'cost_info' in locals() and cost_info:
-            conversation_manager.update_session_costs(cost_info)
+            conversation_manager.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
+            conversation_manager.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
+            conversation_manager.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
+            conversation_manager.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
         
     except Exception as e:
         typer.secho(f"\nError generating summary: {str(e)}", fg="red")

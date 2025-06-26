@@ -16,16 +16,18 @@ This starts the application in talk mode, where you can chat with the LLM and us
 
 All commands are prefixed with a "/" character in the talk mode.
 
-### Initialize the Database
+### Navigation Commands
+
+#### Initialize the Database
 
 ```bash
 /init
-/init --erase  # Erase existing database
+/init --erase  # Erase existing database and reset state
 ```
 
 Creates a new database or resets an existing one.
 
-### Add a Message
+#### Add a Message
 
 ```bash
 /add Your message here
@@ -34,7 +36,7 @@ Creates a new database or resets an existing one.
 
 Adds a new node with the specified content as a child of the current node.
 
-### Show a Node
+#### Show a Node
 
 ```bash
 /show <node_id>
@@ -42,15 +44,25 @@ Adds a new node with the specified content as a child of the current node.
 
 Displays the content and metadata of the specified node.
 
-### Change the Current Node
+#### Print Current Node
 
 ```bash
+/print
+/print <node_id>  # Print specific node
+```
+
+Prints the content of the current node or specified node.
+
+#### Change the Current Node
+
+```bash
+/head
 /head <node_id>
 ```
 
-Changes the current node to the specified node.
+Shows or changes the current node to the specified node.
 
-### List Recent Nodes
+#### List Recent Nodes
 
 ```bash
 /list
@@ -59,13 +71,139 @@ Changes the current node to the specified node.
 
 Lists the most recent nodes in the database.
 
-### Show Ancestry
+#### Show Ancestry
 
 ```bash
 /ancestry <node_id>
 ```
 
 Shows the ancestry (thread history) of the specified node.
+
+### Configuration Commands
+
+#### Set Configuration
+
+```bash
+/set                           # Show all settings
+/set <parameter>              # Show specific setting
+/set <parameter> <value>      # Set a value
+
+# Examples:
+/set debug on                 # Enable debug mode
+/set cache off               # Disable caching
+/set cost on                 # Show cost information
+/set show_topics true        # Show topic evolution
+/set compression_model ollama/llama3
+```
+
+#### Verify Configuration
+
+```bash
+/verify
+```
+
+Verifies that the current configuration is valid and all providers are working.
+
+#### Cost Information
+
+```bash
+/cost
+```
+
+Shows the session cost information for LLM usage.
+
+### Topic Management
+
+#### View Topics
+
+```bash
+/topics                      # Show recent topics
+/topics --all               # Show all topics
+/topics --limit 20          # Show 20 topics
+/topics --verbose           # Show detailed topic info
+```
+
+Shows conversation topics with their ranges and message counts.
+
+#### Rename Topics
+
+```bash
+/rename-topics
+```
+
+Analyzes and renames all placeholder "ongoing-*" topics based on their content.
+
+#### Compress Current Topic
+
+```bash
+/compress-current-topic
+```
+
+Compresses the current topic (if closed) into a summary.
+
+### Compression Commands
+
+#### Manual Compression
+
+```bash
+/compress                    # Compress from root to head
+/compress --node <node_id>   # Compress from root to specific node
+/compress --strategy simple  # Use simple compression
+/compress --dry-run         # Preview without compressing
+```
+
+#### Compression Statistics
+
+```bash
+/compression-stats
+```
+
+Shows statistics about compressed conversations.
+
+#### Compression Queue
+
+```bash
+/compression-queue
+```
+
+Shows pending background compression jobs.
+
+### Other Commands
+
+#### Summary
+
+```bash
+/summary              # Summarize last 5 messages
+/summary 10          # Summarize last 10 messages
+/summary all         # Summarize entire conversation
+```
+
+Generates a summary of the conversation.
+
+#### Benchmark
+
+```bash
+/benchmark
+```
+
+Shows performance benchmarks for various operations.
+
+#### Script Execution
+
+```bash
+/script <filename>    # Execute commands from a script file
+/save <filename>      # Save current session commands to a script
+```
+
+Execute or save conversation scripts.
+
+#### Help
+
+```bash
+/help
+```
+
+Shows available commands and their usage.
 
 ## LLM Integration
 

@@ -1005,22 +1005,59 @@ class ConversationManager:
                         
                         # If no topics exist at all, create the first one
                         if topic_count == 0:
-                            # Extract topic from this exchange
-                            segment = f"User: {user_input}\n\nAssistant: {display_response[:500]}..."
-                            
-                            with benchmark_operation("Topic Name Extraction"):
-                                topic_name, extract_cost_info = extract_topic_ollama(segment)
-                            
-                            if not topic_name:
-                                topic_name = "conversation"
-                            
-                            # Create the initial topic for JUST this exchange
-                            # It starts at the current user node and ends at the current assistant node
-                            store_topic(topic_name, user_node_id, assistant_node_id, 'initial')
-                            # Set as current topic
-                            self.set_current_topic(topic_name, user_node_id)
-                            typer.echo("")
-                            typer.secho(f"📌 Created initial topic: {topic_name}", fg=get_system_color())
+                            # Look back to find the first user node and create topic from conversation start
+                            from episodic.db import get_connection
+                            with get_connection() as conn2:
+                                c2 = conn2.cursor()
+                                # Find the very first user node
+                                c2.execute("""
+                                    SELECT id, short_id FROM nodes 
+                                    WHERE role = 'user' 
+                                    ORDER BY ROWID 
+                                    LIMIT 1
+                                """)
+                                first_row = c2.fetchone()
+                                
+                                if first_row:
+                                    first_user_node_id, first_user_short_id = first_row
+                                    
+                                    # Get all nodes from start up to current assistant node
+                                    c2.execute("""
+                                        SELECT id, short_id, role, content 
+                                        FROM nodes 
+                                        WHERE ROWID <= (SELECT ROWID FROM nodes WHERE id = ?)
+                                        ORDER BY ROWID
+                                    """, (assistant_node_id,))
+                                    
+                                    nodes = []
+                                    for node_row in c2.fetchall():
+                                        nodes.append({
+                                            'id': node_row[0],
+                                            'short_id': node_row[1],
+                                            'role': node_row[2],
+                                            'content': node_row[3]
+                                        })
+                                    
+                                    # Build segment from the entire conversation
+                                    segment = build_conversation_segment(nodes, max_length=2000)
+                                    
+                                    with benchmark_operation("Topic Name Extraction"):
+                                        topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                    
+                                    if not topic_name:
+                                        topic_name = "conversation"
+                                    
+                                    # Create the initial topic for the entire conversation from start
+                                    store_topic(topic_name, first_user_node_id, assistant_node_id, 'initial')
+                                    # Set as current topic
+                                    self.set_current_topic(topic_name, first_user_node_id)
+                                    
+                                    # Get assistant node short_id for display
+                                    assistant_node = get_node(assistant_node_id)
+                                    assistant_short_id = assistant_node.get('short_id', assistant_node_id) if assistant_node else assistant_node_id
+                                    
+                                    typer.echo("")
+                                    typer.secho(f"📌 Created initial topic: {topic_name} (from {first_user_short_id} to {assistant_short_id})", fg=get_system_color())
                             
                             # Add extraction costs if any
                             if extract_cost_info:

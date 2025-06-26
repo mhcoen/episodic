@@ -10,10 +10,14 @@ Episodic is a persistent, navigable memory system for interacting with generativ
 
 - Persistent storage of conversations using SQLite
 - Simplified CLI with a talk-first interface and command access via "/" prefix
-- Branching conversations with easy navigation
+- Automatic topic detection and management
+- Background compression of conversation segments
 - Integration with various LLM providers (OpenAI, Anthropic, Ollama, etc.)
 - Interactive visualization of conversation graphs
 - Short, human-readable node IDs for easy reference
+- Session cost tracking and performance benchmarking
+- Script execution and saving for automation
+- Configurable settings with live updates
 
 ## Quick Start
 

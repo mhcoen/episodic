@@ -1,0 +1,4 @@
+/init --erase
+/api-stats
+hi
+/api-stats

@@ -28,6 +28,7 @@ from episodic.conversation import conversation_manager, handle_chat_message as _
 from episodic.prompt_manager import load_prompt
 from episodic.benchmark import display_pending_benchmark, reset_benchmarks
 from episodic.compression import start_auto_compression
+from episodic.llm_manager import llm_manager
 
 # Import command modules
 from episodic.commands import (
@@ -38,7 +39,7 @@ from episodic.commands import (
     # Topics
     topics, compress_current_topic, rename_ongoing_topics,
     # Compression
-    compress, compression_stats, compression_queue,
+    compress, compression_stats, compression_queue, api_call_stats, reset_api_stats,
     # Other
     visualize, prompts, summary, benchmark, help,
     handle_model
@@ -211,6 +212,12 @@ def handle_command(command_str: str) -> bool:
         
         elif cmd == "/compression-stats":
             compression_stats()
+            
+        elif cmd == "/api-stats":
+            api_call_stats()
+            
+        elif cmd == "/reset-api-stats":
+            reset_api_stats()
         
         elif cmd == "/compression-queue":
             compression_queue()

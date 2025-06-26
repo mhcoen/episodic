@@ -8,6 +8,7 @@ from datetime import datetime
 from episodic.db import get_node, get_ancestry, get_recent_topics
 from episodic.compression import compression_manager, queue_topic_for_compression
 from episodic.llm import query_llm
+from episodic.llm_manager import llm_manager
 from episodic.config import config
 from episodic.configuration import (
     get_heading_color, get_text_color, get_system_color, get_llm_color
@@ -184,3 +185,27 @@ def compression_queue():
         end_node = get_node(job['end_node_id'])
         if start_node and end_node:
             typer.echo(f"    Range: {start_node['short_id']} → {end_node['short_id']}")
+
+
+def api_call_stats():
+    """Display LLM API call statistics by thread."""
+    stats = llm_manager.get_call_stats()
+    
+    typer.secho("\n📊 LLM API Call Statistics", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 50, fg=get_heading_color())
+    
+    typer.echo(f"Total API calls: {stats['total_calls']}")
+    typer.echo(f"Total time: {stats['total_time']:.2f}s")
+    
+    if stats['by_thread']:
+        typer.echo("\nBy thread:")
+        for thread_id, thread_stats in stats['by_thread'].items():
+            typer.echo(f"  Thread {thread_id}: {thread_stats['calls']} calls, {thread_stats['time']:.2f}s")
+    else:
+        typer.echo("No API calls recorded yet.")
+
+
+def reset_api_stats():
+    """Reset LLM API call statistics."""
+    llm_manager.reset_stats()
+    typer.secho("✅ API call statistics reset", fg=get_system_color())

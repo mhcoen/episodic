@@ -319,6 +319,11 @@ Topic name:"""
             # We want at least 3 user messages (3 exchanges) before creating first topic
             # This can be configured via the 'first_topic_threshold' config option
             threshold = config.get('first_topic_threshold', 3)
+            
+            if config.get('debug', False):
+                logger.info(f"First topic check: {user_message_count} user messages, threshold: {threshold}")
+                typer.echo(f"   DEBUG: should_create_first_topic: {user_message_count} user messages, threshold: {threshold}, returning: {user_message_count >= threshold}")
+            
             return user_message_count >= threshold
             
         except Exception as e:

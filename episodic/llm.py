@@ -13,6 +13,7 @@ from litellm.utils import supports_prompt_caching
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
 from episodic.configuration import CACHED_TOKEN_DISCOUNT_RATE
+from episodic.llm_manager import llm_manager
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -206,83 +207,37 @@ def _execute_llm_query(
     # Provider-specific handling
     if provider == "lmstudio":
         provider_config = get_provider_config("lmstudio")
-        response = litellm.completion(
-            model=full_model,
+        response = llm_manager.make_api_call(
             messages=messages,
+            model=full_model,
+            stream=stream,
             api_base=provider_config.get("api_base"),
-            temperature=temperature,
-            stream=stream
+            temperature=temperature
         )
     elif provider == "ollama":
         provider_config = get_provider_config("ollama")
-        response = litellm.completion(
-            model=full_model,
+        response = llm_manager.make_api_call(
             messages=messages,
+            model=full_model,
+            stream=stream,
             api_base=provider_config.get("api_base"),
-            temperature=temperature,
-            stream=stream
+            temperature=temperature
         )
     else:
-        response = litellm.completion(
-            model=full_model,
+        response = llm_manager.make_api_call(
             messages=messages,
-            temperature=temperature,
-            stream=stream
+            model=full_model,
+            stream=stream,
+            temperature=temperature
         )
 
     # If streaming, return the generator directly
     if stream:
-        return response, None
+        return response  # llm_manager returns (generator, None) for streaming
 
-    # Non-streaming response handling
-    total_cost = sum(cost_per_token(
-        model=full_model,
-        prompt_tokens=response.usage.prompt_tokens,
-        completion_tokens=response.usage.completion_tokens
-    ))
-
-    # Check for cached tokens in the response (OpenAI prompt caching)
-    cached_tokens = 0
-    if hasattr(response.usage, 'prompt_tokens_details') and response.usage.prompt_tokens_details:
-        cached_tokens = getattr(response.usage.prompt_tokens_details, 'cached_tokens', 0)
-    
-    # Calculate actual cost considering cached tokens (cached tokens are discounted)
-    actual_prompt_tokens = response.usage.prompt_tokens - cached_tokens
-    actual_cost = sum(cost_per_token(
-        model=full_model,
-        prompt_tokens=actual_prompt_tokens,
-        completion_tokens=response.usage.completion_tokens
-    ))
-    
-    # Add cost savings from caching
-    if cached_tokens > 0:
-        # Cached tokens typically cost 50% less
-        cached_cost = sum(cost_per_token(
-            model=full_model,
-            prompt_tokens=cached_tokens,
-            completion_tokens=0
-        )) * CACHED_TOKEN_DISCOUNT_RATE
-        total_cost_with_cache = actual_cost + cached_cost
-    else:
-        total_cost_with_cache = actual_cost
-    
-    cost_info = {
-        "input_tokens": response.usage.prompt_tokens,
-        "output_tokens": response.usage.completion_tokens,
-        "total_tokens": response.usage.total_tokens,
-        "cost_usd": total_cost_with_cache
-    }
-    
-    # Add cache information if available
-    if cached_tokens > 0:
-        cost_info["cached_tokens"] = cached_tokens
-        cost_info["non_cached_tokens"] = actual_prompt_tokens
-        cost_info["cache_savings_usd"] = total_cost - total_cost_with_cache
-        if config.get("debug", False):
-            logger.info(f"🎯 Cache hit! {cached_tokens} tokens cached, {actual_prompt_tokens} new tokens")
-            logger.info(f"💰 Cost savings: ${total_cost - total_cost_with_cache:.6f}")
-    
-    return response.choices[0].message.content, cost_info
+    # Non-streaming response handling - llm_manager returns (response_text, cost_info)
+    response_text, cost_info = response
+    return response_text, cost_info
 
 def query_llm(
     prompt: str,

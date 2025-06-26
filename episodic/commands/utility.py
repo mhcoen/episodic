@@ -67,6 +67,8 @@ def help():
         ("/compress", "Compress conversation branch"),
         ("/compress-current-topic", "Compress the current topic"),
         ("/compression-stats", "Show compression statistics"),
+        ("/api-stats", "Show LLM API call statistics by thread"),
+        ("/reset-api-stats", "Reset LLM API call statistics"),
         ("/compression-queue", "Show pending compressions"),
     ]
     

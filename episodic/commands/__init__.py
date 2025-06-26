@@ -11,7 +11,7 @@ from .navigation import (
 from .settings import set, verify, cost
 from .topics import topics, compress_current_topic
 from .topic_rename import rename_ongoing_topics
-from .compression import compress, compression_stats, compression_queue
+from .compression import compress, compression_stats, compression_queue, api_call_stats, reset_api_stats
 from .visualization import visualize
 from .prompts import prompts
 from .summary import summary
@@ -26,7 +26,7 @@ __all__ = [
     # Topic commands
     'topics', 'compress_current_topic', 'rename_ongoing_topics',
     # Compression commands
-    'compress', 'compression_stats', 'compression_queue',
+    'compress', 'compression_stats', 'compression_queue', 'api_call_stats', 'reset_api_stats',
     # Other commands
     'visualize', 'prompts', 'summary', 'benchmark', 'help',
     'handle_model'

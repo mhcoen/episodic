@@ -114,7 +114,6 @@ class BenchmarkManager:
             
     def _display_operation_benchmark(self, operation: str, elapsed: float, resources: Dict[str, float]):
         """Display benchmark results for a single operation."""
-        typer.echo("")  # Blank line before benchmark
         typer.secho(f"[Benchmark]", nl=False, fg=get_system_color(), bold=True)
         typer.secho(f" {operation}: ", nl=False, fg=get_system_color())
         typer.secho(f"{elapsed:.2f}s", fg=get_system_color(), bold=True)

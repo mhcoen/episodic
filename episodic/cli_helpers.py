@@ -38,9 +38,12 @@ def _remove_flag_and_value(args: List[str], flag_names: List[str]) -> List[str]:
     result = []
     i = 0
     while i < len(args):
-        if args[i] in flag_names and i + 1 < len(args):
-            # Skip both flag and its value
-            i += 2
+        if args[i] in flag_names:
+            # Skip the flag
+            i += 1
+            # Skip the value if it exists and doesn't look like another flag
+            if i < len(args) and not args[i].startswith('-'):
+                i += 1
         else:
             result.append(args[i])
             i += 1

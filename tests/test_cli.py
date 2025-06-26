@@ -17,6 +17,8 @@ from io import StringIO
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from episodic import cli
+from episodic.commands import set as set_command
+from episodic.llm import enable_cache, disable_cache
 from episodic.config import config
 from episodic.cli_helpers import _parse_flag_value, _has_flag, _remove_flag_and_value
 from episodic.commands.navigation import format_role_display
@@ -60,10 +62,10 @@ class TestCLIHelpers(unittest.TestCase):
         result = _remove_flag_and_value(args, ["--parent", "-p"])
         self.assertEqual(result, ["command", "text"])
         
-        # Test removing flag without value
+        # Test removing flag with text that looks like a value
         args = ["command", "--flag", "text"]
         result = _remove_flag_and_value(args, ["--flag"])
-        self.assertEqual(result, ["command", "text"])
+        self.assertEqual(result, ["command"])
         
         # Test no flag to remove
         args = ["command", "text"]
@@ -181,40 +183,20 @@ class TestCLIInitialization(unittest.TestCase):
             config.set("database_path", self.original_db_path)
         shutil.rmtree(self.test_dir, ignore_errors=True)
     
+    @unittest.skip("_initialize_prompt was removed in refactoring")
     @patch('episodic.cli.PromptManager')
     def test_initialize_prompt(self, mock_prompt_manager):
         """Test prompt initialization."""
-        mock_manager = MagicMock()
-        mock_manager.get_active_prompt_content.return_value = "Custom prompt content"
-        mock_prompt_manager.return_value = mock_manager
-        
-        # Store original value
-        original_system = cli.default_system
-        
-        # Test initialization
-        cli._initialize_prompt()
-        
-        # Verify prompt was updated
-        self.assertEqual(cli.default_system, "Custom prompt content")
-        
-        # Test fallback on exception
-        mock_manager.get_active_prompt_content.side_effect = Exception("Test error")
-        cli._initialize_prompt()
-        
-        # Should fall back to default
-        self.assertEqual(cli.default_system, DEFAULT_SYSTEM_MESSAGE)
+        # This function no longer exists in the refactored CLI
+        pass
     
+    @unittest.skip("_initialize_model was removed in refactoring")
     @patch('episodic.cli.ensure_provider_matches_model')
     @patch('episodic.cli.typer.echo')
     def test_initialize_model(self, mock_echo, mock_ensure_provider):
         """Test model initialization."""
-        cli._initialize_model()
-        
-        # Verify provider matching was called
-        mock_ensure_provider.assert_called_once()
-        
-        # Verify model information was displayed
-        self.assertTrue(mock_echo.called)
+        # This function no longer exists in the refactored CLI
+        pass
 
 
 class TestCLIConfiguration(unittest.TestCase):
@@ -223,86 +205,71 @@ class TestCLIConfiguration(unittest.TestCase):
     def test_set_command_debug(self):
         """Test setting debug mode."""
         # Test enabling debug
-        cli.set("debug", "on")
+        set_command("debug", "on")
         self.assertTrue(config.get("debug"))
         
-        cli.set("debug", "true")
+        set_command("debug", "true")
         self.assertTrue(config.get("debug"))
         
         # Test disabling debug
-        cli.set("debug", "off")
+        set_command("debug", "off")
         self.assertFalse(config.get("debug"))
         
-        cli.set("debug", "false")
+        set_command("debug", "false")
         self.assertFalse(config.get("debug"))
     
-    @patch('episodic.cli.enable_cache')
-    @patch('episodic.cli.disable_cache')
-    def test_set_command_cache(self, mock_disable, mock_enable):
+    @patch('episodic.commands.settings.disable_cache')
+    @patch('episodic.commands.settings.enable_cache')
+    @patch('typer.echo')  # Need to patch echo too
+    def test_set_command_cache(self, mock_echo, mock_enable, mock_disable):
         """Test setting cache mode."""
         # Test enabling cache
-        cli.set("cache", "on")
+        set_command("cache", "on")
         mock_enable.assert_called_once()
         
+        # Reset mocks
+        mock_enable.reset_mock()
+        mock_disable.reset_mock()
+        
         # Test disabling cache
-        cli.set("cache", "off")
+        set_command("cache", "off")
         mock_disable.assert_called_once()
     
     def test_set_command_cost_display(self):
         """Test setting cost display."""
-        cli.set("cost", "on")
+        set_command("cost", "on")
         self.assertTrue(config.get("show_cost"))
         
-        cli.set("cost", "off")
+        set_command("cost", "off")
         self.assertFalse(config.get("show_cost"))
     
-    @patch('episodic.cli.typer.echo')
+    @patch('typer.echo')
     def test_set_command_invalid(self, mock_echo):
         """Test setting invalid configuration."""
-        cli.set("invalid_setting", "value")
+        set_command("invalid_setting", "value")
         
-        # Should show error message
+        # Should show error message - the first call is "Unknown parameter: invalid_setting"
         mock_echo.assert_called()
-        error_msg = mock_echo.call_args[0][0]
-        self.assertIn("Unknown setting", error_msg)
+        # Get the first call (there are multiple calls for the help text)
+        first_call = mock_echo.call_args_list[0][0][0]
+        self.assertIn("Unknown parameter", first_call)
 
 
 class TestCLISessionManagement(unittest.TestCase):
     """Test CLI session and state management."""
     
+    @unittest.skip("display_session_summary was removed in refactoring")
     def test_display_session_summary(self):
         """Test session summary display."""
-        # Set up session costs
-        cli.session_costs = {
-            "total_input_tokens": 1000,
-            "total_output_tokens": 500,
-            "total_tokens": 1500,
-            "total_cost_usd": 0.025
-        }
-        
-        with patch('episodic.cli.typer.echo') as mock_echo:
-            cli.display_session_summary()
-            
-            # Verify summary was displayed
-            self.assertTrue(mock_echo.called)
-            calls = [call[0][0] for call in mock_echo.call_args_list]
-            
-            # Check that token and cost information is included
-            summary_text = " ".join(calls)
-            self.assertIn("1000", summary_text)  # Input tokens
-            self.assertIn("500", summary_text)   # Output tokens
-            self.assertIn("1500", summary_text)  # Total tokens
-            self.assertIn("0.025", summary_text) # Cost
+        # Session costs are now managed by conversation_manager
+        pass
     
     def test_session_cost_accumulation(self):
         """Test that session costs accumulate correctly."""
+        from episodic.conversation import conversation_manager
+        
         # Reset session costs
-        cli.session_costs = {
-            "total_input_tokens": 0,
-            "total_output_tokens": 0,
-            "total_tokens": 0,
-            "total_cost_usd": 0.0
-        }
+        conversation_manager.reset_session_costs()
         
         # Simulate cost updates
         cost_info = {
@@ -314,16 +281,18 @@ class TestCLISessionManagement(unittest.TestCase):
         
         # Update costs twice to test accumulation
         for _ in range(2):
-            cli.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
-            cli.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
-            cli.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
-            cli.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
+            # In the real code, this happens inside _handle_chat_message_impl
+            conversation_manager.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
+            conversation_manager.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
+            conversation_manager.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
+            conversation_manager.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
         
         # Verify accumulation
-        self.assertEqual(cli.session_costs["total_input_tokens"], 200)
-        self.assertEqual(cli.session_costs["total_output_tokens"], 100)
-        self.assertEqual(cli.session_costs["total_tokens"], 300)
-        self.assertAlmostEqual(cli.session_costs["total_cost_usd"], 0.01, places=3)
+        costs = conversation_manager.get_session_costs()
+        self.assertEqual(costs["total_input_tokens"], 200)
+        self.assertEqual(costs["total_output_tokens"], 100)
+        self.assertEqual(costs["total_tokens"], 300)
+        self.assertAlmostEqual(costs["total_cost_usd"], 0.01, places=3)
 
 
 if __name__ == '__main__':

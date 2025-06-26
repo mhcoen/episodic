@@ -41,6 +41,7 @@ def help():
         ("/prompts [list|use <name>]", "Manage system prompts"),
         ("/summary [N|all]", "Summarize recent conversation"),
         ("/topics", "List all conversation topics"),
+        ("/rename-topics", "Rename ongoing-discussion topics"),
         ("/cost", "Show session cost information"),
     ]
     

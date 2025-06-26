@@ -860,43 +860,78 @@ class ConversationManager:
                             # Get all nodes from the beginning up to the parent of the current user node
                             conversation_chain = get_ancestry(parent_node_id)
                             
-                            # Find the first user node in the conversation
-                            first_user_node = None
-                            for node in reversed(conversation_chain):
-                                if node.get('role') == 'user':
-                                    first_user_node = node
+                            # Find the very first user node in the database
+                            # Don't rely on ancestry chain which might be broken
+                            from episodic.db import get_connection
+                            with get_connection() as conn:
+                                c = conn.cursor()
+                                c.execute("""
+                                    SELECT id, short_id FROM nodes 
+                                    WHERE role = 'user' 
+                                    ORDER BY ROWID 
+                                    LIMIT 1
+                                """)
+                                row = c.fetchone()
                             
-                            if first_user_node and len(conversation_chain) > 2:  # Need at least a few nodes
-                                # Build segment from the initial conversation
-                                segment = build_conversation_segment(conversation_chain, max_length=2000)
+                            if row:  # Found first user node
+                                first_user_node_id, first_user_short_id = row
                                 
-                                if config.get("debug", False):
-                                    typer.echo(f"\n🔍 DEBUG: Creating topic for initial conversation:")
-                                    typer.echo(f"   From node {first_user_node['short_id']} to {parent_node_id}")
-                                    typer.echo(f"   Conversation preview: {segment[:200]}...")
+                                # Get all nodes from start to parent of current user node
+                                # Don't rely on ancestry chain which might be broken
+                                with get_connection() as conn2:
+                                    c2 = conn2.cursor()
+                                    # Get the parent node's ROWID
+                                    c2.execute("SELECT ROWID FROM nodes WHERE id = ?", (parent_node_id,))
+                                    parent_row = c2.fetchone()
+                                    
+                                    if parent_row and parent_row[0] >= 3:  # Need at least a few nodes
+                                        # Get all nodes from beginning up to parent
+                                        c2.execute('''
+                                            SELECT id, short_id, role, content 
+                                            FROM nodes 
+                                            WHERE ROWID <= ?
+                                            ORDER BY ROWID
+                                        ''', (parent_row[0],))
+                                        
+                                        nodes = []
+                                        for node_row in c2.fetchall():
+                                            nodes.append({
+                                                'id': node_row[0],
+                                                'short_id': node_row[1],
+                                                'role': node_row[2],
+                                                'content': node_row[3]
+                                            })
+                                        
+                                        # Build segment from the initial conversation
+                                        segment = build_conversation_segment(nodes, max_length=2000)
+                                        
+                                        if config.get("debug", False):
+                                            typer.echo(f"\n🔍 DEBUG: Creating topic for initial conversation:")
+                                            typer.echo(f"   From node {first_user_short_id} to {parent_node_id}")
+                                            typer.echo(f"   Conversation preview: {segment[:200]}...")
                                 
-                                # Extract topic name
-                                with benchmark_operation("Topic Name Extraction"):
-                                    topic_name, extract_cost_info = extract_topic_ollama(segment)
-                                
-                                # Add extraction costs to session
-                                if extract_cost_info:
-                                    self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
-                                    self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
-                                    self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
-                                    self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
-                                
-                                # Use fallback if extraction failed
-                                if not topic_name:
-                                    topic_name = "initial-conversation"
-                                
-                                # Store the initial topic
-                                store_topic(topic_name, first_user_node['id'], parent_node_id, 'initial')
-                                typer.echo("")
-                                typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
-                                
-                                # Queue for compression
-                                queue_topic_for_compression(first_user_node['id'], parent_node_id, topic_name)
+                                        # Extract topic name
+                                        with benchmark_operation("Topic Name Extraction"):
+                                            topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                        
+                                        # Add extraction costs to session
+                                        if extract_cost_info:
+                                            self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                                            self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                                            self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                                            self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
+                                        
+                                        # Use fallback if extraction failed
+                                        if not topic_name:
+                                            topic_name = "initial-conversation"
+                                        
+                                        # Store the initial topic
+                                        store_topic(topic_name, first_user_node_id, parent_node_id, 'initial')
+                                        typer.echo("")
+                                        typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
+                                        
+                                        # Queue for compression
+                                        queue_topic_for_compression(first_user_node_id, parent_node_id, topic_name)
                 
                     # Create a new topic starting from this user message
                     # Generate a unique placeholder name that will be updated when the topic is closed
@@ -919,55 +954,33 @@ class ConversationManager:
                         # Update it to include the new assistant response
                         update_topic_end_node(current_topic['name'], current_topic['start_node_id'], assistant_node_id)
                     else:
-                        # No topics exist yet - check if we should create the first topic
-                        if should_create_first_topic(user_node_id):
-                            # Get conversation for topic extraction
-                            conversation_chain = get_ancestry(assistant_node_id)
+                        # No topics exist yet and no topic change detected
+                        # Check if this is the very first exchange (node 02-03)
+                        from episodic.db import get_connection
+                        with get_connection() as conn:
+                            c = conn.cursor()
+                            c.execute("SELECT COUNT(*) FROM nodes WHERE role IN ('user', 'assistant')")
+                            node_count = c.fetchone()[0]
+                        
+                        # If this is the first exchange (2 nodes: first user + first assistant)
+                        if node_count == 2:
+                            # Extract topic from this first exchange
+                            segment = f"User: {user_input}\n\nAssistant: {display_response[:500]}..."
                             
-                            # Build segment from the entire conversation so far
-                            segment = build_conversation_segment(conversation_chain, max_length=2000)
+                            with benchmark_operation("Topic Name Extraction"):
+                                topic_name, extract_cost_info = extract_topic_ollama(segment)
                             
-                            if config.get("debug", False):
-                                typer.echo(f"\n🔍 DEBUG: Extracting first topic from conversation:")
-                                typer.echo(f"   Conversation preview: {segment[:200]}...")
-                                typer.echo(f"   Total length: {len(segment)} chars")
-                                typer.echo(f"   Number of nodes: {len(conversation_chain)}")
-                            
-                            # Only extract topic if we have actual content
-                            if segment and segment.strip():
-                                with benchmark_operation("Topic Name Extraction"):
-                                    topic_name, extract_cost_info = extract_topic_ollama(segment)
-                            else:
-                                topic_name = None
-                                extract_cost_info = None
-                                if config.get("debug", False):
-                                    typer.echo("   ⚠️  No conversation content found for topic extraction")
-                            
-                            # Add extraction costs to session
-                            if extract_cost_info:
-                                self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
-                                self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
-                                self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
-                                self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
-                            
-                            # Use a generic fallback if extraction failed
                             if not topic_name:
                                 topic_name = "conversation"
-                                if config.get("debug", False):
-                                    typer.echo("   Using fallback topic name: 'conversation'")
                             
-                            if topic_name:
-                                # Find the first user node to use as the start of the topic
-                                first_user_node = None
-                                for node in reversed(conversation_chain):
-                                    if node.get('role') == 'user':
-                                        first_user_node = node
-                                
-                                if first_user_node:
-                                    # Store the topic spanning from first user message to current assistant message
-                                    store_topic(topic_name, first_user_node['id'], assistant_node_id, 'initial')
-                                    typer.echo("")
-                                    typer.secho(f"📌 Created first topic: {topic_name}", fg=get_system_color())
+                            # Create the initial topic for this first exchange
+                            store_topic(topic_name, user_node_id, assistant_node_id, 'initial')
+                            typer.echo("")
+                            typer.secho(f"📌 Created initial topic: {topic_name}", fg=get_system_color())
+                        else:
+                            # Wait for topic change
+                            if config.get("debug", False):
+                                typer.echo("🔍 DEBUG: No topic change detected, continuing without topic")
             
                 # Show topic evolution if enabled (after topic detection)
                 if config.get("show_topics", False):

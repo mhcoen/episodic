@@ -36,7 +36,7 @@ from episodic.commands import (
     # Settings
     set, verify, cost,
     # Topics
-    topics, compress_current_topic,
+    topics, compress_current_topic, rename_ongoing_topics,
     # Compression
     compress, compression_stats, compression_queue,
     # Other
@@ -198,6 +198,9 @@ def handle_command(command_str: str) -> bool:
         
         elif cmd == "/compress-current-topic":
             compress_current_topic()
+        
+        elif cmd == "/rename-topics":
+            rename_ongoing_topics()
         
         # Compression commands
         elif cmd == "/compress":

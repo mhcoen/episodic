@@ -765,7 +765,7 @@ def get_recent_topics(limit: int = 10):
             FROM topics t
             JOIN nodes n1 ON t.start_node_id = n1.id
             LEFT JOIN nodes n2 ON t.end_node_id = n2.id
-            ORDER BY t.created_at DESC
+            ORDER BY n1.ROWID ASC
         """
         
         if limit is not None:

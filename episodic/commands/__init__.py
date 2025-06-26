@@ -10,6 +10,7 @@ from .navigation import (
 )
 from .settings import set, verify, cost
 from .topics import topics, compress_current_topic
+from .topic_rename import rename_ongoing_topics
 from .compression import compress, compression_stats, compression_queue
 from .visualization import visualize
 from .prompts import prompts
@@ -23,7 +24,7 @@ __all__ = [
     # Settings commands
     'set', 'verify', 'cost',
     # Topic commands
-    'topics', 'compress_current_topic',
+    'topics', 'compress_current_topic', 'rename_ongoing_topics',
     # Compression commands
     'compress', 'compression_stats', 'compression_queue',
     # Other commands

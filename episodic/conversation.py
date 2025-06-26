@@ -138,7 +138,20 @@ class ConversationManager:
     
     def wrapped_llm_print(self, text: str, **typer_kwargs) -> None:
         """Print LLM text with automatic wrapping while preserving formatting."""
-        self.wrapped_text_print(text, **typer_kwargs)
+        # First handle bold markers
+        import re
+        
+        # Split text by bold markers
+        parts = re.split(r'(\*\*[^*]+\*\*)', text)
+        
+        for part in parts:
+            if part.startswith('**') and part.endswith('**'):
+                # This is bold text
+                bold_text = part[2:-2]
+                self.wrapped_text_print(bold_text, bold=True, **typer_kwargs)
+            else:
+                # Regular text
+                self.wrapped_text_print(part, **typer_kwargs)
     
     def get_drift_calculator(self) -> Optional[ConversationalDrift]:
         """Get or create the drift calculator instance."""
@@ -354,76 +367,11 @@ class ConversationManager:
                         use_natural_rhythm = config.get("stream_natural_rhythm", False)
                         use_char_streaming = config.get("stream_char_mode", False)
                         
-                        if use_char_streaming:
-                            # Character-by-character streaming with line delays and formatting
-                            char_delay = 1.0 / config.get("stream_char_rate", 1000)  # Default 1000 chars/sec
-                            line_delay = config.get("stream_line_delay", 0.1)  # Default 100ms between lines
-                            
-                            current_line = ""
-                            current_position = 0
-                            wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
-                            in_bold = False
-                            bold_marker_count = 0
-                            
-                            for chunk in process_stream_response(stream_generator, model):
-                                full_response_parts.append(chunk)
-                                
-                                for char in chunk:
-                                    # Handle bold markers
-                                    if char == '*':
-                                        bold_marker_count += 1
-                                        if bold_marker_count == 2:
-                                            # Toggle bold state, don't print the markers
-                                            in_bold = not in_bold
-                                            bold_marker_count = 0
-                                            continue
-                                        else:
-                                            # Don't print yet, might be part of bold marker
-                                            continue
-                                    else:
-                                        # Not an asterisk, print any pending asterisks
-                                        if bold_marker_count == 1:
-                                            # Single asterisk, print it
-                                            typer.secho('*', fg=get_llm_color(), nl=False, bold=in_bold)
-                                            current_position += 1
-                                        bold_marker_count = 0
-                                    
-                                    # Handle newlines
-                                    if char == '\n':
-                                        typer.secho('\n', fg=get_llm_color(), nl=False)
-                                        current_position = 0
-                                        current_line = ""
-                                        time.sleep(line_delay)
-                                    else:
-                                        # Track current line for word wrap
-                                        current_line += char
-                                        
-                                        # Check if we need to wrap
-                                        if wrap_width and current_position >= wrap_width:
-                                            # Find last space to break at word boundary
-                                            last_space = current_line.rfind(' ')
-                                            if last_space > 0 and last_space > len(current_line) - 20:
-                                                # Wrap at last space
-                                                typer.secho('\n', fg=get_llm_color(), nl=False)
-                                                current_position = len(current_line) - last_space - 1
-                                                current_line = current_line[last_space + 1:]
-                                            else:
-                                                # No good break point, wrap here
-                                                typer.secho('\n', fg=get_llm_color(), nl=False)
-                                                current_position = 0
-                                                current_line = ""
-                                        
-                                        # Print the character
-                                        typer.secho(char, fg=get_llm_color(), nl=False, bold=in_bold)
-                                        current_position += 1
-                                        
-                                        # Add delay for non-whitespace
-                                        if char not in ' \t':
-                                            time.sleep(char_delay)
-                            
-                            # Handle any remaining asterisk
-                            if bold_marker_count == 1:
-                                typer.secho('*', fg=get_llm_color(), nl=False, bold=in_bold)
+                        if config.get("debug", False):
+                            typer.echo(f"DEBUG: Streaming modes - char: {use_char_streaming}, natural: {use_natural_rhythm}, constant: {use_constant_rate}")
+                        
+                        if False:  # Disabled character streaming
+                            pass
                             
                         elif use_natural_rhythm and stream_rate > 0:
                             # Use natural rhythm streaming with sinusoidal variation
@@ -655,29 +603,87 @@ class ConversationManager:
                             printer_thread.join()
                             
                         else:
-                            # Default immediate streaming (no delay)
+                            # Default streaming with word wrap and bold support
+                            current_word = ""
+                            current_position = 0
+                            wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
+                            in_bold = False
+                            bold_count = 0
+                            
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
-                                typer.secho(chunk, fg=get_llm_color(), nl=False)
+                                
+                                for char in chunk:
+                                    if char == '*':
+                                        bold_count += 1
+                                        if bold_count == 2:
+                                            # Toggle bold state
+                                            in_bold = not in_bold
+                                            bold_count = 0
+                                        continue
+                                    elif bold_count == 1:
+                                        # Single asterisk, print it
+                                        current_word += '*'
+                                        bold_count = 0
+                                    
+                                    if char in ' \n':
+                                        # End of word
+                                        if current_word:
+                                            # Check wrap
+                                            if wrap_width and current_position + len(current_word) > wrap_width:
+                                                typer.secho('\n', nl=False)
+                                                current_position = 0
+                                            
+                                            # Print word
+                                            typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
+                                            current_position += len(current_word)
+                                            current_word = ""
+                                        
+                                        # Print space or newline
+                                        if char == '\n':
+                                            typer.secho('\n', nl=False)
+                                            current_position = 0
+                                        else:
+                                            typer.secho(' ', fg=get_llm_color(), nl=False)
+                                            current_position += 1
+                                    else:
+                                        # Accumulate character
+                                        current_word += char
+                            
+                            # Print remaining word
+                            if current_word:
+                                if wrap_width and current_position + len(current_word) > wrap_width:
+                                    typer.secho('\n', nl=False)
+                                typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
                         
-                        # Get the full response and cost info
+                        # Get the full response
                         display_response = ''.join(full_response_parts)
-                        
-                        # Since we can't get accurate cost info from streaming yet,
-                        # make a non-streaming call to get accurate costs
-                        # This is a temporary workaround until litellm provides better streaming cost info
-                        _, cost_info = query_with_context(
-                            user_node_id, 
-                            model=model,
-                            system_message=system_message,
-                            context_depth=context_depth,
-                            stream=False
-                        )
                         
                         # Add newline after streaming
                         typer.echo("")
                         
-                        # Display cost info after streaming if enabled
+                        # Add blank line after response (as requested by user)
+                        typer.echo("")
+                        
+                        # For streaming, estimate token counts from the response we have
+                        # This is approximate but avoids making a duplicate API call
+                        from litellm import token_counter
+                        
+                        # Count tokens in the response
+                        output_tokens = token_counter(model=model, text=display_response)
+                        
+                        # Estimate input tokens from context (rough approximation)
+                        # We'd need to reconstruct the full prompt to get exact count
+                        input_tokens = 100  # Rough estimate, could be improved
+                        
+                        cost_info = {
+                            'input_tokens': input_tokens,
+                            'output_tokens': output_tokens,
+                            'total_tokens': input_tokens + output_tokens,
+                            'cost_usd': 0.0  # Would need pricing info to calculate
+                        }
+                        
+                        # Display cost info after streaming if enabled (currently not available for streaming)
                         if config.get("show_cost", False) and cost_info:
                             # Calculate context usage
                             current_tokens = cost_info.get('input_tokens', 0)
@@ -803,7 +809,8 @@ class ConversationManager:
                                 segment = build_conversation_segment(topic_nodes, max_length=2000)
                                 
                                 # Extract a proper name for the previous topic
-                                topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                with benchmark_operation("Topic Name Extraction"):
+                                    topic_name, extract_cost_info = extract_topic_ollama(segment)
                                 
                                 # Add extraction costs to session
                                 if extract_cost_info:
@@ -855,7 +862,8 @@ class ConversationManager:
                                     typer.echo(f"   Conversation preview: {segment[:200]}...")
                                 
                                 # Extract topic name
-                                topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                with benchmark_operation("Topic Name Extraction"):
+                                    topic_name, extract_cost_info = extract_topic_ollama(segment)
                                 
                                 # Add extraction costs to session
                                 if extract_cost_info:
@@ -908,7 +916,8 @@ class ConversationManager:
                             
                             # Only extract topic if we have actual content
                             if segment and segment.strip():
-                                topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                with benchmark_operation("Topic Name Extraction"):
+                                    topic_name, extract_cost_info = extract_topic_ollama(segment)
                             else:
                                 topic_name = None
                                 extract_cost_info = None

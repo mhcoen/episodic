@@ -902,9 +902,8 @@ class ConversationManager:
                     # Generate a unique placeholder name that will be updated when the topic is closed
                     timestamp = int(time.time())
                     placeholder_topic_name = f"ongoing-discussion-{timestamp}"
-                    # Note: We pass None as end_node_id because this is a new, ongoing topic
-                    # It will be updated as the conversation continues
-                    store_topic(placeholder_topic_name, user_node_id, None, 'detected')
+                    # Initially set the end node to the user node, will be updated to include assistant response
+                    store_topic(placeholder_topic_name, user_node_id, user_node_id, 'detected')
                     
                     # Now update the new topic to include the assistant response
                     update_topic_end_node(placeholder_topic_name, user_node_id, assistant_node_id)

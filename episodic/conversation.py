@@ -905,7 +905,7 @@ class ConversationManager:
                                 ancestry = get_ancestry(parent_node_id)
                                 
                                 # Collect nodes from the previous topic
-                                    found_start = False
+                                found_start = False
                                 for i, node in enumerate(ancestry):
                                     if node['id'] == previous_topic['start_node_id']:
                                         found_start = True
@@ -921,46 +921,47 @@ class ConversationManager:
                                 
                                 # Build conversation segment from the previous topic
                                 if topic_nodes:
-                                segment = build_conversation_segment(topic_nodes, max_length=2000)
+                                    segment = build_conversation_segment(topic_nodes, max_length=2000)
                                 
+                                    
+                                    if config.get("debug", False):
+                                        typer.echo(f"\n🔍 DEBUG: Extracting name for previous topic '{previous_topic['name']}'")
+                                        typer.echo(f"   Topic has {len(topic_nodes)} nodes")
+                                        typer.echo(f"   Segment preview: {segment[:200]}...")
+                                    
+                                    # Extract a proper name for the previous topic
+                                    with benchmark_operation("Topic Name Extraction"):
+                                        topic_name, extract_cost_info = extract_topic_ollama(segment)
+                                    
+                                    # Add extraction costs to session
+                                    if extract_cost_info:
+                                        self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
+                                        self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
+                                        self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
+                                        self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
+                                    
+                                    if config.get("debug", False):
+                                        typer.echo(f"   Extracted topic name: {topic_name if topic_name else 'None (extraction failed)'}")
+                                    
+                                    final_topic_name = topic_name if topic_name else previous_topic['name']
+                                else:
+                                    if config.get("debug", False):
+                                        typer.echo(f"   WARNING: No topic nodes found for '{previous_topic['name']}'")
+                                    final_topic_name = previous_topic['name']
+                                
+                                # Update the topic name if it changed
+                                if final_topic_name != previous_topic['name']:
+                                    rows_updated = update_topic_name(previous_topic['name'], previous_topic['start_node_id'], final_topic_name)
+                                    if config.get("debug", False):
+                                        typer.echo(f"   ✅ Updated topic name: '{previous_topic['name']}' → '{final_topic_name}' ({rows_updated} rows)")
+                                
+                                # Update the previous topic's end node
+                                update_topic_end_node(final_topic_name, previous_topic['start_node_id'], parent_node_id)
+                                
+                                # Queue the old topic for compression
+                                queue_topic_for_compression(previous_topic['start_node_id'], parent_node_id, final_topic_name)
                                 if config.get("debug", False):
-                                    typer.echo(f"\n🔍 DEBUG: Extracting name for previous topic '{previous_topic['name']}'")
-                                    typer.echo(f"   Topic has {len(topic_nodes)} nodes")
-                                    typer.echo(f"   Segment preview: {segment[:200]}...")
-                                
-                                # Extract a proper name for the previous topic
-                                with benchmark_operation("Topic Name Extraction"):
-                                    topic_name, extract_cost_info = extract_topic_ollama(segment)
-                                
-                                # Add extraction costs to session
-                                if extract_cost_info:
-                                    self.session_costs["total_input_tokens"] += extract_cost_info.get("input_tokens", 0)
-                                    self.session_costs["total_output_tokens"] += extract_cost_info.get("output_tokens", 0)
-                                    self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
-                                    self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
-                                
-                                if config.get("debug", False):
-                                    typer.echo(f"   Extracted topic name: {topic_name if topic_name else 'None (extraction failed)'}")
-                                
-                                final_topic_name = topic_name if topic_name else previous_topic['name']
-                            else:
-                                if config.get("debug", False):
-                                    typer.echo(f"   WARNING: No topic nodes found for '{previous_topic['name']}'")
-                                final_topic_name = previous_topic['name']
-                            
-                            # Update the topic name if it changed
-                            if final_topic_name != previous_topic['name']:
-                                rows_updated = update_topic_name(previous_topic['name'], previous_topic['start_node_id'], final_topic_name)
-                                if config.get("debug", False):
-                                    typer.echo(f"   ✅ Updated topic name: '{previous_topic['name']}' → '{final_topic_name}' ({rows_updated} rows)")
-                            
-                            # Update the previous topic's end node
-                            update_topic_end_node(final_topic_name, previous_topic['start_node_id'], parent_node_id)
-                            
-                            # Queue the old topic for compression
-                            queue_topic_for_compression(previous_topic['start_node_id'], parent_node_id, final_topic_name)
-                            if config.get("debug", False):
-                                typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
+                                    typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
                     else:
                         # No previous topics exist - this is the first topic change
                         # Create a topic for the initial conversation before this point

@@ -165,7 +165,7 @@ Concise summary:"""
             
             # Use fast model for background compression with compression parameters
             compression_model = config.get('compression_model', 'ollama/llama3')
-            compression_params = config.get_model_params('compression')
+            compression_params = config.get_model_params('compression', model=compression_model)
             summary, metadata = query_llm(prompt, model=compression_model, **compression_params)
             
             if not summary:

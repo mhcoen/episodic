@@ -196,7 +196,7 @@ def _execute_llm_query(
     full_model = get_model_string(model)
     
     # Get model parameters from config
-    main_params = config.get_model_params('main')
+    main_params = config.get_model_params('main', model=full_model)
     
     # Merge provided kwargs with config params (kwargs take precedence)
     api_params = main_params.copy()

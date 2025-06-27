@@ -9,6 +9,7 @@ This module handles all topic-related operations including:
 """
 
 import re
+import json
 import logging
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -114,7 +115,7 @@ class TopicManager:
 IMPORTANT RULES:
 1. Only detect changes when switching to a COMPLETELY DIFFERENT domain of knowledge
 2. Continuing to ask about the same subject, even with variations, is NOT a topic change
-3. Default to "NO" unless you are absolutely certain the topic has changed dramatically
+3. Default to "No" unless you are absolutely certain the topic has changed dramatically
 
 Previous conversation:
 {context}
@@ -122,24 +123,22 @@ Previous conversation:
 New user message:
 user: {new_message}
 
-Has the topic changed to a COMPLETELY DIFFERENT subject? Answer with ONLY:
-- "YES: [new-topic-name]" if switching to an entirely different domain
-- "NO" if still discussing the same general area
+Has the topic changed to a COMPLETELY DIFFERENT subject?
 
-Examples that should be "NO":
+Examples that should be "No":
 - Asking more questions about the same subject
 - Requesting clarification or more details
 - Asking for examples of the same thing
 - Variations on the same theme
 - Related or connected topics
 
-Only answer "YES" for dramatic shifts like:
+Only answer "Yes" for dramatic shifts like:
 - Technical discussion → Personal life
 - Science → Entertainment
 - Programming → Food/Cooking
 - Math → Travel plans
 
-Answer:"""
+Respond with a JSON object containing only an "answer" field with value "Yes" or "No"."""
 
             # Get the topic detection model from config (default to ollama/llama3)
             topic_model = config.get("topic_detection_model", "ollama/llama3")
@@ -151,7 +150,8 @@ Answer:"""
                 typer.echo(f"   New message preview: {new_message[:100]}...")
             
             # Use configured model for detection with topic parameters
-            topic_params = config.get_model_params('topic')
+            topic_params = config.get_model_params('topic', model=topic_model)
+            
             with benchmark_resource("LLM Call", f"topic detection - {topic_model}"):
                 response, cost_info = query_llm(
                     prompt, 
@@ -165,26 +165,39 @@ Answer:"""
                 if config.get("debug", False):
                     typer.echo(f"   LLM response: {response}")
                 
-                # Check for clear YES response
-                if response.upper().startswith("YES:"):
-                    # Don't extract topic name here - just return that a change was detected
-                    # The topic name will be extracted from the PREVIOUS topic's content
+                try:
+                    # Parse JSON response
+                    result = json.loads(response)
+                    answer = result.get("answer", "No")
+                    
+                    if answer == "Yes":
+                        # Topic change detected
+                        if config.get("debug", False):
+                            typer.echo(f"   ✅ Topic change detected")
+                        return True, None, cost_info
+                    else:
+                        # No topic change
+                        if config.get("debug", False):
+                            typer.echo(f"   ➡️ Continuing same topic")
+                        return False, None, cost_info
+                        
+                except json.JSONDecodeError as e:
+                    # Fallback to old parsing if JSON parsing fails
+                    typer.echo(f"⚠️  Topic detection JSON parsing failed: {e}")
                     if config.get("debug", False):
-                        typer.echo(f"   ✅ Topic change detected")
-                    return True, None, cost_info
-                
-                # Check for contradictory responses where LLM says NO but describes it as different
-                response_lower = response.lower()
-                if response_lower.startswith("no") and any(phrase in response_lower for phrase in 
-                    ["different subject", "different topic", "different from", "which is different", "completely different"]):
+                        typer.echo(f"   Raw response: {response}")
+                        typer.echo(f"   Falling back to text parsing")
+                    
+                    # Check for clear YES response (fallback)
+                    if response.upper().startswith("YES"):
+                        if config.get("debug", False):
+                            typer.echo(f"   ✅ Topic change detected (fallback)")
+                        return True, None, cost_info
+                    
+                    # Default to no change
                     if config.get("debug", False):
-                        typer.echo(f"   ⚠️  LLM said NO but described topics as different - treating as YES")
-                    return True, None, cost_info
-                
-                # Default to no change
-                if config.get("debug", False):
-                    typer.echo(f"   ➡️ Continuing same topic")
-                return False, None, cost_info
+                        typer.echo(f"   ➡️ Continuing same topic (fallback)")
+                    return False, None, cost_info
         
         except Exception as e:
             logger.warning(f"Topic change detection error: {e}")
@@ -225,7 +238,7 @@ Topic name:"""
                 typer.echo(f"   Model: {topic_model}")
                 typer.echo(f"   Prompt preview: {prompt[:300]}...")
             
-            topic_params = config.get_model_params('topic')
+            topic_params = config.get_model_params('topic', model=topic_model)
             with benchmark_resource("LLM Call", f"topic extraction - {topic_model}"):
                 response, cost_info = query_llm(prompt, model=topic_model, **topic_params)
             

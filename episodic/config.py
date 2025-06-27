@@ -64,7 +64,7 @@ class Config:
                         "top_p": 0.9,
                         "presence_penalty": 0.0,
                         "frequency_penalty": 0.0,
-                        "stop": ["\n"]
+                        "stop": []
                     }
                     self._save()
                 
@@ -107,7 +107,7 @@ class Config:
                     "top_p": 0.9,
                     "presence_penalty": 0.0,
                     "frequency_penalty": 0.0,
-                    "stop": ["\n"]
+                    "stop": []
                 },
                 "compression_params": {
                     "temperature": 0.5,
@@ -220,7 +220,10 @@ class Config:
                 raise ValueError("max_tokens must be positive or None")
             elif actual_param_name == 'stop':
                 if isinstance(value, str):
-                    value = [value]  # Convert single string to list
+                    if value == '[]' or value == '':
+                        value = []  # Handle empty list
+                    else:
+                        value = [value]  # Convert single string to list
                 elif not isinstance(value, list):
                     raise ValueError("stop must be a string or list of strings")
             
@@ -238,11 +241,12 @@ class Config:
             self.config[key] = value
             self._save()
 
-    def get_model_params(self, param_set: str) -> Dict[str, Any]:
+    def get_model_params(self, param_set: str, model: str = None) -> Dict[str, Any]:
         """Get model parameters for a specific context.
         
         Args:
             param_set: The parameter set name ('main', 'topic', 'compression')
+            model: Optional model name to filter parameters for compatibility
         
         Returns:
             Dictionary of model parameters
@@ -258,7 +262,16 @@ class Config:
         
         # Return parameters, filtering out None values
         params = self.config.get(actual_param_set, {})
-        return {k: v for k, v in params.items() if v is not None}
+        filtered_params = {k: v for k, v in params.items() if v is not None}
+        
+        # Filter out unsupported parameters for specific providers
+        if model and 'ollama' in model.lower():
+            # Ollama doesn't support presence_penalty or frequency_penalty
+            ollama_unsupported = ['presence_penalty', 'frequency_penalty']
+            filtered_params = {k: v for k, v in filtered_params.items() 
+                             if k not in ollama_unsupported}
+        
+        return filtered_params
 
     def delete(self, key: str) -> None:
         """Delete a configuration value.

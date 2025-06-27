@@ -1,7 +1,7 @@
 ---
 name: topic_detection
 description: Prompt for detecting topic changes in conversations
-version: 1.0
+version: 1.1
 tags: [system, topic-detection]
 ---
 
@@ -14,13 +14,13 @@ New user message:
 Is the new message about a DIFFERENT SUBJECT than the conversation?
 
 Topic CHANGES if switching between unrelated subjects:
-- Programming → weather = YES: weather
-- Movies → restaurants = YES: restaurants  
-- Math → history = YES: history
+- Programming → weather = Yes
+- Movies → restaurants = Yes  
+- Math → history = Yes
 
 Topic SAME if continuing related discussion:
-- Python lists → Python debugging = NO
-- Paris weather → London weather = NO
-- Italian food → French food = NO
+- Python lists → Python debugging = No
+- Paris weather → London weather = No
+- Italian food → French food = No
 
-Answer YES: [new-topic] or NO:
+Respond with a JSON object containing only an "answer" field with value "Yes" or "No".

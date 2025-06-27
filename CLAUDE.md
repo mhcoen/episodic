@@ -8,7 +8,17 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Current Session Context
 
-### Last Working Session (2025-06-25)
+### Last Working Session (2025-06-27)
+- Created centralized LLM manager for accurate API call tracking
+- Fixed initial topic extraction to require minimum 3 user messages
+- Added /api-stats and /reset-api-stats commands
+- Fixed benchmark system operation-specific counting (no longer shows cumulative)
+- Fixed streaming response cost calculation (was showing $0.00)
+- Fixed topic detection to count user messages only, not total nodes
+- Added validation to prevent premature topic creation
+- Fixed multiple indentation errors in conversation.py
+
+### Previous Session (2025-06-25)
 - Fixed streaming output duplication in constant-rate mode
 - Improved word wrapping and list indentation
 - Added markdown bold (**text**) support
@@ -34,7 +44,10 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 #### Important Code Locations
 - Topic detection: `episodic/topics.py:detect_topic_change_separately()`
 - Topic threshold behavior: `episodic/topics.py:_should_check_for_topic_change()` (lines 75-89)
+- Topic user message counting: `episodic/topics.py:count_user_messages_in_topic()` (NEW)
 - Topic naming: `episodic/conversation.py:387-442` (in handle_chat_message)
+- Topic creation validation: `episodic/conversation.py:876-903` (NEW validation logic)
+- LLM Manager: `episodic/llm_manager.py` (centralized API call tracking)
 - Compression storage: `episodic/db_compression.py` (new compression mapping system)
 - Summary command: `episodic/commands/summary.py`
 - Command parsing: `episodic/cli.py:handle_command()`
@@ -49,6 +62,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 ### Recent Discoveries
 - **IMPORTANT**: All conversations are currently completely linear - the DAG is a straight line that is never modified. There is no branching implemented yet.
 - **CRITICAL**: Topic detection has undocumented threshold behavior - first 2 topics use half threshold (4 messages), then full threshold (8 messages) applies (see `topics.py:_should_check_for_topic_change()`)
+- **CRITICAL BUG**: Topic detection was counting total nodes instead of user messages, allowing topics with only 1 user message
 - Compression system now stores summaries separately in compressions_v2 and compression_nodes tables - they do NOT pollute the conversation tree
 - Unit tests modify production config file (~/.episodic/config.json) - tests need isolation
 - `/init --erase` now properly resets conversation manager state (current_node_id, current_topic, session costs)
@@ -57,6 +71,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - The `--` prefix in topic names (like "--space") comes from the prompt response
 - First topic creation has timing issues - may not trigger properly
 - `get_ancestry()` returns nodes in reverse chronological order
+- LLM costs were not being calculated for streaming responses (always $0.00)
+- Benchmark system was showing cumulative counts instead of operation-specific counts
 
 ### Test Scripts
 - `scripts/test-complex-topics.txt` - 21 queries across multiple topics
@@ -66,6 +82,9 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ### New Commands
 - `/rename-topics` - Renames all placeholder "ongoing-*" topics by analyzing their content
+- `/api-stats` - Shows actual LLM API call statistics
+- `/reset-api-stats` - Resets API call counter
+- `/compress <topic-name>` - Manually trigger compression for a specific topic
 
 ### Common Development Commands
 

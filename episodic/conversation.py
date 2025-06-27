@@ -873,27 +873,54 @@ class ConversationManager:
                         if user_node and user_node.get('parent_id'):
                             parent_node_id = user_node['parent_id']
                             
-                            # Extract the topic name from the previous topic's content
-                            topic_nodes = []
-                            ancestry = get_ancestry(parent_node_id)
+                            # Before closing the previous topic, check if it has enough user messages
+                            # Count user messages in the previous topic
+                            from episodic.topics import TopicManager
+                            tm = TopicManager()
+                            user_messages_in_prev = tm.count_user_messages_in_topic(
+                                previous_topic['start_node_id'],
+                                parent_node_id  # End at parent of current user node
+                            )
                             
-                            # Collect nodes from the previous topic
-                            found_start = False
-                            for i, node in enumerate(ancestry):
-                                if node['id'] == previous_topic['start_node_id']:
-                                    found_start = True
-                                    # Collect all nodes from start to end (parent_node_id)
-                                    for j in range(i, len(ancestry)):
-                                        topic_nodes.append(ancestry[j])
-                                        if ancestry[j]['id'] == parent_node_id:
-                                            break
-                                    break
+                            # Get thresholds
+                            min_messages_before_change = config.get('min_messages_before_topic_change', 8)
+                            total_topics = len(get_recent_topics(limit=100))
                             
-                            if config.get("debug", False) and not found_start:
-                                typer.echo(f"   WARNING: Start node {previous_topic['start_node_id']} not found in ancestry")
+                            # More lenient for first few topics
+                            if total_topics <= 2:
+                                effective_min = max(4, min_messages_before_change // 2)
+                            else:
+                                effective_min = min_messages_before_change
                             
-                            # Build conversation segment from the previous topic
-                            if topic_nodes:
+                            # If previous topic doesn't have enough messages, don't create new topic
+                            if user_messages_in_prev < effective_min:
+                                if config.get("debug", False):
+                                    typer.echo(f"\n🔍 DEBUG: Not creating new topic - previous topic has only {user_messages_in_prev} user messages (min: {effective_min})")
+                                topic_changed = False
+                                # Continue with the current topic
+                            else:
+                                # Previous topic has enough messages, proceed with topic change
+                                # Extract the topic name from the previous topic's content
+                                topic_nodes = []
+                                ancestry = get_ancestry(parent_node_id)
+                                
+                                # Collect nodes from the previous topic
+                                    found_start = False
+                                for i, node in enumerate(ancestry):
+                                    if node['id'] == previous_topic['start_node_id']:
+                                        found_start = True
+                                        # Collect all nodes from start to end (parent_node_id)
+                                        for j in range(i, len(ancestry)):
+                                            topic_nodes.append(ancestry[j])
+                                            if ancestry[j]['id'] == parent_node_id:
+                                                break
+                                        break
+                            
+                                if config.get("debug", False) and not found_start:
+                                    typer.echo(f"   WARNING: Start node {previous_topic['start_node_id']} not found in ancestry")
+                                
+                                # Build conversation segment from the previous topic
+                                if topic_nodes:
                                 segment = build_conversation_segment(topic_nodes, max_length=2000)
                                 
                                 if config.get("debug", False):
@@ -1017,19 +1044,31 @@ class ConversationManager:
                                         # Queue for compression
                                         queue_topic_for_compression(first_user_node_id, parent_node_id, topic_name)
                 
-                    # Create a new topic starting from this user message
-                    # Use a placeholder name that will be updated when this topic ends
-                    timestamp = int(time.time())
-                    placeholder_topic_name = f"ongoing-{timestamp}"
-                    
-                    # Create the topic with placeholder name
-                    store_topic(placeholder_topic_name, user_node_id, assistant_node_id, 'detected')
-                    
-                    # Set as current topic
-                    self.set_current_topic(placeholder_topic_name, user_node_id)
-                    
-                    typer.echo("")
-                    typer.secho(f"🔄 Topic changed", fg=get_system_color())
+                    # Only create new topic if topic_changed is still True after validation
+                    if topic_changed:
+                        # Create a new topic starting from this user message
+                        # Use a placeholder name that will be updated when this topic ends
+                        timestamp = int(time.time())
+                        placeholder_topic_name = f"ongoing-{timestamp}"
+                        
+                        # Create the topic with placeholder name
+                        store_topic(placeholder_topic_name, user_node_id, assistant_node_id, 'detected')
+                        
+                        # Set as current topic
+                        self.set_current_topic(placeholder_topic_name, user_node_id)
+                        
+                        typer.echo("")
+                        typer.secho(f"🔄 Topic changed", fg=get_system_color())
+                    else:
+                        # Topic change was cancelled due to insufficient messages in previous topic
+                        # Extend the current topic instead
+                        current_topic = self.get_current_topic()
+                        if current_topic:
+                            topic_name, start_node_id = current_topic
+                            # Update it to include the new assistant response
+                            update_topic_end_node(topic_name, start_node_id, assistant_node_id)
+                            if config.get("debug", False):
+                                typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' (topic change cancelled)")
                 else:
                     # No topic change - extend the current topic if one exists
                     current_topic = self.get_current_topic()

@@ -175,8 +175,9 @@ def _apply_prompt_caching(messages: List[Dict[str, Any]], model: str) -> List[Di
 def _execute_llm_query(
     messages: List[Dict[str, str]],
     model: str,
-    temperature: float,
-    stream: bool = False
+    temperature: float = None,
+    stream: bool = False,
+    **kwargs
 ) -> Union[tuple[str, dict], tuple[Any, None]]:
     """
     Internal function to execute LLM queries with prompt caching support.
@@ -193,6 +194,19 @@ def _execute_llm_query(
     """
     provider = get_current_provider()
     full_model = get_model_string(model)
+    
+    # Get model parameters from config
+    main_params = config.get_model_params('main')
+    
+    # Merge provided kwargs with config params (kwargs take precedence)
+    api_params = main_params.copy()
+    api_params.update(kwargs)
+    
+    # Use provided temperature if given, otherwise use config
+    if temperature is not None:
+        api_params['temperature'] = temperature
+    elif 'temperature' not in api_params:
+        api_params['temperature'] = 0.7  # Default if not set
 
     # Apply prompt caching if enabled and supported
     if config.get("use_context_cache", True):
@@ -212,7 +226,7 @@ def _execute_llm_query(
             model=full_model,
             stream=stream,
             api_base=provider_config.get("api_base"),
-            temperature=temperature
+            **api_params
         )
     elif provider == "ollama":
         provider_config = get_provider_config("ollama")
@@ -221,14 +235,14 @@ def _execute_llm_query(
             model=full_model,
             stream=stream,
             api_base=provider_config.get("api_base"),
-            temperature=temperature
+            **api_params
         )
     else:
         response = llm_manager.make_api_call(
             messages=messages,
             model=full_model,
             stream=stream,
-            temperature=temperature
+            **api_params
         )
 
     # If streaming, return the generator directly
@@ -243,13 +257,14 @@ def query_llm(
     prompt: str,
     model: str = "gpt-4o-mini",
     system_message: str = "You are a helpful assistant.",
-    temperature: float = 0.7
+    temperature: float = None,
+    **kwargs
 ) -> tuple[str, dict]:
     messages = [
         {"role": "system", "content": system_message},
         {"role": "user", "content": prompt}
     ]
-    return _execute_llm_query(messages, model, temperature)
+    return _execute_llm_query(messages, model, temperature, **kwargs)
 
 def query_with_context(
     node_id: str,

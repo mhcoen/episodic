@@ -35,7 +35,7 @@ from episodic.commands import (
     # Navigation
     init, add, show, print_node, head, ancestry, list_nodes,
     # Settings
-    set, verify, cost,
+    set, verify, cost, model_params,
     # Topics
     topics, compress_current_topic, rename_ongoing_topics,
     # Compression
@@ -176,6 +176,10 @@ def handle_command(command_str: str) -> bool:
         
         elif cmd == "/cost":
             cost()
+        
+        elif cmd == "/model-params" or cmd == "/mp":
+            param_set = args[0] if args else None
+            model_params(param_set)
         
         # Topic commands
         elif cmd == "/topics":

@@ -150,11 +150,13 @@ Answer:"""
                 typer.echo(f"   Recent messages: {len(recent_messages)}")
                 typer.echo(f"   New message preview: {new_message[:100]}...")
             
-            # Use configured model for detection
+            # Use configured model for detection with topic parameters
+            topic_params = config.get_model_params('topic')
             with benchmark_resource("LLM Call", f"topic detection - {topic_model}"):
                 response, cost_info = query_llm(
                     prompt, 
-                    model=topic_model
+                    model=topic_model,
+                    **topic_params
                 )
             
             if response:
@@ -223,8 +225,9 @@ Topic name:"""
                 typer.echo(f"   Model: {topic_model}")
                 typer.echo(f"   Prompt preview: {prompt[:300]}...")
             
+            topic_params = config.get_model_params('topic')
             with benchmark_resource("LLM Call", f"topic extraction - {topic_model}"):
-                response, cost_info = query_llm(prompt, model=topic_model)
+                response, cost_info = query_llm(prompt, model=topic_model, **topic_params)
             
             if response:
                 # Debug: Show raw response

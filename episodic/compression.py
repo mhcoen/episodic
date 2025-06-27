@@ -163,9 +163,10 @@ Conversation ({len(nodes)} messages):
 
 Concise summary:"""
             
-            # Use fast model for background compression
+            # Use fast model for background compression with compression parameters
             compression_model = config.get('compression_model', 'ollama/llama3')
-            summary, metadata = query_llm(prompt, model=compression_model)
+            compression_params = config.get_model_params('compression')
+            summary, metadata = query_llm(prompt, model=compression_model, **compression_params)
             
             if not summary:
                 return False

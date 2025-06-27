@@ -93,6 +93,11 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("\nDebugging:", fg=get_heading_color())
         typer.secho("  debug: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('debug', False)}", fg=get_system_color())
+        
+        # Model Parameters
+        typer.secho("\nModel Parameters:", fg=get_heading_color())
+        typer.secho("  Use /model-params to view parameter details", fg=get_text_color())
+        typer.secho("  main.temp, topic.temp, comp.temp, etc.", fg=get_system_color())
         return
 
     # Handle the 'cost' parameter
@@ -397,6 +402,16 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("benchmark_display", val)
             typer.echo(f"Benchmark display set to {val}")
 
+    # Handle model parameter syntax (main.temp, topic.max, etc.)
+    elif '.' in param.lower():
+        try:
+            config.set(param.lower(), value)
+            typer.echo(f"Set {param} to {value}")
+        except ValueError as e:
+            typer.secho(f"Error: {e}", fg="red")
+        except Exception as e:
+            typer.secho(f"Failed to set {param}: {e}", fg="red")
+
     else:
         typer.echo(f"Unknown parameter: {param}")
         typer.secho("\nAvailable parameters:", fg=get_heading_color())
@@ -410,6 +425,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
         typer.secho("  Performance: ", nl=False, fg=get_heading_color())
         typer.secho("benchmark, benchmark_display", fg=get_system_color())
+        typer.secho("  Model Parameters: ", nl=False, fg=get_heading_color())
+        typer.secho("main.temp, topic.temp, comp.temp (see /model-params)", fg=get_system_color())
         typer.secho("  Debugging: ", nl=False, fg=get_heading_color())
         typer.secho("debug", fg=get_system_color())
         typer.echo("Use 'set' without arguments to see all parameters and their current values")
@@ -490,6 +507,83 @@ def verify():
         typer.echo("  Ollama: ❌ Not found")
     
     typer.secho("\n" + "=" * 50, fg=get_heading_color())
+
+
+def model_params(param_set: Optional[str] = None):
+    """Display model parameters for different contexts."""
+    
+    def format_param_value(value):
+        """Format parameter value for display."""
+        if value is None:
+            return "default"
+        elif isinstance(value, list):
+            if not value:
+                return "[]"
+            return f"[{', '.join(repr(v) for v in value)}]"
+        elif isinstance(value, float):
+            return f"{value:.1f}" if value == int(value) else f"{value}"
+        else:
+            return str(value)
+    
+    def display_param_set(name: str, title: str):
+        """Display a single parameter set."""
+        params = config.get(name, {})
+        typer.secho(f"\n{title}:", fg=get_heading_color(), bold=True)
+        
+        typer.secho("  temperature: ", nl=False, fg=get_text_color())
+        typer.secho(format_param_value(params.get('temperature')), fg=get_system_color())
+        
+        typer.secho("  max_tokens: ", nl=False, fg=get_text_color())
+        typer.secho(format_param_value(params.get('max_tokens')), fg=get_system_color())
+        
+        typer.secho("  top_p: ", nl=False, fg=get_text_color())
+        typer.secho(format_param_value(params.get('top_p')), fg=get_system_color())
+        
+        typer.secho("  presence_penalty: ", nl=False, fg=get_text_color())
+        typer.secho(format_param_value(params.get('presence_penalty')), fg=get_system_color())
+        
+        typer.secho("  frequency_penalty: ", nl=False, fg=get_text_color())
+        typer.secho(format_param_value(params.get('frequency_penalty')), fg=get_system_color())
+        
+        typer.secho("  stop: ", nl=False, fg=get_text_color())
+        typer.secho(format_param_value(params.get('stop')), fg=get_system_color())
+    
+    if param_set:
+        # Display specific parameter set
+        param_set_map = {
+            'main': ('main_params', 'Main Conversation Parameters'),
+            'topic': ('topic_params', 'Topic Detection Parameters'),
+            'comp': ('compression_params', 'Compression Parameters'),
+            'compression': ('compression_params', 'Compression Parameters')
+        }
+        
+        if param_set.lower() in param_set_map:
+            name, title = param_set_map[param_set.lower()]
+            display_param_set(name, title)
+        else:
+            typer.secho(f"Unknown parameter set: {param_set}", fg="red")
+            typer.echo("Available sets: main, topic, compression")
+    else:
+        # Display all parameter sets
+        typer.secho("🎛️  Model Parameters", fg=get_heading_color(), bold=True)
+        typer.secho("=" * 50, fg=get_heading_color())
+        
+        display_param_set('main_params', 'Main Conversation')
+        display_param_set('topic_params', 'Topic Detection')
+        display_param_set('compression_params', 'Compression')
+        
+        typer.secho("\n" + "─" * 50, fg=get_heading_color())
+        typer.secho("Usage examples:", fg=get_heading_color())
+        typer.secho("  /set main.temp 0.8", nl=False, fg=get_system_color())
+        typer.secho("         # Set main temperature", fg=get_text_color())
+        typer.secho("  /set topic.max 100", nl=False, fg=get_system_color())
+        typer.secho("         # Set topic max_tokens", fg=get_text_color())
+        typer.secho("  /set comp.presence 0.2", nl=False, fg=get_system_color())
+        typer.secho("     # Set compression presence penalty", fg=get_text_color())
+        typer.secho("  /set main.reset", nl=False, fg=get_system_color())
+        typer.secho("            # Reset main parameters to defaults", fg=get_text_color())
+        typer.secho("  /model-params main", nl=False, fg=get_system_color())
+        typer.secho("         # View only main parameters", fg=get_text_color())
 
 
 def cost():

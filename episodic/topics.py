@@ -58,15 +58,11 @@ class TopicManager:
             recent_topics = get_recent_topics(limit=1)
             if recent_topics:
                 current_topic = recent_topics[0]
-                # Use node count if available, otherwise count messages
-                if 'node_count' in current_topic:
-                    messages_in_topic = current_topic['node_count']
-                else:
-                    # Count nodes between start and end
-                    messages_in_topic = self.count_nodes_in_topic(
-                        current_topic['start_node_id'], 
-                        current_topic['end_node_id']
-                    )
+                # Count USER messages only, not total nodes
+                user_messages_in_topic = self.count_user_messages_in_topic(
+                    current_topic['start_node_id'], 
+                    current_topic['end_node_id']
+                )
                 
                 # Skip topic detection if current topic has fewer than threshold messages
                 # But allow detection if we have many topics already (to avoid one giant topic)
@@ -79,9 +75,9 @@ class TopicManager:
                 else:
                     effective_min = min_messages_before_change
                     
-                if messages_in_topic < effective_min:
+                if user_messages_in_topic < effective_min:
                     if config.get("debug", False):
-                        typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {messages_in_topic} messages (min: {effective_min}, total topics: {total_topics})")
+                        typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {user_messages_in_topic} user messages (min: {effective_min}, total topics: {total_topics})")
                     return False, None, None
             # Build context from recent messages - use fewer for clearer topic detection
             context_parts = []
@@ -464,6 +460,45 @@ Topic name:"""
                 typer.echo(f"   ⚠️  Using fallback count due to broken chain: {count} nodes")
         
         return max(count, 2)  # Ensure minimum of 2
+    
+    def count_user_messages_in_topic(self, topic_start_id: str, topic_end_id: str) -> int:
+        """
+        Count the number of USER messages in a topic range.
+        
+        Args:
+            topic_start_id: Start node of the topic
+            topic_end_id: End node of the topic
+            
+        Returns:
+            Number of user messages in the topic
+        """
+        # Handle ongoing topics (no end node)
+        if not topic_end_id:
+            return 0
+            
+        # Get ancestry of the end node
+        topic_ancestry = get_ancestry(topic_end_id)
+        
+        # Count only user messages from start to end
+        count = 0
+        found_start = False
+        for node in topic_ancestry:
+            if node['id'] == topic_start_id:
+                found_start = True
+            if found_start and node.get('role') == 'user':
+                count += 1
+            if node['id'] == topic_end_id:
+                break
+        
+        # If we didn't find the start node, count all user messages in ancestry
+        if not found_start and count == 0:
+            # Count user messages in the ancestry up to a reasonable limit
+            user_count = sum(1 for node in topic_ancestry[:20] if node.get('role') == 'user')
+            count = user_count
+            if config.get("debug", False):
+                typer.echo(f"   ⚠️  Using fallback count due to broken chain: {count} user messages")
+        
+        return count
     
     def display_topic_evolution(self, current_node_id: str) -> None:
         """

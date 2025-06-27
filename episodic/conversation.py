@@ -32,7 +32,7 @@ from episodic.configuration import get_model_context_limit
 from episodic.config import config
 from episodic.configuration import (
     get_llm_color, get_system_color, DEFAULT_CONTEXT_DEPTH,
-    COST_PRECISION
+    COST_PRECISION, format_cost
 )
 from episodic.ml import ConversationalDrift
 from episodic.compression import queue_topic_for_compression
@@ -711,15 +711,60 @@ class ConversationManager:
                         # Count tokens in the response
                         output_tokens = token_counter(model=model, text=display_response)
                         
-                        # Estimate input tokens from context (rough approximation)
-                        # We'd need to reconstruct the full prompt to get exact count
-                        input_tokens = 100  # Rough estimate, could be improved
+                        # Count input tokens by reconstructing the context
+                        # Rebuild the same messages that were sent to the LLM
+                        from episodic.db import get_node, get_ancestry
+                        
+                        # Get the user node
+                        user_node = get_node(user_node_id)
+                        if not user_node:
+                            input_tokens = 100  # Fallback estimate
+                        else:
+                            # Get ancestry for context
+                            ancestry = get_ancestry(user_node_id)
+                            if context_depth > 0:
+                                ancestry = ancestry[-context_depth:]
+                            
+                            # Build messages list same as query_with_context
+                            messages = [{"role": "system", "content": system_message}]
+                            
+                            # Add context from ancestry
+                            for ancestor in ancestry[:-1]:  # Exclude current node
+                                messages.append({
+                                    "role": ancestor.get("role", "user"),
+                                    "content": ancestor.get("content", "")
+                                })
+                            
+                            # Add the user's message
+                            messages.append({"role": "user", "content": user_node["content"]})
+                            
+                            # Count tokens in all messages
+                            input_tokens = 0
+                            for msg in messages:
+                                input_tokens += token_counter(model=model, text=msg.get('content', ''))
+                        
+                        # Calculate cost using litellm
+                        try:
+                            from litellm import completion_cost
+                            # Build prompt text for cost calculation
+                            prompt_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+                            
+                            # Calculate cost using prompt and completion text
+                            cost_usd = completion_cost(
+                                model=model,
+                                prompt=prompt_text,
+                                completion=display_response
+                            )
+                        except Exception as e:
+                            if config.get('debug', False):
+                                typer.echo(f"DEBUG: Cost calculation failed: {e}")
+                            cost_usd = 0.0
                         
                         cost_info = {
                             'input_tokens': input_tokens,
                             'output_tokens': output_tokens,
                             'total_tokens': input_tokens + output_tokens,
-                            'cost_usd': 0.0  # Would need pricing info to calculate
+                            'cost_usd': cost_usd
                         }
                         
                         # Display cost info after streaming if enabled (currently not available for streaming)
@@ -735,7 +780,7 @@ class ConversationManager:
                             else:
                                 context_display = f"{int(context_percentage)}%"
                             
-                            cost_msg = f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full"
+                            cost_msg = f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: {format_cost(cost_info.get('cost_usd', 0.0))} USD | Context: {context_display} full"
                             typer.secho(cost_msg, fg=get_system_color())
                         
                     else:
@@ -778,7 +823,7 @@ class ConversationManager:
                             else:
                                 context_display = f"{int(context_percentage)}%"
                             
-                            status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: ${cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f} USD | Context: {context_display} full")
+                            status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: {format_cost(cost_info.get('cost_usd', 0.0))} USD | Context: {context_display} full")
 
                         # Display the response block with proper spacing
                         if status_messages:

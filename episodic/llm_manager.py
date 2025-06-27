@@ -110,8 +110,16 @@ class LLMManager:
                 try:
                     from litellm import completion_cost
                     cost = completion_cost(completion_response=response)
-                except:
+                    if config.get('debug', False):
+                        print(f"[LLM API] Cost calculated: ${cost:.6f}")
+                except Exception as e:
                     cost = 0.0
+                    if config.get('debug', False):
+                        print(f"[LLM API] Cost calculation failed: {e}")
+                        print(f"[LLM API] Model: {model}")
+                        print(f"[LLM API] Response has usage: {hasattr(response, 'usage')}")
+                        if hasattr(response, 'usage'):
+                            print(f"[LLM API] Usage: {response.usage}")
                 
                 cost_info = {
                     'input_tokens': response.usage.prompt_tokens if hasattr(response, 'usage') else 0,

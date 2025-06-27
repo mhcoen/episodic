@@ -120,6 +120,19 @@ def get_heading_color():
 COST_PRECISION = 6  # Number of decimal places for cost display
 ZERO_COST_PRECISION = 1  # Decimal places for zero cost display
 
+def format_cost(cost_usd: float) -> str:
+    """Format cost for display with appropriate precision."""
+    if cost_usd == 0.0:
+        return "$0.000000"
+    elif cost_usd < 0.000001:  # Less than $0.000001
+        return f"${cost_usd:.8f}"  # 8 decimal places for very small costs
+    elif cost_usd < 0.001:  # Less than $0.001
+        return f"${cost_usd:.6f}"  # 6 decimal places
+    elif cost_usd < 1.0:  # Less than $1
+        return f"${cost_usd:.4f}"  # 4 decimal places
+    else:
+        return f"${cost_usd:.2f}"  # 2 decimal places for larger costs
+
 # Server configuration
 SERVER_SHUTDOWN_DELAY = 0.1  # seconds
 

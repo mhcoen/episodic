@@ -1,0 +1,1278 @@
+🔧 Compression worker started
+🔄 Background compression worker started
+Welcome to Episodic! Type '/help' for commands or start chatting.
+🔍 DEBUG: No active topic found for current head node
+Warning: Input is not a terminal (fd=0).
+> 
+
+
+
+
+
+
+   > /script scripts/three-topics-test.txt
+
+📜 Executing script: scripts/three-topics-test.txt
+──────────────────────────────────────────────────
+
+[5] > /init --erase
+🗑️  Erasing existing database...
+✅ Database erased and reinitialized
+
+[6] > /set main.max_tokens 50
+Set main.max_tokens to 50
+
+[7] > /set main.temperature 0
+Set main.temperature to 0
+
+[10] > Tell me about the Mars rovers. All answers can be one sentence long.
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 1
+   Current topic: None
+   Min messages before topic change: 4
+   ⚠️  Not enough history for topic detection
+[LLM API] Thread 8430968576: Call #1
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 2 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Sure, I can provide brief information about the Mars rovers. What specific 
+details are you interested in knowing about them?
+
+Tokens: 257 | Cost: $0.000403 USD | Context: 1% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+   DEBUG: No topics exist, checking if we should create first topic...
+   DEBUG: user_node_id = b721a42d-1caf-438b-b7f4-4201ab9e0ee2
+   DEBUG: user_node content = 'Tell me about the Mars rovers. All answers can be ...'
+   DEBUG: should_create_first_topic: 1 user messages, threshold: 3, returning: False
+🔍 DEBUG: Skipping initial topic creation - not enough messages yet
+
+
+[11] > What are the main challenges of sending humans to Mars?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 3
+   Current topic: None
+   Min messages before topic change: 4
+
+🔍 DEBUG: No current topic, only 1 total user messages (min: 4)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #2
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 4 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+The main challenges of sending humans to Mars include radiation exposure, 
+long-duration space travel, life support systems, landing safely on Mars, 
+and returning to Earth.
+
+Tokens: 299 | Cost: $0.000476 USD | Context: 1% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+   DEBUG: No topics exist, checking if we should create first topic...
+   DEBUG: user_node_id = bbfc369d-162a-4e01-b16e-20c3eb133122
+   DEBUG: user_node content = 'What are the main challenges of sending humans to ...'
+   DEBUG: should_create_first_topic: 2 user messages, threshold: 3, returning: False
+🔍 DEBUG: Skipping initial topic creation - not enough messages yet
+
+
+[12] > How long would a trip to Mars take with current technology?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 5
+   Current topic: None
+   Min messages before topic change: 4
+
+🔍 DEBUG: No current topic, only 2 total user messages (min: 4)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #3
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+With current technology, a trip to Mars would take approximately 6 to 9 
+months depending on the relative positions of Earth and Mars in their 
+orbits.
+
+Tokens: 341 | Cost: $0.000545 USD | Context: 1% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+   DEBUG: No topics exist, checking if we should create first topic...
+   DEBUG: user_node_id = bad7f087-a6d0-4768-8918-6bb12d87f5cd
+   DEBUG: user_node content = 'How long would a trip to Mars take with current te...'
+   DEBUG: should_create_first_topic: 3 user messages, threshold: 3, returning: True
+   Building segment from 7 nodes (max_length=2000)
+   Skipping node with empty content (role=system)
+   Final segment length: 682 chars
+
+🔍 DEBUG: Topic extraction prompt:
+   Model: ollama/llama3
+   Prompt preview: Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+
+Examples:
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talki...
+[LLM API] Thread 8430968576: Call #4
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #4 completed in 1.61s
+[LLM API] Response length: 10 chars
+---
+   DEBUG: Raw topic extraction response: 'mars-rover'
+   DEBUG: Final topic name: 'mars-rover'
+🔄 DEBUG: Current topic set to 'mars-rover'
+
+📌 Created initial topic: mars-rover (from 02 to 07)
+
+
+[13] > What kind of supplies would astronauts need for a Mars mission?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 7
+   Current topic: ('mars-rover', 'b721a42d-1caf-438b-b7f4-4201ab9e0ee2')
+   Min messages before topic change: 4
+   Context preview: - User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one senten...
+   Prompt length: 1445 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one sentence long.
+
+New message:
+What kind of supplies would astronauts need for a Mars mission?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 7
+   New message preview: What kind of supplies would astronauts need for a Mars mission?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #5
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #5 completed in 0.84s
+[LLM API] Response length: 48 chars
+---
+   LLM response: {
+  "intent": "DEVELOP_TOPIC",
+  "shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 48
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #6
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Astronauts on a Mars mission would need supplies such as food, water, 
+oxygen, medical supplies, tools, spare parts, communication equipment, 
+protective gear, habitats, and vehicles for transportation on the Martian 
+surface.
+
+Tokens: 357 | Cost: $0.000576 USD | Context: 1% full
+🔍 DEBUG: Extended topic 'mars-rover' to include new response
+
+
+[14] > Could we terraform Mars in the future?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 9
+   Current topic: ('mars-rover', 'b721a42d-1caf-438b-b7f4-4201ab9e0ee2')
+   Min messages before topic change: 4
+   Context preview: - User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Ma...
+   Prompt length: 1492 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one sentence long.
+
+New message:
+Could we terraform Mars in the future?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 9
+   New message preview: Could we terraform Mars in the future?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #7
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #7 completed in 0.81s
+[LLM API] Response length: 44 chars
+---
+   LLM response: {
+"intent": "DEVELOP_TOPIC",
+"shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 44
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #8
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Terraforming Mars, which involves transforming its environment to be more 
+Earth-like and habitable for humans, is a theoretical concept that has been 
+proposed for the future. However, the process would be extremely complex, 
+time-consuming, and would require technologies far
+
+Tokens: 374 | Cost: $0.000602 USD | Context: 1% full
+🔍 DEBUG: Current topic 'mars-rover' was already closed at fd13522b-a5d5-4692-99cd-c560b91d8afb, cannot extend
+🔍 DEBUG: Current topic 'mars-rover' no longer exists or is closed
+
+
+[17] > I want to learn how to make authentic Italian pasta
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: Could we terraform Mars in the future?
+- User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What ...
+   Prompt length: 1552 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: Could we terraform Mars in the future?
+- User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one sentence long.
+
+New message:
+I want to learn how to make authentic Italian pasta
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: I want to learn how to make authentic Italian pasta...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #9
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #9 completed in 0.84s
+[LLM API] Response length: 47 chars
+---
+   LLM response: {
+"intent": "INTRODUCE_TOPIC",
+"shift": "YES"
+}
+   Response type: <class 'str'>
+   Response length: 47
+   Parsed intent-based JSON: intent=INTRODUCE_TOPIC, shift=YES
+   ✅ Topic change detected (intent: INTRODUCE_TOPIC)
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #10
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Making authentic Italian pasta involves a few key steps. Here's a simple 
+recipe for making homemade pasta:
+
+Ingredients:
+- 2 cups of all-purpose flour
+- 2 large eggs
+
+Instructions:
+1. On a clean surface, pour the flour and
+
+Tokens: 392 | Cost: $0.000630 USD | Context: 2% full
+🔄 DEBUG: Current topic set to 'ongoing-1751082047'
+
+🔄 Topic changed
+
+
+[18] > What's the secret to a good carbonara?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751082047', '008c0602-1581-4949-a0c0-2cdc928a3ac6')
+   Min messages before topic change: 4
+
+🔍 DEBUG: Skipping topic detection - current topic has only 2 user messages (min: 4, total topics: 2)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #11
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+The secret to a good carbonara lies in a few key factors:
+
+1. Use Guanciale or Pancetta: These are traditional Italian cured meats that 
+add a rich, savory flavor to the dish. Avoid using bacon as a substitute for 
+the most
+
+Tokens: 396 | Cost: $0.000640 USD | Context: 2% full
+🔍 DEBUG: Extended topic 'ongoing-1751082047' to include new response
+
+
+[19] > Should I use fresh or dried pasta for different dishes?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751082047', '008c0602-1581-4949-a0c0-2cdc928a3ac6')
+   Min messages before topic change: 4
+
+🔍 DEBUG: Skipping topic detection - current topic has only 3 user messages (min: 4, total topics: 2)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #12
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+The choice between using fresh or dried pasta depends on the type of dish 
+you are preparing:
+
+1. Fresh Pasta:
+- Fresh pasta is ideal for delicate sauces like butter and herb-based sauces 
+or light cream sauces.
+- It cooks faster than dried pasta,
+
+Tokens: 398 | Cost: $0.000645 USD | Context: 2% full
+🔍 DEBUG: Current topic 'ongoing-1751082047' was already closed at c83e9b64-d05b-4ef7-94a9-640775464efb, cannot extend
+🔍 DEBUG: Current topic 'ongoing-1751082047' no longer exists or is closed
+
+
+[20] > What are the essential ingredients for a proper Italian pantry?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Ma...
+   Prompt length: 1526 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Mars in the future?
+- User: What kind of supplies would astronauts need for a Mars mission?
+
+New message:
+What are the essential ingredients for a proper Italian pantry?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What are the essential ingredients for a proper Italian pantry?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #13
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #13 completed in 1.00s
+[LLM API] Response length: 48 chars
+---
+   LLM response: {
+  "intent": "DEVELOP_TOPIC",
+  "shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 48
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #14
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Building a proper Italian pantry involves stocking up on essential 
+ingredients that form the foundation of many Italian dishes. Here are some 
+key items to include:
+
+1. Olive Oil: Extra virgin olive oil is a staple in Italian cooking, used 
+for sautéing
+
+Tokens: 399 | Cost: $0.000643 USD | Context: 2% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+🔍 DEBUG: No topic change detected, continuing conversation
+
+
+[21] > How do I make a traditional marinara sauce?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: What are the essential ingredients for a proper Italian pantry?
+- User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to...
+   Prompt length: 1506 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: What are the essential ingredients for a proper Italian pantry?
+- User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Mars in the future?
+
+New message:
+How do I make a traditional marinara sauce?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: How do I make a traditional marinara sauce?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #15
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #15 completed in 0.83s
+[LLM API] Response length: 48 chars
+---
+   LLM response: {
+  "intent": "DEVELOP_TOPIC",
+  "shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 48
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #16
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+To make a traditional marinara sauce, follow these steps:
+
+Ingredients:
+- 2 tbsp olive oil
+- 1 small onion, finely chopped
+- 2-3 cloves of garlic, minced
+- 28 oz can of crushed tomatoes
+
+
+Tokens: 399 | Cost: $0.000643 USD | Context: 2% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+🔍 DEBUG: No topic change detected, continuing conversation
+
+
+[24] > Can you explain what neural networks are?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: How do I make a traditional marinara sauce?
+- User: What are the essential ingredients for a proper Italian pantry?
+- User: Should I use fresh or dried pasta for different dishes?
+- User: What...
+   Prompt length: 1509 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: How do I make a traditional marinara sauce?
+- User: What are the essential ingredients for a proper Italian pantry?
+- User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to learn how to make authentic Italian pasta
+
+New message:
+Can you explain what neural networks are?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: Can you explain what neural networks are?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #17
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #17 completed in 0.88s
+[LLM API] Response length: 51 chars
+---
+   LLM response: {
+  "intent": "INTRODUCE_TOPIC",
+  "shift": "YES"
+}
+   Response type: <class 'str'>
+   Response length: 51
+   Parsed intent-based JSON: intent=INTRODUCE_TOPIC, shift=YES
+   ✅ Topic change detected (intent: INTRODUCE_TOPIC)
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #18
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Neural networks are a type of machine learning algorithm inspired by the 
+structure and function of the human brain. Here's a high-level explanation 
+of neural networks:
+
+1. Neurons: Neural networks are composed of interconnected nodes called 
+neurons. These neurons are
+
+Tokens: 396 | Cost: $0.000638 USD | Context: 2% full
+🔄 DEBUG: Current topic set to 'ongoing-1751082054'
+
+🔄 Topic changed
+
+
+[25] > What's the difference between supervised and unsupervised learning?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751082054', '82bfe917-6133-407a-93b2-d0fa3d28100b')
+   Min messages before topic change: 4
+
+🔍 DEBUG: Skipping topic detection - current topic has only 2 user messages (min: 4, total topics: 3)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #19
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+The main difference between supervised and unsupervised learning lies in the 
+type of input data they work with and the presence of labeled output data. 
+Here's a breakdown of both:
+
+1. Supervised Learning:
+- Definition: In supervised learning
+
+Tokens: 397 | Cost: $0.000638 USD | Context: 2% full
+🔍 DEBUG: Extended topic 'ongoing-1751082054' to include new response
+
+
+[26] > How does backpropagation work in neural networks?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751082054', '82bfe917-6133-407a-93b2-d0fa3d28100b')
+   Min messages before topic change: 4
+
+🔍 DEBUG: Skipping topic detection - current topic has only 3 user messages (min: 4, total topics: 3)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #20
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Backpropagation is a key algorithm used to train neural networks by 
+adjusting the weights of the connections between neurons. Here's how 
+backpropagation works in neural networks:
+
+1. Forward Pass:
+   - The input data is fed forward through the
+
+Tokens: 397 | Cost: $0.000640 USD | Context: 2% full
+🔍 DEBUG: Current topic 'ongoing-1751082054' was already closed at 54542e24-6e0c-4447-9694-dce0ba8b570a, cannot extend
+🔍 DEBUG: Current topic 'ongoing-1751082054' no longer exists or is closed
+
+
+[27] > What are some common activation functions and when to use them?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: How does backpropagation work in neural networks?
+- User: What's the difference between supervised and unsupervised learning?
+- User: Can you explain what neural networks are?
+- User: How do I...
+   Prompt length: 1544 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: How does backpropagation work in neural networks?
+- User: What's the difference between supervised and unsupervised learning?
+- User: Can you explain what neural networks are?
+- User: How do I make a traditional marinara sauce?
+- User: What are the essential ingredients for a proper Italian pantry?
+
+New message:
+What are some common activation functions and when to use them?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What are some common activation functions and when to use them?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #21
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #21 completed in 1.01s
+[LLM API] Response length: 48 chars
+---
+   LLM response: {
+  "intent": "DEVELOP_TOPIC",
+  "shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 48
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #22
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+There are several common activation functions used in neural networks, each 
+with its own characteristics and use cases. Here are some common activation 
+functions and when to use them:
+
+1. Sigmoid Function:
+   - Function: \( \sigma(x)
+
+Tokens: 401 | Cost: $0.000648 USD | Context: 2% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+🔍 DEBUG: No topic change detected, continuing conversation
+
+
+[28] > Tell me about convolutional neural networks
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+- User: What's the difference between supervised and unsupervised lear...
+   Prompt length: 1524 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+- User: What's the difference between supervised and unsupervised learning?
+- User: Can you explain what neural networks are?
+- User: How do I make a traditional marinara sauce?
+
+New message:
+Tell me about convolutional neural networks
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: Tell me about convolutional neural networks...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #23
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #23 completed in 0.87s
+[LLM API] Response length: 51 chars
+---
+   LLM response: {
+  "intent": "INTRODUCE_TOPIC",
+  "shift": "YES"
+}
+   Response type: <class 'str'>
+   Response length: 51
+   Parsed intent-based JSON: intent=INTRODUCE_TOPIC, shift=YES
+   ✅ Topic change detected (intent: INTRODUCE_TOPIC)
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #24
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Convolutional Neural Networks (CNNs) are a type of deep learning algorithm 
+commonly used for image recognition and computer vision tasks. Here are some 
+key points about Convolutional Neural Networks:
+
+1. Convolutional Layers:
+   - CNN
+
+Tokens: 396 | Cost: $0.000638 USD | Context: 2% full
+🔄 DEBUG: Current topic set to 'ongoing-1751082060'
+
+🔄 Topic changed
+
+
+[29] > What's the purpose of dropout in neural networks?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751082060', '696eab14-f73c-4d95-ba66-eb0cae107707')
+   Min messages before topic change: 4
+
+🔍 DEBUG: Skipping topic detection - current topic has only 2 user messages (min: 4, total topics: 4)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #25
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Dropout is a regularization technique used in neural networks to prevent 
+overfitting. Here's how dropout works and its purpose in neural networks:
+
+1. Dropout:
+   - Purpose: Dropout is a technique where randomly selected neurons are 
+ignored
+
+Tokens: 396 | Cost: $0.000640 USD | Context: 2% full
+🔍 DEBUG: Extended topic 'ongoing-1751082060' to include new response
+
+
+[30] > How do transformers differ from traditional RNNs?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751082060', '696eab14-f73c-4d95-ba66-eb0cae107707')
+   Min messages before topic change: 4
+
+🔍 DEBUG: Skipping topic detection - current topic has only 3 user messages (min: 4, total topics: 4)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #26
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Transformers differ from traditional Recurrent Neural Networks (RNNs) in 
+several key ways. Here are the main differences between transformers and 
+traditional RNNs:
+
+1. Architecture:
+   - RNNs: RNNs process data
+
+Tokens: 394 | Cost: $0.000637 USD | Context: 2% full
+🔍 DEBUG: Current topic 'ongoing-1751082060' was already closed at 7cdbbd60-0a57-4799-8618-862efe2a03f9, cannot extend
+🔍 DEBUG: Current topic 'ongoing-1751082060' no longer exists or is closed
+
+
+[31] > What are some best practices for training deep learning models?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common act...
+   Prompt length: 1534 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+
+New message:
+What are some best practices for training deep learning models?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What are some best practices for training deep learning models?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #27
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #27 completed in 1.01s
+[LLM API] Response length: 48 chars
+---
+   LLM response: {
+  "intent": "DEVELOP_TOPIC",
+  "shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 48
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #28
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Training deep learning models effectively involves following several best 
+practices to achieve good performance and generalization. Here are some key 
+best practices for training deep learning models:
+
+1. Data Preprocessing:
+   - Normalize input data to have zero mean and unit variance
+
+Tokens: 398 | Cost: $0.000640 USD | Context: 2% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+🔍 DEBUG: No topic change detected, continuing conversation
+
+
+[32] > Can you explain gradient descent optimization?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: None
+   Min messages before topic change: 4
+   Context preview: - User: What are some best practices for training deep learning models?
+- User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell...
+   Prompt length: 1531 chars
+   Full prompt:
+You are a topic-shift detection assistant.
+You will receive the last n user messages and the current user message.
+Your task: deduce whether the current message starts a new topic.
+
+Preceding context:
+- User: What are some best practices for training deep learning models?
+- User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+
+New message:
+Can you explain gradient descent optimization?
+
+Step 1. Classify intent as exactly one of:
+- JUST_COMMENT: Brief acknowledgment, reaction, or filler that doesn't advance conversation
+- DEVELOP_TOPIC: Continuing or expanding on the current topic
+- INTRODUCE_TOPIC: Starting a conversation or first substantial message
+- CHANGE_TOPIC: Shifting to a completely different subject
+
+Step 2. Determine if this is a topic shift:
+- INTRODUCE_TOPIC → YES (starting fresh)
+- CHANGE_TOPIC → YES (new subject)
+- DEVELOP_TOPIC → NO (same topic)
+- JUST_COMMENT → NO (not substantial)
+
+Examples:
+- "Tell me more" → DEVELOP_TOPIC → NO
+- "What about its moons?" (after Mars discussion) → DEVELOP_TOPIC → NO
+- "How do I cook pasta?" (after Mars discussion) → CHANGE_TOPIC → YES
+- "Thanks!" → JUST_COMMENT → NO
+- "What is Python?" (first message) → INTRODUCE_TOPIC → YES
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "intent": "<JUST_COMMENT|DEVELOP_TOPIC|INTRODUCE_TOPIC|CHANGE_TOPIC>",
+  "shift": "<YES|NO>"
+}
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: Can you explain gradient descent optimization?...
+   Topic params being used: {'temperature': 0.0, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #29
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #29 completed in 0.86s
+[LLM API] Response length: 48 chars
+---
+   LLM response: {
+  "intent": "DEVELOP_TOPIC",
+  "shift": "NO"
+}
+   Response type: <class 'str'>
+   Response length: 48
+   Parsed intent-based JSON: intent=DEVELOP_TOPIC, shift=NO
+   ➡️ Continuing same topic (intent: DEVELOP_TOPIC)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #30
+[LLM API] Model: openai/gpt-3.5-turbo (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:321 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Gradient descent is an optimization algorithm commonly used in training 
+machine learning models, including deep learning models. It aims to minimize 
+the loss function by iteratively updating the model parameters in the 
+direction of the steepest descent of the loss function with respect to the
+
+Tokens: 395 | Cost: $0.000637 USD | Context: 2% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+🔍 DEBUG: No topic change detected, continuing conversation
+
+
+🔍 DEBUG: Finalizing topic 'ongoing-1751082060'
+   Building segment from 4 nodes (max_length=2000)
+   Final segment length: 615 chars
+
+🔍 DEBUG: Topic extraction prompt:
+   Model: ollama/llama3
+   Prompt preview: Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+
+Examples:
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talki...
+[LLM API] Thread 8430968576: Call #31
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:267 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #31 completed in 0.43s
+[LLM API] Response length: 15 chars
+---
+   DEBUG: Raw topic extraction response: 'neural-networks'
+   DEBUG: Final topic name: 'neural-networks'
+   ✅ Finalized topic: 'ongoing-1751082060' → 'neural-networks' (1 rows)
+
+──────────────────────────────────────────────────
+✅ Script execution completed
+[Benchmark] Script execution: scripts/three-topics-test.txt: 25.39s
+  - Database: 0.07s (76 calls)
+  - LLM Call: 25.26s (31 calls)
+> /topics         > /topics
+
+📑 Conversation Topics (4 total)
+======================================================================
+
+[1] ✓ mars-rover
+    Created: 2025-06-28 03:40
+    Range: 02 → 09 (8 messages)
+    Confidence: initial
+
+[2] ✓ ongoing-1751082047
+    Created: 2025-06-28 03:40
+    Range: 0c → 0f (4 messages)
+
+[3] ✓ ongoing-1751082054
+    Created: 2025-06-28 03:40
+    Range: 0m → 0p (4 messages)
+
+[4] ✓ neural-networks
+    Created: 2025-06-28 03:41
+    Range: 0u → 0x (4 messages)
+
+======================================================================
+[Benchmark] List topics: 0.02s
+> /exit       > /exit
+Goodbye! 👋

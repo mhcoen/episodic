@@ -980,14 +980,28 @@ class ConversationManager:
                 # Process topic changes based on our earlier detection
                 if topic_changed:
                     # Topic change detected - close previous topic and start new one
-                    # Use current_topic instead of fetching from database to ensure we close the right topic
+                    # Use current_topic to ensure we close the right topic
                     if self.current_topic:
-                        topic_name, start_node_id = self.current_topic
-                        # Create a topic dict like what get_recent_topics returns
-                        previous_topic = {
-                            'name': topic_name,
-                            'start_node_id': start_node_id
-                        }
+                        current_topic_name, current_start_node_id = self.current_topic
+                        # But we need to check if this matches what's in the database
+                        # to avoid issues with stale data
+                        recent_topics = get_recent_topics(limit=10)
+                        previous_topic = None
+                        
+                        # Find the matching topic in the database
+                        for topic in recent_topics:
+                            if (topic['name'] == current_topic_name and 
+                                topic['start_node_id'] == current_start_node_id and
+                                not topic.get('end_node_id')):
+                                previous_topic = topic
+                                break
+                        
+                        if not previous_topic:
+                            # Fallback: create a minimal topic dict
+                            previous_topic = {
+                                'name': current_topic_name,
+                                'start_node_id': current_start_node_id
+                            }
                         # Find the parent of the user node (should be the last assistant message)
                         user_node = get_node(user_node_id)
                         if user_node and user_node.get('parent_id'):
@@ -1045,6 +1059,12 @@ class ConversationManager:
                                     if config.get("debug", False):
                                         typer.echo(f"\n🔍 DEBUG: Extracting name for previous topic '{previous_topic['name']}'")
                                         typer.echo(f"   Topic has {len(topic_nodes)} nodes")
+                                        typer.echo(f"   Start node: {previous_topic['start_node_id'][:8]}...")
+                                        typer.echo(f"   End node: {parent_node_id[:8]}...")
+                                        # Show first few node IDs to verify we have the right nodes
+                                        if topic_nodes:
+                                            typer.echo(f"   First node ID: {topic_nodes[0]['id'][:8]}...")
+                                            typer.echo(f"   Last node ID: {topic_nodes[-1]['id'][:8]}...")
                                         typer.echo(f"   Segment preview: {segment[:200]}...")
                                     
                                     # Extract a proper name for the previous topic

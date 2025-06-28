@@ -1,0 +1,20 @@
+
+/init --erase
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Topic 1: Space
+Tell me about Mars rovers in one sentence.
+What year did Curiosity land on Mars?
+How many rovers are on Mars currently?
+What powers the Mars rovers?
+Can rovers communicate with Earth directly?
+
+# Topic 2: Cooking  
+I want to learn about French cooking basics.
+What are the five mother sauces?
+Which sauce is made with butter and flour?
+How do you make a roux?
+What's the difference between blonde and brown roux?
+
+/topics

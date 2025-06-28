@@ -1,0 +1,13 @@
+/init --erase
+/set debug true
+
+# Mars topic
+What are Mars rovers?
+Tell me about Curiosity.
+When did it land?
+
+# Change topic
+I want to learn cooking.
+What are mother sauces?
+
+/exit

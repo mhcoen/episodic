@@ -1215,6 +1215,9 @@ class ConversationManager:
                         
                         typer.echo("")
                         typer.secho(f"🔄 Topic changed", fg=get_system_color())
+                        
+                        # Note: We'll extract a proper name for this topic after a few messages
+                        # This is tracked in self.current_topic
                     else:
                         # Topic change was cancelled due to insufficient messages in previous topic
                         # Extend the current topic instead
@@ -1250,6 +1253,51 @@ class ConversationManager:
                             update_topic_end_node(topic_name, start_node_id, assistant_node_id)
                             if config.get("debug", False):
                                 typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' to include new response")
+                            
+                            # Check if this topic needs renaming (if it has a placeholder name)
+                            if topic_name.startswith('ongoing-'):
+                                # Count messages in this topic
+                                from episodic.topics import TopicManager
+                                tm = TopicManager()
+                                user_messages = tm.count_user_messages_in_topic(start_node_id, None)
+                                
+                                # If we have enough messages, extract a proper name
+                                if user_messages >= 3:  # Need at least 3 messages for good topic extraction
+                                    # Get the topic content
+                                    topic_nodes = []
+                                    ancestry = get_ancestry(assistant_node_id)
+                                    
+                                    # Collect nodes from topic start to current
+                                    found_start = False
+                                    for node in ancestry:
+                                        if node['id'] == start_node_id:
+                                            found_start = True
+                                        if found_start:
+                                            topic_nodes.append(node)
+                                            if node['id'] == assistant_node_id:
+                                                break
+                                    
+                                    if topic_nodes and len(topic_nodes) >= 4:  # At least 2 exchanges
+                                        # Build segment and extract name
+                                        segment = build_conversation_segment(topic_nodes, max_length=1500)
+                                        
+                                        if config.get("debug", False):
+                                            typer.echo(f"\n🔍 DEBUG: Auto-extracting name for topic '{topic_name}'")
+                                            typer.echo(f"   Messages in topic: {user_messages}")
+                                        
+                                        topic_extracted, _ = extract_topic_ollama(segment)
+                                        
+                                        if topic_extracted and topic_extracted != topic_name:
+                                            # Update the topic name
+                                            rows = update_topic_name(topic_name, start_node_id, topic_extracted)
+                                            if rows > 0:
+                                                # Update our current topic reference
+                                                self.set_current_topic(topic_extracted, start_node_id)
+                                                if config.get("debug", False):
+                                                    typer.echo(f"   ✅ Auto-renamed topic: '{topic_name}' → '{topic_extracted}'")
+                                            else:
+                                                if config.get("debug", False):
+                                                    typer.echo(f"   ⚠️  Failed to rename topic")
                         else:
                             if config.get("debug", False):
                                 typer.echo(f"🔍 DEBUG: Current topic '{topic_name}' no longer exists or is closed")

@@ -367,6 +367,9 @@ def execute_script(filename: str):
                     else:
                         break
             
+            # Finalize the current topic before ending
+            conversation_manager.finalize_current_topic()
+            
             typer.secho("\n" + "─" * 50, fg=get_heading_color())
             typer.secho("✅ Script execution completed", fg=get_system_color())
             
@@ -492,6 +495,8 @@ def talk_loop() -> None:
             if user_input.startswith('/'):
                 should_exit = handle_command(user_input)
                 if should_exit:
+                    # Finalize current topic before exiting
+                    conversation_manager.finalize_current_topic()
                     typer.secho("Goodbye! 👋", fg=get_system_color())
                     break
             else:
@@ -506,6 +511,7 @@ def talk_loop() -> None:
             continue
         except EOFError:
             # Handle Ctrl+D
+            conversation_manager.finalize_current_topic()
             typer.secho("\nGoodbye! 👋", fg=get_system_color())
             break
         except Exception as e:

@@ -91,6 +91,66 @@ class ConversationManager:
         """Get the current topic (name, start_node_id) or None."""
         return self.current_topic
     
+    def finalize_current_topic(self) -> None:
+        """
+        Finalize the current topic by giving it a proper name if it has a placeholder name.
+        This is called when the conversation ends or when explicitly requested.
+        """
+        if not self.current_node_id:
+            return
+            
+        # Get the most recent topic
+        recent_topics = get_recent_topics(limit=1)
+        if not recent_topics:
+            return
+            
+        current_topic = recent_topics[0]
+        
+        # Check if it has a placeholder name
+        if not current_topic['name'].startswith('ongoing-'):
+            return  # Already has a proper name
+            
+        # Extract topic name from the conversation
+        if config.get("debug", False):
+            typer.echo(f"\n🔍 DEBUG: Finalizing topic '{current_topic['name']}'")
+            
+        # Get nodes in the topic
+        topic_nodes = []
+        if current_topic['end_node_id']:
+            ancestry = get_ancestry(current_topic['end_node_id'])
+            
+            # Collect nodes from topic start to end
+            found_start = False
+            for node in ancestry:
+                if node['id'] == current_topic['start_node_id']:
+                    found_start = True
+                if found_start:
+                    topic_nodes.append(node)
+                if node['id'] == current_topic['end_node_id']:
+                    break
+                    
+        if topic_nodes:
+            # Build conversation segment
+            segment = build_conversation_segment(topic_nodes, max_length=2000)
+            
+            # Extract topic name
+            topic_name, _ = extract_topic_ollama(segment)
+            
+            if topic_name and topic_name != current_topic['name']:
+                # Update the topic name
+                rows_updated = update_topic_name(
+                    current_topic['name'], 
+                    current_topic['start_node_id'], 
+                    topic_name
+                )
+                
+                if config.get("debug", False):
+                    typer.echo(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)")
+                    
+                # Update current topic reference
+                if self.current_topic and self.current_topic[0] == current_topic['name']:
+                    self.set_current_topic(topic_name, self.current_topic[1])
+    
     def initialize_conversation(self) -> None:
         """Initialize the conversation state from the database."""
         self.current_node_id = get_head()

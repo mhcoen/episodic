@@ -1224,10 +1224,9 @@ class ConversationManager:
                         current_topic = self.get_current_topic()
                         if current_topic:
                             topic_name, start_node_id = current_topic
-                            # Update it to include the new assistant response
-                            update_topic_end_node(topic_name, start_node_id, assistant_node_id)
+                            # For ongoing topics, we don't update end_node_id - it should stay NULL
                             if config.get("debug", False):
-                                typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' (topic change cancelled)")
+                                typer.echo(f"🔍 DEBUG: Topic '{topic_name}' continues (topic change cancelled)")
                 else:
                     # No topic change - extend the current topic if one exists
                     current_topic = self.get_current_topic()
@@ -1249,10 +1248,10 @@ class ConversationManager:
                                 break
                         
                         if topic_exists:
-                            # Update it to include the new assistant response
-                            update_topic_end_node(topic_name, start_node_id, assistant_node_id)
+                            # For ongoing topics, we don't update end_node_id - it should stay NULL
+                            # The topic automatically includes all nodes from start until it's closed
                             if config.get("debug", False):
-                                typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' to include new response")
+                                typer.echo(f"🔍 DEBUG: Topic '{topic_name}' continues (ongoing)")
                             
                             # Check if this topic needs renaming (if it has a placeholder name)
                             if topic_name.startswith('ongoing-'):

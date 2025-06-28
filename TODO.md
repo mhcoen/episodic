@@ -14,6 +14,7 @@
 - [x] **Add `/rename-topics` command** - Renames placeholder "ongoing-*" topics
 - [x] **Fix overlapping topics** - Topics now have proper boundaries
 - [x] **Current topic tracking** - ConversationManager tracks current topic
+- [x] **Fix JSON parsing errors** - Added robust fallback for Ollama responses
 
 ### Compression System
 - [x] **Async background compression** - Thread-based worker with priority queue

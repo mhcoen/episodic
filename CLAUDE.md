@@ -9,6 +9,10 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 ## Current Session Context
 
 ### Last Working Session (2025-06-28)
+- Fixed JSON parsing errors in topic detection for Ollama models
+- Added robust fallback parsing for various response formats (Yes/No/JSON)
+- Created simplified topic_detection_ollama.md prompt for better compatibility
+- Topic detection now handles malformed JSON responses gracefully
 - Added configurable model parameters for different contexts (main, topic, compression)
 - Implemented JSON-based topic detection for consistent responses
 - Fixed critical topic boundary bug where topics were missing messages

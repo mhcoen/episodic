@@ -117,7 +117,12 @@ class TopicManager:
                 context = "\n".join(context_parts)
             
             # Load topic detection prompt
-            prompt_name = "topic_detection_v2" if use_v2_prompt else "topic_detection"
+            # Use simplified prompt for ollama models
+            topic_model = config.get("topic_detection_model", "ollama/llama3")
+            if "ollama" in topic_model.lower() and self.prompt_manager.get("topic_detection_ollama"):
+                prompt_name = "topic_detection_ollama"
+            else:
+                prompt_name = "topic_detection_v2" if use_v2_prompt else "topic_detection"
             
             topic_detection_prompt_content = self.prompt_manager.get(prompt_name)
             
@@ -245,21 +250,56 @@ Respond with a JSON object containing only an "answer" field with value "Yes" or
                             return False, None, cost_info
                         
                 except json.JSONDecodeError as e:
-                    # Fallback to old parsing if JSON parsing fails
-                    typer.echo(f"⚠️  Topic detection JSON parsing failed: {e}")
+                    # Fallback to more flexible parsing if JSON parsing fails
                     if config.get("debug", False):
+                        typer.echo(f"⚠️  Topic detection JSON parsing failed: {e}")
                         typer.echo(f"   Raw response: {response}")
                         typer.echo(f"   Falling back to text parsing")
                     
-                    # Check for clear YES response (fallback)
-                    if response.upper().startswith("YES"):
+                    # Try to extract answer from various formats
+                    response_lower = response.lower().strip()
+                    
+                    # Check for various positive responses
+                    if any(pattern in response_lower for pattern in ["yes", '"yes"', "'yes'", ": yes", "answer is yes"]):
                         if config.get("debug", False):
-                            typer.echo(f"   ✅ Topic change detected (fallback)")
+                            typer.echo(f"   ✅ Topic change detected (fallback: found 'yes' in response)")
                         return True, None, cost_info
                     
-                    # Default to no change
+                    # Check for various negative responses  
+                    if any(pattern in response_lower for pattern in ["no", '"no"', "'no'", ": no", "answer is no"]):
+                        if config.get("debug", False):
+                            typer.echo(f"   ➡️ Continuing same topic (fallback: found 'no' in response)")
+                        return False, None, cost_info
+                    
+                    # Try to fix common JSON errors and re-parse
+                    try:
+                        # Fix missing quotes around property names
+                        fixed_response = response.replace('{answer:', '{"answer":')
+                        fixed_response = fixed_response.replace('{shift:', '{"shift":')
+                        fixed_response = fixed_response.replace('{intent:', '{"intent":')
+                        fixed_response = fixed_response.replace(', answer:', ', "answer":')
+                        fixed_response = fixed_response.replace(', shift:', ', "shift":')
+                        fixed_response = fixed_response.replace(', intent:', ', "intent":')
+                        
+                        result = json.loads(fixed_response)
+                        
+                        # Check for answer in the fixed JSON
+                        if "answer" in result:
+                            answer = result.get("answer", "No")
+                            if answer == "Yes":
+                                if config.get("debug", False):
+                                    typer.echo(f"   ✅ Topic change detected (fixed JSON)")
+                                return True, None, cost_info
+                            else:
+                                if config.get("debug", False):
+                                    typer.echo(f"   ➡️ Continuing same topic (fixed JSON)")
+                                return False, None, cost_info
+                    except:
+                        pass
+                    
+                    # Default to no change if we can't parse the response
                     if config.get("debug", False):
-                        typer.echo(f"   ➡️ Continuing same topic (fallback)")
+                        typer.echo(f"   ➡️ Continuing same topic (fallback: couldn't parse response)")
                     return False, None, cost_info
         
         except Exception as e:

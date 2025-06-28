@@ -96,15 +96,17 @@ class ConversationManager:
         Finalize the current topic by giving it a proper name if it has a placeholder name.
         This is called when the conversation ends or when explicitly requested.
         """
+        # If current_node_id is not set, try to get it from the database
         if not self.current_node_id:
+            self.current_node_id = get_head()
+            
+        # Get all topics to find the actual last one (get_recent_topics returns oldest first)
+        all_topics = get_recent_topics(limit=100)
+        if not all_topics:
             return
             
-        # Get the most recent topic
-        recent_topics = get_recent_topics(limit=1)
-        if not recent_topics:
-            return
-            
-        current_topic = recent_topics[0]
+        # The last topic in the list is the most recent one
+        current_topic = all_topics[-1]
         
         # Check if it has a placeholder name
         if not current_topic['name'].startswith('ongoing-'):

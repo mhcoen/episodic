@@ -234,8 +234,9 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
             migrate_to_roles()
             # Migrate provider and model
             migrate_to_provider_model()
-            # Migrate compression content column
-            migrate_compression_content()
+            # Ensure compression tables exist (includes content column migration)
+            from episodic.db_compression import create_compression_tables
+            create_compression_tables()
 
         # Check if we should create a root node and if there are no existing nodes
         if create_root_node:
@@ -930,23 +931,3 @@ def get_compression_stats():
         }
 
 
-def migrate_compression_content():
-    """
-    Migrate the compressions table to add the content column.
-    This migration adds support for storing compression summaries.
-    """
-    with get_connection() as conn:
-        c = conn.cursor()
-        
-        # Check if content column already exists
-        c.execute("PRAGMA table_info(compressions)")
-        columns = [col[1] for col in c.fetchall()]
-        
-        if 'content' not in columns:
-            logger.info("Migrating compressions table to add content column...")
-            
-            # Add the content column
-            c.execute("ALTER TABLE compressions ADD COLUMN content TEXT")
-            
-            conn.commit()
-            logger.info("Successfully added content column to compressions table")

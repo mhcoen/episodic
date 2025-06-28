@@ -2,15 +2,20 @@
 
 ## Issues Fixed
 
-### 1. Compression Schema Error
-**Problem**: The `compressions` table was missing a `content` column, causing compression jobs to fail with:
+### 1. Compression Schema Errors
+**Problems**: 
+- The `compressions` table was missing a `content` column
+- The `compression_nodes` table was not being created
+
+These caused compression jobs to fail with:
 ```
 table compressions has no column named content
+no such table: compression_nodes
 ```
 
-**Solution**: Added a database migration `migrate_compression_content()` that:
-- Checks if the `content` column exists
-- Adds it if missing using `ALTER TABLE`
+**Solution**: 
+- Added call to `create_compression_tables()` during initialization
+- This function creates the `compression_nodes` table and adds the `content` column if missing
 - Runs automatically during `initialize_db()`
 
 ### 2. Topic Naming Issue

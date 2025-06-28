@@ -548,14 +548,19 @@ Topic name:"""
         
         Args:
             topic_start_id: Start node of the topic
-            topic_end_id: End node of the topic
+            topic_end_id: End node of the topic (None for ongoing topics)
             
         Returns:
             Number of user messages in the topic
         """
         # Handle ongoing topics (no end node)
         if not topic_end_id:
-            return 0
+            # For ongoing topics, count from start to current head
+            from episodic.db import get_head
+            current_head = get_head()
+            if not current_head:
+                return 0
+            topic_end_id = current_head
             
         # Get ancestry of the end node
         topic_ancestry = get_ancestry(topic_end_id)

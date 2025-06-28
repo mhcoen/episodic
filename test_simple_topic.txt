@@ -1,5 +1,0 @@
-# Simple test to verify topic finalization works
-What is Python?
-Tell me about Python's history
-What are Python's main features?
-How does Python compare to other languages?

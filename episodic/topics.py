@@ -413,27 +413,29 @@ Topic name:"""
         if config.get("debug", False):
             typer.echo(f"   Building segment from {len(nodes)} nodes (max_length={max_length})")
         
-        for node in reversed(nodes):  # Start from most recent
+        # For topic extraction, we want to prioritize the beginning of the conversation
+        # This gives better topic names that reflect what the conversation started about
+        for node in nodes:  # Process in chronological order
             content = node.get("content", "").strip()
             role = node.get("role", "unknown")
             
             if content:
                 part = f"{role}: {content}"
-                # If this is the first part and it's too long, truncate it
-                if not segment_parts and len(part) > max_length:
-                    part = part[:max_length-3] + "..."
-                    segment_parts.insert(0, part)
-                    current_length = len(part)
-                    if config.get("debug", False):
-                        typer.echo(f"   Truncated first part to fit max_length")
+                # If adding this part would exceed max_length
+                if current_length + len(part) > max_length:
+                    # If we haven't added anything yet, truncate this part
+                    if not segment_parts:
+                        part = part[:max_length-3] + "..."
+                        segment_parts.append(part)
+                        if config.get("debug", False):
+                            typer.echo(f"   Truncated first part to fit max_length")
+                    else:
+                        if config.get("debug", False):
+                            typer.echo(f"   Stopping - would exceed max_length")
                     break
-                elif current_length + len(part) <= max_length:
-                    segment_parts.insert(0, part)  # Insert at beginning to maintain order
-                    current_length += len(part)
                 else:
-                    if config.get("debug", False):
-                        typer.echo(f"   Stopping - would exceed max_length")
-                    break
+                    segment_parts.append(part)
+                    current_length += len(part)
             else:
                 if config.get("debug", False):
                     typer.echo(f"   Skipping node with empty content (role={role})")

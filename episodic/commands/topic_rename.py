@@ -14,13 +14,14 @@ def rename_ongoing_topics():
     # Get all topics
     topics = get_recent_topics(limit=100)
     
-    ongoing_topics = [t for t in topics if t['name'].startswith('ongoing-discussion-')]
+    # Match both patterns: 'ongoing-discussion-' and 'ongoing-' followed by numbers
+    ongoing_topics = [t for t in topics if t['name'].startswith('ongoing-')]
     
     if not ongoing_topics:
-        typer.secho("No ongoing-discussion topics found.", fg=get_system_color())
+        typer.secho("No ongoing topics found.", fg=get_system_color())
         return
     
-    typer.secho(f"\n📝 Found {len(ongoing_topics)} ongoing-discussion topics to rename", fg=get_heading_color())
+    typer.secho(f"\n📝 Found {len(ongoing_topics)} ongoing topics to rename", fg=get_heading_color())
     
     renamed_count = 0
     for topic in ongoing_topics:

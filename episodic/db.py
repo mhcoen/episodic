@@ -202,7 +202,7 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 start_node_id TEXT NOT NULL,
-                end_node_id TEXT NOT NULL,
+                end_node_id TEXT,
                 confidence TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(start_node_id) REFERENCES nodes(id),
@@ -238,6 +238,8 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
             # Ensure compression tables exist (includes content column migration)
             from episodic.db_compression import create_compression_tables
             create_compression_tables()
+            # Make end_node_id nullable in topics table
+            migrate_topics_nullable_end()
 
         # Check if we should create a root node and if there are no existing nodes
         if create_root_node:
@@ -656,6 +658,59 @@ def migrate_to_provider_model():
 
         conn.commit()
         return columns_added
+
+
+def migrate_topics_nullable_end():
+    """
+    Make end_node_id nullable in the topics table.
+    
+    SQLite doesn't support ALTER COLUMN, so we need to recreate the table.
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        
+        # Check if topics table exists
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='topics'")
+        if not c.fetchone():
+            return  # No topics table to migrate
+        
+        # Check if end_node_id is already nullable (by checking if there are any NULL values)
+        # This is a workaround since SQLite doesn't expose NOT NULL constraints easily
+        try:
+            c.execute("INSERT INTO topics (name, start_node_id, end_node_id, confidence) VALUES ('test', 'test', NULL, 'test')")
+            # If we get here, it's already nullable
+            c.execute("DELETE FROM topics WHERE name='test' AND start_node_id='test'")
+            conn.commit()
+            return
+        except sqlite3.IntegrityError:
+            # NOT NULL constraint exists, need to migrate
+            conn.rollback()
+        
+        # Create new table with nullable end_node_id
+        c.execute("""
+            CREATE TABLE topics_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                start_node_id TEXT NOT NULL,
+                end_node_id TEXT,
+                confidence TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(start_node_id) REFERENCES nodes(id),
+                FOREIGN KEY(end_node_id) REFERENCES nodes(id)
+            )
+        """)
+        
+        # Copy data from old table
+        c.execute("""
+            INSERT INTO topics_new (id, name, start_node_id, end_node_id, confidence, created_at)
+            SELECT id, name, start_node_id, end_node_id, confidence, created_at FROM topics
+        """)
+        
+        # Drop old table and rename new one
+        c.execute("DROP TABLE topics")
+        c.execute("ALTER TABLE topics_new RENAME TO topics")
+        
+        conn.commit()
 
 def migrate_to_roles():
     """

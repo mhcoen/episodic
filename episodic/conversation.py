@@ -980,28 +980,13 @@ class ConversationManager:
                 # Process topic changes based on our earlier detection
                 if topic_changed:
                     # Topic change detected - close previous topic and start new one
-                    # Use current_topic to ensure we close the right topic
+                    # Use current_topic to identify which topic to close
                     if self.current_topic:
-                        current_topic_name, current_start_node_id = self.current_topic
-                        # But we need to check if this matches what's in the database
-                        # to avoid issues with stale data
-                        recent_topics = get_recent_topics(limit=10)
-                        previous_topic = None
-                        
-                        # Find the matching topic in the database
-                        for topic in recent_topics:
-                            if (topic['name'] == current_topic_name and 
-                                topic['start_node_id'] == current_start_node_id and
-                                not topic.get('end_node_id')):
-                                previous_topic = topic
-                                break
-                        
-                        if not previous_topic:
-                            # Fallback: create a minimal topic dict
-                            previous_topic = {
-                                'name': current_topic_name,
-                                'start_node_id': current_start_node_id
-                            }
+                        topic_name, start_node_id = self.current_topic
+                        previous_topic = {
+                            'name': topic_name,
+                            'start_node_id': start_node_id
+                        }
                         # Find the parent of the user node (should be the last assistant message)
                         user_node = get_node(user_node_id)
                         if user_node and user_node.get('parent_id'):
@@ -1059,12 +1044,6 @@ class ConversationManager:
                                     if config.get("debug", False):
                                         typer.echo(f"\n🔍 DEBUG: Extracting name for previous topic '{previous_topic['name']}'")
                                         typer.echo(f"   Topic has {len(topic_nodes)} nodes")
-                                        typer.echo(f"   Start node: {previous_topic['start_node_id'][:8]}...")
-                                        typer.echo(f"   End node: {parent_node_id[:8]}...")
-                                        # Show first few node IDs to verify we have the right nodes
-                                        if topic_nodes:
-                                            typer.echo(f"   First node ID: {topic_nodes[0]['id'][:8]}...")
-                                            typer.echo(f"   Last node ID: {topic_nodes[-1]['id'][:8]}...")
                                         typer.echo(f"   Segment preview: {segment[:200]}...")
                                     
                                     # Extract a proper name for the previous topic
@@ -1100,21 +1079,6 @@ class ConversationManager:
                                 queue_topic_for_compression(previous_topic['start_node_id'], parent_node_id, final_topic_name)
                                 if config.get("debug", False):
                                     typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
-                    elif not self.current_topic:
-                        # Fallback: No current_topic set, check database
-                        recent_topics = get_recent_topics(limit=1)
-                        if recent_topics and not recent_topics[0].get('end_node_id'):
-                            # Found an open topic in database
-                            previous_topic = recent_topics[0]
-                            # Same logic as above for closing the topic
-                            user_node = get_node(user_node_id)
-                            if user_node and user_node.get('parent_id'):
-                                parent_node_id = user_node['parent_id']
-                                # ... rest of topic closing logic would go here
-                                # For brevity, just close it simply
-                                update_topic_end_node(previous_topic['name'], previous_topic['start_node_id'], parent_node_id)
-                                if config.get("debug", False):
-                                    typer.echo(f"   📦 Closed orphaned topic '{previous_topic['name']}'")
                     else:
                         # No previous topics exist - this is the first topic change
                         # Create a topic for the initial conversation before this point

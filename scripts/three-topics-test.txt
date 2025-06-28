@@ -2,9 +2,12 @@
 # Accounting for dynamic threshold behavior:
 # - First 2 topics: 4+ messages needed
 # - Third topic: 8+ messages needed
+/init --erase
+/set main.max_tokens 50
+/set main.temperature 0
 
 # Topic 1: Space exploration (need 4+ messages to establish)
-Tell me about the Mars rovers
+Tell me about the Mars rovers. All answers can be one sentence long.
 What are the main challenges of sending humans to Mars?
 How long would a trip to Mars take with current technology?
 What kind of supplies would astronauts need for a Mars mission?

@@ -1,0 +1,21 @@
+# Test script with brief responses for faster debugging
+/init --erase
+/set main.max_tokens 50
+/set main.temperature 0
+
+# First topic - about AI
+What are activation functions? Answer in one sentence.
+Can you explain ReLU and why it's popular?
+What about the vanishing gradient problem?
+
+# Second topic - about Mars  
+I'm thinking about Mars colonization. What are the main challenges?
+What about radiation exposure on Mars?
+How would we produce water on Mars?
+
+# Third topic - about cooking
+I want to learn French cooking. Where should I start?
+What are the five mother sauces?
+Can you explain how to make a béchamel sauce?
+
+/topics

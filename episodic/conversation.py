@@ -446,7 +446,11 @@ class ConversationManager:
             if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
                 try:
                     with benchmark_operation("Topic Detection"):
-                        topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(recent_nodes, user_input)
+                        topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(
+                            recent_nodes, 
+                            user_input,
+                            current_topic=self.current_topic
+                        )
                         if config.get("debug", False):
                             typer.echo(f"   Topic change detected: {topic_changed}")
                             if topic_changed:

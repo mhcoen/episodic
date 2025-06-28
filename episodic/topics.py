@@ -39,7 +39,8 @@ class TopicManager:
     def detect_topic_change_separately(
         self, 
         recent_messages: List[Dict[str, Any]], 
-        new_message: str
+        new_message: str,
+        current_topic: Optional[Tuple[str, str]] = None
     ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Detect if the topic has changed by analyzing recent messages and the new message.
@@ -50,19 +51,20 @@ class TopicManager:
         Args:
             recent_messages: List of recent conversation nodes (3-5 messages)
             new_message: The new user message to analyze
+            current_topic: Optional tuple of (topic_name, start_node_id) for the current topic
             
         Returns:
             Tuple of (topic_changed: bool, new_topic_name: Optional[str], cost_info: Optional[Dict])
         """
         try:
             # Check if we should skip topic detection due to recency
-            recent_topics = get_recent_topics(limit=1)
-            if recent_topics:
-                current_topic = recent_topics[0]
-                # Count USER messages only, not total nodes
+            if current_topic:
+                topic_name, start_node_id = current_topic
+                # Count USER messages only in the current active topic
+                # For active topics, count up to the most recent node
                 user_messages_in_topic = self.count_user_messages_in_topic(
-                    current_topic['start_node_id'], 
-                    current_topic['end_node_id']
+                    start_node_id, 
+                    None  # None means count to the end of the conversation
                 )
                 
                 # Skip topic detection if current topic has fewer than threshold messages
@@ -77,6 +79,17 @@ class TopicManager:
                 if user_messages_in_topic < effective_min:
                     if config.get("debug", False):
                         typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {user_messages_in_topic} user messages (min: {effective_min}, total topics: {total_topics})")
+                    return False, None, None
+            else:
+                # No current topic set - check if we have enough messages overall
+                # Count total user messages in the conversation
+                user_messages = [msg for msg in recent_messages if msg.get('role') == 'user']
+                total_user_messages = len(user_messages)
+                min_messages = config.get('min_messages_before_topic_change', 8)
+                
+                if total_user_messages < min_messages:
+                    if config.get("debug", False):
+                        typer.echo(f"\n🔍 DEBUG: No current topic, only {total_user_messages} total user messages (min: {min_messages})")
                     return False, None, None
             # Build context from recent messages
             use_v2_prompt = config.get("topic_detection_v2", False)

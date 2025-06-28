@@ -8,7 +8,16 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Current Session Context
 
-### Last Working Session (2025-06-27)
+### Last Working Session (2025-06-28)
+- Added configurable model parameters for different contexts (main, topic, compression)
+- Implemented JSON-based topic detection for consistent responses
+- Fixed critical topic boundary bug where topics were missing messages
+- Added automatic topic renaming when enough content is available
+- Fixed topic tracking to use ConversationManager state instead of database lookups
+- Made topics table end_node_id nullable to support ongoing topics
+- Topics now remain "open" until explicitly closed on topic change
+
+### Previous Session (2025-06-27)
 - Created centralized LLM manager for accurate API call tracking
 - Fixed initial topic extraction to require minimum 3 user messages
 - Added /api-stats and /reset-api-stats commands
@@ -30,16 +39,19 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 ### Key System Understanding
 
 #### Topic Detection Flow
-1. User sends message → Topic detection runs (ollama/llama3)
-2. If topic change detected → Close previous topic with proper name
+1. User sends message → Topic detection runs (ollama/llama3 with JSON output)
+2. If topic change detected → Close previous topic at last assistant response
 3. Previous topic's content is analyzed to extract appropriate name
-4. New topic starts as "ongoing-discussion" until it too is closed
+4. New topic starts as "ongoing-TIMESTAMP" placeholder
+5. After 2+ user messages, topic is automatically renamed based on content
+6. Topics remain "open" (end_node_id=NULL) until closed on topic change
 
 #### Database Functions
-- `store_topic()` - Creates new topic entry
-- `update_topic_end_node()` - Extends topic boundary
-- `update_topic_name()` - Renames topic (newly added)
+- `store_topic()` - Creates new topic entry (end_node_id now optional)
+- `update_topic_end_node()` - Closes topic by setting end boundary
+- `update_topic_name()` - Renames topic
 - `get_recent_topics()` - Retrieves topic list
+- `migrate_topics_nullable_end()` - Migration to allow NULL end_node_id
 
 #### Important Code Locations
 - Topic detection: `episodic/topics.py:detect_topic_change_separately()`
@@ -58,21 +70,24 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `min_messages_before_topic_change` - Default: 8
 - `show_topics` - Shows topic evolution in responses
 - `debug` - Shows detailed topic detection info
+- `main_params` - Model parameters for main conversation
+- `topic_params` - Model parameters for topic detection (e.g., temperature=0)
+- `compression_params` - Model parameters for compression
+- Model params support: temperature, max_tokens, top_p, presence_penalty, frequency_penalty
 
 ### Recent Discoveries
 - **IMPORTANT**: All conversations are currently completely linear - the DAG is a straight line that is never modified. There is no branching implemented yet.
-- **CRITICAL**: Topic detection has undocumented threshold behavior - first 2 topics use half threshold (4 messages), then full threshold (8 messages) applies (see `topics.py:_should_check_for_topic_change()`)
-- **CRITICAL BUG**: Topic detection was counting total nodes instead of user messages, allowing topics with only 1 user message
-- Compression system now stores summaries separately in compressions_v2 and compression_nodes tables - they do NOT pollute the conversation tree
-- Unit tests modify production config file (~/.episodic/config.json) - tests need isolation
-- `/init --erase` now properly resets conversation manager state (current_node_id, current_topic, session costs)
-- ConversationManager now tracks current topic with `set_current_topic()` and `get_current_topic()`
-- Topic boundary issues occur when nodes branch (non-linear history)
-- The `--` prefix in topic names (like "--space") comes from the prompt response
-- First topic creation has timing issues - may not trigger properly
-- `get_ancestry()` returns nodes in reverse chronological order
-- LLM costs were not being calculated for streaming responses (always $0.00)
-- Benchmark system was showing cumulative counts instead of operation-specific counts
+- **CRITICAL**: Topic detection has undocumented threshold behavior - first 2 topics use half threshold (4 messages), then full threshold (8 messages) applies
+- **FIXED**: Topics now properly include all their messages (was missing messages due to premature end_node_id setting)
+- **FIXED**: Topic detection now uses JSON output format for consistency
+- **FIXED**: Topics automatically rename from "ongoing-XXXX" after 2 user messages
+- Compression system stores summaries separately in compressions_v2 and compression_nodes tables
+- `/init --erase` properly resets conversation manager state (current_node_id, current_topic, session costs)
+- ConversationManager tracks current topic with `set_current_topic()` and `get_current_topic()`
+- Topics must remain "open" (end_node_id=NULL) until explicitly closed
+- `get_ancestry()` returns nodes from oldest to newest (root to current)
+- Topic extraction looks at beginning of conversation for better topic names
+- Model parameters can be configured per context (main, topic, compression)
 
 ### Test Scripts
 - `scripts/test-complex-topics.txt` - 21 queries across multiple topics
@@ -85,6 +100,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `/api-stats` - Shows actual LLM API call statistics
 - `/reset-api-stats` - Resets API call counter
 - `/compress <topic-name>` - Manually trigger compression for a specific topic
+- `/model-params` or `/mp` - Show/set model parameters for different contexts
 
 ### Common Development Commands
 

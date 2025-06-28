@@ -1150,9 +1150,9 @@ class ConversationManager:
                                         if not topic_name:
                                             topic_name = "initial-conversation"
                                         
-                                        # Store the initial topic
-                                        store_topic(topic_name, first_user_node_id, parent_node_id, 'initial')
-                                        # Set as current topic - THIS WAS MISSING!
+                                        # Store the initial topic - don't set end_node_id yet!
+                                        store_topic(topic_name, first_user_node_id, None, 'initial')
+                                        # Set as current topic
                                         self.set_current_topic(topic_name, first_user_node_id)
                                         typer.echo("")
                                         typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
@@ -1167,8 +1167,8 @@ class ConversationManager:
                         timestamp = int(time.time())
                         placeholder_topic_name = f"ongoing-{timestamp}"
                         
-                        # Create the topic with placeholder name
-                        store_topic(placeholder_topic_name, user_node_id, assistant_node_id, 'detected')
+                        # Create the topic with placeholder name - keep it open!
+                        store_topic(placeholder_topic_name, user_node_id, None, 'detected')
                         
                         # Set as current topic
                         self.set_current_topic(placeholder_topic_name, user_node_id)
@@ -1279,8 +1279,8 @@ class ConversationManager:
                                             if not topic_name:
                                                 topic_name = "conversation"
                                             
-                                            # Create the initial topic for the entire conversation from start
-                                            store_topic(topic_name, first_user_node_id, assistant_node_id, 'initial')
+                                            # Create the initial topic - keep it open (no end_node_id)
+                                            store_topic(topic_name, first_user_node_id, None, 'initial')
                                             # Set as current topic
                                             self.set_current_topic(topic_name, first_user_node_id)
                                             

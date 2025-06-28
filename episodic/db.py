@@ -4,6 +4,7 @@ import os
 import threading
 import contextlib
 import logging
+from typing import Optional
 from .configuration import (
     DATABASE_FILENAME, MAX_DATABASE_RETRIES, FALLBACK_ID_LENGTH,
     MIN_SHORT_ID_LENGTH, SHORT_ID_MAX_LENGTH, ID_CHARSET
@@ -726,14 +727,14 @@ def migrate_to_roles():
         return count
 
 
-def store_topic(name: str, start_node_id: str, end_node_id: str, confidence: str = None):
+def store_topic(name: str, start_node_id: str, end_node_id: Optional[str] = None, confidence: str = None):
     """
     Store a topic with its conversation range.
     
     Args:
         name: Topic name (e.g., "movies", "quantum-physics")
         start_node_id: ID of the first node in this topic
-        end_node_id: ID of the last node in this topic
+        end_node_id: Optional ID of the last node in this topic (None for ongoing topics)
         confidence: Optional confidence level (high, medium, low)
     
     Returns:

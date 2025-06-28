@@ -70,44 +70,62 @@ class TopicManager:
                 min_messages_before_change = config.get('min_messages_before_topic_change', 8)
                 total_topics = len(get_recent_topics(limit=100))
                 
-                # More lenient for first few topics, stricter once we have established topics
-                if total_topics <= 2:
-                    effective_min = max(4, min_messages_before_change // 2)  # Half threshold for first topics
-                else:
-                    effective_min = min_messages_before_change
+                # Apply consistent threshold - no special cases for early topics
+                # This prevents topics from being created with too few messages
+                effective_min = min_messages_before_change
                     
                 if user_messages_in_topic < effective_min:
                     if config.get("debug", False):
                         typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {user_messages_in_topic} user messages (min: {effective_min}, total topics: {total_topics})")
                     return False, None, None
-            # Build context from recent messages - use fewer for clearer topic detection
-            context_parts = []
-            # Take the last 4 messages and reverse to get chronological order
-            messages_for_context = list(reversed(recent_messages[-4:]))
-            for msg in messages_for_context:
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '').strip()
-                if content:
-                    # Include full content for better context understanding
-                    # Truncation can lose important topic information
-                    context_parts.append(f"{role}: {content}")
+            # Build context from recent messages
+            use_v2_prompt = config.get("topic_detection_v2", False)
             
-            context = "\n".join(context_parts)
+            if use_v2_prompt:
+                # V2 prompt expects only user messages in a specific format
+                context_parts = []
+                user_messages = [msg for msg in recent_messages if msg.get('role') == 'user']
+                # Take the last 3-5 user messages
+                for msg in user_messages[-5:]:
+                    content = msg.get('content', '').strip()
+                    if content:
+                        context_parts.append(f"- User: {content}")
+                context = "\n".join(context_parts)
+            else:
+                # Original format includes both user and assistant messages
+                context_parts = []
+                # Take the last 4 messages and reverse to get chronological order
+                messages_for_context = list(reversed(recent_messages[-4:]))
+                for msg in messages_for_context:
+                    role = msg.get('role', 'unknown')
+                    content = msg.get('content', '').strip()
+                    if content:
+                        context_parts.append(f"{role}: {content}")
+                context = "\n".join(context_parts)
             
             # Load topic detection prompt
-            topic_detection_prompt_content = self.prompt_manager.get("topic_detection")
+            prompt_name = "topic_detection_v2" if use_v2_prompt else "topic_detection"
+            
+            topic_detection_prompt_content = self.prompt_manager.get(prompt_name)
             
             if topic_detection_prompt_content:
                 # Use the loaded prompt template
                 prompt_template = topic_detection_prompt_content
+                # Format new message based on prompt version
+                if use_v2_prompt:
+                    formatted_new_message = new_message  # V2 expects just the message
+                else:
+                    formatted_new_message = f"user: {new_message}"  # V1 expects role prefix
+                
                 prompt = prompt_template.format(
                     recent_conversation=context,
-                    new_message=f"user: {new_message}"
+                    new_message=formatted_new_message
                 )
                 
                 if config.get("debug", False):
                     typer.echo(f"   Context preview: {context[:200]}...")
                     typer.echo(f"   Prompt length: {len(prompt)} chars")
+                    typer.echo(f"   Full prompt:\n{prompt}\n   ---End prompt---")
             else:
                 # Fallback to default prompt if file not found
                 prompt = f"""Analyze if there is a MAJOR topic change in this conversation.
@@ -152,6 +170,9 @@ Respond with a JSON object containing only an "answer" field with value "Yes" or
             # Use configured model for detection with topic parameters
             topic_params = config.get_model_params('topic', model=topic_model)
             
+            if config.get("debug", False):
+                typer.echo(f"   Topic params being used: {topic_params}")
+            
             with benchmark_resource("LLM Call", f"topic detection - {topic_model}"):
                 response, cost_info = query_llm(
                     prompt, 
@@ -164,22 +185,51 @@ Respond with a JSON object containing only an "answer" field with value "Yes" or
                 
                 if config.get("debug", False):
                     typer.echo(f"   LLM response: {response}")
+                    typer.echo(f"   Response type: {type(response)}")
+                    typer.echo(f"   Response length: {len(response)}")
                 
                 try:
                     # Parse JSON response
                     result = json.loads(response)
-                    answer = result.get("answer", "No")
                     
-                    if answer == "Yes":
-                        # Topic change detected
+                    # Support both simple and intent-based formats
+                    if "intent" in result and "shift" in result:
+                        # New intent-based format
+                        intent = result.get("intent", "UNKNOWN")
+                        shift = result.get("shift", "NO")
+                        
                         if config.get("debug", False):
-                            typer.echo(f"   ✅ Topic change detected")
-                        return True, None, cost_info
+                            typer.echo(f"   Parsed intent-based JSON: intent={intent}, shift={shift}")
+                        
+                        # Validate intent
+                        valid_intents = ["JUST_COMMENT", "DEVELOP_TOPIC", "INTRODUCE_TOPIC", "CHANGE_TOPIC"]
+                        if intent not in valid_intents:
+                            typer.echo(f"   ⚠️  Invalid intent: {intent}")
+                        
+                        if shift == "YES":
+                            if config.get("debug", False):
+                                typer.echo(f"   ✅ Topic change detected (intent: {intent})")
+                            return True, None, cost_info
+                        else:
+                            if config.get("debug", False):
+                                typer.echo(f"   ➡️ Continuing same topic (intent: {intent})")
+                            return False, None, cost_info
+                    
                     else:
-                        # No topic change
+                        # Simple format (backward compatibility)
+                        answer = result.get("answer", "No")
+                        
                         if config.get("debug", False):
-                            typer.echo(f"   ➡️ Continuing same topic")
-                        return False, None, cost_info
+                            typer.echo(f"   Parsed simple JSON: answer={answer}")
+                        
+                        if answer == "Yes":
+                            if config.get("debug", False):
+                                typer.echo(f"   ✅ Topic change detected")
+                            return True, None, cost_info
+                        else:
+                            if config.get("debug", False):
+                                typer.echo(f"   ➡️ Continuing same topic")
+                            return False, None, cost_info
                         
                 except json.JSONDecodeError as e:
                     # Fallback to old parsing if JSON parsing fails

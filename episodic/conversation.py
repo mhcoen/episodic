@@ -886,11 +886,9 @@ class ConversationManager:
                             min_messages_before_change = config.get('min_messages_before_topic_change', 8)
                             total_topics = len(get_recent_topics(limit=100))
                             
-                            # More lenient for first few topics
-                            if total_topics <= 2:
-                                effective_min = max(4, min_messages_before_change // 2)
-                            else:
-                                effective_min = min_messages_before_change
+                            # Apply consistent threshold - no special cases for early topics
+                            # This prevents topics from being created with too few messages
+                            effective_min = min_messages_before_change
                             
                             # If previous topic doesn't have enough messages, don't create new topic
                             if user_messages_in_prev < effective_min:

@@ -11,16 +11,19 @@ Previous conversation:
 New user message:
 {new_message}
 
-Is the new message about a DIFFERENT SUBJECT than the conversation?
+Is the new message about a COMPLETELY DIFFERENT subject than the conversation?
 
-Topic CHANGES if switching between unrelated subjects:
-- Programming → weather = Yes
-- Movies → restaurants = Yes  
-- Math → history = Yes
+Answer "Yes" ONLY for clear shifts to unrelated topics:
+- Space/astronomy → Cooking = Yes
+- Programming → Sports = Yes
+- History → Personal health = Yes
 
-Topic SAME if continuing related discussion:
-- Python lists → Python debugging = No
-- Paris weather → London weather = No
+Answer "No" for continuing discussions:
+- Mars facts → Mars moons = No
+- Mars surface → Mars rovers = No  
+- Programming basics → Programming errors = No
 - Italian food → French food = No
+
+The key test: Could these topics naturally appear in the same conversation? If yes, answer "No".
 
 Respond with a JSON object containing only an "answer" field with value "Yes" or "No".

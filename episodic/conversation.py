@@ -85,7 +85,13 @@ class ConversationManager:
     
     def set_current_topic(self, topic_name: str, start_node_id: str) -> None:
         """Set the current topic."""
+        old_topic = self.current_topic
         self.current_topic = (topic_name, start_node_id)
+        if config.get("debug", False):
+            if old_topic:
+                typer.echo(f"🔄 DEBUG: Current topic changed from '{old_topic[0]}' to '{topic_name}'")
+            else:
+                typer.echo(f"🔄 DEBUG: Current topic set to '{topic_name}'")
     
     def get_current_topic(self) -> Optional[Tuple[str, str]]:
         """Get the current topic (name, start_node_id) or None."""
@@ -160,13 +166,56 @@ class ConversationManager:
         # Initialize current topic from database
         if self.current_node_id:
             # Find the topic that contains the current head node
-            recent_topics = get_recent_topics(limit=10)
+            recent_topics = get_recent_topics(limit=100)  # Get more topics to search through
+            
+            # First, look for a topic that hasn't ended yet (ongoing topic)
             for topic in recent_topics:
-                # Check if current node is within this topic's range
-                # For now, just use the most recent topic
-                if topic.get('end_node_id'):
+                if not topic.get('end_node_id'):
+                    # This topic is still ongoing
                     self.set_current_topic(topic['name'], topic['start_node_id'])
-                    break
+                    if config.get("debug", False):
+                        typer.echo(f"🔍 DEBUG: Resuming ongoing topic '{topic['name']}'")
+                    return
+            
+            # If no ongoing topic, find which topic contains the current head node
+            if self.current_node_id:
+                # Get the ancestry of the current node to check topic boundaries
+                ancestry = get_ancestry(self.current_node_id)
+                node_ids_in_chain = {node['id'] for node in ancestry}
+                
+                # Check each topic to see if current node falls within its range
+                for topic in recent_topics:
+                    start_id = topic['start_node_id']
+                    end_id = topic.get('end_node_id')
+                    
+                    # If topic has both start and end, check if current node is between them
+                    if start_id in node_ids_in_chain:
+                        if not end_id or end_id in node_ids_in_chain:
+                            # Current node is within this topic's range
+                            # Check if current node comes after start but before end
+                            start_found = False
+                            current_found = False
+                            end_found = False
+                            
+                            for node in ancestry:
+                                if node['id'] == start_id:
+                                    start_found = True
+                                if node['id'] == self.current_node_id and start_found:
+                                    current_found = True
+                                if end_id and node['id'] == end_id:
+                                    end_found = True
+                                    break
+                            
+                            # If we found current between start and end (or no end), this is our topic
+                            if current_found and (not end_id or not end_found):
+                                self.set_current_topic(topic['name'], topic['start_node_id'])
+                                if config.get("debug", False):
+                                    typer.echo(f"🔍 DEBUG: Current node is in topic '{topic['name']}'")
+                                return
+            
+            # No active topic found
+            if config.get("debug", False):
+                typer.echo("🔍 DEBUG: No active topic found for current head node")
     
     def get_wrap_width(self) -> int:
         """Get the appropriate text wrapping width for the terminal."""
@@ -1099,6 +1148,8 @@ class ConversationManager:
                                         
                                         # Store the initial topic
                                         store_topic(topic_name, first_user_node_id, parent_node_id, 'initial')
+                                        # Set as current topic - THIS WAS MISSING!
+                                        self.set_current_topic(topic_name, first_user_node_id)
                                         typer.echo("")
                                         typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
                                         
@@ -1135,12 +1186,34 @@ class ConversationManager:
                     current_topic = self.get_current_topic()
                     if current_topic:
                         topic_name, start_node_id = current_topic
-                        # Update it to include the new assistant response
-                        update_topic_end_node(topic_name, start_node_id, assistant_node_id)
-                        if config.get("debug", False):
-                            typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' to include new response")
+                        # Verify this topic still exists and hasn't been closed
+                        existing_topics = get_recent_topics(limit=100)
+                        topic_exists = False
+                        for t in existing_topics:
+                            if t['name'] == topic_name and t['start_node_id'] == start_node_id:
+                                topic_exists = True
+                                # Check if this topic was already closed
+                                if t.get('end_node_id') and t['end_node_id'] != assistant_node_id:
+                                    if config.get("debug", False):
+                                        typer.echo(f"🔍 DEBUG: Current topic '{topic_name}' was already closed at {t['end_node_id']}, cannot extend")
+                                    # Clear the stale current topic
+                                    self.current_topic = None
+                                    topic_exists = False
+                                break
+                        
+                        if topic_exists:
+                            # Update it to include the new assistant response
+                            update_topic_end_node(topic_name, start_node_id, assistant_node_id)
+                            if config.get("debug", False):
+                                typer.echo(f"🔍 DEBUG: Extended topic '{topic_name}' to include new response")
+                        else:
+                            if config.get("debug", False):
+                                typer.echo(f"🔍 DEBUG: Current topic '{topic_name}' no longer exists or is closed")
                     else:
                         # No topics exist yet and no topic change detected
+                        if config.get("debug", False):
+                            typer.echo(f"🔍 DEBUG: No current topic set, checking if we need to create first topic...")
+                        
                         # Check if ANY topics exist in the database
                         from episodic.db import get_connection
                         with get_connection() as conn:

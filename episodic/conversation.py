@@ -1262,7 +1262,7 @@ class ConversationManager:
                                 user_messages = tm.count_user_messages_in_topic(start_node_id, None)
                                 
                                 # If we have enough messages, extract a proper name
-                                if user_messages >= 3:  # Need at least 3 messages for good topic extraction
+                                if user_messages >= 2:  # Extract name after 2 user messages
                                     # Get the topic content
                                     topic_nodes = []
                                     ancestry = get_ancestry(assistant_node_id)

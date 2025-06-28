@@ -639,9 +639,9 @@ topic_manager = TopicManager()
 
 
 # Expose the main functions at module level for backward compatibility
-def detect_topic_change_separately(recent_messages: List[Dict[str, Any]], new_message: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+def detect_topic_change_separately(recent_messages: List[Dict[str, Any]], new_message: str, current_topic: Optional[Tuple[str, str]] = None) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
     """See TopicManager.detect_topic_change_separately for documentation."""
-    return topic_manager.detect_topic_change_separately(recent_messages, new_message)
+    return topic_manager.detect_topic_change_separately(recent_messages, new_message, current_topic)
 
 
 def extract_topic_ollama(conversation_segment: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:

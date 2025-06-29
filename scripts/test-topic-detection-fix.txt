@@ -1,0 +1,10 @@
+/init --erase
+/set main.max_tokens 50
+/set main.temperature 0
+/set debug true
+Tell me about Mars rovers.
+What are the main challenges of sending humans to Mars?
+How long would a trip to Mars take?
+I want to learn how to make authentic Italian pasta
+What's the secret to a good carbonara?
+/topics

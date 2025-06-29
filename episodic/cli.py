@@ -21,7 +21,7 @@ from prompt_toolkit.formatted_text import HTML
 from episodic.config import config
 from episodic.configuration import (
     EXIT_COMMANDS, DEFAULT_HISTORY_FILE, MAIN_LOOP_SLEEP_INTERVAL,
-    get_prompt_color, get_system_color, get_text_color, get_heading_color
+    get_prompt_color, get_system_color, get_text_color, get_heading_color, get_llm_color
 )
 from episodic.db import initialize_db as init_db
 from episodic.conversation import conversation_manager, handle_chat_message as _handle_chat_message_impl
@@ -444,6 +444,23 @@ def talk_loop() -> None:
     
     typer.secho("Welcome to Episodic! Type '/help' for commands or start chatting.", 
                fg=get_system_color())
+    
+    # Display current model and pricing information
+    from episodic.llm_config import get_default_model, get_current_provider
+    from litellm import cost_per_token
+    
+    current_model = get_default_model()
+    provider = get_current_provider()
+    
+    try:
+        input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+        typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+        typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=get_system_color())
+    except Exception:
+        typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+        typer.secho("Pricing: Not available", fg=get_system_color())
+    
+    typer.echo()  # Blank line for spacing
     
     # Initialize the conversation manager with the current head node
     conversation_manager.initialize_conversation()

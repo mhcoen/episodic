@@ -8,18 +8,36 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Current Session Context
 
-### Last Working Session (2025-06-28)
+### Last Working Session (2025-06-29)
+- Fixed /rename-topics command to handle ongoing topics (topics with NULL end_node_id)
+- Fixed finalize_current_topic() to properly rename ongoing topics when conversation ends
+- Root cause: Both functions were trying to get_ancestry(NULL) which returns empty
+- Solution: Check if end_node_id is NULL and use get_head() instead
+
+### Previous Session (2025-06-28)
 - Fixed JSON parsing errors in topic detection for Ollama models
 - Added robust fallback parsing for various response formats (Yes/No/JSON)
 - Created simplified topic_detection_ollama.md prompt for better compatibility
 - Topic detection now handles malformed JSON responses gracefully
-- Added configurable model parameters for different contexts (main, topic, compression)
-- Implemented JSON-based topic detection for consistent responses
-- Fixed critical topic boundary bug where topics were missing messages
-- Added automatic topic renaming when enough content is available
-- Fixed topic tracking to use ConversationManager state instead of database lookups
-- Made topics table end_node_id nullable to support ongoing topics
-- Topics now remain "open" until explicitly closed on topic change
+- Fixed critical `stop: ["\n"]` parameter causing GPT-3.5 to return truncated responses
+- Created topic_detection_v3.md prompt for domain-agnostic detection
+- Discovered GPT-3.5 is over-sensitive (6-7 topics) while Ollama is under-sensitive (1 topic)
+- Created comprehensive test suite in scripts/topic/ for validating topic detection
+- Verified Ollama topic detection IS working but being too conservative
+
+#### Current Issue
+Topic detection sensitivity varies drastically by model:
+- **GPT-3.5**: Creates too many topics (splits related concepts like "pasta recipes" vs "Italian pantry")
+- **Ollama**: Creates too few topics (keeps everything together, even explicit transitions)
+- **Target**: 3 topics for the standard test (Mars, Italian cooking, Neural networks)
+
+#### Test Results Summary
+| Test | Expected | GPT-3.5 | Ollama |
+|------|----------|---------|--------|
+| Python progression | 1 | 4 ❌ | 1 ✅ |
+| Explicit transitions | 4 | 6 ❌ | 1 ❌ |
+| ML deep dive | 1 | 4 ❌ | 1 ✅ |
+| Natural flow | 3 | 4 ❌ | 1 ❌ |
 
 ### Previous Session (2025-06-27)
 - Created centralized LLM manager for accurate API call tracking

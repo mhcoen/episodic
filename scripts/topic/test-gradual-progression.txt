@@ -1,0 +1,22 @@
+# Test gradual topic progression (should be 1 topic)
+# Tests if the system correctly keeps related progressions together
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Start with basic programming
+Tell me about Python programming
+What are Python data types?
+How do I use Python lists?
+What about Python dictionaries?
+Can you explain Python functions?
+How do decorators work in Python?
+What are Python classes?
+How does inheritance work?
+What's the difference between Python 2 and 3?
+Can you show me a Python web framework?
+
+# This should create 1 topic: "python-programming" or similar
+/topics

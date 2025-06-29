@@ -124,17 +124,27 @@ class ConversationManager:
             
         # Get nodes in the topic
         topic_nodes = []
+        # For ongoing topics (end_node_id is NULL), use the current head
         if current_topic['end_node_id']:
             ancestry = get_ancestry(current_topic['end_node_id'])
-            
-            # Collect nodes from topic start to end
+        else:
+            # Use current head for ongoing topics
+            current_head = get_head()
+            if current_head:
+                ancestry = get_ancestry(current_head)
+            else:
+                ancestry = []
+        
+        if ancestry:
+            # Collect nodes from topic start to end (or current for ongoing)
             found_start = False
             for node in ancestry:
                 if node['id'] == current_topic['start_node_id']:
                     found_start = True
                 if found_start:
                     topic_nodes.append(node)
-                if node['id'] == current_topic['end_node_id']:
+                # For topics with an end, stop at the end node
+                if current_topic['end_node_id'] and node['id'] == current_topic['end_node_id']:
                     break
                     
         if topic_nodes:
@@ -763,6 +773,7 @@ class ConversationManager:
                             wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
                             in_bold = False
                             bold_count = 0
+                            line_start = True
                             
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
@@ -783,20 +794,30 @@ class ConversationManager:
                                     if char in ' \n':
                                         # End of word
                                         if current_word:
+                                            # Check if this is a numbered list item at the start of a line
+                                            word_is_bold = in_bold
+                                            if line_start and current_word.rstrip('.').isdigit():
+                                                word_is_bold = True  # Bold numbers in numbered lists
+                                            
                                             # Check wrap
                                             if wrap_width and current_position + len(current_word) > wrap_width:
                                                 typer.secho('\n', nl=False)
                                                 current_position = 0
+                                                line_start = True
                                             
                                             # Print word
-                                            typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
+                                            typer.secho(current_word, fg=get_llm_color(), nl=False, bold=word_is_bold)
                                             current_position += len(current_word)
                                             current_word = ""
+                                            
+                                            if not char.isspace():
+                                                line_start = False
                                         
                                         # Print space or newline
                                         if char == '\n':
                                             typer.secho('\n', nl=False)
                                             current_position = 0
+                                            line_start = True
                                         else:
                                             typer.secho(' ', fg=get_llm_color(), nl=False)
                                             current_position += 1
@@ -806,9 +827,13 @@ class ConversationManager:
                             
                             # Print remaining word
                             if current_word:
+                                word_is_bold = in_bold
+                                if line_start and current_word.rstrip('.').isdigit():
+                                    word_is_bold = True
+                                    
                                 if wrap_width and current_position + len(current_word) > wrap_width:
                                     typer.secho('\n', nl=False)
-                                typer.secho(current_word, fg=get_llm_color(), nl=False, bold=in_bold)
+                                typer.secho(current_word, fg=get_llm_color(), nl=False, bold=word_is_bold)
                         
                         # Get the full response
                         display_response = ''.join(full_response_parts)

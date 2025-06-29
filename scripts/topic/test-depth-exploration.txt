@@ -1,0 +1,40 @@
+# Test deep dive into one subject (should be 1 topic)
+# Tests if going from general to very specific stays together
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Start general
+What is machine learning?
+
+# Get more specific
+How do neural networks work?
+
+# Deeper
+Can you explain backpropagation mathematically?
+
+# Even more specific
+What's the derivative of the sigmoid activation function?
+
+# Related but different angle
+How does batch normalization help?
+
+# Practical application
+How do I implement a neural network in PyTorch?
+
+# Debugging specific issues
+Why is my model overfitting?
+
+# Very specific technical detail
+What's the difference between Adam and SGD optimizers?
+
+# Architecture specific
+How many layers should my CNN have?
+
+# Extremely specific
+What kernel size works best for medical image segmentation?
+
+# Should be 1 topic: machine-learning or neural-networks
+/topics

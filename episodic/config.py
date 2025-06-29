@@ -188,7 +188,7 @@ class Config:
                         "top_p": 0.9,
                         "presence_penalty": 0.0,
                         "frequency_penalty": 0.0,
-                        "stop": ["\n"]
+                        "stop": []
                     }
                 elif actual_param_set == 'compression_params':
                     self.config[actual_param_set] = {

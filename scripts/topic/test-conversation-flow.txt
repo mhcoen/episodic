@@ -1,0 +1,33 @@
+# Test natural conversation flow (should be 3 topics)
+# Tests realistic conversation patterns with natural transitions
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Topic 1: Planning a trip
+I'm planning a trip to Japan. What should I know?
+What's the best time of year to visit?
+How expensive is Tokyo?
+Do I need to speak Japanese?
+What are must-see places in Kyoto?
+Should I get a JR Pass?
+
+# Natural transition through food
+Speaking of Japan, I love sushi. How do I make it at home?
+What kind of rice should I use?
+Where can I buy sushi-grade fish?
+Is it safe to eat raw fish?
+What other Japanese dishes can I make?
+
+# Another natural transition through cooking
+I really should eat healthier. What's a balanced diet?
+How many calories should I eat per day?
+Are carbs really bad for you?
+What are good sources of protein?
+Should I take vitamins?
+How much water should I drink?
+
+# Should have 3 topics: travel/Japan, Japanese-cooking, nutrition/health
+/topics

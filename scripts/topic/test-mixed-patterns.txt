@@ -1,0 +1,40 @@
+# Test mixed conversation patterns (should be 4-5 topics)
+# Tests various transition types in one conversation
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Topic 1: Quick questions about weather
+What's the weather like today?
+Will it rain tomorrow?
+What's the forecast for the weekend?
+
+# Abrupt change
+How do I fix a leaky faucet?
+What tools do I need?
+Should I call a plumber instead?
+How do I turn off the water main?
+
+# Gradual shift through home improvement
+While I'm fixing things, how do I paint a room?
+What kind of paint should I use?
+Do I need primer?
+How long does paint take to dry?
+Can I paint over wallpaper?
+
+# Related but different expertise needed
+Actually, I want to redecorate completely. What's modern interior design?
+What colors are trending?
+How do I choose furniture?
+What's minimalist style?
+
+# Completely different domain
+Forget the house - teach me chess
+How do the pieces move?
+What's castling?
+What are good opening moves?
+
+# Should have 4-5 topics: weather (brief), plumbing, painting, interior-design, chess
+/topics

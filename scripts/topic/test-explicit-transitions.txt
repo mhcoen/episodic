@@ -1,0 +1,34 @@
+# Test explicit topic transitions (should be 4 topics)
+# Tests if the system recognizes explicit transition phrases
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Topic 1: Gardening
+How do I start a vegetable garden?
+What vegetables grow well in shade?
+When should I plant tomatoes?
+How often should I water my garden?
+
+# Explicit transition
+I have a different question - can you explain cryptocurrency?
+What is Bitcoin?
+How does blockchain work?
+Is cryptocurrency safe to invest in?
+
+# Another explicit transition
+Changing topics - I need help with fitness
+What's a good beginner workout routine?
+How many days a week should I exercise?
+What should I eat before working out?
+
+# Final explicit transition
+One more thing - tell me about space exploration
+When did humans first go to space?
+What's the International Space Station?
+Are there plans for Mars colonies?
+
+# Should have 4 topics: gardening, cryptocurrency, fitness, space
+/topics

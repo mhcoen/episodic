@@ -1,0 +1,7 @@
+/init --erase
+/set main.max_tokens 50
+/set main.temperature 0
+Tell me about Mars rovers. Keep it short.
+What are the main challenges of sending humans to Mars?
+I want to learn how to make authentic Italian pasta
+/topics

@@ -1,0 +1,8 @@
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set debug true
+/set main.max_tokens 30
+Tell me about Mars.
+What else about Mars?
+I want to learn Italian cooking.
+/topics

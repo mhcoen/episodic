@@ -1,0 +1,8 @@
+
+/init --erase > /dev/null 2>&1
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+/script scripts/topic/test-conversation-flow.txt
+/topics
+/quit

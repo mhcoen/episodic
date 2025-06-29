@@ -1,0 +1,33 @@
+# Test related but distinct domains (should be 2-3 topics)
+# Tests boundaries between related fields
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Topic 1: Human medicine
+What are the symptoms of the flu?
+How do vaccines work?
+What's the difference between virus and bacteria?
+How do antibiotics work?
+What causes headaches?
+How can I improve my immune system?
+
+# Shift to veterinary medicine - related but different expertise
+How do I know if my dog is sick?
+What vaccines does my cat need?
+Can dogs catch human colds?
+What foods are toxic to cats?
+How often should I take my pet to the vet?
+What are signs of arthritis in dogs?
+
+# Shift to general biology - another related but distinct field
+How does photosynthesis work?
+What's the difference between plant and animal cells?
+How do ecosystems maintain balance?
+What causes evolution?
+How do genes determine traits?
+
+# Should have 2-3 topics depending on how distinct these are considered
+/topics

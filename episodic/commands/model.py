@@ -142,6 +142,15 @@ def handle_model(name: Optional[str] = None):
         set_default_model(name)
         config.set("model", name)
         provider = get_current_provider()
-        typer.echo(f"Switched to model: {name} (Provider: {provider})")
+        
+        # Display model with pricing
+        try:
+            from litellm import cost_per_token
+            input_cost, output_cost = cost_per_token(model=name, prompt_tokens=1000, completion_tokens=1000)
+            typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
+            typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_BLACK)
+        except Exception:
+            typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
+            typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)
     except ValueError as e:
         typer.echo(f"Error: {str(e)}")

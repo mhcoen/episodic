@@ -1,0 +1,46 @@
+# Test ambiguous transitions and edge cases
+# Tests cases where topic boundaries are unclear
+
+/init --erase
+/set topic_detection_model gpt-3.5-turbo
+/set main.max_tokens 30
+/set main.temperature 0
+
+# Start with something specific
+What's the capital of France?
+
+# Expand to related
+Tell me more about Paris
+
+# Stay in geography  
+What other major cities are in France?
+
+# Slight shift but related
+What's French cuisine like?
+
+# This could be seen as same topic (France) or new (cooking)
+How do I make French onion soup?
+
+# More cooking
+What wine goes with French food?
+
+# Back to geography through wine regions
+What are the wine regions of France?
+
+# Pure geography again
+How big is France compared to Texas?
+
+# Sudden shift
+I need to debug my Python code
+
+# More programming
+Why am I getting a syntax error?
+
+# Meta question about the conversation
+Wait, how many topics have we covered?
+
+# Back to programming
+How do I use a debugger?
+
+# Should be 2-3 topics: France/French-culture, programming, and possibly meta-conversation
+/topics

@@ -1,0 +1,9 @@
+/init --erase
+/set main.max_tokens 30
+/set main.temperature 0
+/set min_messages_before_topic_change 2
+Tell me about Mars.
+What's the temperature on Mars?
+I want to learn Italian cooking.
+What's the best pasta recipe?
+/topics

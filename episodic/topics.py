@@ -119,8 +119,12 @@ class TopicManager:
             # Load topic detection prompt
             # Use simplified prompt for ollama models
             topic_model = config.get("topic_detection_model", "ollama/llama3")
+            use_v3_prompt = config.get("topic_detection_v3", True)  # Default to v3
+            
             if "ollama" in topic_model.lower() and self.prompt_manager.get("topic_detection_ollama"):
                 prompt_name = "topic_detection_ollama"
+            elif use_v3_prompt and self.prompt_manager.get("topic_detection_v3"):
+                prompt_name = "topic_detection_v3"
             else:
                 prompt_name = "topic_detection_v2" if use_v2_prompt else "topic_detection"
             
@@ -200,6 +204,9 @@ Respond with a JSON object containing only an "answer" field with value "Yes" or
             
             if response:
                 response = response.strip()
+                
+                # Always log the raw response for debugging
+                logger.info(f"Topic detection raw response: '{response}'")
                 
                 if config.get("debug", False):
                     typer.echo(f"   LLM response: {response}")

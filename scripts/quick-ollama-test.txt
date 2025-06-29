@@ -1,0 +1,11 @@
+/init --erase
+/set topic_detection_model ollama/llama3
+/set main.max_tokens 20
+Tell me about Mars.
+What else about Mars?
+How long to get there?
+I want to cook pasta.
+What sauce is best?
+Tell me about neural networks.
+How does backprop work?
+/topics

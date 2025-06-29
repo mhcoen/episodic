@@ -774,6 +774,7 @@ class ConversationManager:
                             in_bold = False
                             bold_count = 0
                             line_start = True
+                            in_numbered_list = False
                             
                             for chunk in process_stream_response(stream_generator, model):
                                 full_response_parts.append(chunk)
@@ -797,7 +798,11 @@ class ConversationManager:
                                             # Check if this is a numbered list item at the start of a line
                                             word_is_bold = in_bold
                                             if line_start and current_word.rstrip('.').isdigit():
-                                                word_is_bold = True  # Bold numbers in numbered lists
+                                                in_numbered_list = True  # Start bolding for numbered list
+                                            
+                                            # Bold everything in numbered list item line
+                                            if in_numbered_list:
+                                                word_is_bold = True
                                             
                                             # Check wrap
                                             if wrap_width and current_position + len(current_word) > wrap_width:
@@ -818,6 +823,7 @@ class ConversationManager:
                                             typer.secho('\n', nl=False)
                                             current_position = 0
                                             line_start = True
+                                            in_numbered_list = False  # Reset after newline
                                         else:
                                             typer.secho(' ', fg=get_llm_color(), nl=False)
                                             current_position += 1
@@ -829,6 +835,10 @@ class ConversationManager:
                             if current_word:
                                 word_is_bold = in_bold
                                 if line_start and current_word.rstrip('.').isdigit():
+                                    in_numbered_list = True
+                                
+                                # Bold everything in numbered list item line
+                                if in_numbered_list:
                                     word_is_bold = True
                                     
                                 if wrap_width and current_position + len(current_word) > wrap_width:

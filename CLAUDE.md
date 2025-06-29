@@ -13,6 +13,9 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - Fixed finalize_current_topic() to properly rename ongoing topics when conversation ends
 - Root cause: Both functions were trying to get_ancestry(NULL) which returns empty
 - Solution: Check if end_node_id is NULL and use get_head() instead
+- Fixed bold formatting for numbered lists in streaming output
+- Now bolds only the first line of each numbered item (e.g., "**1. Life Support Systems: description here**")
+- Continuation lines under the same item are not bolded
 
 ### Previous Session (2025-06-28)
 - Fixed JSON parsing errors in topic detection for Ollama models

@@ -145,10 +145,24 @@ def handle_model(name: Optional[str] = None):
         
         # Display model with pricing
         try:
-            from litellm import cost_per_token
-            input_cost, output_cost = cost_per_token(model=name, prompt_tokens=1000, completion_tokens=1000)
-            typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
-            typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_BLACK)
+            if cost_per_token:
+                # Calculate cost for 1000 tokens (both input and output separately)
+                input_cost_raw = cost_per_token(model=name, prompt_tokens=PRICING_TOKEN_COUNT, completion_tokens=0)
+                output_cost_raw = cost_per_token(model=name, prompt_tokens=0, completion_tokens=PRICING_TOKEN_COUNT)
+                
+                # Handle tuple results (sum if tuple, use directly if scalar)
+                input_cost = sum(input_cost_raw) if isinstance(input_cost_raw, tuple) else input_cost_raw
+                output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
+                
+                if input_cost or output_cost:
+                    typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
+                    typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_BLACK)
+                else:
+                    typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
+                    typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)
+            else:
+                typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
+                typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)
         except Exception:
             typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
             typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)

@@ -101,6 +101,13 @@ def get_model_string(model_name: str) -> str:
     elif provider == "ollama":
         return f"ollama/{model_name}"
 
+    # For Google/Gemini models, use "gemini/" prefix for Google AI Studio
+    elif provider == "google":
+        # Google AI Studio expects "gemini/" prefix
+        if not model_name.startswith("gemini/"):
+            return f"gemini/{model_name}"
+        return model_name
+    
     # For cloud providers, prepend the provider name if not already included
     if "/" not in model_name:
         return f"{provider}/{model_name}"
@@ -194,6 +201,9 @@ def _execute_llm_query(
     """
     provider = get_current_provider()
     full_model = get_model_string(model)
+    
+    if config.get("debug", False):
+        logger.debug(f"Model: {model} -> Full model string: {full_model} (Provider: {provider})")
     
     # Get model parameters from config
     main_params = config.get_model_params('main', model=full_model)

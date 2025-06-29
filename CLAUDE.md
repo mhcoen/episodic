@@ -16,6 +16,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - Fixed bold formatting for numbered lists in streaming output
 - Now bolds only the first line of each numbered item (e.g., "**1. Life Support Systems: description here**")
 - Continuation lines under the same item are not bolded
+- Fixed Google Gemini model configuration to use "gemini/" prefix for Google AI Studio
+- Added GOOGLE_API_KEY to provider API keys mapping
 
 ### Previous Session (2025-06-28)
 - Fixed JSON parsing errors in topic detection for Ollama models

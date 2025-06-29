@@ -18,6 +18,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - Continuation lines under the same item are not bolded
 - Fixed Google Gemini model configuration to use "gemini/" prefix for Google AI Studio
 - Added GOOGLE_API_KEY to provider API keys mapping
+- Filter out unsupported parameters (presence_penalty, frequency_penalty) for Google Gemini models
 
 ### Previous Session (2025-06-28)
 - Fixed JSON parsing errors in topic detection for Ollama models

@@ -228,6 +228,13 @@ def _execute_llm_query(
             logger.debug(f"[{msg['role']}]: {msg.get('content', msg)}")
         logger.debug("===================================")
 
+    # Filter out unsupported parameters for Google/Gemini models
+    if provider == "google":
+        # Gemini doesn't support presence_penalty or frequency_penalty
+        unsupported_params = ['presence_penalty', 'frequency_penalty']
+        for param in unsupported_params:
+            api_params.pop(param, None)
+    
     # Provider-specific handling
     if provider == "lmstudio":
         provider_config = get_provider_config("lmstudio")

@@ -42,6 +42,7 @@ def help():
         ("/summary [N|all]", "Summarize recent conversation"),
         ("/topics", "List all conversation topics"),
         ("/rename-topics", "Rename ongoing-discussion topics"),
+        ("/index <n>", "Detect topics using sliding windows"),
         ("/cost", "Show session cost information"),
     ]
     

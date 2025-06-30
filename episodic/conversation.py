@@ -456,7 +456,8 @@ class ConversationManager:
                 typer.echo(f"   Current topic: {self.current_topic}")
                 typer.echo(f"   Min messages before topic change: {config.get('min_messages_before_topic_change', 4)}")
             
-            if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
+            # Check if automatic topic detection is enabled
+            if config.get("automatic_topic_detection", True) and recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
                 try:
                     with benchmark_operation("Topic Detection"):
                         # Use hybrid detection if enabled

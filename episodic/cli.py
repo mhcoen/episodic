@@ -45,6 +45,7 @@ from episodic.commands import (
     handle_model
 )
 from episodic.commands.debug_topics import topic_scores
+from episodic.commands.index_topics import index_topics
 
 # Import helper functions
 from episodic.cli_helpers import _parse_flag_value, _remove_flag_and_value, _has_flag
@@ -221,6 +222,12 @@ def handle_command(command_str: str) -> bool:
             limit = int(_parse_flag_value(args, ["--limit", "-l"]) or 20)
             verbose = _has_flag(args, ["--verbose", "-v"])
             topic_scores(node_id=node_id, limit=limit, verbose=verbose)
+        
+        elif cmd == "/index":
+            window_size = int(args[0]) if args else 5
+            apply = _has_flag(args, ["--apply", "-a"])
+            verbose = _has_flag(args, ["--verbose", "-v"])
+            index_topics(window_size=window_size, apply=apply, verbose=verbose)
         
         # Compression commands
         elif cmd == "/compress":

@@ -45,6 +45,11 @@ class Config:
                     self.config["auto_compress_topics"] = True
                     self._save()
                 
+                # Ensure automatic_topic_detection is set to True by default
+                if "automatic_topic_detection" not in self.config:
+                    self.config["automatic_topic_detection"] = True
+                    self._save()
+                
                 # Hybrid topic detection settings
                 if "use_hybrid_topic_detection" not in self.config:
                     self.config["use_hybrid_topic_detection"] = False
@@ -112,6 +117,7 @@ class Config:
                 "show_cost": False,
                 "show_drift": True,
                 "auto_compress_topics": True,
+                "automatic_topic_detection": True,  # Whether to detect topics automatically
                 "stream_responses": True,
                 "stream_rate": 15,  # Words per second for constant-rate streaming
                 "stream_constant_rate": False,  # Whether to use constant-rate streaming

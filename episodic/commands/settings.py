@@ -71,6 +71,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         
         # Topic detection & compression
         typer.secho("\nTopic Management:", fg=get_heading_color())
+        typer.secho("  automatic_topic_detection: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('automatic_topic_detection', True)}", fg=get_system_color())
         typer.secho("  topic_detection_model: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
         typer.secho("  auto_compress_topics: ", nl=False, fg=get_text_color())
@@ -321,6 +323,18 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("text_wrap", val)
             typer.echo(f"Text wrapping: {'ON' if val else 'OFF'}")
 
+    # Handle the 'automatic_topic_detection' parameter
+    elif param.lower() == "automatic_topic_detection":
+        if not value:
+            current = config.get("automatic_topic_detection", True)
+            typer.echo(f"Current automatic topic detection: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["on", "true", "yes", "1"]
+            config.set("automatic_topic_detection", val)
+            typer.echo(f"Automatic topic detection: {'ON' if val else 'OFF'}")
+            if not val:
+                typer.echo("Use '/index <n>' to manually detect topics")
+
     # Handle the 'auto_compress_topics' parameter
     elif param.lower() == "auto_compress_topics":
         if not value:
@@ -436,7 +450,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
         typer.secho("drift, semdepth", fg=get_system_color())
         typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
-        typer.secho("topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
+        typer.secho("automatic_topic_detection, topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
         typer.secho("  Performance: ", nl=False, fg=get_heading_color())
         typer.secho("benchmark, benchmark_display", fg=get_system_color())
         typer.secho("  Model Parameters: ", nl=False, fg=get_heading_color())

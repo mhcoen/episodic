@@ -18,6 +18,15 @@ from episodic.llm_manager import llm_manager
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Suppress LiteLLM's verbose output
+litellm.suppress_debug_info = True
+os.environ["LITELLM_LOG"] = "ERROR"  # Only show errors
+
+# Also suppress the specific provider list messages
+import sys
+import io
+from contextlib import redirect_stdout, redirect_stderr
+
 # Set default configuration value for context caching (enabled by default)
 if config.get("use_context_cache") is None:
     config.set("use_context_cache", True)
@@ -80,6 +89,10 @@ def get_model_string(model_name: str) -> str:
     Returns:
         The properly formatted model string for the current provider
     """
+    # If model already has a provider prefix, return it as-is
+    if "/" in model_name:
+        return model_name
+        
     provider = get_current_provider()
 
     # For local models, use the format "local/model_name"

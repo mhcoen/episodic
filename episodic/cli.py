@@ -71,9 +71,17 @@ def handle_chat_message(user_input: str) -> None:
         # Get context depth from config (if available)
         context_depth = config.get("context_depth", 5)
         
+        # Enhance message with document context if enabled
+        try:
+            from episodic.commands.documents import doc_commands
+            enhanced_input = doc_commands.enhance_message_if_enabled(user_input)
+        except ImportError:
+            # Document features not available
+            enhanced_input = user_input
+        
         # Use the conversation manager to handle the message
         assistant_node_id, display_response = _handle_chat_message_impl(
-            user_input,
+            enhanced_input,
             model=model,
             system_message=system_message,
             context_depth=context_depth
@@ -251,6 +259,26 @@ def handle_command(command_str: str) -> bool:
         elif cmd == "/summary":
             count = args[0] if args else None
             summary(count)
+        
+        # Document commands
+        elif cmd == "/load":
+            if not args:
+                typer.secho("Usage: /load <pdf_file>", fg="red")
+            else:
+                from episodic.commands.documents import handle_load_command
+                handle_load_command(' '.join(args))
+        
+        elif cmd == "/docs":
+            from episodic.commands.documents import handle_docs_command
+            action = args[0] if args else None
+            handle_docs_command(action)
+        
+        elif cmd == "/search":
+            if not args:
+                typer.secho("Usage: /search <query>", fg="red")
+            else:
+                from episodic.commands.documents import handle_search_command
+                handle_search_command(' '.join(args))
         
         elif cmd == "/script":
             if not args:
@@ -452,13 +480,20 @@ def talk_loop() -> None:
     current_model = get_default_model()
     provider = get_current_provider()
     
-    try:
-        input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+    # Check if it's a local provider
+    LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
+    
+    if provider in LOCAL_PROVIDERS:
         typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
-        typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=get_system_color())
-    except Exception:
-        typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
-        typer.secho("Pricing: Not available", fg=get_system_color())
+        typer.secho("Pricing: Local model", fg=get_system_color())
+    else:
+        try:
+            input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+            typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+            typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=get_system_color())
+        except Exception:
+            typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+            typer.secho("Pricing: Not available", fg=get_system_color())
     
     typer.echo()  # Blank line for spacing
     

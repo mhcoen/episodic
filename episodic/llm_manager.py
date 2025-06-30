@@ -5,10 +5,18 @@ Single entry point for all actual LLM API calls.
 
 import threading
 import time
+import os
+import sys
 from typing import Dict, Any, Optional, Tuple, Union, Generator
 from dataclasses import dataclass
+from contextlib import redirect_stdout, redirect_stderr
+import io
 import litellm
 from episodic.config import config
+
+# Suppress LiteLLM debug messages
+litellm.suppress_debug_info = True
+os.environ["LITELLM_LOG"] = "ERROR"
 
 
 @dataclass
@@ -88,13 +96,15 @@ class LLMManager:
             print(f"[LLM API] Messages: {len(messages)} messages")
         
         try:
-            # Make the actual API call
-            response = litellm.completion(
-                model=model,
-                messages=messages,
-                stream=stream,
-                **kwargs
-            )
+            # Make the actual API call with output suppression
+            # Suppress the annoying "Provider List" messages
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                response = litellm.completion(
+                    model=model,
+                    messages=messages,
+                    stream=stream,
+                    **kwargs
+                )
             
             duration = time.time() - start_time
             self.metrics.record_call(duration)

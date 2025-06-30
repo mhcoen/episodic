@@ -61,6 +61,18 @@ def help():
         typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
+    # Document commands
+    typer.secho("\n📄 Documents:", fg=get_heading_color(), bold=True)
+    commands = [
+        ("/load <pdf_file>", "Load a PDF document"),
+        ("/docs [status|enable|disable|clear]", "Manage loaded documents"),
+        ("/search <query>", "Search loaded documents"),
+    ]
+    
+    for cmd, desc in commands:
+        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
     # Compression commands
     typer.secho("\n📦 Compression:", fg=get_heading_color(), bold=True)
     commands = [

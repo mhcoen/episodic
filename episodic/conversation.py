@@ -800,9 +800,15 @@ class ConversationManager:
                                             if line_start and current_word.rstrip('.').isdigit():
                                                 in_numbered_list = True  # Start bolding for numbered list
                                             
-                                            # Bold everything in numbered list item line
+                                            # Bold everything in numbered list until colon
                                             if in_numbered_list:
                                                 word_is_bold = True
+                                            
+                                            # Check if this word ends with colon to stop bolding next words
+                                            if current_word.endswith(':') and in_numbered_list:
+                                                # This word should still be bold, but stop for next words
+                                                word_is_bold = True
+                                                # Will reset in_numbered_list after printing this word
                                             
                                             # Check wrap
                                             if wrap_width and current_position + len(current_word) > wrap_width:
@@ -813,6 +819,11 @@ class ConversationManager:
                                             # Print word
                                             typer.secho(current_word, fg=get_llm_color(), nl=False, bold=word_is_bold)
                                             current_position += len(current_word)
+                                            
+                                            # Reset numbered list flag after printing word with colon
+                                            if current_word.endswith(':') and in_numbered_list:
+                                                in_numbered_list = False
+                                            
                                             current_word = ""
                                             
                                             if not char.isspace():

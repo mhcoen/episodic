@@ -489,7 +489,7 @@ class ConversationManager:
             # Store topic detection scores for debugging
             if recent_nodes and len(recent_nodes) >= 2:
                 from episodic.db import store_topic_detection_scores, get_recent_topics
-                from episodic.topics import count_user_messages_in_topic
+                from episodic.topics import topic_manager
                 import json
                 
                 # Get context information
@@ -499,9 +499,9 @@ class ConversationManager:
                 # Count user messages in current topic
                 user_messages_in_topic = 0
                 if self.current_topic:
-                    user_messages_in_topic = count_user_messages_in_topic(
+                    user_messages_in_topic = topic_manager.count_user_messages_in_topic(
                         self.current_topic[1], 
-                        user_node_id
+                        None  # None means count to current head
                     )
                 
                 # Calculate effective threshold

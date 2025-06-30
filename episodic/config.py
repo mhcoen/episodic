@@ -45,6 +45,29 @@ class Config:
                     self.config["auto_compress_topics"] = True
                     self._save()
                 
+                # Hybrid topic detection settings
+                if "use_hybrid_topic_detection" not in self.config:
+                    self.config["use_hybrid_topic_detection"] = False
+                    self._save()
+                
+                if "hybrid_topic_weights" not in self.config:
+                    self.config["hybrid_topic_weights"] = {
+                        "semantic_drift": 0.6,
+                        "keyword_explicit": 0.25,
+                        "keyword_domain": 0.1,
+                        "message_gap": 0.025,
+                        "conversation_flow": 0.025
+                    }
+                    self._save()
+                
+                if "hybrid_topic_threshold" not in self.config:
+                    self.config["hybrid_topic_threshold"] = 0.55  # Lowered for better sensitivity
+                    self._save()
+                
+                if "hybrid_llm_threshold" not in self.config:
+                    self.config["hybrid_llm_threshold"] = 0.3  # Lowered to reduce LLM fallbacks
+                    self._save()
+                
                 # Ensure model parameters are set with defaults
                 if "main_params" not in self.config:
                     self.config["main_params"] = {

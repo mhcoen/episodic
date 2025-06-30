@@ -545,14 +545,19 @@ Topic name:"""
         
         Args:
             topic_start_id: Start node of the topic
-            topic_end_id: End node of the topic
+            topic_end_id: End node of the topic (can be None for ongoing topics)
             
         Returns:
             Number of nodes in the topic (including start and end)
         """
         # Handle ongoing topics (no end node)
         if not topic_end_id:
-            return 0
+            # For ongoing topics, count from start_node to current head
+            from episodic.db import get_head
+            current_head = get_head()
+            if not current_head:
+                return 0
+            topic_end_id = current_head
             
         # Get ancestry of the end node
         topic_ancestry = get_ancestry(topic_end_id)

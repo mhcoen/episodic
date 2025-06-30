@@ -59,6 +59,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
         typer.secho("  topics: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_topics', False)}", fg=get_system_color())
+        typer.secho("  hybrid_topics: ", nl=False, fg=get_text_color())
+        typer.secho(f"{config.get('use_hybrid_topic_detection', False)}", fg=get_system_color())
         
         # Analysis features
         typer.secho("\nAnalysis:", fg=get_heading_color())
@@ -139,6 +141,18 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             val = value.lower() in ["true", "1", "yes", "on"]
             config.set("show_topics", val)
             typer.echo(f"Topics display set to {val}")
+    
+    # Handle hybrid topic detection
+    elif param.lower() == "hybrid_topics":
+        if not value:
+            current = config.get("use_hybrid_topic_detection", False)
+            typer.echo(f"Hybrid topic detection: {'ON' if current else 'OFF'}")
+        else:
+            val = value.lower() in ["true", "1", "yes", "on"]
+            config.set("use_hybrid_topic_detection", val)
+            typer.echo(f"Hybrid topic detection: {'ON' if val else 'OFF'}")
+            if val:
+                typer.echo("Note: Requires sentence-transformers for embeddings")
 
     # Handle the 'stream' parameter for streaming responses
     elif param.lower() == "stream":

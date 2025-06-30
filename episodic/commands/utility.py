@@ -88,6 +88,16 @@ def help():
         typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
+    # Debug commands
+    typer.secho("\n🐛 Debug:", fg=get_heading_color(), bold=True)
+    commands = [
+        ("/topic-scores [node_id]", "View topic detection scores"),
+    ]
+    
+    for cmd, desc in commands:
+        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
     # Utility commands
     typer.secho("\n🛠️  Utilities:", fg=get_heading_color(), bold=True)
     commands = [

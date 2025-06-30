@@ -44,6 +44,7 @@ from episodic.commands import (
     visualize, prompts, summary, benchmark, help,
     handle_model
 )
+from episodic.commands.debug_topics import topic_scores
 
 # Import helper functions
 from episodic.cli_helpers import _parse_flag_value, _remove_flag_and_value, _has_flag
@@ -214,6 +215,12 @@ def handle_command(command_str: str) -> bool:
         
         elif cmd == "/rename-topics":
             rename_ongoing_topics()
+        
+        elif cmd == "/topic-scores":
+            node_id = args[0] if args else None
+            limit = int(_parse_flag_value(args, ["--limit", "-l"]) or 20)
+            verbose = _has_flag(args, ["--verbose", "-v"])
+            topic_scores(node_id=node_id, limit=limit, verbose=verbose)
         
         # Compression commands
         elif cmd == "/compress":

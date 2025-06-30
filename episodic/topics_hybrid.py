@@ -286,7 +286,10 @@ class HybridTopicDetector:
             "score": final_score,
             "explanation": explanation,
             "signals": signals.to_dict(),
-            "transition_phrase": self._last_transition_phrase
+            "transition_phrase": self._last_transition_phrase,
+            "detected_domains": keyword_results.get("detected_domains"),
+            "dominant_domain": keyword_results.get("dominant_domain"),
+            "previous_domain": self.transition_detector.current_domain if hasattr(self.transition_detector, 'domain_history') and len(self.transition_detector.domain_history) > 1 else None
         }
         
         if final_score >= self.scorer.topic_change_threshold:

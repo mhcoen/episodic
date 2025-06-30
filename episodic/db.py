@@ -225,6 +225,47 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 FOREIGN KEY(original_branch_head) REFERENCES nodes(id)
             )
         """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS topic_detection_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_node_id TEXT NOT NULL,
+                detection_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                -- Core detection result
+                topic_changed BOOLEAN NOT NULL,
+                detection_method TEXT,  -- 'hybrid', 'llm', 'llm_fallback', 'too_few_messages', etc.
+                final_score REAL,
+                
+                -- Hybrid detection scores (if used)
+                semantic_drift_score REAL,
+                keyword_explicit_score REAL,
+                keyword_domain_score REAL,
+                message_gap_score REAL,
+                conversation_flow_score REAL,
+                
+                -- Additional metadata
+                transition_phrase TEXT,  -- Detected transition phrase if any
+                detected_domains TEXT,   -- JSON of detected domain scores
+                dominant_domain TEXT,    -- Current dominant domain
+                previous_domain TEXT,    -- Previous dominant domain
+                
+                -- LLM detection info (if used)
+                llm_response TEXT,       -- Raw LLM response
+                llm_confidence REAL,     -- LLM confidence score if available
+                
+                -- Context info
+                user_messages_in_topic INTEGER,
+                total_topics_count INTEGER,
+                effective_threshold INTEGER,
+                
+                -- Boundary analysis (if performed)
+                boundary_analyzed BOOLEAN DEFAULT FALSE,
+                actual_transition_node_id TEXT,  -- Where topic actually changed
+                
+                FOREIGN KEY(user_node_id) REFERENCES nodes(id),
+                FOREIGN KEY(actual_transition_node_id) REFERENCES nodes(id)
+            )
+        """)
         conn.commit()
 
         # Run migrations if requested
@@ -985,5 +1026,118 @@ def get_compression_stats():
             'average_compression_ratio': avg_ratio,
             'strategies_used': strategies
         }
+
+
+def store_topic_detection_scores(
+    user_node_id: str,
+    topic_changed: bool,
+    detection_method: str,
+    final_score: float = None,
+    semantic_drift_score: float = None,
+    keyword_explicit_score: float = None,
+    keyword_domain_score: float = None,
+    message_gap_score: float = None,
+    conversation_flow_score: float = None,
+    transition_phrase: str = None,
+    detected_domains: str = None,
+    dominant_domain: str = None,
+    previous_domain: str = None,
+    llm_response: str = None,
+    llm_confidence: float = None,
+    user_messages_in_topic: int = None,
+    total_topics_count: int = None,
+    effective_threshold: int = None,
+    boundary_analyzed: bool = False,
+    actual_transition_node_id: str = None
+):
+    """
+    Store topic detection scores for debugging and analysis.
+    
+    Args:
+        user_node_id: The user message node being analyzed
+        topic_changed: Whether a topic change was detected
+        detection_method: Method used ('hybrid', 'llm', 'too_few_messages', etc.)
+        final_score: Final combined score (for hybrid detection)
+        semantic_drift_score: Embedding-based drift score
+        keyword_explicit_score: Explicit transition phrase score
+        keyword_domain_score: Domain shift score
+        message_gap_score: Time/message gap score
+        conversation_flow_score: Conversation pattern score
+        transition_phrase: Detected transition phrase if any
+        detected_domains: JSON string of domain scores
+        dominant_domain: Current dominant domain
+        previous_domain: Previous dominant domain
+        llm_response: Raw LLM response
+        llm_confidence: LLM confidence score
+        user_messages_in_topic: Number of user messages in current topic
+        total_topics_count: Total number of topics
+        effective_threshold: Effective threshold used
+        boundary_analyzed: Whether boundary analysis was performed
+        actual_transition_node_id: Node where topic actually changed
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO topic_detection_scores (
+                user_node_id, topic_changed, detection_method, final_score,
+                semantic_drift_score, keyword_explicit_score, keyword_domain_score,
+                message_gap_score, conversation_flow_score,
+                transition_phrase, detected_domains, dominant_domain, previous_domain,
+                llm_response, llm_confidence,
+                user_messages_in_topic, total_topics_count, effective_threshold,
+                boundary_analyzed, actual_transition_node_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_node_id, topic_changed, detection_method, final_score,
+            semantic_drift_score, keyword_explicit_score, keyword_domain_score,
+            message_gap_score, conversation_flow_score,
+            transition_phrase, detected_domains, dominant_domain, previous_domain,
+            llm_response, llm_confidence,
+            user_messages_in_topic, total_topics_count, effective_threshold,
+            boundary_analyzed, actual_transition_node_id
+        ))
+        conn.commit()
+
+
+def get_topic_detection_scores(user_node_id: str = None, limit: int = 100):
+    """
+    Retrieve topic detection scores for analysis.
+    
+    Args:
+        user_node_id: Optional specific node to get scores for
+        limit: Maximum number of records to return
+        
+    Returns:
+        List of score records
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+        
+        if user_node_id:
+            c.execute("""
+                SELECT * FROM topic_detection_scores
+                WHERE user_node_id = ?
+                ORDER BY detection_timestamp DESC
+            """, (user_node_id,))
+        else:
+            c.execute("""
+                SELECT * FROM topic_detection_scores
+                ORDER BY detection_timestamp DESC
+                LIMIT ?
+            """, (limit,))
+        
+        # Get column names
+        columns = [desc[0] for desc in c.description]
+        rows = c.fetchall()
+        
+        # Convert to list of dicts
+        results = []
+        for row in rows:
+            record = {}
+            for i, col in enumerate(columns):
+                record[col] = row[i]
+            results.append(record)
+        
+        return results
 
 

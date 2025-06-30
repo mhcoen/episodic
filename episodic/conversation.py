@@ -486,6 +486,78 @@ class ConversationManager:
                 if config.get("debug", False):
                     typer.echo("   ⚠️  Not enough history for topic detection")
             
+            # Store topic detection scores for debugging
+            if recent_nodes and len(recent_nodes) >= 2:
+                from episodic.db import store_topic_detection_scores, get_recent_topics
+                from episodic.topics import count_user_messages_in_topic
+                import json
+                
+                # Get context information
+                topics = get_recent_topics(limit=100)
+                total_topics = len(topics)
+                
+                # Count user messages in current topic
+                user_messages_in_topic = 0
+                if self.current_topic:
+                    user_messages_in_topic = count_user_messages_in_topic(
+                        self.current_topic[1], 
+                        user_node_id
+                    )
+                
+                # Calculate effective threshold
+                min_messages = config.get('min_messages_before_topic_change', 8)
+                if total_topics <= 2:
+                    effective_threshold = max(4, min_messages // 2)
+                else:
+                    effective_threshold = min_messages
+                
+                # Extract scores based on detection method
+                detection_method = topic_cost_info.get("method", "unknown") if topic_cost_info else "no_detection"
+                
+                # Default values
+                scores_data = {
+                    "user_node_id": user_node_id,
+                    "topic_changed": topic_changed,
+                    "detection_method": detection_method,
+                    "user_messages_in_topic": user_messages_in_topic,
+                    "total_topics_count": total_topics,
+                    "effective_threshold": effective_threshold
+                }
+                
+                # Add hybrid detection scores if available
+                if topic_cost_info and "signals" in topic_cost_info:
+                    signals = topic_cost_info["signals"]
+                    scores_data.update({
+                        "final_score": topic_cost_info.get("score"),
+                        "semantic_drift_score": signals.get("semantic_drift"),
+                        "keyword_explicit_score": signals.get("keyword_explicit"),
+                        "keyword_domain_score": signals.get("keyword_domain"),
+                        "message_gap_score": signals.get("message_gap"),
+                        "conversation_flow_score": signals.get("conversation_flow"),
+                        "transition_phrase": topic_cost_info.get("transition_phrase")
+                    })
+                    
+                    # Add domain information if available
+                    if "detected_domains" in topic_cost_info:
+                        scores_data["detected_domains"] = json.dumps(topic_cost_info["detected_domains"])
+                    if "dominant_domain" in topic_cost_info:
+                        scores_data["dominant_domain"] = topic_cost_info["dominant_domain"]
+                    if "previous_domain" in topic_cost_info:
+                        scores_data["previous_domain"] = topic_cost_info["previous_domain"]
+                
+                # Add LLM response if available
+                if topic_cost_info and "llm_response" in topic_cost_info:
+                    scores_data["llm_response"] = topic_cost_info["llm_response"]
+                if topic_cost_info and "llm_confidence" in topic_cost_info:
+                    scores_data["llm_confidence"] = topic_cost_info["llm_confidence"]
+                
+                # Store the scores
+                try:
+                    store_topic_detection_scores(**scores_data)
+                except Exception as e:
+                    if config.get("debug", False):
+                        typer.echo(f"   ⚠️  Failed to store topic detection scores: {e}")
+            
             # Add topic detection costs to session
             if topic_cost_info:
                 self.session_costs["total_input_tokens"] += topic_cost_info.get("input_tokens", 0)

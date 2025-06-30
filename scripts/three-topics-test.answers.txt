@@ -1,0 +1,1111 @@
+# Test script for three topic changes
+# Accounting for dynamic threshold behavior:
+# - First 2 topics: 4+ messages needed
+# - Third topic: 8+ messages needed
+/init --erase
+/set main.max_tokens 50
+/set main.temperature 0
+
+# Topic 1: Space exploration (need 4+ messages to establish)
+Tell me about the Mars rovers. All answers can be one sentence long.
+What are the main challenges of sending humans to Mars?
+How long would a trip to Mars take with current technology?
+What kind of supplies would astronauts need for a Mars mission?
+Could we terraform Mars in the future?
+
+# Topic 2: Cooking Italian food (need 4+ messages to trigger change)
+I want to learn how to make authentic Italian pasta
+What's the secret to a good carbonara?
+Should I use fresh or dried pasta for different dishes?
+What are the essential ingredients for a proper Italian pantry?
+How do I make a traditional marinara sauce?
+
+# Topic 3: Machine learning (need 8+ messages to trigger change - full threshold)
+Can you explain what neural networks are?
+What's the difference between supervised and unsupervised learning?
+How does backpropagation work in neural networks?
+What are some common activation functions and when to use them?
+Tell me about convolutional neural networks
+What's the purpose of dropout in neural networks?
+How do transformers differ from traditional RNNs?
+What are some best practices for training deep learning models?
+Can you explain gradient descent optimization?
+
+###
+###
+###
+
+python -m episodic
+🔧 Compression worker started
+🔄 Background compression worker started
+Welcome to Episodic! Type '/help' for commands or start chatting.
+Using model: llama3 (Provider: ollama)
+Pricing: Local model
+
+🔄 DEBUG: Current topic set to 'cooking'
+🔍 DEBUG: Resuming ongoing topic 'cooking'
+> /init --erase
+🗑️  Erasing existing database...
+✅ Database erased and reinitialized
+> /script scripts/three-topics-test.txt
+
+📜 Executing script: scripts/three-topics-test.txt
+──────────────────────────────────────────────────
+
+[5] > /init --erase
+🗑️  Erasing existing database...
+✅ Database erased and reinitialized
+
+[6] > /set main.max_tokens 50
+Set main.max_tokens to 50
+
+[7] > /set main.temperature 0
+Set main.temperature to 0
+
+[10] > Tell me about the Mars rovers. All answers can be one sentence long.
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 1
+   Current topic: None
+   Min messages before topic change: 8
+   ⚠️  Not enough history for topic detection
+[LLM API] Thread 8430968576: Call #1
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 2 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+NASA has sent several robotic rovers to explore Mars, including Sojourner, Spirit, 
+Opportunity, Curiosity, and Perseverance, which have greatly expanded our knowledge 
+of the planet's geology and potential habitability.
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 279 | Cost: $0.000000 USD | Context: 2% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+   DEBUG: No topics exist, checking if we should create first topic...
+   DEBUG: user_node_id = e62738c5-5e10-484c-9dd6-ad1b9ddb9898
+   DEBUG: user_node content = 'Tell me about the Mars rovers. All answers can be ...'
+   DEBUG: should_create_first_topic: 1 user messages, threshold: 3, returning: False
+🔍 DEBUG: Skipping initial topic creation - not enough messages yet
+
+
+[11] > What are the main challenges of sending humans to Mars?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 3
+   Current topic: None
+   Min messages before topic change: 8
+🤔 Uncertain (0.30), using LLM fallback
+
+🔍 DEBUG: No current topic, only 1 total user messages (min: 8)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #2
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 4 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Sending humans to Mars poses significant challenges, including radiation exposure to 
+both people and electronics, coping with the psychological effects of long-duration 
+space travel, and developing reliable life support systems for a prolonged Martian 
+stay.
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 330 | Cost: $0.000000 USD | Context: 3% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+   DEBUG: No topics exist, checking if we should create first topic...
+   DEBUG: user_node_id = ec20b438-b0da-40c4-a574-af4b6bc9b516
+   DEBUG: user_node content = 'What are the main challenges of sending humans to ...'
+   DEBUG: should_create_first_topic: 2 user messages, threshold: 3, returning: False
+🔍 DEBUG: Skipping initial topic creation - not enough messages yet
+
+
+[12] > How long would a trip to Mars take with current technology?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 5
+   Current topic: None
+   Min messages before topic change: 8
+🤔 Uncertain (0.31), using LLM fallback
+
+🔍 DEBUG: No current topic, only 2 total user messages (min: 8)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #3
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Based on NASA's current trajectory planning and propulsion systems, a trip to Mars 
+using current technology could take anywhere from 6 to 9 months, depending on the 
+specific mission requirements and the positioning of the Earth and Mars in their 
+orbits.
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 389 | Cost: $0.000000 USD | Context: 4% full
+🔍 DEBUG: No current topic set, checking if we need to create first topic...
+   DEBUG: No topics exist, checking if we should create first topic...
+   DEBUG: user_node_id = 9ce7dedd-9241-4e5d-9900-9e3f6c0701ff
+   DEBUG: user_node content = 'How long would a trip to Mars take with current te...'
+   DEBUG: should_create_first_topic: 3 user messages, threshold: 3, returning: True
+   Building segment from 7 nodes (max_length=2000)
+   Skipping node with empty content (role=system)
+   Final segment length: 966 chars
+
+🔍 DEBUG: Topic extraction prompt:
+   Model: ollama/llama3
+   Prompt preview: Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+
+Examples:
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talki...
+[LLM API] Thread 8430968576: Call #4
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #4 completed in 0.45s
+[LLM API] Response length: 10 chars
+---
+   DEBUG: Raw topic extraction response: 'mars-rover'
+   DEBUG: Final topic name: 'mars-rover'
+🔄 DEBUG: Current topic set to 'mars-rover'
+
+📌 Created initial topic: mars-rover (from 02 to 07)
+
+
+[13] > What kind of supplies would astronauts need for a Mars mission?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 7
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🤔 Uncertain (0.36), using LLM fallback
+   Context preview: - User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one senten...
+   Prompt length: 577 chars
+   Full prompt:
+Previous conversation:
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one sentence long.
+
+New message:
+What kind of supplies would astronauts need for a Mars mission?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 7
+   New message preview: What kind of supplies would astronauts need for a Mars mission?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #5
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #5 completed in 0.25s
+[LLM API] Response length: 2 chars
+---
+   LLM response: No
+   Response type: <class 'str'>
+   Response length: 2
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: No
+   Falling back to text parsing
+   ➡️ Continuing same topic (fallback: found 'no' in response)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #6
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+To accurately answer this question, let's break down the essential supplies that 
+astronauts might need for a Mars mission:
+
+1. Food and Water: Astronauts would require non-perishable food items that are 
+lightweight, nutritious, and easy to prepare
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 389 | Cost: $0.000000 USD | Context: 4% full
+🔍 DEBUG: Topic 'mars-rover' continues (ongoing)
+
+
+[14] > Could we terraform Mars in the future?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 9
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🤔 Uncertain (0.43), using LLM fallback
+   Context preview: - User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Ma...
+   Prompt length: 624 chars
+   Full prompt:
+Previous conversation:
+- User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+- User: Tell me about the Mars rovers. All answers can be one sentence long.
+
+New message:
+Could we terraform Mars in the future?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 9
+   New message preview: Could we terraform Mars in the future?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #7
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #7 completed in 0.26s
+[LLM API] Response length: 3 chars
+---
+   LLM response: Yes
+   Response type: <class 'str'>
+   Response length: 3
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: Yes
+   Falling back to text parsing
+   ✅ Topic change detected (fallback: found 'yes' in response)
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #8
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+To provide an accurate response, let's delve into the concept of terraforming and its 
+feasibility.
+
+Terraforming, in the context of space exploration, refers to the process of making 
+another planet or moon habitable for humans. In the case of Mars
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 397 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Not creating new topic - previous topic has only 4 user messages (min: 8)
+🔍 DEBUG: Topic 'mars-rover' continues (topic change cancelled)
+
+
+[17] > I want to learn how to make authentic Italian pasta
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🔄 Topic change detected: Score: 0.66 - high semantic drift; domain shift detected
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #9
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+A change of pace! While I'm happy to assist with a topic like terraforming and space 
+exploration, my primary focus is on providing accurate information based on available 
+data. However, I can definitely help you with learning about making authentic Italian 
+pasta.
+
+To
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 398 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Not creating new topic - previous topic has only 5 user messages (min: 8)
+🔍 DEBUG: Topic 'mars-rover' continues (topic change cancelled)
+
+
+[18] > What's the secret to a good carbonara?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🤔 Uncertain (0.49), using LLM fallback
+   Context preview: - User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Mars in the future?
+- User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long woul...
+   Prompt length: 654 chars
+   Full prompt:
+Previous conversation:
+- User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Mars in the future?
+- User: What kind of supplies would astronauts need for a Mars mission?
+- User: How long would a trip to Mars take with current technology?
+- User: What are the main challenges of sending humans to Mars?
+
+New message:
+What's the secret to a good carbonara?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What's the secret to a good carbonara?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #10
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #10 completed in 0.29s
+[LLM API] Response length: 2 chars
+---
+   LLM response: No
+   Response type: <class 'str'>
+   Response length: 2
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: No
+   Falling back to text parsing
+   ➡️ Continuing same topic (fallback: found 'no' in response)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #11
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+A delicious question! Let's dive into the world of Italian cuisine and explore the 
+secrets behind a great carbonara.
+
+Carbonara is a rich and creamy pasta dish that originated in Rome. The key to a good 
+carbonara lies in its simplicity and use
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 396 | Cost: $0.000000 USD | Context: 4% full
+🔍 DEBUG: Topic 'mars-rover' continues (ongoing)
+
+
+[19] > Should I use fresh or dried pasta for different dishes?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🔄 Topic change detected: Score: 0.66 - high semantic drift; domain shift detected
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #12
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+A great follow-up question! When it comes to choosing between fresh and dried pasta, 
+the answer depends on the specific dish you're making.
+
+Fresh pasta is typically made with eggs, flour, and water. It has a more delicate 
+texture and a slightly
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 398 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Not creating new topic - previous topic has only 7 user messages (min: 8)
+🔍 DEBUG: Topic 'mars-rover' continues (topic change cancelled)
+
+
+[20] > What are the essential ingredients for a proper Italian pantry?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🤔 Uncertain (0.41), using LLM fallback
+   Context preview: - User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Ma...
+   Prompt length: 658 chars
+   Full prompt:
+Previous conversation:
+- User: Should I use fresh or dried pasta for different dishes?
+- User: What's the secret to a good carbonara?
+- User: I want to learn how to make authentic Italian pasta
+- User: Could we terraform Mars in the future?
+- User: What kind of supplies would astronauts need for a Mars mission?
+
+New message:
+What are the essential ingredients for a proper Italian pantry?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What are the essential ingredients for a proper Italian pantry?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #13
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #13 completed in 0.29s
+[LLM API] Response length: 2 chars
+---
+   LLM response: No
+   Response type: <class 'str'>
+   Response length: 2
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: No
+   Falling back to text parsing
+   ➡️ Continuing same topic (fallback: found 'no' in response)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #14
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+A great question about building the foundation of an Italian pantry! When it comes to 
+stocking your pantry with essential ingredients, there are a few must-haves that will 
+help you cook up delicious Italian dishes.
+
+According to traditional Italian cooking practices, some of the
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 399 | Cost: $0.000000 USD | Context: 4% full
+🔍 DEBUG: Topic 'mars-rover' continues (ongoing)
+
+
+[21] > How do I make a traditional marinara sauce?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('mars-rover', 'e62738c5-5e10-484c-9dd6-ad1b9ddb9898')
+   Min messages before topic change: 8
+🔄 Topic change detected: Score: 0.56 - high semantic drift
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #15
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+A classic question! Making a traditional marinara sauce is a staple of Italian 
+cuisine. To create this iconic sauce, you'll need just a few essential ingredients.
+
+Firstly, you'll need crushed San Marzano tomatoes (or other sweet and flavorful 
+tomatoes
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 399 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Analyzing topic boundary...
+
+🔍 DEBUG: Analyzing topic boundary
+   Analysis window: 9 messages
+   Detection point index: 18
+[LLM API] Thread 8430968576: Call #16
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #16 completed in 1.59s
+[LLM API] Response length: 213 chars
+---
+   Failed to parse boundary analysis: Expecting value: line 1 column 1 (char 0)
+   Raw response: After analyzing the conversation, I found that the topic actually changed at message [1].
+
+Here's the response in JSON format:
+
+{
+  "boundary_index": 1,
+  "transition_type": "assistant_initiated",
+  "reasoning": "
+   Building segment from 18 nodes (max_length=2000)
+   Stopping - would exceed max_length
+   Final segment length: 1985 chars
+
+🔍 DEBUG: Extracting name for previous topic 'mars-rover'
+   Topic has 18 nodes
+   Segment preview: user: Tell me about the Mars rovers. All answers can be one sentence long.
+assistant: NASA has sent several robotic rovers to explore Mars, including Sojourner, Spirit, Opportunity, Curiosity, and Per...
+
+🔍 DEBUG: Topic extraction prompt:
+   Model: ollama/llama3
+   Prompt preview: Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+
+Examples:
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talki...
+[LLM API] Thread 8430968576: Call #17
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #17 completed in 0.70s
+[LLM API] Response length: 10 chars
+---
+   DEBUG: Raw topic extraction response: 'mars-rover'
+   DEBUG: Final topic name: 'mars-rover'
+   Extracted topic name: mars-rover
+📥 Queued compression job for topic 'mars-rover'
+   📦 Queued topic 'mars-rover' for compression
+🔧 Processing compression job for topic 'mars-rover'
+🔧 Compressing topic 'mars-rover' from e62738c5-5e10-484c-9dd6-ad1b9ddb9898 to 83a26c30-1715-447b-b03f-698bfedb1710
+🔄 DEBUG: Current topic changed from 'mars-rover' to 'ongoing-1751280458'
+
+🔄 Topic changed
+
+
+[24] > Can you explain what neural networks are?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('ongoing-1751280458', '6503e2e8-057e-4134-9a87-09a744d529e8')
+   Min messages before topic change: 8
+🔧 Found 18 nodes in topic segment
+[LLM API] Thread 6177910784: Call #18
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 6177910784: Call #24 completed in 9.05s
+[LLM API] Response length: 995 chars
+---
+
+✅ Auto-compressed topic 'mars-rover' (66.4% reduction)
+and biases of 
+a neural network during training. The goal is to minimize the
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 401 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Not creating new topic - previous topic has only 4 user messages (min: 8)
+🔍 DEBUG: Topic 'cooking' continues (topic change cancelled)
+
+
+[28] > Tell me about convolutional neural networks
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('cooking', '6503e2e8-057e-4134-9a87-09a744d529e8')
+   Min messages before topic change: 8
+🔄 Topic change detected: Score: 0.57 - high semantic drift
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #25
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Excellent curiosity!
+
+To share my knowledge, I'll assume that we're starting this conversation from 
+scratch. However, since you've already asked questions related to backpropagation and 
+activation functions, I'll try to connect the dots.
+
+A Convolutional Neural
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 396 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Not creating new topic - previous topic has only 5 user messages (min: 8)
+🔍 DEBUG: Topic 'cooking' continues (topic change cancelled)
+
+
+[29] > What's the purpose of dropout in neural networks?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('cooking', '6503e2e8-057e-4134-9a87-09a744d529e8')
+   Min messages before topic change: 8
+🤔 Uncertain (0.37), using LLM fallback
+   Context preview: - User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+- User: What's the...
+   Prompt length: 662 chars
+   Full prompt:
+Previous conversation:
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+- User: What's the difference between supervised and unsupervised learning?
+- User: Can you explain what neural networks are?
+
+New message:
+What's the purpose of dropout in neural networks?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What's the purpose of dropout in neural networks?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #26
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #26 completed in 0.27s
+[LLM API] Response length: 2 chars
+---
+   LLM response: No
+   Response type: <class 'str'>
+   Response length: 2
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: No
+   Falling back to text parsing
+   ➡️ Continuing same topic (fallback: found 'no' in response)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #27
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+### Assistant:
+
+Let me break it down for you!
+
+Dropout is a regularization technique used in training neural networks. The primary 
+goal of dropout is to prevent overfitting, which occurs when a model becomes too 
+specialized to training data and fails to generalize
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 396 | Cost: $0.000000 USD | Context: 4% full
+🔍 DEBUG: Topic 'cooking' continues (ongoing)
+
+
+[30] > How do transformers differ from traditional RNNs?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('cooking', '6503e2e8-057e-4134-9a87-09a744d529e8')
+   Min messages before topic change: 8
+🤔 Uncertain (0.54), using LLM fallback
+   Context preview: - User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+- User: How does b...
+   Prompt length: 670 chars
+   Full prompt:
+Previous conversation:
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+- User: What's the difference between supervised and unsupervised learning?
+
+New message:
+How do transformers differ from traditional RNNs?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: How do transformers differ from traditional RNNs?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #28
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #28 completed in 0.28s
+[LLM API] Response length: 3 chars
+---
+   LLM response: Yes
+   Response type: <class 'str'>
+   Response length: 3
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: Yes
+   Falling back to text parsing
+   ✅ Topic change detected (fallback: found 'yes' in response)
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #29
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+Let me help you with that!
+
+Transformers are a type of architecture used in sequence-to-sequence tasks, such as 
+machine translation, text summarization, and chatbots. They differ significantly from 
+traditional recurrent neural networks (RNNs) in several
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 394 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Not creating new topic - previous topic has only 7 user messages (min: 8)
+🔍 DEBUG: Topic 'cooking' continues (topic change cancelled)
+
+
+[31] > What are some best practices for training deep learning models?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('cooking', '6503e2e8-057e-4134-9a87-09a744d529e8')
+   Min messages before topic change: 8
+🤔 Uncertain (0.50), using LLM fallback
+   Context preview: - User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common act...
+   Prompt length: 666 chars
+   Full prompt:
+Previous conversation:
+- User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+- User: How does backpropagation work in neural networks?
+
+New message:
+What are some best practices for training deep learning models?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: What are some best practices for training deep learning models?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #30
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #30 completed in 0.28s
+[LLM API] Response length: 2 chars
+---
+   LLM response: No
+   Response type: <class 'str'>
+   Response length: 2
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: No
+   Falling back to text parsing
+   ➡️ Continuing same topic (fallback: found 'no' in response)
+   Topic change detected: False
+[LLM API] Thread 8430968576: Call #31
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+### Assistant:
+
+I'd be happy to share some best practices for training deep learning models with you!
+
+1. Data quality: Ensure that your dataset is clean, well-structured, and 
+representative of the problem you're trying to solve.
+
+2.
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 398 | Cost: $0.000000 USD | Context: 4% full
+🔍 DEBUG: Topic 'cooking' continues (ongoing)
+
+
+[32] > Can you explain gradient descent optimization?
+
+🔍 DEBUG: Topic detection check
+   Recent nodes count: 10
+   Current topic: ('cooking', '6503e2e8-057e-4134-9a87-09a744d529e8')
+   Min messages before topic change: 8
+🤔 Uncertain (0.45), using LLM fallback
+   Context preview: - User: What are some best practices for training deep learning models?
+- User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell...
+   Prompt length: 663 chars
+   Full prompt:
+Previous conversation:
+- User: What are some best practices for training deep learning models?
+- User: How do transformers differ from traditional RNNs?
+- User: What's the purpose of dropout in neural networks?
+- User: Tell me about convolutional neural networks
+- User: What are some common activation functions and when to use them?
+
+New message:
+Can you explain gradient descent optimization?
+
+Is this a shift to an UNRELATED topic?
+
+Examples:
+- Mars rovers → Mars missions = No (same topic)
+- Italian pasta → French cuisine = No (related)
+- Cooking → Neural networks = Yes (unrelated)
+- Space travel → Programming = Yes (unrelated)
+
+Reply with only: Yes or No
+   ---End prompt---
+
+🔍 DEBUG: Topic change detection
+   Model: ollama/llama3
+   Recent messages: 10
+   New message preview: Can you explain gradient descent optimization?...
+   Topic params being used: {'temperature': 0.3, 'max_tokens': 50, 'top_p': 0.9, 'stop': []}
+[LLM API] Thread 8430968576: Call #32
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #32 completed in 0.29s
+[LLM API] Response length: 3 chars
+---
+   LLM response: Yes
+   Response type: <class 'str'>
+   Response length: 3
+⚠️  Topic detection JSON parsing failed: Expecting value: line 1 column 1 (char 0)
+   Raw response: Yes
+   Falling back to text parsing
+   ✅ Topic change detected (fallback: found 'yes' in response)
+   Topic change detected: True
+   New topic: None
+[LLM API] Thread 8430968576: Call #33
+[LLM API] Model: ollama/llama3 (stream=True)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:351 in query_with_context()
+[LLM API] Messages: 6 messages
+
+🔍 DEBUG: Topic change detected
+   New topic: None
+   Detection cost: $0.000000
+
+🤖 DEBUG: Streaming modes - char: True, natural: False, constant: False
+I'd be delighted to help you understand gradient descent optimization!
+
+Gradient descent is a popular optimization algorithm used in deep learning models to 
+minimize the loss function. Here's how it works:
+
+Step-by-Step Explanation:
+
+1. Initialize Parameters:
+
+DEBUG: Cost calculation failed: litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider you are trying to call. You passed model=llama3
+ Pass model as E.g. For 'Huggingface' inference endpoints pass in `completion(model='huggingface/starcoder',..)` Learn more: https://docs.litellm.ai/docs/providers
+Tokens: 395 | Cost: $0.000000 USD | Context: 4% full
+
+🔍 DEBUG: Analyzing topic boundary...
+
+🔍 DEBUG: Analyzing topic boundary
+   Analysis window: 9 messages
+   Detection point index: 19
+[LLM API] Thread 8430968576: Call #34
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #34 completed in 1.74s
+[LLM API] Response length: 212 chars
+---
+   Failed to parse boundary analysis: Expecting value: line 1 column 1 (char 0)
+   Raw response: After analyzing the conversation, I found that the topic actually changed at message index [4].
+
+Here's the response in JSON format:
+
+{
+  "boundary_index": 4,
+  "transition_type": "user_initiated",
+  "reasoning":
+   Building segment from 18 nodes (max_length=2000)
+   Stopping - would exceed max_length
+   Final segment length: 1744 chars
+
+🔍 DEBUG: Extracting name for previous topic 'cooking'
+   Topic has 18 nodes
+   Segment preview: user: How do I make a traditional marinara sauce?
+assistant: A classic question! Making a traditional marinara sauce is a staple of Italian cuisine. To create this iconic sauce, you'll need just a few...
+
+🔍 DEBUG: Topic extraction prompt:
+   Model: ollama/llama3
+   Prompt preview: Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+
+Examples:
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talki...
+[LLM API] Thread 8430968576: Call #35
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #35 completed in 0.75s
+[LLM API] Response length: 16 chars
+---
+   DEBUG: Raw topic extraction response: 'machine-learning'
+   DEBUG: Final topic name: 'machine-learning'
+   Extracted topic name: machine-learning
+   ✅ Updated topic name: 'cooking' → 'machine-learning' (1 rows)
+📥 Queued compression job for topic 'machine-learning'
+🔧 Processing compression job for topic 'machine-learning'
+   📦 Queued topic 'machine-learning' for compression
+🔧 Compressing topic 'machine-learning' from 6503e2e8-057e-4134-9a87-09a744d529e8 to df1592b4-18ce-49c0-ac2f-817b3ac67a89
+🔄 DEBUG: Current topic changed from 'cooking' to 'ongoing-1751280478'
+
+🔄 Topic changed
+
+
+🔍 DEBUG: Finalizing topic 'ongoing-1751280478'
+   Building segment from 2 nodes (max_length=2000)
+   Final segment length: 331 chars
+
+🔍 DEBUG: Topic extraction prompt:
+   Model: ollama/llama3
+   Prompt preview: Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+
+Examples:
+- Conversation about movies and directors → movies
+- Discussion of quantum physics concepts → quantum-physics
+- Debugging code and performance → programming
+- Talki...
+🔧 Found 18 nodes in topic segment
+[LLM API] Thread 8430968576: Call #36
+[LLM API] Model: ollama/llama3 (stream=False)
+[LLM API] Called from: /Users/mhcoen/proj/episodic/episodic/llm.py:297 in query_llm()
+[LLM API] Messages: 2 messages
+[LLM API] Cost calculated: $0.000000
+[LLM API] Thread 8430968576: Call #36 completed in 1.24s
+[LLM API] Response length: 16 chars
+---
+   DEBUG: Raw topic extraction response: 'gradient-descent'
+   DEBUG: Final topic name: 'gradient-descent'
+   ✅ Finalized topic: 'ongoing-1751280478' → 'gradient-descent' (1 rows)
+🔄 DEBUG: Current topic changed from 'ongoing-1751280478' to 'gradient-descent'
+
+──────────────────────────────────────────────────
+✅ Script execution completed
+> /topics
+
+📑 Conversation Topics (3 total)
+======================================================================
+
+[1] ✓ mars-rover
+    Created: 2025-06-30 10:47
+    Range: 02 → 0j (18 messages)
+    Confidence: initial
+
+[2] ✓ machine-learning
+    Created: 2025-06-30 10:47
+    Range: 0k → 11 (18 messages)
+
+[3] ○ gradient-descent
+    Created: 2025-06-30 10:47
+    Range: 12 → ongoing (2 messages)

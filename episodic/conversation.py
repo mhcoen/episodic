@@ -494,7 +494,7 @@ class ConversationManager:
             
             # Store topic detection scores for debugging (only if automatic detection is enabled)
             if config.get("automatic_topic_detection", True) and recent_nodes and len(recent_nodes) >= 2:
-                from episodic.db import store_topic_detection_scores, get_recent_topics
+                from episodic.db import store_topic_detection_scores
                 from episodic.topics import topic_manager
                 import json
                 

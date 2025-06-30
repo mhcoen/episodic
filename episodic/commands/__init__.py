@@ -8,7 +8,7 @@ This package contains all the command implementations, organized by functionalit
 from .navigation import (
     init, add, show, print_node, head, ancestry, list as list_nodes
 )
-from .settings import set, verify, cost, model_params
+from .settings import set, verify, cost, model_params, config_docs
 from .topics import topics, compress_current_topic
 from .topic_rename import rename_ongoing_topics
 from .compression import compress, compression_stats, compression_queue, api_call_stats, reset_api_stats
@@ -22,7 +22,7 @@ __all__ = [
     # Navigation commands
     'init', 'add', 'show', 'print_node', 'head', 'ancestry', 'list_nodes',
     # Settings commands
-    'set', 'verify', 'cost', 'model_params',
+    'set', 'verify', 'cost', 'model_params', 'config_docs',
     # Topic commands
     'topics', 'compress_current_topic', 'rename_ongoing_topics',
     # Compression commands

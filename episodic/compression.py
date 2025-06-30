@@ -65,7 +65,7 @@ class AsyncCompressionManager:
                 daemon=True
             )
             self.worker_thread.start()
-            if config.get('debug', False):
+            if config.get('debug'):
                 typer.echo("🔄 Background compression worker started")
     
     def stop(self):
@@ -75,7 +75,7 @@ class AsyncCompressionManager:
             # Add sentinel to wake up the worker
             self.compression_queue.put((float('inf'), None))
             self.worker_thread.join(timeout=5.0)
-            if config.get('debug', False):
+            if config.get('debug'):
                 typer.echo("🛑 Background compression worker stopped")
     
     def queue_compression(self, start_node_id: str, end_node_id: str, 
@@ -85,12 +85,12 @@ class AsyncCompressionManager:
         self.compression_queue.put((job.priority, job))
         self.stats['queue_size'] = self.compression_queue.qsize()
         
-        if config.get('debug', False):
+        if config.get('debug'):
             typer.echo(f"📥 Queued compression job for topic '{topic_name}'")
     
     def _compression_worker(self):
         """Background worker that processes compression jobs."""
-        if config.get('debug', False):
+        if config.get('debug'):
             typer.echo(f"🔧 Compression worker started")
         
         while not self.shutdown_event.is_set():
@@ -101,7 +101,7 @@ class AsyncCompressionManager:
                 if job is None:  # Sentinel value for shutdown
                     break
                 
-                if config.get('debug', False):
+                if config.get('debug'):
                     typer.echo(f"🔧 Processing compression job for topic '{job.topic_name}'")
                 
                 # Process the compression job
@@ -112,11 +112,11 @@ class AsyncCompressionManager:
                     job.attempts += 1
                     job.priority += 2  # Lower priority for retry
                     self.compression_queue.put((job.priority, job))
-                    if config.get('debug', False):
+                    if config.get('debug'):
                         typer.echo(f"🔄 Retrying compression for topic '{job.topic_name}' (attempt {job.attempts})")
                 elif not success:
                     self.stats['failed_compressions'] += 1
-                    if config.get('debug', False):
+                    if config.get('debug'):
                         typer.echo(f"❌ Failed to compress topic '{job.topic_name}' after 3 attempts")
                 
                 self.stats['queue_size'] = self.compression_queue.qsize()
@@ -124,7 +124,7 @@ class AsyncCompressionManager:
             except queue.Empty:
                 continue
             except Exception as e:
-                if config.get('debug', False):
+                if config.get('debug'):
                     typer.echo(f"⚠️  Compression worker error: {e}")
     
     def _compress_topic_segment(self, job: CompressionJob) -> bool:
@@ -135,18 +135,18 @@ class AsyncCompressionManager:
             True if compression succeeded, False otherwise
         """
         try:
-            if config.get('debug', False):
+            if config.get('debug'):
                 typer.echo(f"🔧 Compressing topic '{job.topic_name}' from {job.start_node_id} to {job.end_node_id}")
             
             # Get nodes in the topic segment
             nodes = self._get_topic_nodes(job.start_node_id, job.end_node_id)
             
-            if config.get('debug', False):
+            if config.get('debug'):
                 typer.echo(f"🔧 Found {len(nodes)} nodes in topic segment")
             
             if len(nodes) < config.get('compression_min_nodes', 5):
                 # Skip compression for very short topics
-                if config.get('debug', False):
+                if config.get('debug'):
                     typer.echo(f"🔧 Skipping compression - only {len(nodes)} nodes (min: {config.get('compression_min_nodes', 5)})")
                 return True
             
@@ -207,7 +207,7 @@ Concise summary:"""
             return True
             
         except Exception as e:
-            if config.get('debug', False):
+            if config.get('debug'):
                 typer.echo(f"⚠️  Compression error for topic '{job.topic_name}': {e}")
             return False
     
@@ -218,7 +218,7 @@ Concise summary:"""
             end_ancestry = get_ancestry(end_node_id)
             
             if not end_ancestry:
-                if config.get('debug', False):
+                if config.get('debug'):
                     typer.echo(f"⚠️  No ancestry found for end node: {end_node_id}")
                 return []
             
@@ -233,12 +233,12 @@ Concise summary:"""
                 if node['id'] == end_node_id:
                     break
             
-            if config.get('debug', False) and not collecting:
+            if config.get('debug') and not collecting:
                 typer.echo(f"⚠️  Start node {start_node_id} not found in ancestry of {end_node_id}")
             
             return nodes
         except Exception as e:
-            if config.get('debug', False):
+            if config.get('debug'):
                 typer.echo(f"⚠️  Error getting topic nodes: {e}")
             return []
     

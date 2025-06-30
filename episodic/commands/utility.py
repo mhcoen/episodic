@@ -55,6 +55,8 @@ def help():
     commands = [
         ("/set [param] [value]", "Configure parameters"),
         ("/verify", "Verify database and configuration"),
+        ("/config-docs", "Show configuration documentation"),
+        ("/model-params [set]", "Show/set model parameters"),
         ("/benchmark", "Show performance statistics"),
     ]
     

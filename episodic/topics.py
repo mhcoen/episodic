@@ -21,6 +21,7 @@ from episodic.db import (
 )
 from episodic.llm import query_llm
 from episodic.config import config
+from episodic.config_defaults import TOPIC_THRESHOLD_BEHAVIOR
 from episodic.prompt_manager import PromptManager
 from episodic.compression import queue_topic_for_compression
 from episodic.benchmark import benchmark_resource
@@ -69,15 +70,18 @@ class TopicManager:
                 
                 # Skip topic detection if current topic has fewer than threshold messages
                 # But allow detection if we have many topics already (to avoid one giant topic)
-                min_messages_before_change = config.get('min_messages_before_topic_change', 8)
+                min_messages_before_change = config.get('min_messages_before_topic_change')
                 total_topics = len(get_recent_topics(limit=100))
                 
                 # Apply dynamic threshold based on number of topics
-                # First 2 topics use half threshold to allow easier topic creation
+                # First N topics use reduced threshold to allow easier topic creation
                 # Subsequent topics use full threshold to prevent over-segmentation
-                if total_topics <= 2:
-                    # For the first two topics, use half the threshold (min 4)
-                    effective_min = max(4, min_messages_before_change // 2)
+                first_n = TOPIC_THRESHOLD_BEHAVIOR['first_n_topics']
+                reduction_factor = TOPIC_THRESHOLD_BEHAVIOR['reduced_threshold_factor']
+                
+                if total_topics <= first_n:
+                    # For the first N topics, use reduced threshold
+                    effective_min = max(4, int(min_messages_before_change * reduction_factor))
                 else:
                     # For subsequent topics, use the full threshold
                     effective_min = min_messages_before_change
@@ -91,7 +95,7 @@ class TopicManager:
                 # Count total user messages in the conversation
                 user_messages = [msg for msg in recent_messages if msg.get('role') == 'user']
                 total_user_messages = len(user_messages)
-                min_messages = config.get('min_messages_before_topic_change', 8)
+                min_messages = config.get('min_messages_before_topic_change')
                 
                 if total_user_messages < min_messages:
                     if config.get("debug", False):

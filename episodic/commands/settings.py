@@ -441,23 +441,32 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.secho(f"Failed to set {param}: {e}", fg="red")
 
     else:
-        typer.echo(f"Unknown parameter: {param}")
-        typer.secho("\nAvailable parameters:", fg=get_heading_color())
-        typer.secho("  Conversation: ", nl=False, fg=get_heading_color())
-        typer.secho("depth, cache", fg=get_system_color())
-        typer.secho("  Display: ", nl=False, fg=get_heading_color())
-        typer.secho("color, wrap, stream, stream_rate, stream_constant_rate, cost, topics", fg=get_system_color())
-        typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
-        typer.secho("drift, semdepth", fg=get_system_color())
-        typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
-        typer.secho("automatic_topic_detection, topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
-        typer.secho("  Performance: ", nl=False, fg=get_heading_color())
-        typer.secho("benchmark, benchmark_display", fg=get_system_color())
-        typer.secho("  Model Parameters: ", nl=False, fg=get_heading_color())
-        typer.secho("main.temp, topic.temp, comp.temp (see /model-params)", fg=get_system_color())
-        typer.secho("  Debugging: ", nl=False, fg=get_heading_color())
-        typer.secho("debug", fg=get_system_color())
-        typer.echo("Use 'set' without arguments to see all parameters and their current values")
+        # Try to set it as a general config parameter
+        try:
+            config.set(param, value)
+            typer.echo(f"Set {param} to {value}")
+            # Show documentation if available
+            doc = config.get_doc(param)
+            if doc != "No documentation available":
+                typer.secho(f"  ({doc})", fg=get_text_color())
+        except:
+            typer.echo(f"Unknown parameter: {param}")
+            typer.secho("\nAvailable parameters:", fg=get_heading_color())
+            typer.secho("  Conversation: ", nl=False, fg=get_heading_color())
+            typer.secho("depth, cache", fg=get_system_color())
+            typer.secho("  Display: ", nl=False, fg=get_heading_color())
+            typer.secho("color, wrap, stream, stream_rate, stream_constant_rate, cost, topics", fg=get_system_color())
+            typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
+            typer.secho("drift, semdepth", fg=get_system_color())
+            typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
+            typer.secho("automatic_topic_detection, topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
+            typer.secho("  Performance: ", nl=False, fg=get_heading_color())
+            typer.secho("benchmark, benchmark_display", fg=get_system_color())
+            typer.secho("  Model Parameters: ", nl=False, fg=get_heading_color())
+            typer.secho("main.temp, topic.temp, comp.temp (see /model-params)", fg=get_system_color())
+            typer.secho("  Debugging: ", nl=False, fg=get_heading_color())
+            typer.secho("debug", fg=get_system_color())
+            typer.echo("Use 'set' without arguments to see all parameters and their current values")
 
 
 def verify():
@@ -612,6 +621,46 @@ def model_params(param_set: Optional[str] = None):
         typer.secho("            # Reset main parameters to defaults", fg=get_text_color())
         typer.secho("  /model-params main", nl=False, fg=get_system_color())
         typer.secho("         # View only main parameters", fg=get_text_color())
+
+
+def config_docs():
+    """Show documentation for all configuration parameters."""
+    typer.secho("\n📚 Configuration Documentation", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 60, fg=get_heading_color())
+    
+    # Group parameters by category
+    categories = {
+        "Core Settings": ["active_prompt", "debug", "show_cost", "show_drift"],
+        "Topic Detection": [
+            "automatic_topic_detection", "auto_compress_topics", 
+            "min_messages_before_topic_change", "running_topic_guess",
+            "show_topics", "analyze_topic_boundaries", "use_llm_boundary_analysis",
+            "manual_index_window_size", "manual_index_threshold"
+        ],
+        "Streaming": [
+            "stream_responses", "stream_rate", "stream_constant_rate"
+        ],
+        "Model Parameters": ["main_params", "topic_params", "compression_params"]
+    }
+    
+    for category, params in categories.items():
+        typer.secho(f"\n{category}:", fg=get_heading_color(), bold=True)
+        for param in params:
+            doc = config.get_doc(param)
+            value = config.get(param, "not set")
+            if isinstance(value, dict):
+                value_str = "<dict>"
+            elif isinstance(value, list):
+                value_str = "<list>"
+            else:
+                value_str = str(value)
+            
+            typer.secho(f"  {param}: ", nl=False, fg=get_text_color())
+            typer.secho(f"{value_str}", fg=get_system_color())
+            if doc != "No documentation available":
+                typer.secho(f"    → {doc}", fg=get_text_color())
+    
+    typer.secho("\nUse '/set <parameter> <value>' to change settings", fg=get_text_color())
 
 
 def cost():

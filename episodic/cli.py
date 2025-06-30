@@ -35,7 +35,7 @@ from episodic.commands import (
     # Navigation
     init, add, show, print_node, head, ancestry, list_nodes,
     # Settings
-    set, verify, cost, model_params,
+    set, verify, cost, model_params, config_docs,
     # Topics
     topics, compress_current_topic, rename_ongoing_topics,
     # Compression
@@ -95,7 +95,7 @@ def handle_chat_message(user_input: str) -> None:
         
     except Exception as e:
         typer.secho(f"Error querying LLM: {str(e)}", fg="red")
-        if config.get("debug", False):
+        if config.get("debug"):
             import traceback
             traceback.print_exc()
 
@@ -190,6 +190,9 @@ def handle_command(command_str: str) -> bool:
         elif cmd == "/model-params" or cmd == "/mp":
             param_set = args[0] if args else None
             model_params(param_set)
+        
+        elif cmd == "/config-docs":
+            config_docs()
         
         # Topic commands
         elif cmd == "/topics":
@@ -318,7 +321,7 @@ def handle_command(command_str: str) -> bool:
     
     except Exception as e:
         typer.secho(f"Error executing command: {str(e)}", fg="red")
-        if config.get("debug", False):
+        if config.get("debug"):
             import traceback
             traceback.print_exc()
     
@@ -441,7 +444,7 @@ def save_to_history(message: str):
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write(f"[{timestamp}] {message}\n")
     except Exception as e:
-        if config.get("debug", False):
+        if config.get("debug"):
             typer.secho(f"Failed to save to history: {e}", fg="red", err=True)
 
 
@@ -460,7 +463,7 @@ def setup_environment():
         conversation_manager.system_prompt = prompt_data['content']
     
     # Start auto-compression if enabled
-    if config.get("auto_compress_topics", True):
+    if config.get("auto_compress_topics"):
         start_auto_compression()
     
     # Reset benchmarks for new session
@@ -582,7 +585,7 @@ def talk_loop() -> None:
             break
         except Exception as e:
             typer.secho(f"Error: {str(e)}", fg="red")
-            if config.get("debug", False):
+            if config.get("debug"):
                 import traceback
                 traceback.print_exc()
 

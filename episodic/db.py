@@ -4,7 +4,7 @@ import os
 import threading
 import contextlib
 import logging
-from typing import Optional
+from typing import Optional, List, Dict, Any, Tuple, Union
 from .configuration import (
     DATABASE_FILENAME, MAX_DATABASE_RETRIES, FALLBACK_ID_LENGTH,
     MIN_SHORT_ID_LENGTH, SHORT_ID_MAX_LENGTH, ID_CHARSET
@@ -264,6 +264,34 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 
                 FOREIGN KEY(user_node_id) REFERENCES nodes(id),
                 FOREIGN KEY(actual_transition_node_id) REFERENCES nodes(id)
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS manual_index_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_node_short_id TEXT NOT NULL UNIQUE,  -- Short ID of node at start of Window B
+                window_size INTEGER NOT NULL,
+                
+                -- Window information
+                window_a_start_short_id TEXT,
+                window_a_end_short_id TEXT,
+                window_a_size INTEGER NOT NULL,
+                window_b_start_short_id TEXT,  -- Same as user_node_short_id
+                window_b_end_short_id TEXT,
+                window_b_size INTEGER NOT NULL,
+                
+                -- Scores
+                drift_score REAL NOT NULL,
+                keyword_score REAL NOT NULL,
+                combined_score REAL NOT NULL,
+                
+                -- Detection result
+                is_boundary BOOLEAN NOT NULL,
+                transition_phrase TEXT,
+                
+                -- Metadata
+                detection_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                threshold_used REAL
             )
         """)
         conn.commit()
@@ -1139,5 +1167,83 @@ def get_topic_detection_scores(user_node_id: str = None, limit: int = 100):
             results.append(record)
         
         return results
+
+
+def store_manual_index_score(
+    user_node_short_id: str,
+    window_size: int,
+    window_a_start_short_id: str,
+    window_a_end_short_id: str,
+    window_a_size: int,
+    window_b_end_short_id: str,
+    window_b_size: int,
+    drift_score: float,
+    keyword_score: float,
+    combined_score: float,
+    is_boundary: bool,
+    transition_phrase: Optional[str] = None,
+    threshold_used: Optional[float] = None
+) -> None:
+    """Store manual index detection scores for a user node."""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT OR REPLACE INTO manual_index_scores (
+                user_node_short_id, window_size,
+                window_a_start_short_id, window_a_end_short_id, window_a_size,
+                window_b_start_short_id, window_b_end_short_id, window_b_size,
+                drift_score, keyword_score, combined_score,
+                is_boundary, transition_phrase, threshold_used
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_node_short_id, window_size,
+            window_a_start_short_id, window_a_end_short_id, window_a_size,
+            user_node_short_id, window_b_end_short_id, window_b_size,
+            drift_score, keyword_score, combined_score,
+            is_boundary, transition_phrase, threshold_used
+        ))
+        conn.commit()
+
+
+def get_manual_index_scores(window_size: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Get manual index scores, optionally filtered by window size."""
+    with get_connection() as conn:
+        c = conn.cursor()
+        
+        if window_size:
+            c.execute("""
+                SELECT m.*, n.content
+                FROM manual_index_scores m
+                JOIN nodes n ON n.short_id = m.user_node_short_id
+                WHERE m.window_size = ?
+                ORDER BY n.ROWID
+            """, (window_size,))
+        else:
+            c.execute("""
+                SELECT m.*, n.content
+                FROM manual_index_scores m
+                JOIN nodes n ON n.short_id = m.user_node_short_id
+                ORDER BY n.ROWID
+            """)
+        
+        columns = [desc[0] for desc in c.description]
+        rows = c.fetchall()
+        
+        results = []
+        for row in rows:
+            record = {}
+            for i, col in enumerate(columns):
+                record[col] = row[i]
+            results.append(record)
+        
+        return results
+
+
+def clear_manual_index_scores() -> None:
+    """Clear all manual index scores."""
+    with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM manual_index_scores")
+        conn.commit()
 
 

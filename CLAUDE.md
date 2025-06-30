@@ -224,3 +224,27 @@ coverage report -m
 - HTTP polling-based real-time functionality verification
 - Prompt management system with role-based prompts in `prompts/` directory
 - Configuration stored in episodic.db alongside conversation data
+
+### Future Development Plans
+
+#### Immediate: Codebase Cleanup
+- **Codebase Cleanup**: See `CLEANUP_PLAN.md` for detailed 8-PR cleanup plan
+  - PR #1: File organization - move test/analysis scripts to proper directories
+  - PR #2: Configuration consolidation - unified settings management
+  - PR #3: Topic detection module restructure - clear module organization
+  - PR #4: Database schema cleanup - rename tables, add indexes
+  - PR #5: Command consolidation - unified topic management
+  - PR #6: Test infrastructure - organized test suite
+  - PR #7: Dead code removal - remove deprecated functions
+  - PR #8: Documentation update - accurate system representation
+
+#### Next: Adaptive Topic Detection
+- **Adaptive Topic Detection**: See `ADAPTIVE_TOPIC_DETECTION_PLAN.md` for detailed implementation plan
+  - Enable dynamic context management when users return to previous topics
+  - Support non-linear DAG-based conversations with branching
+  - Implement with graceful failure and progressive enhancement
+  - Phase 1: Foundation and embedding infrastructure
+  - Phase 2: Passive suggestions for topic similarity
+  - Phase 3: Smart context inclusion
+  - Phase 4: Topic return detection
+  - Phase 5: Progressive DAG branching

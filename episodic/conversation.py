@@ -90,7 +90,7 @@ class ConversationManager:
         """Set the current topic."""
         old_topic = self.current_topic
         self.current_topic = (topic_name, start_node_id)
-        if config.get("debug", False):
+        if config.get("debug"):
             if old_topic:
                 typer.echo(f"🔄 DEBUG: Current topic changed from '{old_topic[0]}' to '{topic_name}'")
             else:
@@ -105,6 +105,10 @@ class ConversationManager:
         Finalize the current topic by giving it a proper name if it has a placeholder name.
         This is called when the conversation ends or when explicitly requested.
         """
+        # Only finalize topics if automatic topic detection is enabled
+        if not config.get("automatic_topic_detection"):
+            return
+            
         # If current_node_id is not set, try to get it from the database
         if not self.current_node_id:
             self.current_node_id = get_head()
@@ -122,7 +126,7 @@ class ConversationManager:
             return  # Already has a proper name
             
         # Extract topic name from the conversation
-        if config.get("debug", False):
+        if config.get("debug"):
             typer.echo(f"\n🔍 DEBUG: Finalizing topic '{current_topic['name']}'")
             
         # Get nodes in the topic
@@ -165,7 +169,7 @@ class ConversationManager:
                     topic_name
                 )
                 
-                if config.get("debug", False):
+                if config.get("debug"):
                     typer.echo(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)")
                     
                 # Update current topic reference
@@ -186,7 +190,7 @@ class ConversationManager:
                 if not topic.get('end_node_id'):
                     # This topic is still ongoing
                     self.set_current_topic(topic['name'], topic['start_node_id'])
-                    if config.get("debug", False):
+                    if config.get("debug"):
                         typer.echo(f"🔍 DEBUG: Resuming ongoing topic '{topic['name']}'")
                     return
             
@@ -222,12 +226,12 @@ class ConversationManager:
                             # If we found current between start and end (or no end), this is our topic
                             if current_found and (not end_id or not end_found):
                                 self.set_current_topic(topic['name'], topic['start_node_id'])
-                                if config.get("debug", False):
+                                if config.get("debug"):
                                     typer.echo(f"🔍 DEBUG: Current node is in topic '{topic['name']}'")
                                 return
             
             # No active topic found
-            if config.get("debug", False):
+            if config.get("debug"):
                 typer.echo("🔍 DEBUG: No active topic found for current head node")
     
     def get_wrap_width(self) -> int:
@@ -241,7 +245,7 @@ class ConversationManager:
     def wrapped_text_print(self, text: str, **typer_kwargs) -> None:
         """Print text with automatic wrapping while preserving formatting."""
         # Check if wrapping is enabled
-        if not config.get("text_wrap", True):
+        if not config.get("text_wrap"):
             typer.secho(str(text), **typer_kwargs)
             return
         
@@ -300,7 +304,7 @@ class ConversationManager:
     def get_drift_calculator(self) -> Optional[ConversationalDrift]:
         """Get or create the drift calculator instance."""
         # Check if drift detection is disabled in config
-        if not config.get("show_drift", True):
+        if not config.get("show_drift"):
             return None
             
         if self.drift_calculator is None:
@@ -309,7 +313,7 @@ class ConversationManager:
             except Exception as e:
                 # If drift calculator fails to initialize (e.g., missing dependencies),
                 # disable drift detection for this session
-                if config.get("debug", False):
+                if config.get("debug"):
                     typer.echo(f"⚠️  Drift detection disabled: {e}")
                 self.drift_calculator = False  # Mark as disabled
         return self.drift_calculator if self.drift_calculator is not False else None
@@ -370,7 +374,7 @@ class ConversationManager:
             
             # Need at least 2 user messages for comparison
             if len(user_messages) < 2:
-                if config.get("debug", False):
+                if config.get("debug"):
                     typer.echo(f"   (Need 2 user messages for drift, have {len(user_messages)})")
                 return
             
@@ -400,7 +404,7 @@ class ConversationManager:
             typer.secho(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_system_color())
             
             # Show additional context if debug mode is enabled
-            if config.get("debug", False):
+            if config.get("debug"):
                 prev_content = previous_user.get("content", "")[:80]
                 curr_content = current_user.get("content", "")[:80]
                 typer.echo(f"   Previous: {prev_content}{'...' if len(previous_user.get('content', '')) > 80 else ''}")
@@ -412,7 +416,7 @@ class ConversationManager:
             
         except Exception as e:
             # If drift calculation fails, silently continue (don't disrupt conversation flow)
-            if config.get("debug", False):
+            if config.get("debug"):
                 typer.echo(f"⚠️  Drift calculation error: {e}")
     
     def handle_chat_message(
@@ -451,18 +455,18 @@ class ConversationManager:
             topic_cost_info = None
             
             # Check if automatic topic detection is enabled
-            if config.get("automatic_topic_detection", True):
-                if config.get("debug", False):
+            if config.get("automatic_topic_detection"):
+                if config.get("debug"):
                     typer.echo(f"\n🔍 DEBUG: Topic detection check")
                     typer.echo(f"   Recent nodes count: {len(recent_nodes) if recent_nodes else 0}")
                     typer.echo(f"   Current topic: {self.current_topic}")
-                    typer.echo(f"   Min messages before topic change: {config.get('min_messages_before_topic_change', 4)}")
+                    typer.echo(f"   Min messages before topic change: {config.get('min_messages_before_topic_change')}")
                 
                 if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
                     try:
                         with benchmark_operation("Topic Detection"):
                             # Use hybrid detection if enabled
-                            if config.get("use_hybrid_topic_detection", False):
+                            if config.get("use_hybrid_topic_detection"):
                                 from episodic.topics_hybrid import detect_topic_change_hybrid
                                 topic_changed, new_topic_name, topic_cost_info = detect_topic_change_hybrid(
                                     recent_nodes,
@@ -475,25 +479,25 @@ class ConversationManager:
                                     user_input,
                                     current_topic=self.current_topic
                                 )
-                            if config.get("debug", False):
+                            if config.get("debug"):
                                 typer.echo(f"   Topic change detected: {topic_changed}")
                                 if topic_changed:
                                     typer.echo(f"   New topic: {new_topic_name}")
                     except Exception as e:
-                        if config.get("debug", False):
+                        if config.get("debug"):
                             typer.echo(f"   ❌ Topic detection error: {e}")
                         # Continue without topic detection on error
                         topic_changed = False
                 else:
-                    if config.get("debug", False):
+                    if config.get("debug"):
                         typer.echo("   ⚠️  Not enough history for topic detection")
             else:
                 # Automatic topic detection is disabled
-                if config.get("debug", False):
+                if config.get("debug"):
                     typer.echo("\n🔍 DEBUG: Automatic topic detection is disabled")
             
             # Store topic detection scores for debugging (only if automatic detection is enabled)
-            if config.get("automatic_topic_detection", True) and recent_nodes and len(recent_nodes) >= 2:
+            if config.get("automatic_topic_detection") and recent_nodes and len(recent_nodes) >= 2:
                 from episodic.db import store_topic_detection_scores
                 from episodic.topics import topic_manager
                 import json
@@ -561,7 +565,7 @@ class ConversationManager:
                 try:
                     store_topic_detection_scores(**scores_data)
                 except Exception as e:
-                    if config.get("debug", False):
+                    if config.get("debug"):
                         typer.echo(f"   ⚠️  Failed to store topic detection scores: {e}")
             
             # Add topic detection costs to session
@@ -573,7 +577,7 @@ class ConversationManager:
             
             # Store debug info to display later
             debug_topic_info = None
-            if config.get("debug", False) and topic_changed:
+            if config.get("debug") and topic_changed:
                 debug_topic_info = (new_topic_name, topic_cost_info)
 
             # Query the LLM with context
@@ -594,7 +598,7 @@ class ConversationManager:
                         )
                         
                         # Calculate and display semantic drift if enabled (before streaming)
-                        if config.get("show_drift", True):
+                        if config.get("show_drift"):
                             self.display_semantic_drift(user_node_id)
                         
                         # Display debug topic info if it was stored
@@ -621,7 +625,7 @@ class ConversationManager:
                         use_natural_rhythm = config.get("stream_natural_rhythm", False)
                         use_char_streaming = config.get("stream_char_mode", False)
                         
-                        if config.get("debug", False):
+                        if config.get("debug"):
                             typer.echo(f"DEBUG: Streaming modes - char: {use_char_streaming}, natural: {use_natural_rhythm}, constant: {use_constant_rate}")
                         
                         if False:  # Disabled character streaming
@@ -687,7 +691,7 @@ class ConversationManager:
                                             lines = current_line.split('\n')
                                             # Print all complete lines
                                             for line in lines[:-1]:
-                                                if config.get("text_wrap", True):
+                                                if config.get("text_wrap"):
                                                     wrap_width = self.get_wrap_width()
                                                     if len(line) > wrap_width:
                                                         wrapped = textwrap.fill(
@@ -787,7 +791,7 @@ class ConversationManager:
                                             lines = current_line.split('\n')
                                             # Print all complete lines
                                             for line in lines[:-1]:
-                                                if config.get("text_wrap", True):
+                                                if config.get("text_wrap"):
                                                     wrap_width = self.get_wrap_width()
                                                     if len(line) > wrap_width:
                                                         wrapped = textwrap.fill(
@@ -860,7 +864,7 @@ class ConversationManager:
                             # Default streaming with word wrap and bold support
                             current_word = ""
                             current_position = 0
-                            wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
+                            wrap_width = self.get_wrap_width() if config.get("text_wrap") else None
                             in_bold = False
                             bold_count = 0
                             line_start = True
@@ -1046,7 +1050,7 @@ class ConversationManager:
                         display_response = response
                         
                         # Calculate and display semantic drift if enabled
-                        if config.get("show_drift", True):
+                        if config.get("show_drift"):
                             self.display_semantic_drift(user_node_id)
                         
                         # Display debug topic info if it was stored
@@ -1113,8 +1117,8 @@ class ConversationManager:
                 with benchmark_resource("Database", "set head"):
                     set_head(assistant_node_id)
                 
-                # Process topic changes based on our earlier detection
-                if topic_changed:
+                # Process topic changes based on our earlier detection (only if automatic detection is enabled)
+                if config.get("automatic_topic_detection") and topic_changed:
                     # Topic change detected - close previous topic and start new one
                     # Use current_topic to identify which topic to close
                     if self.current_topic:
@@ -1147,7 +1151,7 @@ class ConversationManager:
                             
                             # If previous topic doesn't have enough messages, don't create new topic
                             if user_messages_in_prev < effective_min:
-                                if config.get("debug", False):
+                                if config.get("debug"):
                                     typer.echo(f"\n🔍 DEBUG: Not creating new topic - previous topic has only {user_messages_in_prev} user messages (min: {effective_min})")
                                 topic_changed = False
                                 # Continue with the current topic
@@ -1159,7 +1163,7 @@ class ConversationManager:
                                 
                                 # Check if boundary analysis is enabled (default: True)
                                 if config.get("analyze_topic_boundaries", True):
-                                    if config.get("debug", False):
+                                    if config.get("debug"):
                                         typer.echo(f"\n🔍 DEBUG: Analyzing topic boundary...")
                                     
                                     # Get recent conversation history for analysis
@@ -1184,7 +1188,7 @@ class ConversationManager:
                                         
                                         if boundary_result:
                                             actual_boundary = boundary_result
-                                            if config.get("debug", False):
+                                            if config.get("debug"):
                                                 typer.echo(f"   Found actual boundary: {actual_boundary} (type: {transition_type})")
                                     else:
                                         # Use heuristic-based analysis (no LLM)
@@ -1194,7 +1198,7 @@ class ConversationManager:
                                         )
                                         if heuristic_boundary:
                                             actual_boundary = heuristic_boundary
-                                            if config.get("debug", False):
+                                            if config.get("debug"):
                                                 typer.echo(f"   Found heuristic boundary: {actual_boundary}")
                                 
                                 # Extract the topic name from the previous topic's content
@@ -1213,7 +1217,7 @@ class ConversationManager:
                                                 break
                                         break
                             
-                                if config.get("debug", False) and not found_start:
+                                if config.get("debug") and not found_start:
                                     typer.echo(f"   WARNING: Start node {previous_topic['start_node_id']} not found in ancestry")
                                 
                                 # Build conversation segment from the previous topic
@@ -1221,7 +1225,7 @@ class ConversationManager:
                                     segment = build_conversation_segment(topic_nodes, max_length=2000)
                                 
                                     
-                                    if config.get("debug", False):
+                                    if config.get("debug"):
                                         typer.echo(f"\n🔍 DEBUG: Extracting name for previous topic '{previous_topic['name']}'")
                                         typer.echo(f"   Topic has {len(topic_nodes)} nodes")
                                         typer.echo(f"   Segment preview: {segment[:200]}...")
@@ -1237,19 +1241,19 @@ class ConversationManager:
                                         self.session_costs["total_tokens"] += extract_cost_info.get("total_tokens", 0)
                                         self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
                                     
-                                    if config.get("debug", False):
+                                    if config.get("debug"):
                                         typer.echo(f"   Extracted topic name: {topic_name if topic_name else 'None (extraction failed)'}")
                                     
                                     final_topic_name = topic_name if topic_name else previous_topic['name']
                                 else:
-                                    if config.get("debug", False):
+                                    if config.get("debug"):
                                         typer.echo(f"   WARNING: No topic nodes found for '{previous_topic['name']}'")
                                     final_topic_name = previous_topic['name']
                                 
                                 # Update the topic name if it changed
                                 if final_topic_name != previous_topic['name']:
                                     rows_updated = update_topic_name(previous_topic['name'], previous_topic['start_node_id'], final_topic_name)
-                                    if config.get("debug", False):
+                                    if config.get("debug"):
                                         typer.echo(f"   ✅ Updated topic name: '{previous_topic['name']}' → '{final_topic_name}' ({rows_updated} rows)")
                                 
                                 # Update the previous topic's end node
@@ -1257,7 +1261,7 @@ class ConversationManager:
                                 
                                 # Queue the old topic for compression
                                 queue_topic_for_compression(previous_topic['start_node_id'], actual_boundary, final_topic_name)
-                                if config.get("debug", False):
+                                if config.get("debug"):
                                     typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
                     else:
                         # No previous topics exist - this is the first topic change
@@ -1314,7 +1318,7 @@ class ConversationManager:
                                         # Build segment from the initial conversation
                                         segment = build_conversation_segment(nodes, max_length=2000)
                                         
-                                        if config.get("debug", False):
+                                        if config.get("debug"):
                                             typer.echo(f"\n🔍 DEBUG: Creating topic for initial conversation:")
                                             typer.echo(f"   From node {first_user_short_id} to {parent_node_id}")
                                             typer.echo(f"   Conversation preview: {segment[:200]}...")
@@ -1369,10 +1373,10 @@ class ConversationManager:
                         if current_topic:
                             topic_name, start_node_id = current_topic
                             # For ongoing topics, we don't update end_node_id - it should stay NULL
-                            if config.get("debug", False):
+                            if config.get("debug"):
                                 typer.echo(f"🔍 DEBUG: Topic '{topic_name}' continues (topic change cancelled)")
-                else:
-                    # No topic change - extend the current topic if one exists
+                elif config.get("automatic_topic_detection"):
+                    # No topic change - extend the current topic if one exists (only if automatic detection is enabled)
                     current_topic = self.get_current_topic()
                     if current_topic:
                         topic_name, start_node_id = current_topic
@@ -1384,7 +1388,7 @@ class ConversationManager:
                                 topic_exists = True
                                 # Check if this topic was already closed
                                 if t.get('end_node_id') and t['end_node_id'] != assistant_node_id:
-                                    if config.get("debug", False):
+                                    if config.get("debug"):
                                         typer.echo(f"🔍 DEBUG: Current topic '{topic_name}' was already closed at {t['end_node_id']}, cannot extend")
                                     # Clear the stale current topic
                                     self.current_topic = None
@@ -1394,7 +1398,7 @@ class ConversationManager:
                         if topic_exists:
                             # For ongoing topics, we don't update end_node_id - it should stay NULL
                             # The topic automatically includes all nodes from start until it's closed
-                            if config.get("debug", False):
+                            if config.get("debug"):
                                 typer.echo(f"🔍 DEBUG: Topic '{topic_name}' continues (ongoing)")
                             
                             # Check if this topic needs renaming (if it has a placeholder name)
@@ -1424,7 +1428,7 @@ class ConversationManager:
                                         # Build segment and extract name
                                         segment = build_conversation_segment(topic_nodes, max_length=1500)
                                         
-                                        if config.get("debug", False):
+                                        if config.get("debug"):
                                             typer.echo(f"\n🔍 DEBUG: Auto-extracting name for topic '{topic_name}'")
                                             typer.echo(f"   Messages in topic: {user_messages}")
                                         
@@ -1436,17 +1440,17 @@ class ConversationManager:
                                             if rows > 0:
                                                 # Update our current topic reference
                                                 self.set_current_topic(topic_extracted, start_node_id)
-                                                if config.get("debug", False):
+                                                if config.get("debug"):
                                                     typer.echo(f"   ✅ Auto-renamed topic: '{topic_name}' → '{topic_extracted}'")
                                             else:
-                                                if config.get("debug", False):
+                                                if config.get("debug"):
                                                     typer.echo(f"   ⚠️  Failed to rename topic")
                         else:
-                            if config.get("debug", False):
+                            if config.get("debug"):
                                 typer.echo(f"🔍 DEBUG: Current topic '{topic_name}' no longer exists or is closed")
-                    else:
-                        # No topics exist yet and no topic change detected
-                        if config.get("debug", False):
+                    elif config.get("automatic_topic_detection"):
+                        # No topics exist yet and no topic change detected (only check if automatic detection is enabled)
+                        if config.get("debug"):
                             typer.echo(f"🔍 DEBUG: No current topic set, checking if we need to create first topic...")
                         
                         # Check if ANY topics exist in the database
@@ -1533,11 +1537,11 @@ class ConversationManager:
                                     self.session_costs["total_cost_usd"] += extract_cost_info.get("cost_usd", 0.0)
                             else:
                                 # Not enough messages to create initial topic yet
-                                if config.get("debug", False):
+                                if config.get("debug"):
                                     typer.echo("🔍 DEBUG: Skipping initial topic creation - not enough messages yet")
                         else:
                             # Topics exist but no change detected - should have extended existing topic above
-                            if config.get("debug", False):
+                            if config.get("debug"):
                                 typer.echo("🔍 DEBUG: No topic change detected, continuing conversation")
             
                 # Show topic evolution if enabled (after topic detection)

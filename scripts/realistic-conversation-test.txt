@@ -1,0 +1,91 @@
+# Realistic Conversation Test - Natural Topic Flow
+# This script simulates a natural conversation with clear topic transitions
+
+# Topic 1: Planning a vacation
+I'm thinking about planning a vacation for next month. What are some good destinations for a relaxing beach holiday?
+
+What's the best time of year to visit the Maldives?
+
+Are there any budget-friendly alternatives to the Maldives that still offer beautiful beaches and clear water?
+
+How far in advance should I book flights to get the best deals?
+
+What travel insurance would you recommend for international trips?
+
+# Topic 2: Learning programming
+I want to start learning programming. Which language would you recommend for a complete beginner?
+
+What's the difference between Python and JavaScript for beginners?
+
+Can you explain what variables are in programming?
+
+How do loops work in Python?
+
+What are some good beginner programming projects I could start with?
+
+Should I learn about databases early on or focus on programming basics first?
+
+# Topic 3: Home cooking and recipes
+I'm trying to eat healthier and cook more at home. What are some easy nutritious meals for beginners?
+
+What kitchen tools are essential for someone just starting to cook?
+
+How do I know when chicken is fully cooked?
+
+What's the difference between sautéing and stir-frying?
+
+Can you give me a simple recipe for a vegetable stir-fry?
+
+What are some good meal prep strategies for busy weekdays?
+
+# Topic 4: Fitness and exercise
+I want to start exercising regularly. What's a good workout routine for beginners?
+
+How many days per week should a beginner work out?
+
+What's the difference between cardio and strength training?
+
+Should I stretch before or after working out?
+
+What are some effective bodyweight exercises I can do at home?
+
+How important is rest between workout days?
+
+# Topic 5: Personal finance
+I'm trying to get better at managing my money. What's a good budgeting method for beginners?
+
+How much should I aim to save from each paycheck?
+
+What's the difference between a savings account and a checking account?
+
+When should someone start investing?
+
+What are index funds and are they good for beginners?
+
+How can I improve my credit score?
+
+# Topic 6: Plant care and gardening
+I want to start growing some plants at home. What are good plants for beginners?
+
+How often should I water indoor plants?
+
+What's the difference between direct and indirect sunlight for plants?
+
+Why are the leaves on my plant turning yellow?
+
+Can I grow herbs indoors year-round?
+
+What size pots should I use for repotting?
+
+# Topic 7: Technology and gadgets
+I'm thinking about upgrading my laptop. What specs should I look for?
+
+What's the difference between SSD and HDD storage?
+
+How much RAM do I need for general use and light photo editing?
+
+Are gaming laptops good for productivity work too?
+
+What's the benefit of having a dedicated graphics card?
+
+Should I wait for Black Friday sales to buy electronics?

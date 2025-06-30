@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
+from .config_defaults import DEFAULT_CONFIG, CONFIG_DOCS
 
 class Config:
     def __init__(self, config_file: str = None):
@@ -30,123 +31,23 @@ class Config:
                 with open(self.config_file, 'r') as f:
                     self.config = json.load(f)
 
-                # Ensure debug is set to False by default
-                if "debug" not in self.config:
-                    self.config["debug"] = False
-                    self._save()
+                # Check for any missing defaults and add them
+                config_changed = False
+                for key, value in DEFAULT_CONFIG.items():
+                    if key not in self.config:
+                        self.config[key] = value
+                        config_changed = True
                 
-                # Ensure show_drift is set to True by default
-                if "show_drift" not in self.config:
-                    self.config["show_drift"] = True
-                    self._save()
-                
-                # Ensure auto_compress_topics is set to True by default
-                if "auto_compress_topics" not in self.config:
-                    self.config["auto_compress_topics"] = True
-                    self._save()
-                
-                # Ensure automatic_topic_detection is set to True by default
-                if "automatic_topic_detection" not in self.config:
-                    self.config["automatic_topic_detection"] = True
-                    self._save()
-                
-                # Hybrid topic detection settings
-                if "use_hybrid_topic_detection" not in self.config:
-                    self.config["use_hybrid_topic_detection"] = False
-                    self._save()
-                
-                if "hybrid_topic_weights" not in self.config:
-                    self.config["hybrid_topic_weights"] = {
-                        "semantic_drift": 0.6,
-                        "keyword_explicit": 0.25,
-                        "keyword_domain": 0.1,
-                        "message_gap": 0.025,
-                        "conversation_flow": 0.025
-                    }
-                    self._save()
-                
-                if "hybrid_topic_threshold" not in self.config:
-                    self.config["hybrid_topic_threshold"] = 0.55  # Lowered for better sensitivity
-                    self._save()
-                
-                if "hybrid_llm_threshold" not in self.config:
-                    self.config["hybrid_llm_threshold"] = 0.3  # Lowered to reduce LLM fallbacks
-                    self._save()
-                
-                # Ensure model parameters are set with defaults
-                if "main_params" not in self.config:
-                    self.config["main_params"] = {
-                        "temperature": 0.7,
-                        "max_tokens": None,
-                        "top_p": 1.0,
-                        "presence_penalty": 0.0,
-                        "frequency_penalty": 0.0,
-                        "stop": []
-                    }
-                    self._save()
-                
-                if "topic_params" not in self.config:
-                    self.config["topic_params"] = {
-                        "temperature": 0.3,
-                        "max_tokens": 50,
-                        "top_p": 0.9,
-                        "presence_penalty": 0.0,
-                        "frequency_penalty": 0.0,
-                        "stop": []
-                    }
-                    self._save()
-                
-                if "compression_params" not in self.config:
-                    self.config["compression_params"] = {
-                        "temperature": 0.5,
-                        "max_tokens": 500,
-                        "top_p": 1.0,
-                        "presence_penalty": 0.1,
-                        "frequency_penalty": 0.1,
-                        "stop": []
-                    }
+                # Save if we added any defaults
+                if config_changed:
                     self._save()
             except json.JSONDecodeError:
-                # If the file is corrupted, start with an empty config
-                self.config = {}
+                # If the file is corrupted, start with defaults
+                self.config = DEFAULT_CONFIG.copy()
+                self._save()
         else:
             # If the file doesn't exist, create it with default values
-            self.config = {
-                "active_prompt": "default",
-                "debug": False,
-                "show_cost": False,
-                "show_drift": True,
-                "auto_compress_topics": True,
-                "automatic_topic_detection": True,  # Whether to detect topics automatically
-                "stream_responses": True,
-                "stream_rate": 15,  # Words per second for constant-rate streaming
-                "stream_constant_rate": False,  # Whether to use constant-rate streaming
-                # Model parameters for different contexts
-                "main_params": {
-                    "temperature": 0.7,
-                    "max_tokens": None,
-                    "top_p": 1.0,
-                    "presence_penalty": 0.0,
-                    "frequency_penalty": 0.0,
-                    "stop": []
-                },
-                "topic_params": {
-                    "temperature": 0.3,
-                    "max_tokens": 50,
-                    "top_p": 0.9,
-                    "presence_penalty": 0.0,
-                    "frequency_penalty": 0.0,
-                    "stop": []
-                },
-                "compression_params": {
-                    "temperature": 0.5,
-                    "max_tokens": 500,
-                    "top_p": 1.0,
-                    "presence_penalty": 0.1,
-                    "frequency_penalty": 0.1,
-                    "stop": []
-                }
-            }
+            self.config = DEFAULT_CONFIG.copy()
             self._save()
 
     def _save(self) -> None:
@@ -201,34 +102,9 @@ class Config:
             
             # Handle reset command
             if param_name == 'reset' or param_name == '*':
-                if actual_param_set == 'main_params':
-                    self.config[actual_param_set] = {
-                        "temperature": 0.7,
-                        "max_tokens": None,
-                        "top_p": 1.0,
-                        "presence_penalty": 0.0,
-                        "frequency_penalty": 0.0,
-                        "stop": []
-                    }
-                elif actual_param_set == 'topic_params':
-                    self.config[actual_param_set] = {
-                        "temperature": 0.3,
-                        "max_tokens": 50,
-                        "top_p": 0.9,
-                        "presence_penalty": 0.0,
-                        "frequency_penalty": 0.0,
-                        "stop": []
-                    }
-                elif actual_param_set == 'compression_params':
-                    self.config[actual_param_set] = {
-                        "temperature": 0.5,
-                        "max_tokens": 500,
-                        "top_p": 1.0,
-                        "presence_penalty": 0.1,
-                        "frequency_penalty": 0.1,
-                        "stop": []
-                    }
-                self._save()
+                if actual_param_set in DEFAULT_CONFIG:
+                    self.config[actual_param_set] = DEFAULT_CONFIG[actual_param_set].copy()
+                    self._save()
                 return
             
             # Get the actual parameter name
@@ -311,6 +187,29 @@ class Config:
         if key in self.config:
             del self.config[key]
             self._save()
+    
+    def get_doc(self, key: str) -> str:
+        """Get documentation for a configuration key.
+        
+        Args:
+            key: The configuration key
+        
+        Returns:
+            Documentation string or 'No documentation available'
+        """
+        return CONFIG_DOCS.get(key, "No documentation available")
+    
+    def list_all(self) -> Dict[str, Any]:
+        """Get all configuration values with their documentation.
+        
+        Returns:
+            Dictionary mapping keys to (value, documentation) tuples
+        """
+        result = {}
+        for key, value in self.config.items():
+            doc = self.get_doc(key)
+            result[key] = (value, doc)
+        return result
 
 # Create a global instance for easy access
 config = Config()

@@ -4,7 +4,10 @@ Manual topic indexing command using sliding window analysis.
 
 import typer
 from typing import List, Dict, Any, Tuple
-from episodic.db import get_ancestry, get_head, store_topic, get_recent_topics, update_topic_end_node
+from episodic.db import (
+    get_ancestry, get_head, store_topic, get_recent_topics, update_topic_end_node,
+    store_manual_index_score, clear_manual_index_scores
+)
 from episodic.topics_hybrid import HybridTopicDetector
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
@@ -30,8 +33,9 @@ def index_topics(
     ancestry = get_ancestry(head)
     
     # Extract only user messages with their positions
+    # Note: get_ancestry returns nodes from oldest to newest already
     user_messages = []
-    for i, node in enumerate(reversed(ancestry)):  # Reverse to get chronological order
+    for i, node in enumerate(ancestry):  # Already in chronological order
         if node.get('role') == 'user' and node.get('content'):
             user_messages.append({
                 'position': i,
@@ -50,6 +54,9 @@ def index_topics(
     
     # Initialize detector
     detector = HybridTopicDetector()
+    
+    # Clear previous scores for this window size
+    clear_manual_index_scores()
     
     # Store results
     detection_results = []
@@ -87,33 +94,61 @@ def index_topics(
         
         drift_score = detector.drift_calculator.calculate_drift(node_a, node_b)
         
-        # Also check for keyword transitions in the boundary message
-        boundary_msg = user_messages[i]['content']
+        # Also check for keyword transitions in the first message of Window B
+        boundary_msg = user_messages[i + 1]['content']
         keyword_results = detector.transition_detector.detect_transition_keywords(boundary_msg)
         
-        # Combine scores (simplified - using mostly drift for window comparison)
+        # Use OR logic: high drift OR keyword presence indicates boundary
+        drift_threshold = config.get('drift_threshold', 0.75)
+        keyword_detected = keyword_results['explicit_transition'] > 0.5
+        is_boundary = (drift_score >= drift_threshold) or keyword_detected
+        
+        # Keep combined score for backwards compatibility in database
         combined_score = (drift_score * 0.7) + (keyword_results['explicit_transition'] * 0.3)
         
+        # The boundary is between message i and i+1, so we index by i+1 (start of Window B)
         result = {
-            'position': i,
-            'node_id': user_messages[i]['node_id'],
-            'short_id': user_messages[i]['short_id'],
+            'position': i + 1,  # Position of first message in Window B
+            'node_id': user_messages[i + 1]['node_id'],
+            'short_id': user_messages[i + 1]['short_id'],
             'drift_score': drift_score,
             'keyword_score': keyword_results['explicit_transition'],
             'combined_score': combined_score,
             'window_a_size': len(window_a),
             'window_b_size': len(window_b),
-            'message_preview': user_messages[i]['content'][:50] + '...',
+            'message_preview': user_messages[i + 1]['content'][:50] + '...',
             'transition_phrase': keyword_results.get('found_phrase'),
-            'is_boundary': combined_score >= config.get('hybrid_topic_threshold', 0.55)
+            'is_boundary': is_boundary
         }
         
         detection_results.append(result)
         
+        # Store the score in the database
+        # Get window boundary short IDs
+        window_a_start_short_id = user_messages[window_a_start]['short_id']
+        window_a_end_short_id = user_messages[window_a_end - 1]['short_id']
+        window_b_end_short_id = user_messages[window_b_end - 1]['short_id'] if window_b_end > window_b_start else user_messages[window_b_start]['short_id']
+        
+        store_manual_index_score(
+            user_node_short_id=user_messages[i + 1]['short_id'],  # Index by start of Window B
+            window_size=window_size,
+            window_a_start_short_id=window_a_start_short_id,
+            window_a_end_short_id=window_a_end_short_id,
+            window_a_size=len(window_a),
+            window_b_end_short_id=window_b_end_short_id,
+            window_b_size=len(window_b),
+            drift_score=drift_score,
+            keyword_score=keyword_results['explicit_transition'],
+            combined_score=combined_score,
+            is_boundary=result['is_boundary'],
+            transition_phrase=result['transition_phrase'],
+            threshold_used=config.get('hybrid_topic_threshold', 0.55)
+        )
+        
         # Show progress
         if verbose or result['is_boundary']:
             status = "🔄 TOPIC CHANGE" if result['is_boundary'] else "  continuation"
-            color = "green" if result['is_boundary'] else "dim"
+            color = "green" if result['is_boundary'] else None
             
             typer.secho(f"\n[{result['short_id']}] {status}", fg=color, bold=result['is_boundary'])
             typer.secho(f"Message: {result['message_preview']}", fg=get_text_color())

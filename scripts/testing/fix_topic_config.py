@@ -2,7 +2,8 @@
 """Fix topic detection configuration."""
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.config import config
 

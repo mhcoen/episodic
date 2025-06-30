@@ -2,7 +2,8 @@
 """Test hybrid topic detection integration with main app."""
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.conversation import ConversationManager
 from episodic.config import config

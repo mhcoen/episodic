@@ -2,7 +2,8 @@
 """Debug script to show topic boundary detection issues."""
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.db import get_recent_nodes, get_recent_topics
 

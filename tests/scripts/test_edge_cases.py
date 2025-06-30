@@ -2,7 +2,8 @@
 """Test edge cases and error handling."""
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.topics_hybrid import detect_topic_change_hybrid
 from episodic.config import config

@@ -4,7 +4,8 @@ Test script for hybrid topic detection system.
 """
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.topics_hybrid import HybridTopicDetector, TopicChangeSignals
 from episodic.config import config

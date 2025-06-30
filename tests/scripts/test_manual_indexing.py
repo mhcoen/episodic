@@ -2,7 +2,8 @@
 """Test manual topic indexing."""
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.config import config
 from episodic.commands.index_topics import index_topics

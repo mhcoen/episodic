@@ -2,7 +2,8 @@
 """Test that dynamic thresholds are working correctly."""
 
 import sys
-sys.path.insert(0, '.')
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from episodic.config import config
 # We'll test the logic directly since _should_check_for_topic_change is a method

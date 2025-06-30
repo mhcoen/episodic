@@ -72,9 +72,15 @@ class TopicManager:
                 min_messages_before_change = config.get('min_messages_before_topic_change', 8)
                 total_topics = len(get_recent_topics(limit=100))
                 
-                # Apply consistent threshold - no special cases for early topics
-                # This prevents topics from being created with too few messages
-                effective_min = min_messages_before_change
+                # Apply dynamic threshold based on number of topics
+                # First 2 topics use half threshold to allow easier topic creation
+                # Subsequent topics use full threshold to prevent over-segmentation
+                if total_topics <= 2:
+                    # For the first two topics, use half the threshold (min 4)
+                    effective_min = max(4, min_messages_before_change // 2)
+                else:
+                    # For subsequent topics, use the full threshold
+                    effective_min = min_messages_before_change
                     
                 if user_messages_in_topic < effective_min:
                     if config.get("debug", False):

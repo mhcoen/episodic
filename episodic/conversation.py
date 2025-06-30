@@ -41,6 +41,9 @@ from episodic.topics import (
     should_create_first_topic, build_conversation_segment,
     _display_topic_evolution
 )
+from episodic.topic_boundary_analyzer import (
+    analyze_topic_boundary, find_transition_point_heuristic
+)
 from episodic.benchmark import benchmark_operation, benchmark_resource, display_pending_benchmark
 
 # Set up logging
@@ -1072,9 +1075,53 @@ class ConversationManager:
                                 # Continue with the current topic
                             else:
                                 # Previous topic has enough messages, proceed with topic change
+                                
+                                # Analyze where the topic actually changed
+                                actual_boundary = parent_node_id  # Default to current boundary
+                                
+                                # Check if boundary analysis is enabled (default: True)
+                                if config.get("analyze_topic_boundaries", True):
+                                    if config.get("debug", False):
+                                        typer.echo(f"\n🔍 DEBUG: Analyzing topic boundary...")
+                                    
+                                    # Get recent conversation history for analysis
+                                    # We need more context than just recent_nodes
+                                    full_ancestry = get_ancestry(user_node_id)
+                                    
+                                    # Use boundary analyzer to find actual transition
+                                    if config.get("use_llm_boundary_analysis", True):
+                                        # Use LLM-based analysis
+                                        boundary_result, transition_type, boundary_cost = analyze_topic_boundary(
+                                            full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry,
+                                            user_node_id,
+                                            config.get("topic_detection_model", "ollama/llama3")
+                                        )
+                                        
+                                        # Add boundary analysis costs
+                                        if boundary_cost:
+                                            self.session_costs["total_input_tokens"] += boundary_cost.get("input_tokens", 0)
+                                            self.session_costs["total_output_tokens"] += boundary_cost.get("output_tokens", 0)
+                                            self.session_costs["total_tokens"] += boundary_cost.get("total_tokens", 0)
+                                            self.session_costs["total_cost_usd"] += boundary_cost.get("cost_usd", 0.0)
+                                        
+                                        if boundary_result:
+                                            actual_boundary = boundary_result
+                                            if config.get("debug", False):
+                                                typer.echo(f"   Found actual boundary: {actual_boundary} (type: {transition_type})")
+                                    else:
+                                        # Use heuristic-based analysis (no LLM)
+                                        heuristic_boundary = find_transition_point_heuristic(
+                                            full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry,
+                                            user_node_id
+                                        )
+                                        if heuristic_boundary:
+                                            actual_boundary = heuristic_boundary
+                                            if config.get("debug", False):
+                                                typer.echo(f"   Found heuristic boundary: {actual_boundary}")
+                                
                                 # Extract the topic name from the previous topic's content
                                 topic_nodes = []
-                                ancestry = get_ancestry(parent_node_id)
+                                ancestry = get_ancestry(actual_boundary)
                                 
                                 # Collect nodes from the previous topic
                                 found_start = False
@@ -1084,7 +1131,7 @@ class ConversationManager:
                                         # Collect all nodes from start to end (parent_node_id)
                                         for j in range(i, len(ancestry)):
                                             topic_nodes.append(ancestry[j])
-                                            if ancestry[j]['id'] == parent_node_id:
+                                            if ancestry[j]['id'] == actual_boundary:
                                                 break
                                         break
                             
@@ -1128,10 +1175,10 @@ class ConversationManager:
                                         typer.echo(f"   ✅ Updated topic name: '{previous_topic['name']}' → '{final_topic_name}' ({rows_updated} rows)")
                                 
                                 # Update the previous topic's end node
-                                update_topic_end_node(final_topic_name, previous_topic['start_node_id'], parent_node_id)
+                                update_topic_end_node(final_topic_name, previous_topic['start_node_id'], actual_boundary)
                                 
                                 # Queue the old topic for compression
-                                queue_topic_for_compression(previous_topic['start_node_id'], parent_node_id, final_topic_name)
+                                queue_topic_for_compression(previous_topic['start_node_id'], actual_boundary, final_topic_name)
                                 if config.get("debug", False):
                                     typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
                     else:

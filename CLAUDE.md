@@ -8,6 +8,23 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Current Session Context
 
+### Current Working Session (2025-06-30)
+- Fixed topic message count showing 0 for ongoing topics
+  - Modified count_nodes_in_topic() to use get_head() for ongoing topics
+- Fixed excessive topic creation due to min_messages_before_topic_change=2
+  - Updated configuration to use recommended value of 8
+- Fixed topic boundary assignment bug
+  - Issue: Topic boundaries were set at detection point instead of actual transition
+  - Solution: Added topic_boundary_analyzer.py to find where topics actually change
+  - Analyzes recent messages when topic change detected to find true transition point
+  - Supports both LLM-based analysis and heuristic fallback
+  - Configuration: analyze_topic_boundaries (default: True), use_llm_boundary_analysis (default: True)
+- Restored dynamic threshold behavior for topic detection
+  - First 2 topics: Use min_messages/2 threshold (4 when min=8)
+  - Subsequent topics: Use full threshold (8)
+  - Fixed regression from June 27 that removed dynamic thresholds
+  - Now matches three-topics-test.txt expectations
+
 ### Last Working Session (2025-06-29)
 - Fixed /rename-topics command to handle ongoing topics (topics with NULL end_node_id)
 - Fixed finalize_current_topic() to properly rename ongoing topics when conversation ends

@@ -1,0 +1,3 @@
+/set debug true
+/topics
+/exit

@@ -1,0 +1,26 @@
+# Test script for topic boundary fix
+# This script tests that topic boundaries are set correctly when transitions occur
+
+# Enable debug mode to see boundary analysis
+/config debug True
+
+# First topic: Cooking
+Tell me how to make a simple pasta dish
+
+# Continue on cooking
+What kind of cheese should I use?
+
+# Still on cooking  
+How long should I cook the pasta?
+
+# Topic transition happens here - asking about programming
+Thanks for the cooking tips! Now, can you help me with Python programming?
+
+# Continue on programming (detection should happen here)
+I need to sort a list of dictionaries by a specific key
+
+# The boundary should be set BEFORE "Thanks for the cooking tips!" message
+# not at the parent of "I need to sort..." message
+
+# Check topics to see boundaries
+/topics

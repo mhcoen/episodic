@@ -450,45 +450,50 @@ class ConversationManager:
             new_topic_name = None
             topic_cost_info = None
             
-            if config.get("debug", False):
-                typer.echo(f"\n🔍 DEBUG: Topic detection check")
-                typer.echo(f"   Recent nodes count: {len(recent_nodes) if recent_nodes else 0}")
-                typer.echo(f"   Current topic: {self.current_topic}")
-                typer.echo(f"   Min messages before topic change: {config.get('min_messages_before_topic_change', 4)}")
-            
             # Check if automatic topic detection is enabled
-            if config.get("automatic_topic_detection", True) and recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
-                try:
-                    with benchmark_operation("Topic Detection"):
-                        # Use hybrid detection if enabled
-                        if config.get("use_hybrid_topic_detection", False):
-                            from episodic.topics_hybrid import detect_topic_change_hybrid
-                            topic_changed, new_topic_name, topic_cost_info = detect_topic_change_hybrid(
-                                recent_nodes,
-                                user_input,
-                                current_topic=self.current_topic
-                            )
-                        else:
-                            topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(
-                                recent_nodes, 
-                                user_input,
-                                current_topic=self.current_topic
-                            )
-                        if config.get("debug", False):
-                            typer.echo(f"   Topic change detected: {topic_changed}")
-                            if topic_changed:
-                                typer.echo(f"   New topic: {new_topic_name}")
-                except Exception as e:
-                    if config.get("debug", False):
-                        typer.echo(f"   ❌ Topic detection error: {e}")
-                    # Continue without topic detection on error
-                    topic_changed = False
-            else:
+            if config.get("automatic_topic_detection", True):
                 if config.get("debug", False):
-                    typer.echo("   ⚠️  Not enough history for topic detection")
+                    typer.echo(f"\n🔍 DEBUG: Topic detection check")
+                    typer.echo(f"   Recent nodes count: {len(recent_nodes) if recent_nodes else 0}")
+                    typer.echo(f"   Current topic: {self.current_topic}")
+                    typer.echo(f"   Min messages before topic change: {config.get('min_messages_before_topic_change', 4)}")
+                
+                if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
+                    try:
+                        with benchmark_operation("Topic Detection"):
+                            # Use hybrid detection if enabled
+                            if config.get("use_hybrid_topic_detection", False):
+                                from episodic.topics_hybrid import detect_topic_change_hybrid
+                                topic_changed, new_topic_name, topic_cost_info = detect_topic_change_hybrid(
+                                    recent_nodes,
+                                    user_input,
+                                    current_topic=self.current_topic
+                                )
+                            else:
+                                topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(
+                                    recent_nodes, 
+                                    user_input,
+                                    current_topic=self.current_topic
+                                )
+                            if config.get("debug", False):
+                                typer.echo(f"   Topic change detected: {topic_changed}")
+                                if topic_changed:
+                                    typer.echo(f"   New topic: {new_topic_name}")
+                    except Exception as e:
+                        if config.get("debug", False):
+                            typer.echo(f"   ❌ Topic detection error: {e}")
+                        # Continue without topic detection on error
+                        topic_changed = False
+                else:
+                    if config.get("debug", False):
+                        typer.echo("   ⚠️  Not enough history for topic detection")
+            else:
+                # Automatic topic detection is disabled
+                if config.get("debug", False):
+                    typer.echo("\n🔍 DEBUG: Automatic topic detection is disabled")
             
-            # Store topic detection scores for debugging
-            if recent_nodes and len(recent_nodes) >= 2:
+            # Store topic detection scores for debugging (only if automatic detection is enabled)
+            if config.get("automatic_topic_detection", True) and recent_nodes and len(recent_nodes) >= 2:
                 from episodic.db import store_topic_detection_scores, get_recent_topics
                 from episodic.topics import topic_manager
                 import json

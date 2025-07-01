@@ -6,7 +6,7 @@ boundaries within conversations.
 """
 
 import re
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 import typer
 
 from episodic.llm import query_llm
@@ -83,7 +83,7 @@ def _analyze_with_llm(
     for i, node in enumerate(previous_nodes):
         role = node.get('role', 'unknown')
         content = node.get('content', '').strip()
-        short_id = node.get('short_id', f"node_{i}")
+        node.get('short_id', f"node_{i}")
         
         if content:
             messages.append(f"[{i+1}] {role}: {content}")

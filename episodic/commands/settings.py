@@ -12,7 +12,6 @@ from episodic.configuration import (
 )
 from episodic.conversation import conversation_manager
 from episodic.llm import enable_cache, disable_cache
-from episodic.benchmark import display_benchmark_summary
 
 
 # Global variables for settings
@@ -665,7 +664,6 @@ def config_docs():
 
 def cost():
     """Show cost information for the current session."""
-    from episodic.conversation import wrapped_text_print
     
     costs = conversation_manager.get_session_costs()
     

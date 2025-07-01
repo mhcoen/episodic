@@ -4,7 +4,6 @@ Provides PDF loading and document-enhanced chat capabilities.
 """
 
 import typer
-from pathlib import Path
 from typing import Optional
 import os
 

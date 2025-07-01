@@ -9,7 +9,6 @@ This module handles all conversation-related operations including:
 - Text formatting and wrapping
 """
 
-import os
 import shutil
 import textwrap
 import logging
@@ -22,9 +21,9 @@ from typing import Optional, List, Dict, Any, Tuple
 import typer
 
 from episodic.db import (
-    insert_node, get_node, get_ancestry, get_head, set_head,
-    get_recent_nodes, get_recent_topics, update_topic_end_node,
-    store_topic, update_topic_name
+    insert_node, get_ancestry, get_head, set_head, get_recent_nodes,
+    get_recent_topics, update_topic_end_node, store_topic,
+    update_topic_name
 )
 from episodic.llm import query_with_context
 from episodic.llm_config import get_current_provider
@@ -1271,7 +1270,7 @@ class ConversationManager:
                             parent_node_id = user_node['parent_id']
                             
                             # Get all nodes from the beginning up to the parent of the current user node
-                            conversation_chain = get_ancestry(parent_node_id)
+                            get_ancestry(parent_node_id)
                             
                             # Find the very first user node in the database
                             # Don't rely on ancestry chain which might be broken

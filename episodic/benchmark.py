@@ -5,14 +5,14 @@ Tracks performance of conceptual operations and resource usage with minimal over
 """
 
 import time
-from typing import Dict, List, Optional, Any, Callable, Tuple
+from typing import Dict, List, Any, Callable, Tuple
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import wraps
 import typer
 
 from episodic.config import config
-from episodic.configuration import get_system_color, get_llm_color, get_text_color, get_heading_color
+from episodic.configuration import get_system_color, get_text_color, get_heading_color
 
 
 class BenchmarkStats:

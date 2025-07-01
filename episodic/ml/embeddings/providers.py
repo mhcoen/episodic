@@ -55,17 +55,14 @@ class EmbeddingBackend(ABC):
     @abstractmethod
     def embed(self, text: str) -> List[float]:
         """Generate embeddings for text."""
-        pass
     
     @abstractmethod
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for batch of texts."""
-        pass
     
     @abstractmethod
     def get_dimension(self) -> int:
         """Get embedding dimension."""
-        pass
 
 
 class SentenceTransformersBackend(EmbeddingBackend):

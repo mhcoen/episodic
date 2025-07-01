@@ -7,8 +7,6 @@ cohesive interface with subcommands.
 
 import typer
 from typing import Optional
-from episodic.configuration import get_heading_color
-from episodic.config import config
 
 # Import existing settings commands
 from .settings import (

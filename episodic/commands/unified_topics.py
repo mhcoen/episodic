@@ -6,12 +6,11 @@ cohesive interface with subcommands.
 """
 
 import typer
-from typing import Optional, List
+from typing import Optional
 from episodic.configuration import (
-    get_heading_color, get_system_color, get_text_color
+    get_heading_color, get_system_color
 )
-from episodic.db import get_recent_topics, get_head
-from episodic.topics import topic_manager
+from episodic.db import get_recent_topics
 
 # Import existing topic commands
 from .topics import topics as list_topics_impl, compress_current_topic as compress_topic_impl
@@ -67,7 +66,7 @@ def topics_command(
         if window_size is None:
             # Try to parse from remaining args
             try:
-                import sys
+                pass
                 # This is a bit of a hack but works for now
                 window_size = 5  # Default
             except:

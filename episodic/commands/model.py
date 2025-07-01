@@ -8,7 +8,7 @@ import io
 from typing import Optional
 from contextlib import redirect_stdout, redirect_stderr
 from episodic.config import config
-from episodic.configuration import get_system_color, get_heading_color, get_text_color
+from episodic.configuration import get_system_color, get_text_color
 from episodic.llm_config import (
     get_available_providers, get_provider_models, get_current_provider,
     set_default_model, get_default_model
@@ -107,7 +107,6 @@ def handle_model(name: Optional[str] = None):
         providers = get_available_providers()
         current_idx = 1
         selected_model = None
-        selected_provider = None
         
         for provider_name, provider_config in providers.items():
             models = get_provider_models(provider_name)
@@ -120,7 +119,6 @@ def handle_model(name: Optional[str] = None):
                     
                     if current_idx == model_index:
                         selected_model = model_name
-                        selected_provider = provider_name
                         break
                     current_idx += 1
                 if selected_model:

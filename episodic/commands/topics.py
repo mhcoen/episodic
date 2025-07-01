@@ -3,10 +3,10 @@ Topic management commands for the Episodic CLI.
 """
 
 import typer
-from typing import Optional, List
+from typing import List
 from datetime import datetime
 from episodic.db import get_recent_topics, get_node, get_ancestry
-from episodic.topics import TopicManager, count_nodes_in_topic
+from episodic.topics import count_nodes_in_topic
 from episodic.configuration import (
     get_heading_color, get_text_color, get_system_color, get_llm_color
 )
@@ -19,7 +19,6 @@ def topics(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information")
 ):
     """List conversation topics."""
-    from episodic.conversation import wrapped_text_print
     
     with benchmark_operation("List topics"):
         # Get topics

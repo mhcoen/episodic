@@ -5,9 +5,9 @@ This module provides various approaches for loading conversation data
 and analyzing drift patterns with different testing methodologies.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from abc import ABC, abstractmethod
-from ...db import get_all_nodes, get_ancestry, get_descendants, get_recent_nodes
+from ...db import get_all_nodes, get_ancestry, get_recent_nodes
 
 
 class TestingStrategy:
@@ -63,12 +63,10 @@ class TestingBackend(ABC):
     @abstractmethod
     def load_test_data(self) -> List[List[Dict[str, Any]]]:
         """Load test conversation sequences."""
-        pass
     
     @abstractmethod
     def get_description(self) -> str:
         """Get a description of what this strategy tests."""
-        pass
 
 
 class RecentConversationsStrategy(TestingBackend):

@@ -4,7 +4,7 @@ import os
 import threading
 import contextlib
 import logging
-from typing import Optional, List, Dict, Any, Tuple, Union
+from typing import Optional, List, Dict, Any
 from .configuration import (
     DATABASE_FILENAME, MAX_DATABASE_RETRIES, FALLBACK_ID_LENGTH,
     MIN_SHORT_ID_LENGTH, SHORT_ID_MAX_LENGTH, ID_CHARSET
@@ -43,7 +43,7 @@ def get_connection():
     try:
         # Yield the connection to the caller
         yield connection
-    except Exception as e:
+    except Exception:
         # If an exception occurs, rollback and close the connection, then re-raise
         connection.rollback()
         connection.close()
@@ -69,7 +69,6 @@ def close_connection():
     since connections are now closed automatically when the context manager exits.
     """
     # This function is now a no-op since connections are closed automatically
-    pass
 
 def database_exists():
     """Check if the database file exists and has tables."""
@@ -119,7 +118,6 @@ def generate_short_id(fallback=False):
     if fallback:
         # Generate a random 4-character base-36 ID (more than enough to avoid collisions)
         import random
-        import string
         return ''.join(random.choice(ID_CHARSET) for _ in range(FALLBACK_ID_LENGTH))
 
     with get_connection() as conn:

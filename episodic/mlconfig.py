@@ -5,10 +5,7 @@ This module provides a modular framework for configuring and loading different
 components for semantic analysis, drift detection, and branch summarization.
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from enum import Enum
-import importlib
+from typing import List, Dict, Any
 
 
 class EmbeddingProvider:

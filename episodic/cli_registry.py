@@ -7,7 +7,7 @@ the centralized command registry.
 
 import shlex
 import typer
-from typing import List, Optional
+from typing import List
 from episodic.commands.registry import command_registry
 from episodic.configuration import (
     EXIT_COMMANDS, get_system_color, get_heading_color, get_text_color

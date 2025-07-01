@@ -4,14 +4,12 @@ Compression commands for the Episodic CLI.
 
 import typer
 from typing import Optional, List, Dict
-from datetime import datetime
-from episodic.db import get_node, get_ancestry, get_recent_topics
-from episodic.compression import compression_manager, queue_topic_for_compression
+from episodic.db import get_node, get_ancestry
+from episodic.compression import compression_manager
 from episodic.llm import query_llm
 from episodic.llm_manager import llm_manager
-from episodic.config import config
 from episodic.configuration import (
-    get_heading_color, get_text_color, get_system_color, get_llm_color
+    get_heading_color, get_text_color, get_system_color
 )
 from episodic.benchmark import benchmark_operation
 from episodic.conversation import conversation_manager

@@ -8,12 +8,11 @@ conversation flow.
 
 import threading
 import queue
-import time
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from typing import Dict, Any, List
+from datetime import datetime
 
 from episodic.db import (
-    get_node, get_recent_topics, get_ancestry
+    get_ancestry
 )
 from episodic.db_compression import (
     create_compression_tables, store_compression_v2

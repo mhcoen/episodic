@@ -5,7 +5,7 @@ Handles node creation, traversal, and display operations.
 """
 
 import typer
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 from episodic.db import (
     initialize_db as init_db, insert_node as add_node, get_node,
     get_recent_nodes, get_ancestry
@@ -67,7 +67,6 @@ def format_role_display(role: Optional[str]) -> str:
 
 def _display_node_details(node: Dict) -> None:
     """Display detailed information about a node."""
-    from episodic.conversation import wrapped_text_print
     
     # Header
     typer.secho(f"\n{'='*60}", fg=get_heading_color())
@@ -226,7 +225,6 @@ def head(node_id: Optional[str] = None):
 
 def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Number of recent nodes to list")):
     """List recent nodes from the conversation graph."""
-    from episodic.conversation import wrapped_text_print
     
     nodes = get_recent_nodes(count)
     
@@ -283,7 +281,6 @@ def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Nu
 
 def ancestry(node_id: str):
     """Show the ancestry (parent chain) of a node."""
-    from episodic.conversation import wrapped_text_print
     
     # get_node handles both short ID and full ID
     node = get_node(node_id)

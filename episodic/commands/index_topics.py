@@ -3,12 +3,11 @@ Manual topic indexing command using sliding window analysis.
 """
 
 import typer
-from typing import List, Dict, Any, Tuple
 from episodic.db import (
-    get_ancestry, get_head, store_topic, get_recent_topics, update_topic_end_node
+    get_ancestry, get_head, get_recent_topics
 )
 from episodic.db_wrappers import (
-    store_topic_detection_score, clear_topic_detection_scores, get_topic_detection_scores
+    store_topic_detection_score, clear_topic_detection_scores
 )
 from episodic.topics_hybrid import HybridTopicDetector
 from episodic.config import config

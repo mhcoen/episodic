@@ -5,7 +5,7 @@ This module provides functionality to measure semantic drift between
 conversation nodes using embeddings and distance functions.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Tuple
 from .embeddings import EmbeddingProvider
 from .distance.functions import DistanceFunction
 from .peaks import PeakDetector

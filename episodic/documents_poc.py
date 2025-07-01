@@ -3,7 +3,7 @@ Proof of Concept for PDF document loading and querying in Episodic.
 This demonstrates how to add document context without disrupting existing functionality.
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 import logging
 from pathlib import Path
 

@@ -5,7 +5,7 @@ This module provides a centralized registry of all available commands,
 making it easier to discover, document, and maintain commands.
 """
 
-from typing import Dict, Callable, List, Tuple, Optional
+from typing import Dict, Callable, List, Optional
 from dataclasses import dataclass
 
 

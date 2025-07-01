@@ -3,8 +3,7 @@ Database operations for compression system.
 Keeps compressions separate from the conversation tree.
 """
 
-import sqlite3
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 import uuid
 from episodic.db import get_connection
 

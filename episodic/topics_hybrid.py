@@ -8,7 +8,7 @@ topics.hybrid module. All functionality has been moved to:
 """
 
 # Import everything from the new module structure for backward compatibility
-from episodic.topics.keywords import TopicChangeSignals, TransitionDetector
+from episodic.topics.keywords import TransitionDetector
 from episodic.topics.hybrid import HybridScorer, HybridTopicDetector
 
 # Re-export the main detection function

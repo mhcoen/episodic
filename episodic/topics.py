@@ -32,7 +32,6 @@ from episodic.topics import (
 )
 
 # Create global instance for backward compatibility
-from episodic.topics.detector import topic_manager
 
 # Module-level functions that were previously defined here
 # These are now imported from the detector module but we re-export them

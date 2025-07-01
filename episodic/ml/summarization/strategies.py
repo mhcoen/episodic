@@ -49,7 +49,6 @@ class SummarizationBackend(ABC):
     @abstractmethod
     def summarize_branch(self, nodes: List[Dict[str, Any]]) -> str:
         """Summarize a conversation branch."""
-        pass
 
 
 class LocalLLMBackend(SummarizationBackend):

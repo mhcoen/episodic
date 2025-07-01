@@ -3,7 +3,6 @@ Command to rename ongoing-discussion topics.
 """
 
 import typer
-from typing import Optional
 from episodic.db import get_recent_topics, get_ancestry, update_topic_name
 from episodic.topics import extract_topic_ollama, build_conversation_segment
 from episodic.configuration import get_system_color, get_heading_color

@@ -5,14 +5,11 @@ It handles sending queries to the APIs and processing the responses.
 
 import os
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Any, Union
 import litellm
-from litellm import cost_per_token
-from litellm.caching import Cache
 from litellm.utils import supports_prompt_caching
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
-from episodic.configuration import CACHED_TOKEN_DISCOUNT_RATE
 from episodic.llm_manager import llm_manager
 
 # Set up logging
@@ -23,9 +20,6 @@ litellm.suppress_debug_info = True
 os.environ["LITELLM_LOG"] = "ERROR"  # Only show errors
 
 # Also suppress the specific provider list messages
-import sys
-import io
-from contextlib import redirect_stdout, redirect_stderr
 
 # Set default configuration value for context caching (enabled by default)
 if config.get("use_context_cache") is None:

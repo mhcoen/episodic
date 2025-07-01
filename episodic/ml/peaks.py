@@ -64,7 +64,6 @@ class PeakDetectionBackend(ABC):
     @abstractmethod
     def find_peaks(self, drift_scores: List[float]) -> List[Tuple[int, float]]:
         """Find peaks in drift scores."""
-        pass
 
 
 class ThresholdPeakDetector(PeakDetectionBackend):

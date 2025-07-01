@@ -4,7 +4,7 @@ Configuration management for LLM providers.
 import os
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any
 
 # Default configuration path
 CONFIG_PATH = Path.home() / ".episodic" / "llm_config.json"

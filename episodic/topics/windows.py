@@ -10,7 +10,6 @@ from typing import List, Dict, Any, Optional, Tuple
 
 from episodic.ml.drift import ConversationalDrift
 from episodic.config import config
-from episodic.db import get_ancestry, get_recent_nodes
 from episodic.db_wrappers import (
     store_topic_detection_score, get_topic_detection_scores
 )

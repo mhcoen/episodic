@@ -5,8 +5,6 @@ Includes help, script execution, benchmarking, and other utilities.
 """
 
 import typer
-import os
-from typing import Optional
 from episodic.configuration import (
     get_heading_color, get_text_color, get_system_color
 )

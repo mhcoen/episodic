@@ -1,7 +1,6 @@
-import os
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from .config_defaults import DEFAULT_CONFIG, CONFIG_DOCS
 
 class Config:

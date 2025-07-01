@@ -5,13 +5,9 @@ This is the main entry point that coordinates all the command modules.
 """
 
 import typer
-import sys
 import os
 import shlex
 import time
-import readline
-import atexit
-from typing import Optional, List
 from datetime import datetime
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
@@ -21,14 +17,13 @@ from prompt_toolkit.formatted_text import HTML
 from episodic.config import config
 from episodic.configuration import (
     EXIT_COMMANDS, DEFAULT_HISTORY_FILE, MAIN_LOOP_SLEEP_INTERVAL,
-    get_prompt_color, get_system_color, get_text_color, get_heading_color, get_llm_color
+    get_system_color, get_text_color, get_heading_color, get_llm_color
 )
 from episodic.db import initialize_db as init_db
 from episodic.conversation import conversation_manager, handle_chat_message as _handle_chat_message_impl
 from episodic.prompt_manager import load_prompt
 from episodic.benchmark import display_pending_benchmark, reset_benchmarks
 from episodic.compression import start_auto_compression
-from episodic.llm_manager import llm_manager
 
 # Import command modules
 from episodic.commands import (
@@ -48,7 +43,7 @@ from episodic.commands.debug_topics import topic_scores
 from episodic.commands.index_topics import index_topics
 
 # Import helper functions
-from episodic.cli_helpers import _parse_flag_value, _remove_flag_and_value, _has_flag
+from episodic.cli_helpers import _parse_flag_value, _has_flag
 
 # Initialize the Typer app
 app = typer.Typer()
@@ -425,7 +420,6 @@ def execute_script(filename: str):
 def setup_readline():
     """Set up readline for command history with arrow keys."""
     # No longer needed - prompt_toolkit handles this
-    pass
 
 
 def save_to_history(message: str):

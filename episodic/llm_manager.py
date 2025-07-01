@@ -6,8 +6,7 @@ Single entry point for all actual LLM API calls.
 import threading
 import time
 import os
-import sys
-from typing import Dict, Any, Optional, Tuple, Union, Generator
+from typing import Dict, Any, Tuple, Union, Generator
 from dataclasses import dataclass
 from contextlib import redirect_stdout, redirect_stderr
 import io

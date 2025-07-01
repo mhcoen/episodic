@@ -13,14 +13,12 @@ from typing import Optional, List, Dict, Any, Tuple
 import typer
 
 from episodic.db import (
-    get_recent_topics, get_node, get_ancestry, get_head,
-    store_topic, update_topic_end_node
+    get_recent_topics, get_ancestry, get_head
 )
 from episodic.llm import query_llm
 from episodic.config import config
 from episodic.config_defaults import TOPIC_THRESHOLD_BEHAVIOR
 from episodic.prompt_manager import PromptManager
-from episodic.compression import queue_topic_for_compression
 from episodic.benchmark import benchmark_resource
 
 # Set up logging

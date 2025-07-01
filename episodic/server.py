@@ -18,9 +18,7 @@ Usage:
 import os
 import threading
 import webbrowser
-import json
-import time
-from flask import Flask, request, jsonify, send_file, Response, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory
 
 from episodic.db import get_node, set_head, get_head, delete_node, get_all_nodes
 from episodic.visualization import visualize_dag
@@ -76,7 +74,6 @@ def broadcast_graph_update():
     TODO: Implement WebSocket or Server-Sent Events for real-time updates.
     Currently this is a no-op to prevent runtime errors.
     """
-    pass
 
 @app.route('/')
 def index():

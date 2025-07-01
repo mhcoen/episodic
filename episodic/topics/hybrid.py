@@ -8,15 +8,11 @@ Combines multiple approaches:
 4. User commands (override)
 """
 
-import re
 import logging
 from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
 
 from episodic.ml.drift import ConversationalDrift
 from episodic.config import config
-from episodic.llm import query_llm
-from episodic.db import get_recent_nodes
 from .keywords import TransitionDetector, TopicChangeSignals
 from .detector import TopicManager
 import typer

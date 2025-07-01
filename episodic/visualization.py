@@ -6,9 +6,7 @@ using NetworkX and Plotly.
 import os
 import networkx as nx
 import tempfile
-import json
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import plotly.io as pio
 from episodic.db import get_connection, get_head
 from episodic.configuration import (
@@ -1271,7 +1269,7 @@ def visualize_dag(output_path=None, height="800px", width="100%", interactive=Fa
                 html_content = html_content.replace('</body>', f'{custom_js}</body>')
 
             f.write(html_content)
-    except Exception as e:
+    except Exception:
         # If an exception occurs, ensure the temporary file is deleted if we created one
         if output_path is None and 'tmp' in locals() and os.path.exists(tmp.name):
             os.unlink(tmp.name)

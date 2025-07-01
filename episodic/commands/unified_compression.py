@@ -7,9 +7,6 @@ cohesive interface with subcommands.
 
 import typer
 from typing import Optional
-from episodic.configuration import (
-    get_heading_color, get_system_color, get_text_color
-)
 
 # Import existing compression commands
 from .compression import (

@@ -5,7 +5,7 @@ This module provides various approaches for analyzing and reporting
 drift detection results from conversation sequences.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any
 from abc import ABC, abstractmethod
 from ..drift import ConversationalDrift
 import statistics
@@ -74,7 +74,6 @@ class AnalysisBackend(ABC):
         text_field: str = "content"
     ) -> Dict[str, Any]:
         """Analyze drift results from conversation sequences."""
-        pass
 
 
 class BasicStatsAnalyzer(AnalysisBackend):

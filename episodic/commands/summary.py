@@ -3,8 +3,8 @@ Summary command for the Episodic CLI.
 """
 
 import typer
-from typing import Optional, List, Dict
-from episodic.db import get_recent_nodes, get_node
+from typing import Optional
+from episodic.db import get_recent_nodes
 from episodic.llm import query_llm
 from episodic.config import config
 from episodic.configuration import (

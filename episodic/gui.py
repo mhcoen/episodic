@@ -11,12 +11,9 @@ Usage:
     visualize_native()
 """
 
-import os
 import threading
-import time
 import webview
 from episodic.server import start_server, stop_server
-from episodic.visualization import visualize_dag
 
 def visualize_native(width=1000, height=800, server_port=5001):
     """

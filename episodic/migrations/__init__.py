@@ -5,10 +5,9 @@ This module provides a simple migration framework for managing database
 schema changes in a controlled and versioned manner.
 """
 
-import os
 import sqlite3
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)

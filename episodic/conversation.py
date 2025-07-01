@@ -1172,11 +1172,13 @@ class ConversationManager:
                                     # Use boundary analyzer to find actual transition
                                     if config.get("use_llm_boundary_analysis", True):
                                         # Use LLM-based analysis
-                                        boundary_result, transition_type, boundary_cost = analyze_topic_boundary(
+                                        boundary_result = analyze_topic_boundary(
                                             full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry,
                                             user_node_id,
                                             config.get("topic_detection_model", "ollama/llama3")
                                         )
+                                        transition_type = "llm"
+                                        boundary_cost = None
                                         
                                         # Add boundary analysis costs
                                         if boundary_cost:

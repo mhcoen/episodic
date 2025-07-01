@@ -242,6 +242,13 @@ def _execute_llm_query(
         for param in unsupported_params:
             api_params.pop(param, None)
     
+    # Filter out unsupported parameters for Ollama models
+    if provider == "ollama" or "ollama/" in full_model.lower():
+        # Ollama doesn't support presence_penalty or frequency_penalty
+        unsupported_params = ['presence_penalty', 'frequency_penalty']
+        for param in unsupported_params:
+            api_params.pop(param, None)
+    
     # Provider-specific handling
     if provider == "lmstudio":
         provider_config = get_provider_config("lmstudio")

@@ -212,3 +212,6 @@ class Config:
 
 # Create a global instance for easy access
 config = Config()
+
+# Disable hybrid topic detection temporarily to use the standard detection
+config.set("use_hybrid_topic_detection", False)

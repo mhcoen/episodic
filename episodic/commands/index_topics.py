@@ -5,8 +5,10 @@ Manual topic indexing command using sliding window analysis.
 import typer
 from typing import List, Dict, Any, Tuple
 from episodic.db import (
-    get_ancestry, get_head, store_topic, get_recent_topics, update_topic_end_node,
-    store_manual_index_score, clear_manual_index_scores
+    get_ancestry, get_head, store_topic, get_recent_topics, update_topic_end_node
+)
+from episodic.db_wrappers import (
+    store_topic_detection_score, clear_topic_detection_scores, get_topic_detection_scores
 )
 from episodic.topics_hybrid import HybridTopicDetector
 from episodic.config import config
@@ -56,7 +58,7 @@ def index_topics(
     detector = HybridTopicDetector()
     
     # Clear previous scores for this window size
-    clear_manual_index_scores()
+    clear_topic_detection_scores()
     
     # Store results
     detection_results = []
@@ -129,12 +131,13 @@ def index_topics(
         window_a_end_short_id = user_messages[window_a_end - 1]['short_id']
         window_b_end_short_id = user_messages[window_b_end - 1]['short_id'] if window_b_end > window_b_start else user_messages[window_b_start]['short_id']
         
-        store_manual_index_score(
+        store_topic_detection_score(
             user_node_short_id=user_messages[i + 1]['short_id'],  # Index by start of Window B
             window_size=window_size,
             window_a_start_short_id=window_a_start_short_id,
             window_a_end_short_id=window_a_end_short_id,
             window_a_size=len(window_a),
+            window_b_start_short_id=user_messages[i + 1]['short_id'],
             window_b_end_short_id=window_b_end_short_id,
             window_b_size=len(window_b),
             drift_score=drift_score,
@@ -142,7 +145,8 @@ def index_topics(
             combined_score=combined_score,
             is_boundary=result['is_boundary'],
             transition_phrase=result['transition_phrase'],
-            threshold_used=config.get('hybrid_topic_threshold', 0.55)
+            threshold_used=config.get('hybrid_topic_threshold', 0.55),
+            detection_method='manual_index'
         )
         
         # Show progress

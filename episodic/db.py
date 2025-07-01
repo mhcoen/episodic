@@ -309,6 +309,15 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
             create_compression_tables()
             # Make end_node_id nullable in topics table
             migrate_topics_nullable_end()
+            
+            # Run schema migrations
+            from episodic.migrations import run_migrations, get_pending_migrations
+            from episodic.migrations.m004_schema_cleanup import migration as m004
+            migrations = [m004]
+            pending = get_pending_migrations(conn, migrations)
+            if pending:
+                logger.info(f"Running {len(pending)} database migrations...")
+                run_migrations(conn, migrations)
 
         # Check if we should create a root node and if there are no existing nodes
         if create_root_node:

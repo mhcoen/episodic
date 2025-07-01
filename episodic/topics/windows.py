@@ -10,9 +10,9 @@ from typing import List, Dict, Any, Optional, Tuple
 
 from episodic.ml.drift import ConversationalDrift
 from episodic.config import config
-from episodic.db import (
-    get_ancestry, get_recent_nodes, 
-    store_manual_index_score, get_manual_index_scores
+from episodic.db import get_ancestry, get_recent_nodes
+from episodic.db_wrappers import (
+    store_topic_detection_score, get_topic_detection_scores
 )
 import typer
 
@@ -202,7 +202,7 @@ class SlidingWindowDetector:
                 " ".join(msg.get('content', '') for msg in window_b)
             )
             
-            store_manual_index_score(
+            store_topic_detection_score(
                 user_node_short_id=boundary_node['short_id'],
                 window_size=self.window_size,
                 window_a_start_short_id=window_a[0]['short_id'] if window_a else None,
@@ -216,7 +216,8 @@ class SlidingWindowDetector:
                 combined_score=combined_score,
                 is_boundary=is_boundary,
                 threshold_used=self.threshold,
-                transition_phrase=keyword_results.get('found_phrase')
+                transition_phrase=keyword_results.get('found_phrase'),
+                detection_method='sliding_window'
             )
         except Exception as e:
             logger.warning(f"Failed to store window score: {e}")
@@ -231,5 +232,5 @@ class SlidingWindowDetector:
         Returns:
             List of boundary detections
         """
-        scores = get_manual_index_scores(window_size=window_size)
+        scores = get_topic_detection_scores(window_size=window_size, detection_method='sliding_window')
         return [score for score in scores if score['is_boundary']]

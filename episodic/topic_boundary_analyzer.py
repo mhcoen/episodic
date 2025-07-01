@@ -7,3 +7,9 @@ topics.boundaries module. All functionality has been moved to:
 """
 
 # Import everything from the new module structure for backward compatibility
+from episodic.topics.boundaries import (
+    analyze_topic_boundary,
+    find_transition_point_heuristic
+)
+
+__all__ = ['analyze_topic_boundary', 'find_transition_point_heuristic']

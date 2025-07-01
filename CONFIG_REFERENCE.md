@@ -1,0 +1,158 @@
+# Configuration Reference
+
+This document describes all configuration options available in Episodic.
+
+## Viewing Configuration
+
+```bash
+# Show all current settings
+> /settings
+
+# Show configuration documentation
+> /settings docs
+
+# Show specific category
+> /set topic_detection_model
+```
+
+## Setting Configuration
+
+```bash
+# Set a single value
+> /settings set debug true
+> /settings set min_messages_before_topic_change 10
+
+# Set model parameters
+> /model-params main
+> /model-params set main.temperature 0.7
+```
+
+## Configuration Categories
+
+### Core Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `active_prompt` | "default" | Active system prompt |
+| `debug` | false | Enable debug output |
+| `show_cost` | false | Show cost after each response |
+| `show_drift` | true | Show drift scores in debug |
+| `model` | "gpt-3.5-turbo" | Default LLM model |
+| `context_depth` | 5 | Number of previous messages to include |
+| `cache_prompts` | true | Enable prompt caching |
+
+### Display Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `color_mode` | "light" | Color scheme: light, dark, custom, none |
+| `stream_responses` | true | Stream LLM responses |
+| `stream_rate` | 15 | Streaming speed (words/sec) |
+| `stream_constant_rate` | false | Use constant streaming rate |
+| `stream_natural_rhythm` | false | Natural speech-like streaming |
+| `stream_char_mode` | true | Character-based streaming |
+| `stream_char_rate` | 1000 | Characters per second |
+| `wrap_text` | true | Word wrap long lines |
+| `show_benchmarks` | true | Show performance metrics |
+
+### Topic Detection Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `automatic_topic_detection` | true | Enable automatic detection |
+| `topic_detection_model` | "ollama/llama3" | Model for detection |
+| `min_messages_before_topic_change` | 8 | Minimum messages per topic |
+| `show_topics` | false | Show topic info in responses |
+| `analyze_topic_boundaries` | true | Refine topic boundaries |
+| `use_llm_boundary_analysis` | true | Use LLM for boundary analysis |
+| `show_hybrid_topics` | true | Show topic info with hybrid detector |
+| `topic_window_size` | 5 | Window size for detection |
+| `topic_similarity_threshold` | 0.3 | Similarity threshold |
+
+### Compression Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `auto_compress_topics` | true | Auto-compress completed topics |
+| `compression_model` | "ollama/llama3" | Model for compression |
+| `compression_min_nodes` | 5 | Minimum nodes to compress |
+| `compression_strategy` | "simple" | Strategy: simple, keymoments |
+| `show_compression_notifications` | true | Notify about compressions |
+
+### Model Parameters
+
+Model parameters are organized by context:
+- `main_params` - Main conversation parameters
+- `topic_params` - Topic detection parameters
+- `compression_params` - Compression parameters
+
+Each supports:
+- `temperature` (0.0-2.0)
+- `max_tokens` (integer)
+- `top_p` (0.0-1.0)
+- `presence_penalty` (-2.0-2.0)
+- `frequency_penalty` (-2.0-2.0)
+
+Example:
+```bash
+> /model-params set main.temperature 0.8
+> /model-params set topic.temperature 0.0
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `EPISODIC_DB_PATH` | Custom database location |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `ANTHROPIC_API_KEY` | Anthropic API key |
+| `GOOGLE_API_KEY` | Google AI API key |
+| `GROQ_API_KEY` | Groq API key |
+| `AZURE_API_KEY` | Azure OpenAI key |
+| `AZURE_API_BASE` | Azure endpoint |
+
+## Configuration Storage
+
+Configuration is stored in the SQLite database in the `configuration` table. Changes take effect immediately without restart.
+
+## Common Configuration Patterns
+
+### For Better Topic Detection
+```bash
+/settings set min_messages_before_topic_change 6
+/settings set topic_window_size 4
+/model-params set topic.temperature 0.0
+```
+
+### For Faster Responses
+```bash
+/settings set stream_responses false
+/settings set context_depth 3
+/settings set cache_prompts true
+```
+
+### For Cost Savings
+```bash
+/settings set show_cost true
+/settings set compression_model "gpt-3.5-turbo"
+/settings set context_depth 3
+```
+
+### For Debugging
+```bash
+/settings set debug true
+/settings set show_drift true
+/settings set show_benchmarks true
+```
+
+## Resetting Configuration
+
+To reset a value to default:
+```bash
+/settings set parameter_name
+```
+
+To reset all configuration:
+```bash
+/init --erase  # WARNING: This erases everything!
+```

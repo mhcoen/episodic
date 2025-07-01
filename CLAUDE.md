@@ -6,9 +6,101 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Episodic is a conversational DAG-based memory agent that creates persistent, navigable conversations with language models. It stores conversation history as a directed acyclic graph where each node represents a conversational exchange.
 
+## Recent Major Refactoring (2025-01)
+
+The codebase underwent significant cleanup and reorganization through 8 pull requests:
+
+1. **PR #1: File Organization** - Moved ~40 test/analysis scripts to proper directories
+2. **PR #2: Configuration Consolidation** - Created config_defaults.py, centralized all defaults
+3. **PR #3: Topic Detection Module Restructure** - Created episodic.topics module with submodules
+4. **PR #4: Database Schema Cleanup** - Added migrations, renamed tables, created indexes
+5. **PR #5: Command Consolidation** - Created unified commands with subactions
+6. **PR #6: Test Infrastructure** - Organized tests into unit/integration/fixtures
+7. **PR #7: Dead Code Removal** - Removed unused imports, created deprecation tracking
+8. **PR #8: Documentation Update** - Updated all docs to reflect changes
+
+## Current Architecture
+
+### Project Structure
+```
+episodic/
+├── __main__.py              # Entry point
+├── cli.py                   # Main CLI interface
+├── cli_helpers.py           # CLI utility functions
+├── cli_registry.py          # Enhanced command handling with registry
+├── config.py                # Configuration management
+├── config_defaults.py       # Centralized default values
+├── conversation.py          # ConversationManager for chat flow
+├── core.py                  # Core data structures (Node, ConversationDAG)
+├── db.py                    # Database operations
+├── llm.py                   # LLM integration via LiteLLM
+├── llm_manager.py           # Centralized API call tracking
+├── commands/                # All CLI commands
+│   ├── registry.py          # Command registry system
+│   ├── unified_topics.py    # Unified topic management
+│   ├── unified_compression.py # Unified compression management
+│   ├── unified_settings.py  # Unified settings management
+│   └── ...                  # Other command modules
+├── topics/                  # Topic detection module
+│   ├── __init__.py          # Public API
+│   ├── detector.py          # Main TopicManager class
+│   ├── boundaries.py        # Boundary detection logic
+│   ├── hybrid.py            # Hybrid detector implementation
+│   ├── keywords.py          # Keyword-based detection
+│   ├── windows.py           # Sliding window implementation
+│   └── utils.py             # Shared utility functions
+├── migrations/              # Database migrations
+│   ├── __init__.py          # Migration runner
+│   └── m00X_*.py            # Individual migrations
+└── prompts/                 # System prompts
+```
+
+### Recent Changes From Refactoring
+
+#### File Organization (PR #1)
+- Test scripts moved to `tests/scripts/`
+- Analysis scripts moved to `scripts/analysis/`
+- Defunct files moved to `defunct/` (later removed in PR #7)
+
+#### Configuration (PR #2)
+- All defaults now in `config_defaults.py`
+- Organized into logical groups: CORE, TOPIC, LLM, etc.
+- No more hardcoded values throughout codebase
+
+#### Topic Detection Module (PR #3)
+- Moved from single `topics.py` to organized module
+- Clear separation: detector, boundaries, keywords, windows
+- Public API in `__init__.py`
+
+#### Database Schema (PR #4)
+- Migration system in `migrations/`
+- Table renamed: `manual_index_scores` → `topic_detection_scores`
+- Added performance indexes
+
+#### Command Consolidation (PR #5)
+- Unified commands with subactions:
+  - `/topics [list|rename|compress|index|scores|stats]`
+  - `/compression [stats|queue|compress|api-stats|reset-api]`
+  - `/settings [show|set|verify|cost|params|docs]`
+- Command registry for better organization
+- Deprecated old commands still work with warnings
+
+#### Test Infrastructure (PR #6)
+```
+tests/
+├── unit/                    # Unit tests
+│   ├── topics/              # Topic-related tests
+│   └── commands/            # Command tests
+├── integration/             # Integration tests
+├── fixtures/                # Reusable test data
+│   ├── conversations.py     # Test conversations
+│   └── test_utils.py        # Test utilities
+└── run_all_tests.py         # Enhanced test runner
+```
+
 ## Current Session Context
 
-### Current Working Session (2025-06-30)
+### Working Session (2025-01-01)
 - Fixed topic message count showing 0 for ongoing topics
   - Modified count_nodes_in_topic() to use get_head() for ongoing topics
 - Fixed excessive topic creation due to min_messages_before_topic_change=2
@@ -98,16 +190,17 @@ Topic detection sensitivity varies drastically by model:
 - `get_recent_topics()` - Retrieves topic list
 - `migrate_topics_nullable_end()` - Migration to allow NULL end_node_id
 
-#### Important Code Locations
-- Topic detection: `episodic/topics.py:detect_topic_change_separately()`
-- Topic threshold behavior: `episodic/topics.py:_should_check_for_topic_change()` (lines 75-89)
-- Topic user message counting: `episodic/topics.py:count_user_messages_in_topic()` (NEW)
-- Topic naming: `episodic/conversation.py:387-442` (in handle_chat_message)
-- Topic creation validation: `episodic/conversation.py:876-903` (NEW validation logic)
-- LLM Manager: `episodic/llm_manager.py` (centralized API call tracking)
-- Compression storage: `episodic/db_compression.py` (new compression mapping system)
-- Summary command: `episodic/commands/summary.py`
-- Command parsing: `episodic/cli.py:handle_command()`
+#### Important Code Locations (Updated)
+- Topic detection: `episodic/topics/detector.py` - Main TopicManager class
+- Topic boundaries: `episodic/topics/boundaries.py` - Boundary analysis
+- Sliding windows: `episodic/topics/windows.py` - Window-based detection
+- Command registry: `episodic/commands/registry.py` - Command management
+- Unified commands: `episodic/commands/unified_*.py` - New command structure
+- Configuration: `episodic/config_defaults.py` - All default values
+- Migrations: `episodic/migrations/` - Database schema changes
+- Test fixtures: `tests/fixtures/` - Reusable test data
+- LLM Manager: `episodic/llm_manager.py` - API call tracking
+- Command handling: `episodic/cli_registry.py` - Enhanced CLI with registry
 
 ### Configuration Options
 - `topic_detection_model` - Default: ollama/llama3
@@ -135,17 +228,40 @@ Topic detection sensitivity varies drastically by model:
 - Model parameters can be configured per context (main, topic, compression)
 
 ### Test Scripts
-- `scripts/test-complex-topics.txt` - 21 queries across multiple topics
-- `scripts/test-topic-naming.txt` - Simple topic transitions
-- `scripts/test-final-topic.txt` - Tests final topic handling
-- `scripts/three-topics-test.txt` - Tests three topic changes accounting for threshold behavior
+- `scripts/testing/test-complex-topics.txt` - 21 queries across multiple topics
+- `scripts/testing/test-topic-naming.txt` - Simple topic transitions
+- `scripts/testing/test-final-topic.txt` - Tests final topic handling
+- `scripts/testing/three-topics-test.txt` - Tests three topic changes accounting for threshold behavior
 
-### New Commands
-- `/rename-topics` - Renames all placeholder "ongoing-*" topics by analyzing their content
-- `/api-stats` - Shows actual LLM API call statistics
-- `/reset-api-stats` - Resets API call counter
-- `/compress <topic-name>` - Manually trigger compression for a specific topic
-- `/model-params` or `/mp` - Show/set model parameters for different contexts
+### Current Commands (Post-Refactoring)
+
+#### Unified Commands
+- `/topics` - Topic management with subactions:
+  - `list` (default) - List all topics
+  - `rename` - Rename ongoing topics
+  - `compress` - Compress current topic
+  - `index <n>` - Manual topic detection
+  - `scores` - Show detection scores
+  - `stats` - Topic statistics
+- `/compression` - Compression management:
+  - `stats` (default) - Show statistics
+  - `queue` - Show pending jobs
+  - `compress` - Manual compression
+  - `api-stats` - API usage stats
+  - `reset-api` - Reset API stats
+- `/settings` - Settings management:
+  - `show` (default) - Show all settings
+  - `set <param> <value>` - Set parameter
+  - `verify` - Verify configuration
+  - `cost` - Show session costs
+  - `params` - Model parameters
+  - `docs` - Configuration docs
+
+#### Deprecated Commands (still work with warnings)
+- `/rename-topics` → `/topics rename`
+- `/compress-current-topic` → `/topics compress`
+- `/api-stats` → `/compression api-stats`
+- `/reset-api-stats` → `/compression reset-api`
 
 ### Common Development Commands
 
@@ -172,21 +288,23 @@ python -m episodic
 
 #### Testing
 ```bash
-# Run all unit tests
-python -m unittest discover episodic "test_*.py"
+# Run all tests with new test runner
+python tests/run_all_tests.py all
 
-# Run specific test modules
-python -m unittest episodic.test_core
-python -m unittest episodic.test_db
-python -m unittest episodic.test_integration
+# Run specific test categories
+python tests/run_all_tests.py unit        # Unit tests only
+python tests/run_all_tests.py integration # Integration tests
+python tests/run_all_tests.py quick       # Quick stable tests
+python tests/run_all_tests.py topics      # Topic-related tests
+python tests/run_all_tests.py coverage    # With coverage report
 
-# Run interactive/manual tests
-python -m episodic.test_interactive_features
+# Run specific test files
+python -m unittest tests.unit.topics.test_topic_detection -v
+python -m unittest tests.unit.commands.test_unified_commands -v
 
-# Test coverage
-pip install coverage
-coverage run -m unittest discover episodic "test_*.py"
-coverage report -m
+# Using pytest (if installed)
+pytest tests/ -v
+pytest tests/unit -m "not slow"
 ```
 
 ### Architecture
@@ -207,7 +325,15 @@ coverage report -m
 - **Real-time visualization**: HTTP polling for live graph updates
 
 #### Database Schema
-- Nodes table with id, short_id, message, timestamp, parent_id, model_name, system_prompt, response
+- **nodes**: Conversation nodes with id, short_id, message, response, etc.
+- **topics**: Topic tracking with nullable end_node_id for ongoing topics
+- **topic_detection_scores**: Detection scores and metadata (renamed from manual_index_scores)
+- **compressions_v2**: Compression summaries
+- **compression_nodes**: Mapping of compressed nodes
+- **configuration**: Key-value configuration storage
+- **conversations**: Conversation metadata
+- **migration_history**: Applied migrations tracking
+- Indexes on frequently queried columns for performance
 - SQLite with full-text search capabilities
 - Configurable database path via EPISODIC_DB_PATH environment variable
 
@@ -225,18 +351,31 @@ coverage report -m
 - Prompt management system with role-based prompts in `prompts/` directory
 - Configuration stored in episodic.db alongside conversation data
 
+### Development Guidelines
+
+#### Code Organization
+- Keep imports organized and remove unused ones (use `scripts/cleanup/remove_unused_imports.py`)
+- Follow the module structure established in the refactoring
+- Use the command registry for new commands
+- Add new defaults to `config_defaults.py`, not hardcoded
+
+#### Adding New Features
+1. For new commands: Add to appropriate unified command or create new one
+2. For topic detection: Add to `episodic/topics/` module
+3. For database changes: Create a migration in `episodic/migrations/`
+4. For tests: Add to appropriate directory in `tests/`
+
+#### Deprecation Process
+1. Mark old code as deprecated in command registry
+2. Add to `DEPRECATED.md` with removal timeline
+3. Show warning when deprecated feature is used
+4. Remove in specified future version
+
 ### Future Development Plans
 
-#### Immediate: Codebase Cleanup
-- **Codebase Cleanup**: See `CLEANUP_PLAN.md` for detailed 8-PR cleanup plan
-  - PR #1: File organization - move test/analysis scripts to proper directories
-  - PR #2: Configuration consolidation - unified settings management
-  - PR #3: Topic detection module restructure - clear module organization
-  - PR #4: Database schema cleanup - rename tables, add indexes
-  - PR #5: Command consolidation - unified topic management
-  - PR #6: Test infrastructure - organized test suite
-  - PR #7: Dead code removal - remove deprecated functions
-  - PR #8: Documentation update - accurate system representation
+#### Completed: Codebase Cleanup ✅
+- All 8 PRs from `CLEANUP_PLAN.md` have been completed
+- Codebase is now well-organized and maintainable
 
 #### Next: Adaptive Topic Detection
 - **Adaptive Topic Detection**: See `ADAPTIVE_TOPIC_DETECTION_PLAN.md` for detailed implementation plan

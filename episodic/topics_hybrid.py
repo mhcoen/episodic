@@ -21,9 +21,14 @@ def detect_topic_change_hybrid(
     Hybrid topic detection wrapper for backward compatibility.
     
     This function wraps the HybridTopicDetector class method.
+    Returns only the first 3 values for backward compatibility.
     """
     detector = HybridTopicDetector()
-    return detector.detect_topic_change(recent_messages, new_message, current_topic)
+    changed, new_topic, cost_info, debug_info = detector.detect_topic_change(
+        recent_messages, new_message, current_topic
+    )
+    # Return only first 3 values for backward compatibility
+    return changed, new_topic, cost_info
 
 # For complete backward compatibility, create module-level instances
 # (though these weren't used in the original, it's good practice)

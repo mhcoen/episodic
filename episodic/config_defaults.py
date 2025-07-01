@@ -32,8 +32,8 @@ TOPIC_DEFAULTS = {
     "manual_index_window_size": 3,  # Default window size for /index command
     "manual_index_threshold": 0.75,  # Drift score threshold for boundary detection
     
-    # Hybrid topic detection (deprecated, keeping for compatibility)
-    "use_hybrid_topic_detection": False,
+    # Hybrid topic detection
+    "use_hybrid_topic_detection": True,
     "hybrid_topic_weights": {
         "semantic_drift": 0.6,
         "keyword_explicit": 0.25,
@@ -43,6 +43,8 @@ TOPIC_DEFAULTS = {
     },
     "hybrid_topic_threshold": 0.55,
     "hybrid_llm_threshold": 0.3,
+    "drift_threshold": 0.85,  # Increased from 0.75 for better accuracy
+    "keyword_threshold": 0.5,
 }
 
 # Streaming settings

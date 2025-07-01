@@ -90,8 +90,13 @@ class TransitionDetector:
         # Check domain shifts
         domain_scores = {}
         for domain, keywords in self.DOMAIN_KEYWORDS.items():
-            # Count keyword matches
-            matches = sum(1 for kw in keywords if kw in message_lower)
+            # Count keyword matches (with word boundaries for accuracy)
+            matches = 0
+            for kw in keywords:
+                # Check for word boundaries to avoid partial matches
+                import re
+                if re.search(r'\b' + re.escape(kw) + r'\b', message_lower):
+                    matches += 1
             if matches > 0:
                 domain_scores[domain] = matches / len(keywords)
         

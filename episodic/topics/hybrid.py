@@ -102,8 +102,8 @@ class HybridTopicDetector:
         
         # Configuration
         self.use_or_logic = config.get("use_or_logic", True)  # Use OR instead of weighted average
-        self.drift_threshold = config.get("drift_threshold", 0.75)
-        self.keyword_threshold = config.get("keyword_threshold", 0.5)
+        self.drift_threshold = float(config.get("drift_threshold", 0.75))
+        self.keyword_threshold = float(config.get("keyword_threshold", 0.5))
         
     def detect_topic_change(
         self,
@@ -125,7 +125,17 @@ class HybridTopicDetector:
             
             # 1. Calculate semantic drift
             try:
-                drift_score = self.drift_detector.calculate_drift(recent_texts, new_message)
+                # Get the most recent user message to compare with the new one
+                user_messages = [msg for msg in recent_messages if msg.get("role") == "user"]
+                if len(user_messages) >= 1:
+                    # Create node-like dictionaries for drift calculation
+                    prev_node = {"content": user_messages[-1].get("content", "")}
+                    new_node = {"content": new_message}
+                    drift_score = self.drift_detector.calculate_drift(prev_node, new_node, text_field="content")
+                else:
+                    # No previous user message to compare
+                    drift_score = 0.0
+                    
                 signals = TopicChangeSignals(semantic_drift=drift_score)
                 debug_info["signals"]["semantic_drift"] = drift_score
             except Exception as e:
@@ -155,9 +165,22 @@ class HybridTopicDetector:
                 keyword_change = (signals.keyword_explicit >= self.keyword_threshold or 
                                 signals.keyword_domain >= self.keyword_threshold)
                 
+                # Check if messages are in same domain (reduces false positives)
+                same_domain_penalty = 0.0
+                if "dominant_domain" in keyword_results and "previous_domain" in keyword_results:
+                    if keyword_results["dominant_domain"] == keyword_results["previous_domain"] and keyword_results["dominant_domain"] is not None:
+                        # Both messages in same domain - reduce drift score impact
+                        same_domain_penalty = 0.1
+                        if config.get("debug"):
+                            typer.echo(f"   Same domain detected: {keyword_results['dominant_domain']} (reducing drift impact)")
+                
+                # Apply domain penalty to drift threshold
+                effective_drift_threshold = self.drift_threshold + same_domain_penalty
+                drift_change = signals.semantic_drift >= effective_drift_threshold
+                
                 topic_changed = drift_change or keyword_change
                 score = max(signals.semantic_drift, signals.keyword_explicit, signals.keyword_domain)
-                explanation = f"OR logic: drift={drift_change}, keywords={keyword_change}"
+                explanation = f"OR logic: drift={drift_change} (threshold={effective_drift_threshold:.2f}), keywords={keyword_change}"
                 
             else:
                 # Calculate combined score using weighted average

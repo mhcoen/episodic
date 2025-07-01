@@ -98,8 +98,8 @@ class SchemaCleanupMigration(Migration):
         existing_tables = {row[0] for row in cursor.fetchall()}
         
         indexes = [
-            ("idx_topic_scores_node", "topic_detection_scores", "user_node_short_id"),
-            ("idx_topic_scores_boundary", "topic_detection_scores", "is_boundary"),
+            ("idx_topic_scores_node", "topic_detection_scores", "user_node_id"),
+            ("idx_topic_scores_changed", "topic_detection_scores", "topic_changed"),
             ("idx_topics_boundaries", "topics", "start_node_id, end_node_id"),
             ("idx_topics_name", "topics", "name"),
             ("idx_nodes_parent", "nodes", "parent_id"),

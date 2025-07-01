@@ -15,6 +15,15 @@ from episodic.benchmark import display_benchmark_summary
 
 def help():
     """Show help information with available commands."""
+    # Check if we should use the new registry-based help
+    try:
+        from episodic.cli_registry import show_help_with_categories
+        show_help_with_categories()
+        return
+    except ImportError:
+        pass
+    
+    # Fallback to original help
     typer.secho("\n📚 Episodic Commands", fg=get_heading_color(), bold=True)
     typer.secho("=" * 60, fg=get_heading_color())
     

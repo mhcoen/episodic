@@ -100,10 +100,10 @@ class HybridTopicDetector:
         self.scorer = HybridScorer()
         self.topic_manager = TopicManager()  # For LLM fallback
         
-        # Configuration
-        self.use_or_logic = config.get("use_or_logic", True)  # Use OR instead of weighted average
-        self.drift_threshold = float(config.get("drift_threshold", 0.75))
-        self.keyword_threshold = float(config.get("keyword_threshold", 0.5))
+        # Default configuration (can be overridden per detection)
+        self.default_use_or_logic = True
+        self.default_drift_threshold = 0.85
+        self.default_keyword_threshold = 0.5
         
     def detect_topic_change(
         self,
@@ -159,11 +159,16 @@ class HybridTopicDetector:
                     signals.message_gap = min(length_ratio / 2, 1.0)  # Cap at 1.0
             
             # 4. Decision logic - use OR logic if configured
-            if self.use_or_logic:
+            # Read configuration dynamically
+            use_or_logic = config.get("use_or_logic", self.default_use_or_logic)
+            drift_threshold = float(config.get("drift_threshold", self.default_drift_threshold))
+            keyword_threshold = float(config.get("keyword_threshold", self.default_keyword_threshold))
+            
+            if use_or_logic:
                 # Semantic drift OR keywords indicate topic change
-                drift_change = signals.semantic_drift >= self.drift_threshold
-                keyword_change = (signals.keyword_explicit >= self.keyword_threshold or 
-                                signals.keyword_domain >= self.keyword_threshold)
+                drift_change = signals.semantic_drift >= drift_threshold
+                keyword_change = (signals.keyword_explicit >= keyword_threshold or 
+                                signals.keyword_domain >= keyword_threshold)
                 
                 # Check if messages are in same domain (reduces false positives)
                 same_domain_penalty = 0.0
@@ -175,7 +180,7 @@ class HybridTopicDetector:
                             typer.echo(f"   Same domain detected: {keyword_results['dominant_domain']} (reducing drift impact)")
                 
                 # Apply domain penalty to drift threshold
-                effective_drift_threshold = self.drift_threshold + same_domain_penalty
+                effective_drift_threshold = drift_threshold + same_domain_penalty
                 drift_change = signals.semantic_drift >= effective_drift_threshold
                 
                 topic_changed = drift_change or keyword_change
@@ -192,7 +197,7 @@ class HybridTopicDetector:
             debug_info["decision"] = "topic_changed" if topic_changed else "same_topic"
             
             # 5. LLM fallback for uncertain cases (if not using OR logic)
-            if not self.use_or_logic and not topic_changed and score >= self.scorer.llm_fallback_threshold:
+            if not use_or_logic and not topic_changed and score >= self.scorer.llm_fallback_threshold:
                 if config.get("debug"):
                     typer.echo(f"   Hybrid uncertain (score={score:.2f}), using LLM fallback")
                 

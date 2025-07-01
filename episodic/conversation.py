@@ -464,10 +464,24 @@ class ConversationManager:
                 if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
                     try:
                         with benchmark_operation("Topic Detection"):
+                            # Debug: show which detector will be used
+                            if config.get("debug"):
+                                typer.echo(f"   Detection config: hybrid={config.get('use_hybrid_topic_detection')}, sliding={config.get('use_sliding_window_detection')}")
+                            
                             # Use hybrid detection if enabled
                             if config.get("use_hybrid_topic_detection"):
                                 from episodic.topics_hybrid import detect_topic_change_hybrid
                                 topic_changed, new_topic_name, topic_cost_info = detect_topic_change_hybrid(
+                                    recent_nodes,
+                                    user_input,
+                                    current_topic=self.current_topic
+                                )
+                            elif config.get("use_sliding_window_detection"):
+                                # Use sliding window detection (3-3 windows)
+                                from episodic.topics.realtime_windows import RealtimeWindowDetector
+                                window_size = config.get("sliding_window_size", 3)
+                                detector = RealtimeWindowDetector(window_size=window_size)
+                                topic_changed, new_topic_name, topic_cost_info = detector.detect_topic_change(
                                     recent_nodes,
                                     user_input,
                                     current_topic=self.current_topic

@@ -738,6 +738,9 @@ class ConversationManager:
                                 import random
                                 
                                 current_line = ""
+                                line_position = 0
+                                in_bold = False
+                                wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
                                 words_per_second = stream_rate
                                 base_interval = 1.0 / words_per_second  # Base interval in seconds
                                 
@@ -803,9 +806,38 @@ class ConversationManager:
                                                     typer.secho(line, fg=get_llm_color(), bold=True)
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
+                                            line_position = 0  # Reset position after newline
                                         else:
-                                            # Print the word without newline
-                                            typer.secho(word, fg=get_llm_color(), bold=True, nl=False)
+                                            # Process word for bold markers and print with wrapping
+                                            display_word = word
+                                            
+                                            # Check for bold markers
+                                            if display_word.startswith('**'):
+                                                in_bold = True
+                                                display_word = display_word[2:]
+                                            if display_word.endswith('**'):
+                                                display_word = display_word[:-2]
+                                                # Will turn off bold after printing this word
+                                                should_turn_off_bold = True
+                                            else:
+                                                should_turn_off_bold = False
+                                            
+                                            # Strip any remaining ** in the middle (shouldn't happen but just in case)
+                                            display_word = display_word.replace('**', '')
+                                            
+                                            # Check if we need to wrap
+                                            if wrap_width and line_position > 0 and line_position + len(display_word) > wrap_width:
+                                                typer.echo()  # New line
+                                                line_position = 0
+                                            
+                                            # Print the word
+                                            typer.secho(display_word, fg=get_llm_color(), bold=in_bold, nl=False)
+                                            line_position += len(display_word)
+                                            
+                                            # Turn off bold if needed
+                                            if should_turn_off_bold:
+                                                in_bold = False
+                                            
                                             # Don't accumulate printed words
                                             current_line = ""
                                         
@@ -870,6 +902,9 @@ class ConversationManager:
                             # Function to print words at a constant rate
                             def constant_rate_printer():
                                 current_line = ""
+                                line_position = 0
+                                in_bold = False
+                                wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
                                 words_per_second = stream_rate
                                 delay = 1.0 / words_per_second
                                 
@@ -903,9 +938,38 @@ class ConversationManager:
                                                     typer.secho(line, fg=get_llm_color(), bold=True)
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
+                                            line_position = 0  # Reset position after newline
                                         else:
-                                            # Print the word without newline
-                                            typer.secho(word, fg=get_llm_color(), bold=True, nl=False)
+                                            # Process word for bold markers and print with wrapping
+                                            display_word = word
+                                            
+                                            # Check for bold markers
+                                            if display_word.startswith('**'):
+                                                in_bold = True
+                                                display_word = display_word[2:]
+                                            if display_word.endswith('**'):
+                                                display_word = display_word[:-2]
+                                                # Will turn off bold after printing this word
+                                                should_turn_off_bold = True
+                                            else:
+                                                should_turn_off_bold = False
+                                            
+                                            # Strip any remaining ** in the middle (shouldn't happen but just in case)
+                                            display_word = display_word.replace('**', '')
+                                            
+                                            # Check if we need to wrap
+                                            if wrap_width and line_position > 0 and line_position + len(display_word) > wrap_width:
+                                                typer.echo()  # New line
+                                                line_position = 0
+                                            
+                                            # Print the word
+                                            typer.secho(display_word, fg=get_llm_color(), bold=in_bold, nl=False)
+                                            line_position += len(display_word)
+                                            
+                                            # Turn off bold if needed
+                                            if should_turn_off_bold:
+                                                in_bold = False
+                                            
                                             # Don't accumulate printed words
                                             current_line = ""
                                         

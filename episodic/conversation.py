@@ -1372,7 +1372,7 @@ class ConversationManager:
                             if config.get("analyze_topic_boundaries", True):
                                 if config.get("debug"):
                                     typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                    typer.secho(f" Analyzing initial topic boundary...")
+                                    typer.secho(f" Analyzing initial topic boundary...")
                                 
                                 # Get recent conversation history for analysis
                                 full_ancestry = get_ancestry(user_node_id)

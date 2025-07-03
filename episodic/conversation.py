@@ -812,18 +812,19 @@ class ConversationManager:
                                             display_word = word
                                             
                                             # Check for bold markers
+                                            should_be_bold = in_bold  # Current bold state for this word
+                                            
                                             if display_word.startswith('**'):
+                                                should_be_bold = True
                                                 in_bold = True
                                                 display_word = display_word[2:]
+                                            
                                             if display_word.endswith('**'):
                                                 display_word = display_word[:-2]
-                                                # Will turn off bold after printing this word
-                                                should_turn_off_bold = True
-                                            else:
-                                                should_turn_off_bold = False
-                                                # Also stop bold after colon or dash in lists
-                                                if in_bold and (display_word.endswith(':') or display_word.endswith('-')):
-                                                    should_turn_off_bold = True
+                                                in_bold = False  # Turn off bold after this word
+                                            elif should_be_bold and (display_word.endswith(':') or display_word.endswith('-')):
+                                                # Stop bold after colon or dash in lists
+                                                in_bold = False
                                             
                                             # Strip any remaining ** in the middle (shouldn't happen but just in case)
                                             display_word = display_word.replace('**', '')
@@ -834,12 +835,8 @@ class ConversationManager:
                                                 line_position = 0
                                             
                                             # Print the word
-                                            typer.secho(display_word, fg=get_llm_color(), bold=in_bold, nl=False)
+                                            typer.secho(display_word, fg=get_llm_color(), bold=should_be_bold, nl=False)
                                             line_position += len(display_word)
-                                            
-                                            # Turn off bold if needed
-                                            if should_turn_off_bold:
-                                                in_bold = False
                                             
                                             # Don't accumulate printed words
                                             current_line = ""
@@ -947,18 +944,19 @@ class ConversationManager:
                                             display_word = word
                                             
                                             # Check for bold markers
+                                            should_be_bold = in_bold  # Current bold state for this word
+                                            
                                             if display_word.startswith('**'):
+                                                should_be_bold = True
                                                 in_bold = True
                                                 display_word = display_word[2:]
+                                            
                                             if display_word.endswith('**'):
                                                 display_word = display_word[:-2]
-                                                # Will turn off bold after printing this word
-                                                should_turn_off_bold = True
-                                            else:
-                                                should_turn_off_bold = False
-                                                # Also stop bold after colon or dash in lists
-                                                if in_bold and (display_word.endswith(':') or display_word.endswith('-')):
-                                                    should_turn_off_bold = True
+                                                in_bold = False  # Turn off bold after this word
+                                            elif should_be_bold and (display_word.endswith(':') or display_word.endswith('-')):
+                                                # Stop bold after colon or dash in lists
+                                                in_bold = False
                                             
                                             # Strip any remaining ** in the middle (shouldn't happen but just in case)
                                             display_word = display_word.replace('**', '')
@@ -969,12 +967,8 @@ class ConversationManager:
                                                 line_position = 0
                                             
                                             # Print the word
-                                            typer.secho(display_word, fg=get_llm_color(), bold=in_bold, nl=False)
+                                            typer.secho(display_word, fg=get_llm_color(), bold=should_be_bold, nl=False)
                                             line_position += len(display_word)
-                                            
-                                            # Turn off bold if needed
-                                            if should_turn_off_bold:
-                                                in_bold = False
                                             
                                             # Don't accumulate printed words
                                             current_line = ""

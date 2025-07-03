@@ -24,25 +24,10 @@ from episodic.db import initialize_db as init_db
 from episodic.conversation import conversation_manager, handle_chat_message as _handle_chat_message_impl
 from episodic.prompt_manager import load_prompt
 from episodic.benchmark import display_pending_benchmark, reset_benchmarks
-from episodic.compression import start_auto_compression
+# Compression will be imported lazily when needed
 from litellm import cost_per_token
 
-# Import command modules
-from episodic.commands import (
-    # Navigation
-    init, add, show, print_node, head, ancestry, list_nodes,
-    # Settings
-    set, verify, cost, model_params, config_docs,
-    # Topics
-    topics, compress_current_topic, rename_ongoing_topics,
-    # Compression
-    compress, compression_stats, compression_queue, api_call_stats, reset_api_stats,
-    # Other
-    visualize, prompts, summary, benchmark, help,
-    handle_model
-)
-from episodic.commands.debug_topics import topic_scores
-from episodic.commands.index_topics import index_topics
+# Command modules will be imported lazily in handle_command()
 
 # Import helper functions
 from episodic.cli_helpers import _parse_flag_value, _has_flag
@@ -127,6 +112,7 @@ def handle_command(command_str: str) -> bool:
     try:
         # Navigation commands
         if cmd == "/init":
+            from episodic.commands import init
             erase = _has_flag(args, ["--erase", "-e"])
             init(erase=erase)
         
@@ -134,6 +120,7 @@ def handle_command(command_str: str) -> bool:
             if not args:
                 typer.secho("Usage: /add <content>", fg="red")
             else:
+                from episodic.commands import add
                 content = " ".join(args)
                 add(content)
         
@@ -141,13 +128,16 @@ def handle_command(command_str: str) -> bool:
             if not args:
                 typer.secho("Usage: /show <node_id>", fg="red")
             else:
+                from episodic.commands import show
                 show(args[0])
         
         elif cmd == "/print":
+            from episodic.commands import print_node
             node_id = args[0] if args else None
             print_node(node_id)
         
         elif cmd == "/head":
+            from episodic.commands import head
             node_id = args[0] if args else None
             head(node_id)
         
@@ -155,9 +145,11 @@ def handle_command(command_str: str) -> bool:
             if not args:
                 typer.secho("Usage: /ancestry <node_id>", fg="red")
             else:
+                from episodic.commands import ancestry
                 ancestry(args[0])
         
         elif cmd == "/list":
+            from episodic.commands import list_nodes
             count = None
             if args:
                 try:
@@ -168,11 +160,13 @@ def handle_command(command_str: str) -> bool:
         
         # Model command
         elif cmd == "/model":
+            from episodic.commands import handle_model
             model_name = args[0] if args else None
             handle_model(model_name)
         
         # Settings commands
         elif cmd == "/set":
+            from episodic.commands import set
             if len(args) >= 2:
                 set(args[0], args[1])
             elif len(args) == 1:
@@ -181,20 +175,25 @@ def handle_command(command_str: str) -> bool:
                 set()
         
         elif cmd == "/verify":
+            from episodic.commands import verify
             verify()
         
         elif cmd == "/cost":
+            from episodic.commands import cost
             cost()
         
         elif cmd == "/model-params" or cmd == "/mp":
+            from episodic.commands import model_params
             param_set = args[0] if args else None
             model_params(param_set)
         
         elif cmd == "/config-docs":
+            from episodic.commands import config_docs
             config_docs()
         
         # Topic commands
         elif cmd == "/topics":
+            from episodic.commands import topics
             limit = 10
             all_topics = False
             verbose = False
@@ -214,18 +213,22 @@ def handle_command(command_str: str) -> bool:
             topics(limit=limit, all=all_topics, verbose=verbose)
         
         elif cmd == "/compress-current-topic":
+            from episodic.commands import compress_current_topic
             compress_current_topic()
         
         elif cmd == "/rename-topics":
+            from episodic.commands import rename_ongoing_topics
             rename_ongoing_topics()
         
         elif cmd == "/topic-scores":
+            from episodic.commands.debug_topics import topic_scores
             node_id = args[0] if args else None
             limit = int(_parse_flag_value(args, ["--limit", "-l"]) or 20)
             verbose = _has_flag(args, ["--verbose", "-v"])
             topic_scores(node_id=node_id, limit=limit, verbose=verbose)
         
         elif cmd == "/index":
+            from episodic.commands.index_topics import index_topics
             window_size = int(args[0]) if args else 5
             apply = _has_flag(args, ["--apply", "-a"])
             verbose = _has_flag(args, ["--verbose", "-v"])
@@ -233,25 +236,31 @@ def handle_command(command_str: str) -> bool:
         
         # Compression commands
         elif cmd == "/compress":
+            from episodic.commands import compress
             strategy = _parse_flag_value(args, ["--strategy", "-s"]) or "simple"
             node_id = _parse_flag_value(args, ["--node", "-n"])
             dry_run = _has_flag(args, ["--dry-run", "-d"])
             compress(strategy=strategy, node_id=node_id, dry_run=dry_run)
         
         elif cmd == "/compression-stats":
+            from episodic.commands import compression_stats
             compression_stats()
             
         elif cmd == "/api-stats":
+            from episodic.commands import api_call_stats
             api_call_stats()
             
         elif cmd == "/reset-api-stats":
+            from episodic.commands import reset_api_stats
             reset_api_stats()
         
         elif cmd == "/compression-queue":
+            from episodic.commands import compression_queue
             compression_queue()
         
         # Other commands
         elif cmd == "/visualize":
+            from episodic.commands import visualize
             output = _parse_flag_value(args, ["--output", "-o"])
             no_browser = _has_flag(args, ["--no-browser"])
             port = 8080
@@ -264,6 +273,7 @@ def handle_command(command_str: str) -> bool:
             visualize(output=output, no_browser=no_browser, port=port)
         
         elif cmd == "/prompts":
+            from episodic.commands import prompts
             if args:
                 if len(args) >= 2:
                     prompts(args[0], args[1])
@@ -273,6 +283,7 @@ def handle_command(command_str: str) -> bool:
                 prompts()
         
         elif cmd == "/summary":
+            from episodic.commands import summary
             count = args[0] if args else None
             summary(count)
         
@@ -309,9 +320,11 @@ def handle_command(command_str: str) -> bool:
                 save_session_script(args[0])
         
         elif cmd == "/benchmark":
+            from episodic.commands import benchmark
             benchmark()
         
         elif cmd == "/help":
+            from episodic.commands import help
             help()
         
         else:
@@ -459,6 +472,7 @@ def setup_environment():
     
     # Start auto-compression if enabled
     if config.get("auto_compress_topics"):
+        from episodic.compression import start_auto_compression
         start_auto_compression()
     
     # Reset benchmarks for new session

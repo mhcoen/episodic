@@ -34,7 +34,7 @@ from episodic.configuration import (
     COST_PRECISION, format_cost
 )
 from episodic.ml import ConversationalDrift
-from episodic.compression import queue_topic_for_compression
+# Compression will be imported lazily when needed
 from episodic.topics import (
     detect_topic_change_separately, extract_topic_ollama, 
     should_create_first_topic, build_conversation_segment,
@@ -1355,6 +1355,7 @@ class ConversationManager:
                                 update_topic_end_node(final_topic_name, previous_topic['start_node_id'], actual_boundary)
                                 
                                 # Queue the old topic for compression
+                                from episodic.compression import queue_topic_for_compression
                                 queue_topic_for_compression(previous_topic['start_node_id'], actual_boundary, final_topic_name)
                                 if config.get("debug"):
                                     typer.echo(f"   📦 Queued topic '{final_topic_name}' for compression")
@@ -1484,6 +1485,7 @@ class ConversationManager:
                                         update_topic_end_node(topic_name, first_user_node_id, actual_boundary)
                                         
                                         # Queue for compression
+                                        from episodic.compression import queue_topic_for_compression
                                         queue_topic_for_compression(first_user_node_id, actual_boundary, topic_name)
                 
                 # Always create new topic if topic_changed is True (moved outside the else block)

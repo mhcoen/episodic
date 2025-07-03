@@ -8,7 +8,7 @@ import io
 from typing import Optional
 from contextlib import redirect_stdout, redirect_stderr
 from episodic.config import config
-from episodic.configuration import get_system_color, get_text_color
+from episodic.configuration import get_system_color, get_text_color, get_heading_color, get_llm_color
 from episodic.llm_config import (
     get_available_providers, get_provider_models, get_current_provider,
     set_default_model, get_default_model
@@ -44,7 +44,8 @@ def handle_model(name: Optional[str] = None):
             for provider_name, provider_config in providers.items():
                 models = get_provider_models(provider_name)
                 if models:
-                    typer.echo(f"\nAvailable models from {provider_name}:")
+                    typer.secho(f"\nAvailable models from ", nl=False, fg=get_heading_color(), bold=True)
+                    typer.secho(f"{provider_name}:", fg=get_heading_color(), bold=True)
 
                     for model in models:
                         if isinstance(model, dict):
@@ -89,11 +90,18 @@ def handle_model(name: Optional[str] = None):
                             else:
                                 pricing = "Pricing not available"
 
-                        typer.secho(f"  ", nl=False, fg=get_text_color())
-                        typer.secho(f"{current_idx:2d}", nl=False, fg=get_system_color())
+                        typer.secho(f"  ", nl=False)
+                        typer.secho(f"{current_idx:2d}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
                         typer.secho(f". ", nl=False, fg=get_text_color())
-                        typer.secho(f"{model_name:20s}", nl=False, fg=get_system_color())
-                        typer.secho(f"\t({pricing})", fg=get_text_color())
+                        typer.secho(f"{model_name:20s}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+                        typer.secho(f"\t(", nl=False, fg=get_text_color())
+                        if pricing == "Local model":
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)
+                        elif pricing == "Pricing not available":
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.YELLOW)
+                        else:
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+                        typer.secho(")", fg=get_text_color())
                         current_idx += 1
 
         except Exception as e:
@@ -128,7 +136,7 @@ def handle_model(name: Optional[str] = None):
             # Use the selected model name
             name = selected_model
         else:
-            typer.echo(f"Error: Invalid model number '{model_index}'. Use '/model' to see available models.")
+            typer.secho(f"Error: Invalid model number '{model_index}'. Use '/model' to see available models.", fg=typer.colors.RED, bold=True)
             return
             
     except ValueError:
@@ -153,16 +161,36 @@ def handle_model(name: Optional[str] = None):
                 output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
                 
                 if input_cost or output_cost:
-                    typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
-                    typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_BLACK)
+                    typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
+                    typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+                    typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
+                    typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+                    typer.secho(")", fg=get_text_color())
+                    typer.secho(f"Pricing: ", nl=False, fg=get_text_color(), bold=True)
+                    typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
                 else:
-                    typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
-                    typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)
+                    typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
+                    typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+                    typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
+                    typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+                    typer.secho(")", fg=get_text_color())
+                    typer.secho("Pricing: ", nl=False, fg=get_text_color(), bold=True)
+                    typer.secho("Not available", fg=typer.colors.YELLOW)
             else:
-                typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
-                typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)
+                typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
+                typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+                typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
+                typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+                typer.secho(")", fg=get_text_color())
+                typer.secho("Pricing: ", nl=False, fg=get_text_color(), bold=True)
+                typer.secho("Not available", fg=typer.colors.YELLOW)
         except Exception:
-            typer.secho(f"Switched to model: {name} (Provider: {provider})", fg=typer.colors.GREEN)
-            typer.secho("Pricing: Not available", fg=typer.colors.BRIGHT_BLACK)
+            typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
+            typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+            typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
+            typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+            typer.secho(")", fg=get_text_color())
+            typer.secho("Pricing: ", nl=False, fg=get_text_color(), bold=True)
+            typer.secho("Not available", fg=typer.colors.YELLOW)
     except ValueError as e:
-        typer.echo(f"Error: {str(e)}")
+        typer.secho(f"Error: {str(e)}", fg=typer.colors.RED, bold=True)

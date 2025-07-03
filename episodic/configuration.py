@@ -37,7 +37,7 @@ PROMPT_COLOR = "<ansicyan>\n> </ansicyan>"
 # Color schemes for different modes
 COLOR_SCHEMES = {
     "dark": {
-        "llm_response": "BRIGHT_GREEN",      # LLM responses - distinct from white user text
+        "llm_response": "BRIGHT_CYAN",       # LLM responses - bright cyan for better visibility
         "system_info": "BRIGHT_CYAN",       # All episodic system information
         "prompt": "CYAN",                   # Prompt symbol color
         "text": "WHITE",                    # General text (labels, etc)

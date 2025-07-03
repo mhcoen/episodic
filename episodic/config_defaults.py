@@ -33,7 +33,9 @@ TOPIC_DEFAULTS = {
     "manual_index_threshold": 0.75,  # Drift score threshold for boundary detection
     
     # Hybrid topic detection
-    "use_hybrid_topic_detection": True,
+    "use_hybrid_topic_detection": False,
+    "use_sliding_window_detection": True,  # Use sliding 3-window detection by default
+    "sliding_window_size": 3,  # 3-3 window size
     "hybrid_topic_weights": {
         "semantic_drift": 0.6,
         "keyword_explicit": 0.25,
@@ -43,7 +45,7 @@ TOPIC_DEFAULTS = {
     },
     "hybrid_topic_threshold": 0.55,
     "hybrid_llm_threshold": 0.3,
-    "drift_threshold": 0.85,  # Increased from 0.75 for better accuracy
+    "drift_threshold": 0.95,  # Threshold for sliding window detection (0.95+ = topic change)
     "keyword_threshold": 0.5,
 }
 
@@ -109,8 +111,10 @@ CONFIG_DOCS = {
     "manual_index_window_size": "Default sliding window size for manual topic indexing",
     "manual_index_threshold": "Drift score threshold for detecting topic boundaries",
     
-    # Hybrid detection (deprecated)
-    "use_hybrid_topic_detection": "Use multi-signal topic detection (deprecated)",
+    # Topic detection methods
+    "use_hybrid_topic_detection": "Use multi-signal topic detection (combines drift, keywords, etc)",
+    "use_sliding_window_detection": "Use sliding window detection (compares groups of messages)",
+    "sliding_window_size": "Size of sliding windows for topic detection (default: 3)",
     "hybrid_topic_weights": "Weight distribution for hybrid detection signals",
     "hybrid_topic_threshold": "Overall threshold for hybrid topic change detection",
     "hybrid_llm_threshold": "Threshold below which to use LLM fallback",
@@ -126,9 +130,5 @@ CONFIG_DOCS = {
     "compression_params": "Model parameters for topic compression",
 }
 
-# Dynamic threshold behavior (from topics.py)
-TOPIC_THRESHOLD_BEHAVIOR = {
-    "description": "First 2 topics use half the configured threshold",
-    "first_n_topics": 2,
-    "reduced_threshold_factor": 0.5
-}
+# REMOVED - No special threshold behavior needed
+# Topics change when drift score exceeds drift_threshold (default 0.9)

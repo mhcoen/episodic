@@ -17,7 +17,7 @@ from episodic.db import (
 )
 from episodic.llm import query_llm
 from episodic.config import config
-from episodic.config_defaults import TOPIC_THRESHOLD_BEHAVIOR
+# Removed TOPIC_THRESHOLD_BEHAVIOR import - no longer needed
 from episodic.prompt_manager import PromptManager
 from episodic.benchmark import benchmark_resource
 
@@ -63,39 +63,10 @@ class TopicManager:
                     None  # None means count to the end of the conversation
                 )
                 
-                # Skip topic detection if current topic has fewer than threshold messages
-                # But allow detection if we have many topics already (to avoid one giant topic)
-                min_messages_before_change = config.get('min_messages_before_topic_change')
-                total_topics = len(get_recent_topics(limit=100))
-                
-                # Apply dynamic threshold based on number of topics
-                # First N topics use reduced threshold to allow easier topic creation
-                # Subsequent topics use full threshold to prevent over-segmentation
-                first_n = TOPIC_THRESHOLD_BEHAVIOR['first_n_topics']
-                reduction_factor = TOPIC_THRESHOLD_BEHAVIOR['reduced_threshold_factor']
-                
-                if total_topics <= first_n:
-                    # For the first N topics, use reduced threshold
-                    effective_min = max(4, int(min_messages_before_change * reduction_factor))
-                else:
-                    # For subsequent topics, use the full threshold
-                    effective_min = min_messages_before_change
-                    
-                if user_messages_in_topic < effective_min:
-                    if config.get("debug"):
-                        typer.echo(f"\n🔍 DEBUG: Skipping topic detection - current topic has only {user_messages_in_topic} user messages (min: {effective_min}, total topics: {total_topics})")
-                    return False, None, None
-            else:
-                # No current topic set - check if we have enough messages overall
-                # Count total user messages in the conversation
-                user_messages = [msg for msg in recent_messages if msg.get('role') == 'user']
-                total_user_messages = len(user_messages)
-                min_messages = config.get('min_messages_before_topic_change')
-                
-                if total_user_messages < min_messages:
-                    if config.get("debug"):
-                        typer.echo(f"\n🔍 DEBUG: No current topic, only {total_user_messages} total user messages (min: {min_messages})")
-                    return False, None, None
+                # REMOVED - Let topic detection run based on drift alone
+                # Topics change when drift exceeds threshold, not based on message counts
+                pass
+            # Let detection proceed - topics change based on drift
             # Build context from recent messages
             use_v2_prompt = config.get("topic_detection_v2", False)
             

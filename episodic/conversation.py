@@ -23,7 +23,7 @@ import typer
 from episodic.db import (
     insert_node, get_ancestry, get_head, set_head, get_recent_nodes,
     get_recent_topics, update_topic_end_node, store_topic,
-    update_topic_name
+    update_topic_name, get_node
 )
 from episodic.llm import query_with_context
 from episodic.llm_config import get_current_provider
@@ -442,7 +442,9 @@ class ConversationManager:
         with benchmark_operation("Message Processing"):
             # Get recent messages for context BEFORE adding the new message
             with benchmark_resource("Database", "get recent nodes"):
-                recent_nodes = get_recent_nodes(limit=10)  # Get last 10 nodes for context
+                # For sliding window detection, we need more history to properly slide the window
+                detection_history_limit = 50 if config.get("use_sliding_window_detection") else 10
+                recent_nodes = get_recent_nodes(limit=detection_history_limit)  # Get more nodes for sliding window
             
             # Add the user message to the database
             with benchmark_resource("Database", "insert user node"):
@@ -470,13 +472,18 @@ class ConversationManager:
                             
                             # Use hybrid detection if enabled
                             if config.get("use_hybrid_topic_detection"):
-                                from episodic.topics_hybrid import detect_topic_change_hybrid
-                                topic_changed, new_topic_name, topic_cost_info = detect_topic_change_hybrid(
+                                if config.get("debug"):
+                                    typer.echo("   Using HYBRID detection")
+                                from episodic.topics.hybrid import HybridTopicDetector
+                                detector = HybridTopicDetector()
+                                topic_changed, new_topic_name, topic_cost_info = detector.detect_topic_change(
                                     recent_nodes,
                                     user_input,
                                     current_topic=self.current_topic
                                 )
                             elif config.get("use_sliding_window_detection"):
+                                if config.get("debug"):
+                                    typer.echo("   Using SLIDING WINDOW detection")
                                 # Use sliding window detection (3-3 windows)
                                 from episodic.topics.realtime_windows import RealtimeWindowDetector
                                 window_size = config.get("sliding_window_size", 3)
@@ -487,7 +494,9 @@ class ConversationManager:
                                     current_topic=self.current_topic
                                 )
                             else:
-                                topic_changed, new_topic_name, topic_cost_info = detect_topic_change_separately(
+                                # Use standard LLM-based detection
+                                from episodic.topics.detector import topic_manager
+                                topic_changed, new_topic_name, topic_cost_info = topic_manager.detect_topic_change_separately(
                                     recent_nodes, 
                                     user_input,
                                     current_topic=self.current_topic
@@ -511,6 +520,61 @@ class ConversationManager:
             
             # Store topic detection scores for debugging (only if automatic detection is enabled)
             if config.get("automatic_topic_detection") and recent_nodes and len(recent_nodes) >= 2:
+                # Store window-based detection scores in the window detection table
+                if config.get("use_sliding_window_detection") and topic_cost_info and topic_cost_info.get("method") == "sliding_window":
+                    try:
+                        # Import get_node locally to avoid scope issues
+                        from episodic.db import get_node as get_node_info
+                        
+                        # Get user node info
+                        user_node = get_node_info(user_node_id)
+                        if user_node and user_node.get('short_id'):
+                            window_a_messages = topic_cost_info.get("window_a_messages", [])
+                            
+                            # Only store if we have window messages
+                            if window_a_messages:
+                                # Debug: Check what we're storing
+                                if config.get("debug"):
+                                    typer.echo(f"   DEBUG: Storing window for {user_node['short_id']}")
+                                    typer.echo(f"   Window A messages: {[m.get('short_id', '?') for m in window_a_messages]}")
+                                    typer.echo(f"   Start: {window_a_messages[0].get('short_id', '?')}, End: {window_a_messages[-1].get('short_id', '?')}")
+                                
+                                # Store directly to manual_index_scores table
+                                from episodic.db import get_connection
+                                
+                                with get_connection() as conn:
+                                    cursor = conn.cursor()
+                                    cursor.execute("""
+                                        INSERT INTO manual_index_scores (
+                                            user_node_short_id, window_size,
+                                            window_a_start_short_id, window_a_end_short_id, window_a_size,
+                                            window_b_start_short_id, window_b_end_short_id, window_b_size,
+                                            drift_score, keyword_score, combined_score,
+                                            is_boundary, transition_phrase, threshold_used
+                                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """, (
+                                        user_node['short_id'],
+                                        topic_cost_info.get("window_size", 3),
+                                        window_a_messages[0].get('short_id', 'unknown') if window_a_messages else 'unknown',
+                                        window_a_messages[-1].get('short_id', 'unknown') if window_a_messages else 'unknown',
+                                        len(window_a_messages),
+                                        user_node['short_id'],
+                                        user_node['short_id'],
+                                        1,
+                                        topic_cost_info.get("drift_score", 0.0),
+                                        topic_cost_info.get("keyword_score", 0.0),
+                                        topic_cost_info.get("combined_score", topic_cost_info.get("drift_score", 0.0)),
+                                        topic_cost_info.get("is_boundary", False),
+                                        topic_cost_info.get("transition_phrase"),
+                                        topic_cost_info.get("threshold_used")
+                                    ))
+                                if config.get("debug"):
+                                    typer.echo(f"   ✅ Stored window detection score for {user_node['short_id']}")
+                    except Exception as e:
+                        if config.get("debug"):
+                            typer.echo(f"   ⚠️ Failed to store window detection score: {e}")
+                
+                # Also store general detection scores
                 from episodic.db import store_topic_detection_scores
                 from episodic.topics import topic_manager
                 import json
@@ -547,8 +611,15 @@ class ConversationManager:
                     "effective_threshold": effective_threshold
                 }
                 
+                # Add sliding window detection scores if available
+                if detection_method == "sliding_window" and topic_cost_info:
+                    scores_data.update({
+                        "semantic_drift_score": topic_cost_info.get("drift_score"),
+                        "final_score": topic_cost_info.get("combined_score", topic_cost_info.get("drift_score")),
+                        "transition_phrase": topic_cost_info.get("transition_phrase")
+                    })
                 # Add hybrid detection scores if available
-                if topic_cost_info and "signals" in topic_cost_info:
+                elif topic_cost_info and "signals" in topic_cost_info:
                     signals = topic_cost_info["signals"]
                     scores_data.update({
                         "final_score": topic_cost_info.get("score"),
@@ -1154,21 +1225,8 @@ class ConversationManager:
                                 parent_node_id  # End at parent of current user node
                             )
                             
-                            # Get thresholds
-                            min_messages_before_change = config.get('min_messages_before_topic_change', 8)
-                            total_topics = len(get_recent_topics(limit=100))
-                            
-                            # Apply consistent threshold - no special cases for early topics
-                            # This prevents topics from being created with too few messages
-                            effective_min = min_messages_before_change
-                            
-                            # If previous topic doesn't have enough messages, don't create new topic
-                            if user_messages_in_prev < effective_min:
-                                if config.get("debug"):
-                                    typer.echo(f"\n🔍 DEBUG: Not creating new topic - previous topic has only {user_messages_in_prev} user messages (min: {effective_min})")
-                                topic_changed = False
-                                # Continue with the current topic
-                            else:
+                            # Let topics change based on drift - no message count restrictions
+                            if True:  # Always proceed with topic change when drift is high
                                 # Previous topic has enough messages, proceed with topic change
                                 
                                 # Analyze where the topic actually changed
@@ -1208,8 +1266,7 @@ class ConversationManager:
                                     else:
                                         # Use heuristic-based analysis (no LLM)
                                         heuristic_boundary = find_transition_point_heuristic(
-                                            full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry,
-                                            user_node_id
+                                            full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry
                                         )
                                         if heuristic_boundary:
                                             actual_boundary = heuristic_boundary
@@ -1285,8 +1342,42 @@ class ConversationManager:
                         if user_node and user_node.get('parent_id'):
                             parent_node_id = user_node['parent_id']
                             
-                            # Get all nodes from the beginning up to the parent of the current user node
-                            get_ancestry(parent_node_id)
+                            # Analyze where the topic actually changed for the initial topic too
+                            actual_boundary = parent_node_id  # Default to current boundary
+                            
+                            # Check if boundary analysis is enabled (default: True)
+                            if config.get("analyze_topic_boundaries", True):
+                                if config.get("debug"):
+                                    typer.echo(f"\n🔍 DEBUG: Analyzing initial topic boundary...")
+                                
+                                # Get recent conversation history for analysis
+                                full_ancestry = get_ancestry(user_node_id)
+                                
+                                # Use boundary analyzer to find actual transition
+                                if config.get("use_llm_boundary_analysis", True):
+                                    # Use LLM-based analysis
+                                    boundary_result = analyze_topic_boundary(
+                                        full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry,
+                                        user_node_id,
+                                        config.get("topic_detection_model", "ollama/llama3")
+                                    )
+                                    
+                                    if boundary_result:
+                                        actual_boundary = boundary_result
+                                        if config.get("debug"):
+                                            typer.echo(f"   Found initial topic boundary: {actual_boundary}")
+                                else:
+                                    # Use heuristic-based analysis (no LLM)
+                                    heuristic_boundary = find_transition_point_heuristic(
+                                        full_ancestry[-20:] if len(full_ancestry) > 20 else full_ancestry
+                                    )
+                                    if heuristic_boundary:
+                                        actual_boundary = heuristic_boundary
+                                        if config.get("debug"):
+                                            typer.echo(f"   Found heuristic boundary: {actual_boundary}")
+                            
+                            # Get all nodes from the beginning up to the actual boundary
+                            get_ancestry(actual_boundary)
                             
                             # Find the very first user node in the database
                             # Don't rely on ancestry chain which might be broken
@@ -1312,14 +1403,18 @@ class ConversationManager:
                                     c2.execute("SELECT ROWID FROM nodes WHERE id = ?", (parent_node_id,))
                                     parent_row = c2.fetchone()
                                     
-                                    if parent_row and parent_row[0] >= 3:  # Need at least a few nodes
-                                        # Get all nodes from beginning up to parent
+                                    # Get the actual boundary node's ROWID
+                                    c2.execute("SELECT ROWID FROM nodes WHERE id = ?", (actual_boundary,))
+                                    boundary_row = c2.fetchone()
+                                    
+                                    if boundary_row and boundary_row[0] >= 3:  # Need at least a few nodes
+                                        # Get all nodes from beginning up to actual boundary
                                         c2.execute('''
                                             SELECT id, short_id, role, content 
                                             FROM nodes 
                                             WHERE ROWID <= ?
                                             ORDER BY ROWID
-                                        ''', (parent_row[0],))
+                                        ''', (boundary_row[0],))
                                         
                                         nodes = []
                                         for node_row in c2.fetchall():
@@ -1335,7 +1430,7 @@ class ConversationManager:
                                         
                                         if config.get("debug"):
                                             typer.echo(f"\n🔍 DEBUG: Creating topic for initial conversation:")
-                                            typer.echo(f"   From node {first_user_short_id} to {parent_node_id}")
+                                            typer.echo(f"   From node {first_user_short_id} to {actual_boundary}")
                                             typer.echo(f"   Conversation preview: {segment[:200]}...")
                                 
                                         # Extract topic name
@@ -1360,36 +1455,30 @@ class ConversationManager:
                                         typer.echo("")
                                         typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
                                         
+                                        # Now close the initial topic at the actual boundary
+                                        update_topic_end_node(topic_name, first_user_node_id, actual_boundary)
+                                        
                                         # Queue for compression
-                                        queue_topic_for_compression(first_user_node_id, parent_node_id, topic_name)
+                                        queue_topic_for_compression(first_user_node_id, actual_boundary, topic_name)
                 
-                    # Only create new topic if topic_changed is still True after validation
-                    if topic_changed:
-                        # Create a new topic starting from this user message
-                        # Use a placeholder name that will be updated when this topic ends
-                        timestamp = int(time.time())
-                        placeholder_topic_name = f"ongoing-{timestamp}"
-                        
-                        # Create the topic with placeholder name - keep it open!
-                        store_topic(placeholder_topic_name, user_node_id, None, 'detected')
-                        
-                        # Set as current topic
-                        self.set_current_topic(placeholder_topic_name, user_node_id)
-                        
-                        typer.echo("")
-                        typer.secho(f"🔄 Topic changed", fg=get_system_color())
-                        
-                        # Note: We'll extract a proper name for this topic after a few messages
-                        # This is tracked in self.current_topic
-                    else:
-                        # Topic change was cancelled due to insufficient messages in previous topic
-                        # Extend the current topic instead
-                        current_topic = self.get_current_topic()
-                        if current_topic:
-                            topic_name, start_node_id = current_topic
-                            # For ongoing topics, we don't update end_node_id - it should stay NULL
-                            if config.get("debug"):
-                                typer.echo(f"🔍 DEBUG: Topic '{topic_name}' continues (topic change cancelled)")
+                # Always create new topic if topic_changed is True (moved outside the else block)
+                if topic_changed:
+                    # Create a new topic starting from this user message
+                    # Use a placeholder name that will be updated when this topic ends
+                    timestamp = int(time.time())
+                    placeholder_topic_name = f"ongoing-{timestamp}"
+                    
+                    # Create the topic with placeholder name - keep it open!
+                    store_topic(placeholder_topic_name, user_node_id, None, 'detected')
+                    
+                    # Set as current topic
+                    self.set_current_topic(placeholder_topic_name, user_node_id)
+                    
+                    typer.echo("")
+                    typer.secho(f"🔄 Topic changed", fg=get_system_color())
+                    
+                    # Note: We'll extract a proper name for this topic after a few messages
+                    # This is tracked in self.current_topic
                 elif config.get("automatic_topic_detection"):
                     # No topic change - extend the current topic if one exists (only if automatic detection is enabled)
                     current_topic = self.get_current_topic()

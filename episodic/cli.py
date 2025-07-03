@@ -13,6 +13,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.formatted_text import HTML
+from typing import Optional
 
 from episodic.config import config
 from episodic.configuration import (
@@ -62,8 +63,10 @@ def handle_chat_message(user_input: str) -> None:
         # Get the current model from config
         model = config.get("model", "gpt-3.5-turbo")
         
-        # Use the conversation manager's system prompt
-        system_message = conversation_manager.system_prompt
+        # Get the system prompt using the prompt manager
+        from episodic.prompt_manager import get_prompt_manager
+        prompt_manager = get_prompt_manager()
+        system_message = prompt_manager.get_active_prompt_content(config.get)
         
         # Get context depth from config (if available)
         context_depth = config.get("context_depth", 5)
@@ -450,11 +453,8 @@ def setup_environment():
     # Set up readline for command history
     setup_readline()
     
-    # Load active prompt
-    active_prompt = config.get("active_prompt", "default")
-    prompt_data = load_prompt(active_prompt)
-    if prompt_data and 'content' in prompt_data:
-        conversation_manager.system_prompt = prompt_data['content']
+    # Load active prompt (no longer needed - prompt manager handles this)
+    # The prompt manager will get the active prompt when needed
     
     # Start auto-compression if enabled
     if config.get("auto_compress_topics"):
@@ -479,6 +479,13 @@ def get_prompt() -> str:
 
 def talk_loop() -> None:
     """Main conversation loop."""
+    import sys
+    
+    # Check if we're in an interactive terminal
+    if not sys.stdin.isatty():
+        typer.secho("Error: Episodic requires an interactive terminal. Use /script to execute scripts.", fg="red")
+        sys.exit(1)
+    
     setup_environment()
     
     typer.secho("Welcome to Episodic! Type '/help' for commands or start chatting.", 
@@ -585,9 +592,74 @@ def talk_loop() -> None:
 
 
 @app.command()
-def main():
+def main(
+    execute: Optional[str] = typer.Option(None, "--execute", "-e", help="Execute a script file and exit"),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Specify the model to use"),
+    no_stream: bool = typer.Option(False, "--no-stream", help="Disable streaming output")
+):
     """Start the Episodic conversation interface."""
-    talk_loop()
+    # Handle command-line options
+    if model and isinstance(model, str):
+        config.set("model", model)
+        
+        # If model specified, ensure provider matches
+        from episodic.llm_config import set_current_provider, save_config, load_config
+        if "/" in model:
+            # Provider specified in model string (e.g. "ollama/llama3")
+            provider = model.split("/")[0]
+            set_current_provider(provider)
+        elif model.startswith("gpt"):
+            # OpenAI model
+            set_current_provider("openai")
+        elif model.startswith("claude"):
+            # Anthropic model
+            set_current_provider("anthropic")
+        # For other models, keep current provider
+    
+    if no_stream and isinstance(no_stream, bool):
+        config.set("streaming", False)
+    
+    if execute and isinstance(execute, str):
+        # Execute script mode
+        import sys
+        setup_environment()
+        
+        # Display model info
+        from episodic.llm_config import get_default_model, get_current_provider
+        current_model = get_default_model()
+        provider = get_current_provider()
+        LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
+        
+        typer.secho("Welcome to Episodic! Type '/help' for commands or start chatting.", 
+                   fg=get_system_color())
+        
+        if provider in LOCAL_PROVIDERS:
+            typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+            typer.secho("Pricing: Local model", fg=get_system_color())
+        else:
+            try:
+                from litellm import cost_per_token
+                input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+                typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+                typer.secho(f"Pricing: ${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=get_system_color())
+            except Exception:
+                typer.secho(f"Using model: {current_model} (Provider: {provider})", fg=get_llm_color())
+                typer.secho("Pricing: Not available", fg=get_system_color())
+        
+        typer.echo()  # Blank line
+        
+        # Initialize conversation
+        conversation_manager.initialize_conversation()
+        
+        # Execute the script
+        execute_script(execute)
+        
+        # Finalize and exit
+        conversation_manager.finalize_current_topic()
+        sys.exit(0)
+    else:
+        # Interactive mode
+        talk_loop()
 
 
 if __name__ == "__main__":

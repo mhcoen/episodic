@@ -502,6 +502,46 @@ def display_startup_info():
     typer.echo()  # Blank line for spacing
 
 
+def display_welcome():
+    """Display welcome message immediately."""
+    typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
+    typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
+
+
+def display_model_info():
+    """Display model and pricing information."""
+    # Display current model and pricing information
+    from episodic.llm_config import get_default_model, get_current_provider
+    
+    current_model = get_default_model()
+    provider = get_current_provider()
+    
+    # Check if it's a local provider
+    LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
+    
+    # Display model info
+    typer.secho("Using model: ", nl=False, fg=get_text_color())
+    typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+    typer.secho(" (Provider: ", nl=False, fg=get_text_color())
+    typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+    typer.secho(")", fg=get_text_color())
+    
+    # Display pricing info
+    if provider in LOCAL_PROVIDERS:
+        typer.secho("Pricing: ", nl=False, fg=get_text_color())
+        typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    else:
+        try:
+            input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+            typer.secho("Pricing: ", nl=False, fg=get_text_color())
+            typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+        except Exception:
+            typer.secho("Pricing: ", nl=False, fg=get_text_color())
+            typer.secho("Not available", fg=typer.colors.YELLOW)
+    
+    typer.echo()  # Blank line for spacing
+
+
 def get_prompt() -> str:
     """Get the appropriate prompt based on color settings."""
     color_mode = config.get("color_mode", "full")
@@ -524,8 +564,14 @@ def talk_loop() -> None:
         typer.secho("Error: Episodic requires an interactive terminal. Use /script to execute scripts.", fg="red")
         sys.exit(1)
     
+    # Show welcome message immediately
+    display_welcome()
+    
+    # Then do initialization
     setup_environment()
-    display_startup_info()
+    
+    # Display model and pricing info after initialization
+    display_model_info()
     
     # Initialize the conversation manager with the current head node
     conversation_manager.initialize_conversation()
@@ -634,8 +680,15 @@ def main(
     if execute and isinstance(execute, str):
         # Execute script mode
         import sys
+        
+        # Show welcome message immediately
+        display_welcome()
+        
+        # Then do initialization
         setup_environment()
-        display_startup_info()
+        
+        # Display model and pricing info after initialization
+        display_model_info()
         
         # Initialize conversation
         conversation_manager.initialize_conversation()

@@ -4,8 +4,11 @@ Streamlined CLI module for Episodic.
 This is the main entry point that coordinates all the command modules.
 """
 
-import typer
 import os
+# Prevent tokenizers fork warning
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+import typer
 import shlex
 import time
 from datetime import datetime

@@ -464,6 +464,44 @@ def setup_environment():
     reset_benchmarks()
 
 
+def display_startup_info():
+    """Display welcome message and model information."""
+    typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
+    typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
+    
+    # Display current model and pricing information
+    from episodic.llm_config import get_default_model, get_current_provider
+    from litellm import cost_per_token
+    
+    current_model = get_default_model()
+    provider = get_current_provider()
+    
+    # Check if it's a local provider
+    LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
+    
+    # Display model info
+    typer.secho("Using model: ", nl=False, fg=get_text_color())
+    typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+    typer.secho(" (Provider: ", nl=False, fg=get_text_color())
+    typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+    typer.secho(")", fg=get_text_color())
+    
+    # Display pricing info
+    if provider in LOCAL_PROVIDERS:
+        typer.secho("Pricing: ", nl=False, fg=get_text_color())
+        typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    else:
+        try:
+            input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+            typer.secho("Pricing: ", nl=False, fg=get_text_color())
+            typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+        except Exception:
+            typer.secho("Pricing: ", nl=False, fg=get_text_color())
+            typer.secho("Not available", fg=typer.colors.YELLOW)
+    
+    typer.echo()  # Blank line for spacing
+
+
 def get_prompt() -> str:
     """Get the appropriate prompt based on color settings."""
     color_mode = config.get("color_mode", "full")
@@ -487,48 +525,7 @@ def talk_loop() -> None:
         sys.exit(1)
     
     setup_environment()
-    
-    typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
-    typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
-    
-    # Display current model and pricing information
-    from episodic.llm_config import get_default_model, get_current_provider
-    from litellm import cost_per_token
-    
-    current_model = get_default_model()
-    provider = get_current_provider()
-    
-    # Check if it's a local provider
-    LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
-    
-    if provider in LOCAL_PROVIDERS:
-        typer.secho("Using model: ", nl=False, fg=get_text_color())
-        typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-        typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-        typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-        typer.secho(")", fg=get_text_color())
-        typer.secho("Pricing: ", nl=False, fg=get_text_color())
-        typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
-    else:
-        try:
-            input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
-            typer.secho("Using model: ", nl=False, fg=get_text_color())
-            typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-            typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-            typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-            typer.secho(")", fg=get_text_color())
-            typer.secho("Pricing: ", nl=False, fg=get_text_color())
-            typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
-        except Exception:
-            typer.secho("Using model: ", nl=False, fg=get_text_color())
-            typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-            typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-            typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-            typer.secho(")", fg=get_text_color())
-            typer.secho("Pricing: ", nl=False, fg=get_text_color())
-            typer.secho("Not available", fg=typer.colors.YELLOW)
-    
-    typer.echo()  # Blank line for spacing
+    display_startup_info()
     
     # Initialize the conversation manager with the current head node
     conversation_manager.initialize_conversation()
@@ -638,45 +635,7 @@ def main(
         # Execute script mode
         import sys
         setup_environment()
-        
-        # Display model info
-        from episodic.llm_config import get_default_model, get_current_provider
-        current_model = get_default_model()
-        provider = get_current_provider()
-        LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
-        
-        typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
-        typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
-        
-        if provider in LOCAL_PROVIDERS:
-            typer.secho("Using model: ", nl=False, fg=get_text_color())
-            typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-            typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-            typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-            typer.secho(")", fg=get_text_color())
-            typer.secho("Pricing: ", nl=False, fg=get_text_color())
-            typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
-        else:
-            try:
-                from litellm import cost_per_token
-                input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
-                typer.secho("Using model: ", nl=False, fg=get_text_color())
-                typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-                typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-                typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-                typer.secho(")", fg=get_text_color())
-                typer.secho("Pricing: ", nl=False, fg=get_text_color())
-                typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
-            except Exception:
-                typer.secho("Using model: ", nl=False, fg=get_text_color())
-                typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-                typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-                typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-                typer.secho(")", fg=get_text_color())
-                typer.secho("Pricing: ", nl=False, fg=get_text_color())
-                typer.secho("Not available", fg=typer.colors.YELLOW)
-        
-        typer.echo()  # Blank line
+        display_startup_info()
         
         # Initialize conversation
         conversation_manager.initialize_conversation()

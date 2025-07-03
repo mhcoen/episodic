@@ -1255,7 +1255,7 @@ class ConversationManager:
                                 if config.get("analyze_topic_boundaries", True):
                                     if config.get("debug"):
                                         typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                    typer.secho(f" Analyzing topic boundary...")
+                                        typer.secho(f" Analyzing topic boundary...")
                                     
                                     # Get recent conversation history for analysis
                                     # We need more context than just recent_nodes
@@ -1319,7 +1319,7 @@ class ConversationManager:
                                     
                                     if config.get("debug"):
                                         typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                    typer.secho(f" Extracting name for previous topic '{previous_topic['name']}'")
+                                        typer.secho(f" Extracting name for previous topic '{previous_topic['name']}'")
                                         typer.echo(f"   Topic has {len(topic_nodes)} nodes")
                                         typer.echo(f"   Segment preview: {segment[:200]}...")
                                     

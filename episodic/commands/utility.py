@@ -60,7 +60,7 @@ def help():
     # Configuration commands
     typer.secho("\n⚙️  Configuration:", fg=get_heading_color(), bold=True)
     commands = [
-        ("/set [param] [value]", "Configure parameters"),
+        ("/set [param] [value]", "Configure parameters (e.g., debug, cost)"),
         ("/verify", "Verify database and configuration"),
         ("/config-docs", "Show configuration documentation"),
         ("/model-params [set]", "Show/set model parameters"),
@@ -124,6 +124,8 @@ def help():
     
     typer.secho("\n" + "=" * 60, fg=get_heading_color())
     typer.secho("💡 Type messages directly to chat, use '/' prefix for commands", 
+               fg=get_text_color(), dim=True)
+    typer.secho("📝 Common settings: /set debug off, /set cost on, /set topics on", 
                fg=get_text_color(), dim=True)
 
 

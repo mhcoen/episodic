@@ -8,9 +8,32 @@ import json
 import hashlib
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
+import warnings
+import logging
+import sys
+from contextlib import contextmanager
+from io import StringIO
 
 # Disable ChromaDB telemetry to avoid warnings
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
+# Monkey-patch to completely disable ChromaDB telemetry due to compatibility issues
+import types
+
+class MockTelemetry:
+    """Mock telemetry module to prevent errors."""
+    def __getattr__(self, name):
+        # Return a no-op function for any attribute access
+        return lambda *args, **kwargs: None
+
+# Create mock modules for telemetry
+sys.modules['chromadb.telemetry'] = types.ModuleType('telemetry')
+sys.modules['chromadb.telemetry.posthog'] = MockTelemetry()
+sys.modules['chromadb.telemetry.events'] = MockTelemetry()
+
+# Suppress ChromaDB warnings
+logging.getLogger('chromadb').setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", message=".*telemetry.*")
 
 import chromadb
 from chromadb.utils import embedding_functions
@@ -19,6 +42,17 @@ import typer
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color
 from episodic.db import get_connection
+
+
+@contextmanager
+def suppress_telemetry_errors():
+    """Context manager to suppress telemetry error messages."""
+    old_stderr = sys.stderr
+    sys.stderr = StringIO()
+    try:
+        yield
+    finally:
+        sys.stderr = old_stderr
 
 
 class EpisodicRAG:
@@ -32,25 +66,28 @@ class EpisodicRAG:
         
         # Configure ChromaDB client with telemetry disabled
         from chromadb.config import Settings
-        self.client = chromadb.PersistentClient(
-            path=db_path,
-            settings=Settings(
-                anonymized_telemetry=False,
-                allow_reset=True
+        
+        # Suppress telemetry errors during initialization
+        with suppress_telemetry_errors():
+            self.client = chromadb.PersistentClient(
+                path=db_path,
+                settings=Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=True
+                )
             )
-        )
-        
-        # Use sentence transformers for embeddings
-        self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=config.get('rag_embedding_model', 'all-MiniLM-L6-v2')
-        )
-        
-        # Get or create main collection
-        self.collection = self.client.get_or_create_collection(
-            name="episodic_knowledge",
-            embedding_function=self.embedding_fn,
-            metadata={"created_at": datetime.now().isoformat()}
-        )
+            
+            # Use sentence transformers for embeddings
+            self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+                model_name=config.get('rag_embedding_model', 'all-MiniLM-L6-v2')
+            )
+            
+            # Get or create main collection
+            self.collection = self.client.get_or_create_collection(
+                name="episodic_knowledge",
+                embedding_function=self.embedding_fn,
+                metadata={"created_at": datetime.now().isoformat()}
+            )
         
     def chunk_document(self, content: str, chunk_size: int = None, 
                       overlap: int = None) -> List[Dict[str, Any]]:
@@ -369,6 +406,17 @@ def get_rag_system() -> Optional[EpisodicRAG]:
     
     if rag_system is None:
         try:
+            # Apply runtime telemetry patch if needed
+            try:
+                import chromadb.telemetry.posthog as posthog_module
+                if hasattr(posthog_module, 'Posthog'):
+                    # Patch the capture method to accept any arguments
+                    original_capture = getattr(posthog_module.Posthog, 'capture', None)
+                    if original_capture:
+                        posthog_module.Posthog.capture = lambda self, *args, **kwargs: None
+            except Exception:
+                pass  # Ignore patching errors
+            
             rag_system = EpisodicRAG()
         except Exception as e:
             if config.get('debug'):

@@ -9,6 +9,9 @@ import hashlib
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
+# Disable ChromaDB telemetry to avoid warnings
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 import chromadb
 from chromadb.utils import embedding_functions
 import typer

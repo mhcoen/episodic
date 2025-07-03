@@ -118,7 +118,7 @@ def show_help_with_categories():
     # Define category order
     category_order = [
         "Navigation", "Conversation", "Topics", "Configuration",
-        "Compression", "Utility"
+        "Knowledge Base", "Compression", "Utility"
     ]
     
     for category in category_order:
@@ -172,6 +172,7 @@ def get_category_icon(category: str) -> str:
         "Conversation": "💬",
         "Topics": "📑",
         "Configuration": "⚙️",
+        "Knowledge Base": "📚",
         "Compression": "📦",
         "Utility": "🛠️"
     }

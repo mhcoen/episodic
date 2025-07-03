@@ -60,13 +60,33 @@ def handle_chat_message(user_input: str) -> None:
         # Get context depth from config (if available)
         context_depth = config.get("context_depth", 5)
         
-        # Enhance message with document context if enabled
-        try:
-            from episodic.commands.documents import doc_commands
-            enhanced_input = doc_commands.enhance_message_if_enabled(user_input)
-        except ImportError:
-            # Document features not available
-            enhanced_input = user_input
+        # Enhance message with context if enabled
+        enhanced_input = user_input
+        sources_used = []
+        
+        # Try RAG enhancement first
+        if config.get('rag_enabled', False):
+            try:
+                from episodic.rag import get_rag_system, ensure_rag_initialized
+                if ensure_rag_initialized():
+                    rag = get_rag_system()
+                    if rag:
+                        enhanced_input, sources_used = rag.enhance_with_context(user_input)
+                        if sources_used and config.get('rag_show_citations', True):
+                            typer.secho(f"📚 Using sources: {', '.join(sources_used)}", 
+                                      fg=get_text_color())
+            except Exception as e:
+                if config.get("debug"):
+                    typer.secho(f"RAG enhancement error: {e}", fg="yellow")
+        
+        # Fall back to document enhancement if RAG not used
+        if enhanced_input == user_input:
+            try:
+                from episodic.commands.documents import doc_commands
+                enhanced_input = doc_commands.enhance_message_if_enabled(user_input)
+            except ImportError:
+                # Document features not available
+                pass
         
         # Use the conversation manager to handle the message
         assistant_node_id, display_response = _handle_chat_message_impl(
@@ -299,16 +319,29 @@ def handle_command(command_str: str) -> bool:
                 handle_load_command(' '.join(args))
         
         elif cmd == "/docs":
-            from episodic.commands.documents import handle_docs_command
-            action = args[0] if args else None
-            handle_docs_command(action)
+            # Check if RAG is enabled for /docs command
+            if config.get('rag_enabled', False):
+                from episodic.commands.rag import docs_command
+                action = args[0] if args else None
+                remaining_args = args[1:] if len(args) > 1 else []
+                docs_command(action, *remaining_args)
+            else:
+                from episodic.commands.documents import handle_docs_command
+                action = args[0] if args else None
+                handle_docs_command(action)
         
         elif cmd == "/search":
             if not args:
                 typer.secho("Usage: /search <query>", fg="red")
             else:
-                from episodic.commands.documents import handle_search_command
-                handle_search_command(' '.join(args))
+                # Check if RAG is enabled
+                if config.get('rag_enabled', False):
+                    from episodic.commands.rag import search
+                    query = ' '.join(args)
+                    search(query)
+                else:
+                    from episodic.commands.documents import handle_search_command
+                    handle_search_command(' '.join(args))
         
         elif cmd == "/script":
             if not args:
@@ -325,6 +358,47 @@ def handle_command(command_str: str) -> bool:
         elif cmd == "/benchmark":
             from episodic.commands import benchmark
             benchmark()
+        
+        # RAG commands
+        elif cmd == "/rag":
+            from episodic.commands.rag import rag_toggle, rag_stats
+            if not args:
+                rag_stats()
+            elif args[0].lower() in ["on", "off"]:
+                enable = args[0].lower() == "on"
+                rag_toggle(enable)
+            else:
+                typer.secho("Usage: /rag [on|off]", fg="red")
+        
+        elif cmd == "/index":
+            if not args:
+                typer.secho("Usage: /index <file_path> or /index --text '<content>'", fg="red")
+            else:
+                from episodic.commands.rag import index_file, index_text
+                if args[0] == "--text" and len(args) > 1:
+                    content = " ".join(args[1:])
+                    index_text(content)
+                else:
+                    index_file(args[0])
+        
+        # Convenience shortcuts
+        elif cmd == "/s":  # Shortcut for /search
+            if not args:
+                typer.secho("Usage: /s <query>", fg="red")
+            else:
+                if config.get('rag_enabled', False):
+                    from episodic.commands.rag import search
+                    query = ' '.join(args)
+                    search(query)
+                else:
+                    typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
+        
+        elif cmd == "/i":  # Shortcut for /index
+            if not args:
+                typer.secho("Usage: /i <file_path>", fg="red")
+            else:
+                from episodic.commands.rag import index_file
+                index_file(args[0])
         
         elif cmd == "/help":
             from episodic.commands import help

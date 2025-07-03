@@ -307,6 +307,8 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
             create_compression_tables()
             # Make end_node_id nullable in topics table
             migrate_topics_nullable_end()
+            # Create RAG tables
+            create_rag_tables()
             
             # Run schema migrations
             from episodic.migrations import run_migrations, get_pending_migrations
@@ -1251,6 +1253,45 @@ def clear_manual_index_scores() -> None:
     with get_connection() as conn:
         c = conn.cursor()
         c.execute("DELETE FROM manual_index_scores")
+        conn.commit()
+
+
+def create_rag_tables():
+    """Create tables for RAG functionality."""
+    with get_connection() as conn:
+        c = conn.cursor()
+        
+        # Table for tracking indexed documents
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS rag_documents (
+                id TEXT PRIMARY KEY,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL,
+                indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                metadata JSON,
+                content_hash TEXT UNIQUE,
+                parent_doc_id TEXT,
+                chunk_index INTEGER DEFAULT 0
+            )
+        ''')
+        
+        # Table for tracking which documents were used in responses
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS rag_retrievals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                node_id TEXT REFERENCES nodes(id),
+                document_id TEXT,
+                relevance_score REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                was_helpful BOOLEAN DEFAULT NULL
+            )
+        ''')
+        
+        # Create indices for performance
+        c.execute('CREATE INDEX IF NOT EXISTS idx_rag_documents_hash ON rag_documents(content_hash)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_rag_documents_source ON rag_documents(source)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_rag_retrievals_doc ON rag_retrievals(document_id)')
+        
         conn.commit()
 
 

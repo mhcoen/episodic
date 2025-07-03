@@ -111,6 +111,15 @@ def register_all_commands():
     from episodic.commands.unified_compression import compression_command
     from episodic.commands.unified_settings import settings_command
     
+    # Import RAG commands
+    try:
+        from episodic.commands.rag import (
+            search, index_text, index_file, rag_toggle, rag_stats, docs_command
+        )
+        rag_available = True
+    except ImportError:
+        rag_available = False
+    
     # Register navigation commands
     command_registry.register("init", init, "Initialize the database", "Navigation")
     command_registry.register("add", add, "Add a new node manually", "Navigation")
@@ -194,6 +203,13 @@ def register_all_commands():
     command_registry.register("benchmark", benchmark, "Show performance statistics", "Utility")
     command_registry.register("help", help, "Show help information", "Utility")
     command_registry.register("compress", compress, "Compress a topic or branch", "Compression")
+    
+    # Register RAG commands if available
+    if rag_available:
+        command_registry.register("rag", rag_toggle, "Enable/disable RAG or show stats", "Knowledge Base")
+        command_registry.register("search", search, "Search the knowledge base", "Knowledge Base", aliases=["s"])
+        command_registry.register("index", index_file, "Index a file or text into knowledge base", "Knowledge Base", aliases=["i"])
+        command_registry.register("docs", docs_command, "Manage documents (list/show/remove/clear)", "Knowledge Base")
 
 
 # Initialize registry on import

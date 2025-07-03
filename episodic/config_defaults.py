@@ -84,12 +84,30 @@ MODEL_PARAMS_DEFAULTS = {
     }
 }
 
+# RAG (Retrieval Augmented Generation) settings
+RAG_DEFAULTS = {
+    "rag_enabled": False,  # Enable RAG for enhanced responses with external knowledge
+    "rag_auto_search": True,  # Automatically search knowledge base for each user message
+    "rag_search_threshold": 0.7,  # Minimum relevance score for including search results
+    "rag_max_results": 5,  # Maximum number of search results to include
+    "rag_embedding_model": "all-MiniLM-L6-v2",  # Sentence transformer model for embeddings
+    "rag_include_citations": True,  # Include source citations in responses
+    "rag_context_prefix": "\n\n[Relevant context from knowledge base]:\n",  # Prefix for RAG context in prompts
+    "rag_chunk_size": 500,  # Number of words per document chunk
+    "rag_chunk_overlap": 100,  # Number of overlapping words between chunks
+    "rag_max_file_size": 10 * 1024 * 1024,  # Maximum file size for indexing (10MB)
+    "rag_show_citations": True,  # Show which documents were used in responses
+    "rag_citation_style": "inline",  # How to display citations: 'inline' or 'footnote'
+    "rag_allowed_file_types": [".txt", ".md", ".pdf", ".rst"],  # Allowed file extensions for indexing
+}
+
 # Combine all defaults
 DEFAULT_CONFIG = {
     **CORE_DEFAULTS,
     **TOPIC_DEFAULTS,
     **STREAMING_DEFAULTS,
-    **MODEL_PARAMS_DEFAULTS
+    **MODEL_PARAMS_DEFAULTS,
+    **RAG_DEFAULTS
 }
 
 # Configuration value documentation
@@ -128,6 +146,21 @@ CONFIG_DOCS = {
     "main_params": "Model parameters for main conversation",
     "topic_params": "Model parameters for topic detection",
     "compression_params": "Model parameters for topic compression",
+    
+    # RAG settings
+    "rag_enabled": "Enable RAG for enhanced responses with external knowledge",
+    "rag_auto_search": "Automatically search knowledge base for each user message",
+    "rag_search_threshold": "Minimum relevance score for including search results",
+    "rag_max_results": "Maximum number of search results to include in context",
+    "rag_embedding_model": "Sentence transformer model for embeddings",
+    "rag_include_citations": "Include source citations in responses",
+    "rag_context_prefix": "Prefix added before RAG context in prompts",
+    "rag_chunk_size": "Number of words per document chunk",
+    "rag_chunk_overlap": "Number of overlapping words between chunks",
+    "rag_max_file_size": "Maximum file size for indexing (in bytes)",
+    "rag_show_citations": "Show which documents were used in responses",
+    "rag_citation_style": "How to display citations: 'inline' or 'footnote'",
+    "rag_allowed_file_types": "List of allowed file extensions for indexing",
 }
 
 # REMOVED - No special threshold behavior needed

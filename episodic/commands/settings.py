@@ -670,16 +670,26 @@ def cost():
     typer.secho("\n💰 Session Cost Summary", fg=get_heading_color(), bold=True)
     typer.secho("─" * 40, fg=get_heading_color())
     
-    typer.echo(f"Input tokens:  {costs['total_input_tokens']:,}")
-    typer.echo(f"Output tokens: {costs['total_output_tokens']:,}")
-    typer.echo(f"Total tokens:  {costs['total_tokens']:,}")
+    typer.secho("Input tokens:  ", nl=False, fg=get_text_color(), bold=True)
+    typer.secho(f"{costs['total_input_tokens']:,}", fg=typer.colors.BRIGHT_CYAN, bold=True)
+    
+    typer.secho("Output tokens: ", nl=False, fg=get_text_color(), bold=True)
+    typer.secho(f"{costs['total_output_tokens']:,}", fg=typer.colors.BRIGHT_CYAN, bold=True)
+    
+    typer.secho("Total tokens:  ", nl=False, fg=get_text_color(), bold=True)
+    typer.secho(f"{costs['total_tokens']:,}", fg=typer.colors.BRIGHT_YELLOW, bold=True)
     
     if costs.get('cache_read_tokens', 0) > 0:
-        typer.echo(f"Cache reads:   {costs['cache_read_tokens']:,}")
-        typer.echo(f"Cache writes:  {costs.get('cache_write_tokens', 0):,}")
+        typer.secho("Cache reads:   ", nl=False, fg=get_text_color(), bold=True)
+        typer.secho(f"{costs['cache_read_tokens']:,}", fg=typer.colors.BRIGHT_GREEN, bold=True)
+        
+        typer.secho("Cache writes:  ", nl=False, fg=get_text_color(), bold=True)
+        typer.secho(f"{costs.get('cache_write_tokens', 0):,}", fg=typer.colors.BRIGHT_GREEN, bold=True)
     
     typer.secho("─" * 40, fg=get_heading_color())
-    typer.echo(f"Total cost: ${costs['total_cost_usd']:.4f}")
+    typer.secho("Total cost: ", nl=False, fg=get_text_color(), bold=True)
+    typer.secho(f"${costs['total_cost_usd']:.4f}", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
     
     if costs.get('cache_savings_usd', 0) > 0:
-        typer.secho(f"Cache savings: ${costs['cache_savings_usd']:.4f}", fg="green")
+        typer.secho("Cache savings: ", nl=False, fg=get_text_color(), bold=True)
+        typer.secho(f"${costs['cache_savings_usd']:.4f}", fg=typer.colors.BRIGHT_GREEN, bold=True)

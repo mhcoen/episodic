@@ -130,9 +130,9 @@ class BenchmarkManager:
             
     def _display_operation_benchmark(self, operation: str, elapsed: float, resources: Dict[str, Any]):
         """Display benchmark results for a single operation."""
-        typer.secho(f"[Benchmark]", nl=False, fg=get_system_color(), bold=True)
-        typer.secho(f" {operation}: ", nl=False, fg=get_system_color())
-        typer.secho(f"{elapsed:.2f}s", fg=get_system_color(), bold=True)
+        typer.secho(f"[Benchmark]", nl=False, fg=typer.colors.MAGENTA, bold=True)
+        typer.secho(f" {operation}: ", nl=False, fg=typer.colors.WHITE, bold=True)
+        typer.secho(f"{elapsed:.2f}s", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
         
         # Show resource breakdown if any
         if resources:
@@ -146,22 +146,22 @@ class BenchmarkManager:
                     resource_time = resource_info
                     count = 0
                 
-                typer.secho(f"  - {resource_type}: ", nl=False, fg=get_text_color())
-                typer.secho(f"{resource_time:.2f}s", nl=False, fg=get_system_color())
+                typer.secho(f"  - {resource_type}: ", nl=False, fg=typer.colors.CYAN, bold=True)
+                typer.secho(f"{resource_time:.2f}s", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
                 if count > 0:
-                    typer.secho(f" ({count} calls)", fg=get_text_color())
+                    typer.secho(f" ({count} calls)", fg=typer.colors.WHITE, bold=True)
                 else:
                     typer.echo("")
     
     def display_summary(self):
         """Display comprehensive benchmark summary."""
         if not self.stats and not self.resource_stats:
-            typer.echo("No benchmark data collected.")
+            typer.secho("No benchmark data collected.", fg=typer.colors.YELLOW)
             return
             
         typer.echo("")
-        typer.secho("Session Benchmark Summary", fg=get_heading_color(), bold=True)
-        typer.secho("=" * 40, fg=get_text_color())
+        typer.secho("Session Benchmark Summary", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+        typer.secho("=" * 40, fg=typer.colors.MAGENTA, bold=True)
         
         # Conceptual Operations
         if self.stats:
@@ -169,10 +169,10 @@ class BenchmarkManager:
             typer.secho("Conceptual Operations:", fg=typer.colors.BRIGHT_GREEN, bold=True)
             for name, stats in sorted(self.stats.items()):
                 if stats.count > 0:
-                    typer.secho(f"  - {name}: ", nl=False, fg=typer.colors.GREEN)
-                    typer.secho(f"{stats.count} calls, ", nl=False, fg=get_text_color())
-                    typer.secho(f"avg {stats.avg_time:.2f}s, ", nl=False, fg=typer.colors.YELLOW)
-                    typer.secho(f"total {stats.total_time:.2f}s", fg=typer.colors.BRIGHT_YELLOW)
+                    typer.secho(f"  - {name}: ", nl=False, fg=typer.colors.GREEN, bold=True)
+                    typer.secho(f"{stats.count} calls, ", nl=False, fg=typer.colors.WHITE, bold=True)
+                    typer.secho(f"avg {stats.avg_time:.2f}s, ", nl=False, fg=typer.colors.YELLOW, bold=True)
+                    typer.secho(f"total {stats.total_time:.2f}s", fg=typer.colors.BRIGHT_YELLOW, bold=True)
                     
         # Resource Breakdown
         if self.resource_stats:
@@ -182,23 +182,23 @@ class BenchmarkManager:
                 total_calls = sum(s.count for s in resources.values())
                 total_time = sum(s.total_time for s in resources.values())
                 
-                typer.secho(f"  - {resource_type}: ", nl=False, fg=typer.colors.BLUE)
-                typer.secho(f"{total_calls} calls, ", nl=False, fg=get_text_color())
-                typer.secho(f"total {total_time:.2f}s", fg=typer.colors.BRIGHT_BLUE)
+                typer.secho(f"  - {resource_type}: ", nl=False, fg=typer.colors.BLUE, bold=True)
+                typer.secho(f"{total_calls} calls, ", nl=False, fg=typer.colors.WHITE, bold=True)
+                typer.secho(f"total {total_time:.2f}s", fg=typer.colors.BRIGHT_BLUE, bold=True)
                 
                 # Show breakdown by specific resource
                 for resource_name, stats in sorted(resources.items()):
                     if stats.count > 0:
-                        typer.secho(f"    • {resource_name}: ", nl=False, fg=typer.colors.CYAN)
-                        typer.secho(f"{stats.count} calls, ", nl=False, fg=get_text_color())
-                        typer.secho(f"{stats.total_time:.2f}s", fg=typer.colors.BRIGHT_CYAN)
+                        typer.secho(f"    • {resource_name}: ", nl=False, fg=typer.colors.CYAN, bold=True)
+                        typer.secho(f"{stats.count} calls, ", nl=False, fg=typer.colors.WHITE, bold=True)
+                        typer.secho(f"{stats.total_time:.2f}s", fg=typer.colors.BRIGHT_CYAN, bold=True)
         
         # Total session time
         total_time = sum(s.total_time for s in self.stats.values())
         if total_time > 0:
             typer.echo("")
-            typer.secho(f"Total session time: ", nl=False, fg=get_text_color())
-            typer.secho(f"{total_time:.2f}s", fg=get_heading_color(), bold=True)
+            typer.secho(f"Total session time: ", nl=False, fg=typer.colors.WHITE, bold=True)
+            typer.secho(f"{total_time:.2f}s", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
             
     def reset(self):
         """Reset all benchmark data."""

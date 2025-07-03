@@ -740,6 +740,8 @@ class ConversationManager:
                                 current_line = ""
                                 line_position = 0
                                 in_bold = False
+                                in_list_item = False
+                                list_indent = 0
                                 wrap_width = self.get_wrap_width() if config.get("text_wrap", True) else None
                                 words_per_second = stream_rate
                                 base_interval = 1.0 / words_per_second  # Base interval in seconds
@@ -807,6 +809,7 @@ class ConversationManager:
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
                                             line_position = 0  # Reset position after newline
+                                            in_bold = False  # Reset bold state after newline
                                         else:
                                             # Process word for bold markers and print with wrapping
                                             display_word = word
@@ -939,6 +942,7 @@ class ConversationManager:
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
                                             line_position = 0  # Reset position after newline
+                                            in_bold = False  # Reset bold state after newline
                                         else:
                                             # Process word for bold markers and print with wrapping
                                             display_word = word

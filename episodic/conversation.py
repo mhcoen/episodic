@@ -821,6 +821,9 @@ class ConversationManager:
                                                 should_turn_off_bold = True
                                             else:
                                                 should_turn_off_bold = False
+                                                # Also stop bold after colon or dash in lists
+                                                if in_bold and (display_word.endswith(':') or display_word.endswith('-')):
+                                                    should_turn_off_bold = True
                                             
                                             # Strip any remaining ** in the middle (shouldn't happen but just in case)
                                             display_word = display_word.replace('**', '')
@@ -953,6 +956,9 @@ class ConversationManager:
                                                 should_turn_off_bold = True
                                             else:
                                                 should_turn_off_bold = False
+                                                # Also stop bold after colon or dash in lists
+                                                if in_bold and (display_word.endswith(':') or display_word.endswith('-')):
+                                                    should_turn_off_bold = True
                                             
                                             # Strip any remaining ** in the middle (shouldn't happen but just in case)
                                             display_word = display_word.replace('**', '')

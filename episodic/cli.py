@@ -25,6 +25,7 @@ from episodic.conversation import conversation_manager, handle_chat_message as _
 from episodic.prompt_manager import load_prompt
 from episodic.benchmark import display_pending_benchmark, reset_benchmarks
 from episodic.compression import start_auto_compression
+from litellm import cost_per_token
 
 # Import command modules
 from episodic.commands import (
@@ -471,7 +472,6 @@ def display_startup_info():
     
     # Display current model and pricing information
     from episodic.llm_config import get_default_model, get_current_provider
-    from litellm import cost_per_token
     
     current_model = get_default_model()
     provider = get_current_provider()
@@ -481,7 +481,7 @@ def display_startup_info():
     
     # Display model info
     typer.secho("Using model: ", nl=False, fg=get_text_color())
-    typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+    typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
     typer.secho(" (Provider: ", nl=False, fg=get_text_color())
     typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
     typer.secho(")", fg=get_text_color())

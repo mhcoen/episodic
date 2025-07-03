@@ -252,8 +252,8 @@ class ConversationManager:
     
     def wrapped_text_print(self, text: str, **typer_kwargs) -> None:
         """Print text with automatic wrapping while preserving formatting."""
-        # Check if wrapping is enabled
-        if not config.get("text_wrap"):
+        # Check if wrapping is enabled (default to True)
+        if config.get("text_wrap", True) == False:
             typer.secho(str(text), **typer_kwargs)
             return
         

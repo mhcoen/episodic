@@ -1454,7 +1454,7 @@ class ConversationManager:
                                         
                                         if config.get("debug"):
                                             typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                    typer.secho(f" Creating topic for initial conversation:")
+                                            typer.secho(f" Creating topic for initial conversation:")
                                             typer.echo(f"   From node {first_user_short_id} to {actual_boundary}")
                                             typer.echo(f"   Conversation preview: {segment[:200]}...")
                                 
@@ -1559,7 +1559,7 @@ class ConversationManager:
                                         
                                         if config.get("debug"):
                                             typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                    typer.secho(f" Auto-extracting name for topic '{topic_name}'")
+                                            typer.secho(f" Auto-extracting name for topic '{topic_name}'")
                                             typer.echo(f"   Messages in topic: {user_messages}")
                                         
                                         topic_extracted, _ = extract_topic_ollama(segment)

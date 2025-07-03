@@ -1,0 +1,1 @@
+Episodic is a conversational memory system that stores conversations as a directed acyclic graph (DAG). It supports automatic topic detection, compression, and now RAG for enhanced responses.

@@ -30,7 +30,15 @@ class EpisodicRAG:
         db_path = os.path.expanduser("~/.episodic/rag/chroma")
         os.makedirs(db_path, exist_ok=True)
         
-        self.client = chromadb.PersistentClient(path=db_path)
+        # Configure ChromaDB client with telemetry disabled
+        from chromadb.config import Settings
+        self.client = chromadb.PersistentClient(
+            path=db_path,
+            settings=Settings(
+                anonymized_telemetry=False,
+                allow_reset=True
+            )
+        )
         
         # Use sentence transformers for embeddings
         self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(

@@ -7,6 +7,8 @@ This is the main entry point that coordinates all the command modules.
 import os
 # Prevent tokenizers fork warning
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# Disable ChromaDB telemetry
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 import typer
 import shlex

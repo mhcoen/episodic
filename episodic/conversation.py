@@ -1216,6 +1216,12 @@ class ConversationManager:
                         if user_node and user_node.get('parent_id'):
                             parent_node_id = user_node['parent_id']
                             
+                            if config.get("debug"):
+                                typer.echo(f"   DEBUG: Topic boundary - user_node_id={user_node_id[:8]}, parent_node_id={parent_node_id[:8]}")
+                                parent_node = get_node(parent_node_id)
+                                if parent_node:
+                                    typer.echo(f"   Parent node: {parent_node.get('short_id')} ({parent_node.get('role')})")
+                            
                             # Before closing the previous topic, check if it has enough user messages
                             # Count user messages in the previous topic
                             from episodic.topics import TopicManager
@@ -1329,6 +1335,8 @@ class ConversationManager:
                                         typer.echo(f"   ✅ Updated topic name: '{previous_topic['name']}' → '{final_topic_name}' ({rows_updated} rows)")
                                 
                                 # Update the previous topic's end node
+                                if config.get("debug"):
+                                    typer.echo(f"   DEBUG: Closing topic '{final_topic_name}' at boundary {actual_boundary[:8]}")
                                 update_topic_end_node(final_topic_name, previous_topic['start_node_id'], actual_boundary)
                                 
                                 # Queue the old topic for compression

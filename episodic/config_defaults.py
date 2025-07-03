@@ -25,8 +25,8 @@ TOPIC_DEFAULTS = {
     "show_topics": False,  # Show topic evolution in responses
     
     # Topic boundary analysis
-    "analyze_topic_boundaries": True,  # Analyze recent messages to find actual topic transition
-    "use_llm_boundary_analysis": True,  # Use LLM for boundary analysis (vs heuristics)
+    "analyze_topic_boundaries": False,  # Disabled - causes incorrect boundary placement
+    "use_llm_boundary_analysis": False,  # Use LLM for boundary analysis (vs heuristics)
     
     # Manual indexing
     "manual_index_window_size": 3,  # Default window size for /index command
@@ -45,7 +45,7 @@ TOPIC_DEFAULTS = {
     },
     "hybrid_topic_threshold": 0.55,
     "hybrid_llm_threshold": 0.3,
-    "drift_threshold": 0.95,  # Threshold for sliding window detection (0.95+ = topic change)
+    "drift_threshold": 0.9,  # Threshold for sliding window detection (0.9+ = topic change)
     "keyword_threshold": 0.5,
 }
 

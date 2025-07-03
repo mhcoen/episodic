@@ -799,11 +799,11 @@ class ConversationManager:
                                                             initial_indent="",
                                                             subsequent_indent=""
                                                         )
-                                                        typer.secho(wrapped, fg=get_llm_color(), bold=True)
+                                                        typer.secho(wrapped, fg=get_llm_color(), bold=False)
                                                     else:
-                                                        typer.secho(line, fg=get_llm_color(), bold=True)
+                                                        typer.secho(line, fg=get_llm_color(), bold=False)
                                                 else:
-                                                    typer.secho(line, fg=get_llm_color(), bold=True)
+                                                    typer.secho(line, fg=get_llm_color(), bold=False)
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
                                             line_position = 0  # Reset position after newline
@@ -931,11 +931,11 @@ class ConversationManager:
                                                             initial_indent="",
                                                             subsequent_indent=""
                                                         )
-                                                        typer.secho(wrapped, fg=get_llm_color(), bold=True)
+                                                        typer.secho(wrapped, fg=get_llm_color(), bold=False)
                                                     else:
-                                                        typer.secho(line, fg=get_llm_color(), bold=True)
+                                                        typer.secho(line, fg=get_llm_color(), bold=False)
                                                 else:
-                                                    typer.secho(line, fg=get_llm_color(), bold=True)
+                                                    typer.secho(line, fg=get_llm_color(), bold=False)
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
                                             line_position = 0  # Reset position after newline

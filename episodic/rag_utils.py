@@ -25,14 +25,41 @@ def suppress_chromadb_telemetry():
     This suppresses those specific errors while allowing other
     errors to propagate.
     """
+    import os
+    import warnings
+    
     old_stderr = sys.stderr
     captured_stderr = StringIO()
-    sys.stderr = captured_stderr
+    
+    # Save original settings
+    original_filters = warnings.filters[:]
     
     try:
+        # Create a proper file descriptor for stderr redirect
+        # This handles C-level stderr writes from ChromaDB
+        null_fd = os.open(os.devnull, os.O_WRONLY)
+        stderr_fd = sys.stderr.fileno()
+        stderr_backup = os.dup(stderr_fd)
+        
+        # Redirect both Python and C-level stderr
+        os.dup2(null_fd, stderr_fd)
+        sys.stderr = captured_stderr
+        
+        # Add warning filters
+        warnings.filterwarnings("ignore", message=".*telemetry.*")
+        warnings.filterwarnings("ignore", message=".*Failed to send telemetry.*")
+        warnings.filterwarnings("ignore", category=UserWarning)
+        
         yield
+        
     finally:
+        # Restore original stderr
+        os.dup2(stderr_backup, stderr_fd)
+        os.close(stderr_backup)
+        os.close(null_fd)
         sys.stderr = old_stderr
+        warnings.filters[:] = original_filters
+        
         # Only show non-telemetry errors
         error_output = captured_stderr.getvalue()
         if error_output and "telemetry" not in error_output.lower():

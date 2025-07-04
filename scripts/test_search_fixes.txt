@@ -1,0 +1,18 @@
+# Test script for web search fixes
+
+# Initialize and enable features
+/init --erase
+/rag on
+/websearch on
+
+# Test contractions (previously caused quote parsing error)
+/ws what's the weather in Madison, WI?
+
+# Test another search with apostrophe
+/ws Python's latest features
+
+# Test clean output
+/websearch latest AI news
+
+# Check if indexed properly without telemetry errors
+/docs list

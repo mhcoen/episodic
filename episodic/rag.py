@@ -43,6 +43,19 @@ try:
             return lambda *args, **kwargs: None
     
     chromadb.telemetry.posthog.Posthog = NoOpPosthog
+    
+    # Also patch the capture function directly if it exists
+    if hasattr(chromadb.telemetry.posthog, 'capture'):
+        chromadb.telemetry.posthog.capture = lambda *args, **kwargs: None
+    
+    # Disable telemetry product instance if it exists
+    try:
+        import chromadb.telemetry.product
+        if hasattr(chromadb.telemetry.product, '_telemetry_client'):
+            chromadb.telemetry.product._telemetry_client = None
+    except:
+        pass
+        
 except Exception:
     pass  # If the module structure changes, just ignore
 

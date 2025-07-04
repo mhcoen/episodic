@@ -120,8 +120,9 @@ def handle_command(command_str: str) -> bool:
     try:
         parts = shlex.split(command_str)
     except ValueError as e:
-        typer.secho(f"Error parsing command: {e}", fg="red")
-        return False
+        # If shlex fails (e.g., unmatched quotes), fall back to simple split
+        # This handles contractions like "what's" better
+        parts = command_str.split()
     
     if not parts:
         return False

@@ -44,9 +44,27 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None):
         typer.secho(result.title, fg=get_system_color(), bold=True)
         
         if config.get('web_search_show_urls', True):
-            typer.secho(f"    {result.url}", fg="cyan")
+            # Clean up DuckDuckGo URLs
+            url = result.url
+            if url.startswith('//duckduckgo.com/l/?uddg='):
+                # Extract the actual URL from DuckDuckGo redirect
+                import urllib.parse
+                try:
+                    parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                    if 'uddg' in parsed:
+                        url = urllib.parse.unquote(parsed['uddg'][0])
+                except:
+                    pass  # Keep original if parsing fails
+            
+            # Truncate very long URLs
+            if len(url) > 80:
+                url = url[:77] + "..."
+                
+            typer.secho(f"    {url}", fg="cyan")
         
-        typer.secho(f"    {result.snippet}", fg=get_text_color())
+        # Clean up snippet - remove excessive whitespace
+        snippet = ' '.join(result.snippet.split())
+        typer.secho(f"    {snippet}", fg=get_text_color())
     
     # Optionally index results into RAG
     if index and config.get('rag_enabled', False):
@@ -68,16 +86,18 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None):
                     continue
                 
                 try:
-                    doc_ids = rag.add_document(
-                        content=content,
-                        source=f"web:{result.url}",
-                        metadata={
-                            'title': result.title,
-                            'url': result.url,
-                            'search_query': query,
-                            'search_timestamp': result.timestamp.isoformat()
-                        }
-                    )
+                    from episodic.rag_utils import suppress_chromadb_telemetry
+                    with suppress_chromadb_telemetry():
+                        doc_ids = rag.add_document(
+                            content=content,
+                            source=f"web:{result.url}",
+                            metadata={
+                                'title': result.title,
+                                'url': result.url,
+                                'search_query': query,
+                                'search_timestamp': result.timestamp.isoformat()
+                            }
+                        )
                     if doc_ids:
                         indexed_count += 1
                 except Exception as e:

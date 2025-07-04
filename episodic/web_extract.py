@@ -43,7 +43,17 @@ class WebContentExtractor:
         }
         
         try:
-            async with aiohttp.ClientSession() as session:
+            # Create connector with relaxed SSL for weather sites that might have cert issues
+            import ssl
+            ssl_context = ssl.create_default_context()
+            # Only relax SSL for known problematic sites
+            if any(domain in url for domain in ['accuweather.com', 'weather.com', 'weather.gov']):
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+            
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=self.timeout)) as response:
                     if response.status != 200:
                         if config.get('debug'):
@@ -111,31 +121,51 @@ class WebContentExtractor:
         content_parts = []
         
         # Look for current temperature
-        temp_selectors = [
-            '.CurrentConditions--tempValue--*',  # weather.com
-            '.temp', '.temperature',  # generic
-            '[data-testid="TemperatureValue"]',  # modern sites
-            '.current-temp', '.now-temp'
-        ]
-        
-        for selector in temp_selectors:
-            temp = soup.select_one(selector)
+        # Try class-based selectors first
+        for cls in ['temp', 'temperature', 'current-temp', 'now-temp', 'temp-value']:
+            temp = soup.find(class_=cls)
             if temp:
-                content_parts.append(f"Current temperature: {temp.get_text().strip()}")
-                break
+                temp_text = temp.get_text().strip()
+                if temp_text and any(c.isdigit() for c in temp_text):
+                    content_parts.append(f"Current temperature: {temp_text}")
+                    break
+        
+        # If not found, try CSS selectors
+        if not content_parts:
+            temp_selectors = [
+                '.CurrentConditions--tempValue--MHmYY',  # weather.com
+                '[data-testid="TemperatureValue"]',  # modern sites
+                '.temperature-display'
+            ]
+            
+            for selector in temp_selectors:
+                temp = soup.select_one(selector)
+                if temp:
+                    content_parts.append(f"Current temperature: {temp.get_text().strip()}")
+                    break
         
         # Look for conditions
-        condition_selectors = [
-            '.CurrentConditions--phraseValue--*',  # weather.com
-            '.condition', '.weather-condition',
-            '.phrase', '.weather-phrase'
-        ]
-        
-        for selector in condition_selectors:
-            condition = soup.select_one(selector)
+        # Try class-based selectors first
+        for cls in ['phrase', 'condition', 'weather-condition', 'weather-phrase', 'weather-description']:
+            condition = soup.find(class_=cls)
             if condition:
-                content_parts.append(f"Conditions: {condition.get_text().strip()}")
-                break
+                cond_text = condition.get_text().strip()
+                if cond_text and len(cond_text) > 2:
+                    content_parts.append(f"Conditions: {cond_text}")
+                    break
+        
+        # If not found, try CSS selectors
+        if len(content_parts) < 2:
+            condition_selectors = [
+                '.CurrentConditions--phraseValue--2xXSr',  # weather.com
+                '[data-testid="wxPhrase"]'
+            ]
+            
+            for selector in condition_selectors:
+                condition = soup.select_one(selector)
+                if condition:
+                    content_parts.append(f"Conditions: {condition.get_text().strip()}")
+                    break
         
         # Look for forecast summary
         forecast_selectors = [

@@ -46,11 +46,11 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
     if value_color is None:
         value_color = get_system_color()
     
-    # Convert typer color objects to color names for typer.secho
-    if hasattr(base_color, 'name'):
-        base_color = base_color.name.lower()
-    if hasattr(value_color, 'name'):
-        value_color = value_color.name.lower()
+    # The color functions already return strings, but lowercase them for typer
+    if isinstance(base_color, str):
+        base_color = base_color.lower()
+    if isinstance(value_color, str):
+        value_color = value_color.lower()
     
     wrap_width = get_wrap_width() if wrap else None
     
@@ -60,20 +60,29 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
     for line in lines:
         # Check for headers
         if line.startswith('# '):
-            typer.secho(line[2:], fg=get_heading_color(), bold=True)
+            heading_fg = get_heading_color()
+            if isinstance(heading_fg, str):
+                heading_fg = heading_fg.lower()
+            typer.secho(line[2:], fg=heading_fg, bold=True)
             continue
         elif line.startswith('## '):
-            typer.secho(line[3:], fg=get_system_color(), bold=True)
+            system_fg = get_system_color()
+            if isinstance(system_fg, str):
+                system_fg = system_fg.lower()
+            typer.secho(line[3:], fg=system_fg, bold=True)
             continue
         elif line.startswith('### '):
-            typer.secho(line[4:], fg=get_system_color(), bold=True)
+            system_fg = get_system_color()
+            if isinstance(system_fg, str):
+                system_fg = system_fg.lower()
+            typer.secho(line[4:], fg=system_fg, bold=True)
             continue
         elif line.startswith('#### '):
             # Level 4 headers - make them stand out with underline
             header_text = line[5:]
             header_color = get_heading_color()
-            if hasattr(header_color, 'name'):
-                header_color = header_color.name.lower()
+            if isinstance(header_color, str):
+                header_color = header_color.lower()
             typer.secho(f"\n{header_text}", fg=header_color, bold=True)
             typer.secho("─" * len(header_text), fg=header_color)
             continue
@@ -247,11 +256,11 @@ class StreamingFormatter:
         self.value_color = value_color or get_system_color()
         self.wrap_width = wrap_width if wrap_width is not None else get_wrap_width()
         
-        # Convert typer color objects to color names
-        if hasattr(self.base_color, 'name'):
-            self.base_color = self.base_color.name.lower()
-        if hasattr(self.value_color, 'name'):
-            self.value_color = self.value_color.name.lower()
+        # The color functions already return strings, but lowercase them for typer
+        if isinstance(self.base_color, str):
+            self.base_color = self.base_color.lower()
+        if isinstance(self.value_color, str):
+            self.value_color = self.value_color.lower()
         
         # State tracking
         self.current_line = ""

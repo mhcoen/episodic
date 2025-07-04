@@ -13,6 +13,10 @@ from typing import Optional, Tuple, List
 import typer
 from episodic.config import config
 from episodic.configuration import get_llm_color, get_system_color, get_text_color, get_heading_color
+from episodic.color_utils import secho_color, force_color_output
+
+# Force color output if needed
+force_color_output()
 
 
 def get_wrap_width() -> int:
@@ -63,19 +67,19 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
             heading_fg = get_heading_color()
             if isinstance(heading_fg, str):
                 heading_fg = heading_fg.lower()
-            typer.secho(line[2:], fg=heading_fg, bold=True)
+            secho_color(line[2:], fg=heading_fg, bold=True)
             continue
         elif line.startswith('## '):
             system_fg = get_system_color()
             if isinstance(system_fg, str):
                 system_fg = system_fg.lower()
-            typer.secho(line[3:], fg=system_fg, bold=True)
+            secho_color(line[3:], fg=system_fg, bold=True)
             continue
         elif line.startswith('### '):
             system_fg = get_system_color()
             if isinstance(system_fg, str):
                 system_fg = system_fg.lower()
-            typer.secho(line[4:], fg=system_fg, bold=True)
+            secho_color(line[4:], fg=system_fg, bold=True)
             continue
         elif line.startswith('#### '):
             # Level 4 headers - make them stand out with underline
@@ -83,8 +87,8 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
             header_color = get_heading_color()
             if isinstance(header_color, str):
                 header_color = header_color.lower()
-            typer.secho(f"\n{header_text}", fg=header_color, bold=True)
-            typer.secho("─" * len(header_text), fg=header_color)
+            secho_color(f"\n{header_text}", fg=header_color, bold=True)
+            secho_color("─" * len(header_text), fg=header_color)
             continue
         
         # Check if this is a bulleted list item with a colon
@@ -124,21 +128,21 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
                         )
                         
                         # Print first line with key
-                        typer.secho(first_line, fg=base_color, bold=True, nl=False)
+                        secho_color(first_line, fg=base_color, bold=True, nl=False)
                         
                         # Print value lines with color
                         value_lines = wrapped_value.split('\n')
-                        typer.secho(value_lines[0], fg=value_color)
+                        secho_color(value_lines[0], fg=value_color)
                         for vline in value_lines[1:]:
-                            typer.secho(vline, fg=value_color)
+                            secho_color(vline, fg=value_color)
                     else:
-                        typer.secho(first_line.rstrip(), fg=base_color, bold=True)
+                        secho_color(first_line.rstrip(), fg=base_color, bold=True)
                 else:
                     # No wrapping needed
-                    typer.secho(f"{indent}{bullet} ", fg=base_color, nl=False)
-                    typer.secho(f"{key}: ", fg=base_color, bold=True, nl=False)
+                    secho_color(f"{indent}{bullet} ", fg=base_color, nl=False)
+                    secho_color(f"{key}: ", fg=base_color, bold=True, nl=False)
                     if value:
-                        typer.secho(value, fg=value_color)
+                        secho_color(value, fg=value_color)
                     else:
                         typer.echo()
             else:
@@ -162,9 +166,9 @@ def _display_formatted_line(line: str, color: str, wrap_width: Optional[int]) ->
         # No special formatting
         if wrap_width and len(line) > wrap_width:
             wrapped = textwrap.fill(line, width=wrap_width)
-            typer.secho(wrapped, fg=color)
+            secho_color(wrapped, fg=color)
         else:
-            typer.secho(line, fg=color)
+            secho_color(line, fg=color)
 
 
 def _display_line_with_bold(line: str, color: str, wrap_width: Optional[int]) -> None:
@@ -194,11 +198,11 @@ def _display_line_with_bold(line: str, color: str, wrap_width: Optional[int]) ->
                 for j, wline in enumerate(lines):
                     if j > 0:
                         typer.echo()  # New line
-                    typer.secho(wline, fg=color, bold=is_bold, nl=False)
+                    secho_color(wline, fg=color, bold=is_bold, nl=False)
                 
                 current_length = len(lines[-1])
             else:
-                typer.secho(part, fg=color, bold=is_bold, nl=False)
+                secho_color(part, fg=color, bold=is_bold, nl=False)
                 current_length += len(part)
         
         typer.echo()  # Final newline
@@ -206,7 +210,7 @@ def _display_line_with_bold(line: str, color: str, wrap_width: Optional[int]) ->
         # No wrapping - simple display
         for i, part in enumerate(parts):
             is_bold = i % 2 == 1
-            typer.secho(part, fg=color, bold=is_bold, nl=False)
+            secho_color(part, fg=color, bold=is_bold, nl=False)
         typer.echo()
 
 
@@ -334,7 +338,7 @@ class StreamingFormatter:
             self.line_position = 0
             return
         
-        typer.secho(char, fg=color, bold=is_bold, nl=False)
+        secho_color(char, fg=color, bold=is_bold, nl=False)
         self.line_position += 1
     
     def _flush_line(self) -> None:

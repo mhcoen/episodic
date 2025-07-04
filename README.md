@@ -24,6 +24,10 @@ Episodic is a persistent, navigable memory system for conversational AI that sto
 - **Interactive Visualization**: Real-time graph view of conversation flow
 - **Cost Tracking**: Token usage and API cost monitoring
 - **Script Automation**: Save and replay conversation sequences
+- **RAG (Retrieval Augmented Generation)**: Enhance responses with external knowledge
+  - Index documents and PDFs into vector database
+  - Automatic context retrieval for relevant queries
+  - Document management with deduplication
 
 ### Recent Improvements (v0.4.0)
 - **Unified Commands**: Cleaner CLI with grouped subcommands
@@ -40,6 +44,9 @@ cd episodic
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
+
+# Optional: Install RAG dependencies for knowledge base features
+pip install chromadb sentence-transformers
 
 # Set up LLM provider (choose one)
 export OPENAI_API_KEY=your_api_key_here
@@ -112,6 +119,13 @@ Select model: 2
 
 # Manual topic detection
 > /topics index 5          # Analyze with window size 5
+
+# RAG (Knowledge Base)
+> /rag on                  # Enable RAG
+> /index README.md         # Index a document
+> /search neural networks  # Search knowledge base
+> /docs list              # List indexed documents
+# Now your conversations are enhanced with indexed knowledge!
 ```
 
 ## Project Structure
@@ -127,7 +141,10 @@ episodic/
 │   └── windows.py       # Sliding window analysis
 ├── commands/            # CLI commands
 │   ├── registry.py      # Command registry
-│   └── unified_*.py     # Unified command handlers
+│   ├── unified_*.py     # Unified command handlers
+│   └── rag.py          # RAG commands
+├── rag.py              # RAG system with ChromaDB
+├── rag_utils.py        # RAG utilities and decorators
 └── migrations/          # Database migrations
 ```
 

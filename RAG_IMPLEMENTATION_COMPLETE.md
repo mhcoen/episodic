@@ -4,6 +4,32 @@
 
 The RAG (Retrieval Augmented Generation) functionality has been successfully implemented for Episodic. This adds the ability to index documents and use them to enhance LLM responses with relevant context.
 
+## Update (2025-01-07): Code Quality Improvements
+
+### Refactoring Completed
+1. **Created `rag_utils.py`** to consolidate common patterns:
+   - `@requires_rag` decorator for consistent validation
+   - `find_document_by_partial_id` utility to eliminate duplication
+   - `validate_chunk_params` and `validate_file_for_indexing` for input validation
+   - Centralized telemetry suppression with `suppress_chromadb_telemetry`
+
+2. **Improved Error Handling**:
+   - All database operations now use context managers
+   - Removed silent error catching in favor of proper error propagation
+   - Added validation for chunk parameters to prevent invalid configurations
+   - Fixed SQL injection risk by avoiding dynamic SQL construction
+
+3. **Resolved Command Conflicts**:
+   - Topic indexing command (`/index`) renamed to avoid collision with RAG
+   - Shows deprecation warning when old command is used
+   - Clear separation between topic and RAG indexing
+
+4. **ChromaDB Telemetry Issues**:
+   - Comprehensive telemetry suppression at multiple levels
+   - Post-import patching of Posthog class
+   - Context manager to capture and filter stderr
+   - Works around ChromaDB's telemetry compatibility issues
+
 ## What Was Implemented
 
 ### 1. Core RAG Module (`episodic/rag.py`)

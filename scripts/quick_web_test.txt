@@ -1,0 +1,20 @@
+# Quick Web Search Test
+
+# Initialize fresh database
+/init --erase
+
+# Enable web search
+/websearch on
+
+# Test direct web search
+/websearch Python 3.13 new features
+
+# Check stats
+/websearch stats
+
+# Test auto-enhancement
+/set web_search_auto_enhance true
+What are the latest features in Python 3.13?
+
+# Final stats
+/websearch stats

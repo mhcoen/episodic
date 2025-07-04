@@ -115,6 +115,16 @@ tests/
   - Fixed SQL injection risk by avoiding dynamic SQL construction
   - Database tables: `rag_documents` for indexed content, `rag_retrievals` for tracking usage
   - Configuration in `config_defaults.py` under `RAG_DEFAULTS`
+- Implemented Web Search Integration
+  - Web search module (`episodic/web_search.py`) with provider architecture
+  - DuckDuckGo provider for free web search (no API key required)
+  - SearchCache for result caching (1 hour default)
+  - RateLimiter to prevent API abuse (60 searches/hour default)
+  - Commands: `/websearch <query>` (alias `/ws`), `/websearch on/off`, `/websearch config/stats/cache clear`
+  - Integration with RAG: automatic web search when local results insufficient
+  - Web results can be indexed into RAG for future use
+  - Configuration in `config_defaults.py` under `WEB_SEARCH_DEFAULTS`
+  - Graceful degradation when dependencies (aiohttp, beautifulsoup4) missing
 
 ### Previous Session (2025-01-01)
 - Fixed topic message count showing 0 for ongoing topics
@@ -284,6 +294,13 @@ Topic detection sensitivity varies drastically by model:
   - `remove <doc_id>` - Remove a document
   - `clear [source]` - Clear documents
 
+#### Web Search Commands
+- `/websearch <query>` or `/ws <query>` - Search the web
+- `/websearch on/off` - Enable/disable web search
+- `/websearch config` - Show web search configuration
+- `/websearch stats` - Show search statistics
+- `/websearch cache clear` - Clear search cache
+
 #### Deprecated Commands (still work with warnings)
 - `/rename-topics` → `/topics rename`
 - `/compress-current-topic` → `/topics compress`
@@ -303,8 +320,12 @@ pip install typer  # Required for CLI functionality
 
 #### Running the Application
 ```bash
-# Start the main CLI interface
+# Start the main CLI interface (interactive mode)
 python -m episodic
+
+# Execute a script non-interactively
+python -m episodic --execute scripts/test-script.txt
+python -m episodic -e scripts/test-script.txt
 
 # Within the CLI, initialize database
 > /init

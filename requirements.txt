@@ -293,3 +293,5 @@ wrapt==1.17.2
 wsproto==1.2.0
 yarl==1.20.1
 zipp==3.22.0
+beautifulsoup4==4.13.4
+soupsieve==2.7

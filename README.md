@@ -28,6 +28,10 @@ Episodic is a persistent, navigable memory system for conversational AI that sto
   - Index documents and PDFs into vector database
   - Automatic context retrieval for relevant queries
   - Document management with deduplication
+- **Web Search Integration**: Access current information from the web
+  - Configurable search providers (DuckDuckGo by default)
+  - Automatic web search when local knowledge insufficient
+  - Result caching and rate limiting for efficiency
 
 ### Recent Improvements (v0.4.0)
 - **Unified Commands**: Cleaner CLI with grouped subcommands
@@ -47,6 +51,9 @@ pip install -e .
 
 # Optional: Install RAG dependencies for knowledge base features
 pip install chromadb sentence-transformers
+
+# Optional: Install web search dependencies
+pip install aiohttp beautifulsoup4
 
 # Set up LLM provider (choose one)
 export OPENAI_API_KEY=your_api_key_here
@@ -117,6 +124,11 @@ Select model: 2
 > /save my-conversation     # Save current session
 > /script my-conversation   # Replay saved script
 
+# Run scripts non-interactively
+python -m episodic --execute scripts/my-conversation.txt
+# Or short form:
+python -m episodic -e scripts/my-conversation.txt
+
 # Manual topic detection
 > /topics index 5          # Analyze with window size 5
 
@@ -125,7 +137,12 @@ Select model: 2
 > /index README.md         # Index a document
 > /search neural networks  # Search knowledge base
 > /docs list              # List indexed documents
-# Now your conversations are enhanced with indexed knowledge!
+
+# Web Search
+> /websearch on            # Enable web search
+> /websearch Python 3.12   # Search the web
+> /ws latest AI news       # Short form
+# Web results can enhance responses when local knowledge is insufficient!
 ```
 
 ## Project Structure
@@ -142,9 +159,11 @@ episodic/
 ├── commands/            # CLI commands
 │   ├── registry.py      # Command registry
 │   ├── unified_*.py     # Unified command handlers
-│   └── rag.py          # RAG commands
+│   ├── rag.py          # RAG commands
+│   └── web_search.py   # Web search commands
 ├── rag.py              # RAG system with ChromaDB
 ├── rag_utils.py        # RAG utilities and decorators
+├── web_search.py       # Web search providers and caching
 └── migrations/          # Database migrations
 ```
 

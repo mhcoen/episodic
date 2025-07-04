@@ -7,10 +7,25 @@ Episodic now uses a simplified CLI structure where the talk loop is the main int
 ## Starting the Application
 
 ```bash
+# Interactive mode (default)
 python -m episodic
+
+# Execute a script non-interactively
+python -m episodic --execute scripts/my-script.txt
+python -m episodic -e scripts/my-script.txt
+
+# Specify a model at startup
+python -m episodic --model gpt-4
+python -m episodic -m ollama/llama3
+
+# Disable streaming output
+python -m episodic --no-stream
+
+# Combine options
+python -m episodic -m gpt-4 -e scripts/test.txt
 ```
 
-This starts the application in talk mode, where you can chat with the LLM and use commands.
+This starts the application in talk mode (default), where you can chat with the LLM and use commands. The `--execute` option runs a script non-interactively and exits when complete.
 
 ## Basic Commands
 

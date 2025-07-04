@@ -8,7 +8,7 @@ from episodic.configuration import get_text_color, get_system_color, get_heading
 from episodic.web_search import get_web_search_manager, SearchResult
 
 
-def websearch(query: str, limit: Optional[int] = None, index: bool = None):
+def websearch(query: str, limit: Optional[int] = None, index: bool = None, extract: bool = None):
     """Perform a web search."""
     if not config.get('web_search_enabled', False):
         typer.secho("Web search is not enabled. Use '/websearch on' to enable.", fg="yellow")
@@ -21,6 +21,8 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None):
         limit = config.get('web_search_max_results', 5)
     if index is None:
         index = config.get('web_search_index_results', True)
+    if extract is None:
+        extract = config.get('web_search_extract_content', False)
     
     # Check if confirmation required
     if config.get('web_search_require_confirmation', False):
@@ -65,6 +67,49 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None):
         # Clean up snippet - remove excessive whitespace
         snippet = ' '.join(result.snippet.split())
         typer.secho(f"    {snippet}", fg=get_text_color())
+        
+        # Extract content if requested
+        if extract and i <= 3:  # Only extract for first 3 results to avoid delays
+            typer.secho(f"    📄 Extracting content...", fg=get_system_color(), nl=False)
+            
+            import asyncio
+            from episodic.web_extract import fetch_page_content
+            
+            try:
+                # Fix URL if needed
+                extract_url = result.url
+                if extract_url.startswith('//duckduckgo.com/l/?uddg='):
+                    import urllib.parse
+                    try:
+                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(extract_url).query)
+                        if 'uddg' in parsed:
+                            extract_url = urllib.parse.unquote(parsed['uddg'][0])
+                    except:
+                        pass
+                
+                # Ensure URL has scheme
+                if not extract_url.startswith(('http://', 'https://')):
+                    extract_url = 'https://' + extract_url.lstrip('/')
+                
+                # Extract content
+                content = asyncio.run(fetch_page_content(extract_url))
+                
+                if content and len(content) > 50:
+                    typer.secho(" ✓", fg="green")
+                    # Show extracted content
+                    typer.secho(f"    📝 Extracted: ", fg=get_system_color(), nl=False)
+                    # Limit extracted content display
+                    display_content = content[:300] + "..." if len(content) > 300 else content
+                    typer.secho(display_content, fg=get_text_color())
+                    
+                    # Update the result object for indexing
+                    result.snippet = content[:1000]  # Use more content for indexing
+                else:
+                    typer.secho(" ✗", fg="red")
+            except Exception as e:
+                typer.secho(" ✗", fg="red")
+                if config.get('debug'):
+                    typer.secho(f"    Error: {e}", fg="red")
     
     # Optionally index results into RAG
     if index and config.get('rag_enabled', False):
@@ -249,5 +294,15 @@ def websearch_command(action: Optional[str] = None, *args):
             typer.secho("Usage: /websearch cache clear", fg="red")
     else:
         # Treat as search query
-        query = f"{action} {' '.join(args)}".strip()
-        websearch(query)
+        # Check for extract flag
+        extract = False
+        filtered_args = []
+        
+        for arg in args:
+            if arg.lower() in ['--extract', '-e']:
+                extract = True
+            else:
+                filtered_args.append(arg)
+        
+        query = f"{action} {' '.join(filtered_args)}".strip()
+        websearch(query, extract=extract)

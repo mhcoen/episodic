@@ -1,0 +1,18 @@
+# Test script for web content extraction
+
+# Initialize and enable features
+/init --erase
+/rag on
+/websearch on
+
+# Test weather query with extraction
+/ws what is the weather in madison, wi? --extract
+
+# Test another search with content extraction
+/ws Python 3.12 new features --extract
+
+# Test search without extraction (for comparison)
+/ws latest AI news
+
+# Check if extraction improved indexing
+/docs list

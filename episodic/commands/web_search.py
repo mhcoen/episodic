@@ -8,7 +8,7 @@ from episodic.configuration import get_text_color, get_system_color, get_heading
 from episodic.web_search import get_web_search_manager, SearchResult
 
 
-def websearch(query: str, limit: Optional[int] = None, index: bool = None, extract: bool = None):
+def websearch(query: str, limit: Optional[int] = None, index: bool = None, extract: bool = None, synthesize: bool = None):
     """Perform a web search."""
     if not config.get('web_search_enabled', False):
         typer.secho("Web search is not enabled. Use '/websearch on' to enable.", fg="yellow")
@@ -23,6 +23,12 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
         index = config.get('web_search_index_results', True)
     if extract is None:
         extract = config.get('web_search_extract_content', False)
+    if synthesize is None:
+        synthesize = config.get('web_search_synthesize', False)
+    
+    # If synthesizing, we need to extract content
+    if synthesize:
+        extract = True
     
     # Check if confirmation required
     if config.get('web_search_require_confirmation', False):
@@ -39,6 +45,9 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
         return
     
     typer.secho("─" * 60, fg=get_heading_color())
+    
+    # Track extracted content for synthesis
+    extracted_content = {}
     
     # Display results
     for i, result in enumerate(results, 1):
@@ -95,11 +104,25 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                 
                 if content and len(content) > 50:
                     typer.secho(" ✓", fg="green")
-                    # Show extracted content
-                    typer.secho(f"    📝 Extracted: ", fg=get_system_color(), nl=False)
-                    # Limit extracted content display
-                    display_content = content[:300] + "..." if len(content) > 300 else content
-                    typer.secho(display_content, fg=get_text_color())
+                    
+                    # Store extracted content
+                    clean_url = result.url
+                    if clean_url.startswith('//duckduckgo.com/l/?uddg='):
+                        import urllib.parse
+                        try:
+                            parsed = urllib.parse.parse_qs(urllib.parse.urlparse(clean_url).query)
+                            if 'uddg' in parsed:
+                                clean_url = urllib.parse.unquote(parsed['uddg'][0])
+                        except:
+                            pass
+                    extracted_content[clean_url] = content
+                    
+                    # Only show preview if not synthesizing
+                    if not synthesize:
+                        typer.secho(f"    📝 Extracted: ", fg=get_system_color(), nl=False)
+                        # Limit extracted content display
+                        display_content = content[:300] + "..." if len(content) > 300 else content
+                        typer.secho(display_content, fg=get_text_color())
                     
                     # Update the result object for indexing
                     result.snippet = content[:1000]  # Use more content for indexing
@@ -109,6 +132,18 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                 typer.secho(" ✗", fg="red")
                 # Always show extraction errors for debugging
                 typer.secho(f"    Error: {type(e).__name__}: {str(e)}", fg="red")
+    
+    # Synthesize results if requested
+    if synthesize and extracted_content:
+        from episodic.web_synthesis import WebSynthesizer, format_synthesized_answer
+        
+        synthesizer = WebSynthesizer()
+        synthesized_answer = synthesizer.synthesize_results(query, results, extracted_content)
+        
+        if synthesized_answer:
+            format_synthesized_answer(synthesized_answer, results[:3])  # Show top 3 sources
+        else:
+            typer.secho("\n⚠️  Could not synthesize results", fg="yellow")
     
     # Optionally index results into RAG
     if index and config.get('rag_enabled', False):
@@ -293,15 +328,18 @@ def websearch_command(action: Optional[str] = None, *args):
             typer.secho("Usage: /websearch cache clear", fg="red")
     else:
         # Treat as search query
-        # Check for extract flag
+        # Check for flags
         extract = False
+        synthesize = False
         filtered_args = []
         
         for arg in args:
             if arg.lower() in ['--extract', '-e']:
                 extract = True
+            elif arg.lower() in ['--synthesize', '-s']:
+                synthesize = True
             else:
                 filtered_args.append(arg)
         
         query = f"{action} {' '.join(filtered_args)}".strip()
-        websearch(query, extract=extract)
+        websearch(query, extract=extract, synthesize=synthesize)

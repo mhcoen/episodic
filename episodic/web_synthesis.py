@@ -64,9 +64,12 @@ Instructions:
 - Synthesize information from multiple sources into a coherent answer
 - Be specific and include relevant details (times, dates, numbers, facts)
 - Format the answer clearly with proper structure
+- When listing facts or key information, use bullet points with this format:
+  • **Label**: Value or information
+  • **Another Label**: Another value
+- Use markdown headers (###) to organize sections if needed
 - If the sources contain conflicting information, mention the discrepancy
 - Keep the answer concise but complete
-- Use markdown formatting for better readability
 
 Answer:"""
         
@@ -97,27 +100,21 @@ def format_synthesized_answer(answer: str, sources: List[SearchResult]) -> None:
         sources: List of source search results
     """
     from episodic.configuration import get_heading_color, get_text_color, get_system_color
+    from episodic.text_formatter import format_and_display_text
     
-    # Display the answer
+    # Display the answer header
     typer.secho("\n📊 Synthesized Answer", fg=get_heading_color(), bold=True)
     typer.secho("─" * 60, fg=get_heading_color())
     
-    # Display the formatted answer
+    # Display the formatted answer with proper formatting
     typer.echo()  # Blank line
     
-    # Process markdown formatting
-    lines = answer.split('\n')
-    for line in lines:
-        if line.startswith('# '):
-            typer.secho(line[2:], fg=get_heading_color(), bold=True)
-        elif line.startswith('## '):
-            typer.secho(line[3:], fg=get_system_color(), bold=True)
-        elif line.startswith('**') and line.endswith('**'):
-            typer.secho(line[2:-2], bold=True)
-        elif line.startswith('- '):
-            typer.secho(f"  • {line[2:]}", fg=get_text_color())
-        else:
-            typer.secho(line, fg=get_text_color())
+    # Use the unified formatter for consistent display
+    format_and_display_text(
+        answer,
+        base_color=get_text_color(),
+        value_color="bright_cyan"  # Use bright cyan for values after colons
+    )
     
     # Display sources
     typer.echo()  # Blank line

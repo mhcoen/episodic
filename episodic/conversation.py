@@ -19,6 +19,10 @@ import re
 from typing import Optional, List, Dict, Any, Tuple
 
 import typer
+from episodic.color_utils import secho_color, force_color_output
+
+# Force color output if needed
+force_color_output()
 
 from episodic.db import (
     insert_node, get_ancestry, get_head, set_head, get_recent_nodes,
@@ -709,7 +713,10 @@ class ConversationManager:
                         typer.echo("")
                         
                         # Stream the response with proper formatting
-                        typer.secho("🤖 ", fg=get_llm_color(), nl=False)  # Robot emoji without newline
+                        llm_color = get_llm_color()
+                        if isinstance(llm_color, str):
+                            llm_color = llm_color.lower()
+                        secho_color("🤖 ", fg=llm_color, nl=False)  # Robot emoji without newline
                         
                         # Process the stream and display it
                         from episodic.llm import process_stream_response
@@ -801,11 +808,20 @@ class ConversationManager:
                                                             initial_indent="",
                                                             subsequent_indent=""
                                                         )
-                                                        typer.secho(wrapped, fg=get_llm_color(), bold=False)
+                                                        llm_color = get_llm_color()
+                                                        if isinstance(llm_color, str):
+                                                            llm_color = llm_color.lower()
+                                                        secho_color(wrapped, fg=llm_color, bold=False)
                                                     else:
-                                                        typer.secho(line, fg=get_llm_color(), bold=False)
+                                                        llm_color = get_llm_color()
+                                                        if isinstance(llm_color, str):
+                                                            llm_color = llm_color.lower()
+                                                        secho_color(line, fg=llm_color, bold=False)
                                                 else:
-                                                    typer.secho(line, fg=get_llm_color(), bold=False)
+                                                    llm_color = get_llm_color()
+                                                    if isinstance(llm_color, str):
+                                                        llm_color = llm_color.lower()
+                                                    secho_color(line, fg=llm_color, bold=False)
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
                                             line_position = 0  # Reset position after newline
@@ -838,7 +854,10 @@ class ConversationManager:
                                                 line_position = 0
                                             
                                             # Print the word
-                                            typer.secho(display_word, fg=get_llm_color(), bold=should_be_bold, nl=False)
+                                            llm_color = get_llm_color()
+                                            if isinstance(llm_color, str):
+                                                llm_color = llm_color.lower()
+                                            secho_color(display_word, fg=llm_color, bold=should_be_bold, nl=False)
                                             line_position += len(display_word)
                                             
                                             # Don't accumulate printed words
@@ -857,7 +876,10 @@ class ConversationManager:
                                 
                                 # Print any remaining content
                                 if current_line.strip():
-                                    typer.secho(current_line, fg=get_llm_color())
+                                    llm_color = get_llm_color()
+                                    if isinstance(llm_color, str):
+                                        llm_color = llm_color.lower()
+                                    secho_color(current_line, fg=llm_color)
                                 else:
                                     # Ensure we have a newline at the end
                                     typer.echo("")
@@ -934,11 +956,20 @@ class ConversationManager:
                                                             initial_indent="",
                                                             subsequent_indent=""
                                                         )
-                                                        typer.secho(wrapped, fg=get_llm_color(), bold=False)
+                                                        llm_color = get_llm_color()
+                                                        if isinstance(llm_color, str):
+                                                            llm_color = llm_color.lower()
+                                                        secho_color(wrapped, fg=llm_color, bold=False)
                                                     else:
-                                                        typer.secho(line, fg=get_llm_color(), bold=False)
+                                                        llm_color = get_llm_color()
+                                                        if isinstance(llm_color, str):
+                                                            llm_color = llm_color.lower()
+                                                        secho_color(line, fg=llm_color, bold=False)
                                                 else:
-                                                    typer.secho(line, fg=get_llm_color(), bold=False)
+                                                    llm_color = get_llm_color()
+                                                    if isinstance(llm_color, str):
+                                                        llm_color = llm_color.lower()
+                                                    secho_color(line, fg=llm_color, bold=False)
                                             # Keep the incomplete last line
                                             current_line = lines[-1]
                                             line_position = 0  # Reset position after newline
@@ -971,7 +1002,10 @@ class ConversationManager:
                                                 line_position = 0
                                             
                                             # Print the word
-                                            typer.secho(display_word, fg=get_llm_color(), bold=should_be_bold, nl=False)
+                                            llm_color = get_llm_color()
+                                            if isinstance(llm_color, str):
+                                                llm_color = llm_color.lower()
+                                            secho_color(display_word, fg=llm_color, bold=should_be_bold, nl=False)
                                             line_position += len(display_word)
                                             
                                             # Don't accumulate printed words
@@ -984,7 +1018,10 @@ class ConversationManager:
                                 
                                 # Print any remaining content
                                 if current_line.strip():
-                                    typer.secho(current_line, fg=get_llm_color())
+                                    llm_color = get_llm_color()
+                                    if isinstance(llm_color, str):
+                                        llm_color = llm_color.lower()
+                                    secho_color(current_line, fg=llm_color)
                                 else:
                                     # Ensure we have a newline at the end
                                     typer.echo("")
@@ -1075,7 +1112,10 @@ class ConversationManager:
                                                 line_start = True
                                             
                                             # Print word
-                                            typer.secho(current_word, fg=get_llm_color(), nl=False, bold=word_is_bold)
+                                            llm_color = get_llm_color()
+                                            if isinstance(llm_color, str):
+                                                llm_color = llm_color.lower()
+                                            secho_color(current_word, fg=llm_color, nl=False, bold=word_is_bold)
                                             current_position += len(current_word)
                                             
                                             # Reset numbered list flag after printing word with colon
@@ -1094,7 +1134,10 @@ class ConversationManager:
                                             line_start = True
                                             in_numbered_list = False  # Reset after newline
                                         else:
-                                            typer.secho(' ', fg=get_llm_color(), nl=False)
+                                            llm_color = get_llm_color()
+                                            if isinstance(llm_color, str):
+                                                llm_color = llm_color.lower()
+                                            secho_color(' ', fg=llm_color, nl=False)
                                             current_position += 1
                                     else:
                                         # Accumulate character
@@ -1112,7 +1155,10 @@ class ConversationManager:
                                     
                                 if wrap_width and current_position + len(current_word) > wrap_width:
                                     typer.secho('\n', nl=False)
-                                typer.secho(current_word, fg=get_llm_color(), nl=False, bold=word_is_bold)
+                                llm_color = get_llm_color()
+                                if isinstance(llm_color, str):
+                                    llm_color = llm_color.lower()
+                                secho_color(current_word, fg=llm_color, nl=False, bold=word_is_bold)
                         
                         # Get the full response
                         display_response = ''.join(full_response_parts)

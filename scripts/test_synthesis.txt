@@ -1,0 +1,13 @@
+# Test script for web synthesis with formatted output
+
+# Initialize
+/init --erase
+
+# Enable web search
+/websearch on
+
+# Test time query with synthesis
+/ws what time is it in brazil right now --synthesize
+
+# Test weather query with synthesis
+/ws what is the weather in madison, wi? --synthesize

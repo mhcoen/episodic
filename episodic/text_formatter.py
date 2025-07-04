@@ -46,6 +46,12 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
     if value_color is None:
         value_color = get_system_color()
     
+    # Convert typer color objects to color names for typer.secho
+    if hasattr(base_color, 'name'):
+        base_color = base_color.name.lower()
+    if hasattr(value_color, 'name'):
+        value_color = value_color.name.lower()
+    
     wrap_width = get_wrap_width() if wrap else None
     
     # Split into lines for processing
@@ -61,6 +67,15 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
             continue
         elif line.startswith('### '):
             typer.secho(line[4:], fg=get_system_color(), bold=True)
+            continue
+        elif line.startswith('#### '):
+            # Level 4 headers - make them stand out with underline
+            header_text = line[5:]
+            header_color = get_heading_color()
+            if hasattr(header_color, 'name'):
+                header_color = header_color.name.lower()
+            typer.secho(f"\n{header_text}", fg=header_color, bold=True)
+            typer.secho("─" * len(header_text), fg=header_color)
             continue
         
         # Check if this is a bulleted list item with a colon
@@ -229,8 +244,14 @@ class StreamingFormatter:
                  value_color: Optional[str] = None,
                  wrap_width: Optional[int] = None):
         self.base_color = base_color or get_text_color()
-        self.value_color = value_color or "bright_cyan"
+        self.value_color = value_color or get_system_color()
         self.wrap_width = wrap_width if wrap_width is not None else get_wrap_width()
+        
+        # Convert typer color objects to color names
+        if hasattr(self.base_color, 'name'):
+            self.base_color = self.base_color.name.lower()
+        if hasattr(self.value_color, 'name'):
+            self.value_color = self.value_color.name.lower()
         
         # State tracking
         self.current_line = ""

@@ -113,7 +113,7 @@ def format_synthesized_answer(answer: str, sources: List[SearchResult]) -> None:
     format_and_display_text(
         answer,
         base_color=get_text_color(),
-        value_color="bright_cyan"  # Use bright cyan for values after colons
+        value_color=get_system_color()  # Use system color for values after colons
     )
     
     # Display sources

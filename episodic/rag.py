@@ -17,23 +17,10 @@ from io import StringIO
 # Disable ChromaDB telemetry to avoid warnings
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
-# Monkey-patch to completely disable ChromaDB telemetry due to compatibility issues
-import types
-
-class MockTelemetry:
-    """Mock telemetry module to prevent errors."""
-    def __getattr__(self, name):
-        # Return a no-op function for any attribute access
-        return lambda *args, **kwargs: None
-
-# Create mock modules for telemetry
-sys.modules['chromadb.telemetry'] = types.ModuleType('telemetry')
-sys.modules['chromadb.telemetry.posthog'] = MockTelemetry()
-sys.modules['chromadb.telemetry.events'] = MockTelemetry()
-
 # Suppress ChromaDB warnings
 logging.getLogger('chromadb').setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message=".*telemetry.*")
+warnings.filterwarnings("ignore", message=".*Failed to send telemetry.*")
 
 import chromadb
 from chromadb.utils import embedding_functions
@@ -42,6 +29,22 @@ import typer
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color
 from episodic.db import get_connection
+
+# Patch ChromaDB telemetry after import to fix the capture() argument error
+try:
+    import chromadb.telemetry.posthog
+    # Replace the Posthog class with a no-op version
+    class NoOpPosthog:
+        def __init__(self, *args, **kwargs):
+            pass
+        def capture(self, *args, **kwargs):
+            pass
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+    
+    chromadb.telemetry.posthog.Posthog = NoOpPosthog
+except Exception:
+    pass  # If the module structure changes, just ignore
 
 
 @contextmanager
@@ -406,17 +409,6 @@ def get_rag_system() -> Optional[EpisodicRAG]:
     
     if rag_system is None:
         try:
-            # Apply runtime telemetry patch if needed
-            try:
-                import chromadb.telemetry.posthog as posthog_module
-                if hasattr(posthog_module, 'Posthog'):
-                    # Patch the capture method to accept any arguments
-                    original_capture = getattr(posthog_module.Posthog, 'capture', None)
-                    if original_capture:
-                        posthog_module.Posthog.capture = lambda self, *args, **kwargs: None
-            except Exception:
-                pass  # Ignore patching errors
-            
             rag_system = EpisodicRAG()
         except Exception as e:
             if config.get('debug'):

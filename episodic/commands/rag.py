@@ -139,12 +139,27 @@ def rag_toggle(enable: Optional[bool] = None):
     typer.secho(f"RAG {status}", fg=get_system_color())
     
     if enable:
-        # Initialize RAG system
-        if ensure_rag_initialized():
-            rag = get_rag_system()
-            if rag:
-                stats = rag.get_stats()
-                typer.secho(f"Knowledge base: {stats['total_documents']} documents", fg=get_text_color())
+        # Initialize RAG system with telemetry suppression
+        import sys
+        from io import StringIO
+        
+        # Capture stderr to suppress telemetry messages
+        old_stderr = sys.stderr
+        captured_stderr = StringIO()
+        sys.stderr = captured_stderr
+        
+        try:
+            if ensure_rag_initialized():
+                rag = get_rag_system()
+                if rag:
+                    stats = rag.get_stats()
+                    typer.secho(f"Knowledge base: {stats['total_documents']} documents", fg=get_text_color())
+        finally:
+            sys.stderr = old_stderr
+            # Only show non-telemetry errors
+            error_output = captured_stderr.getvalue()
+            if error_output and "telemetry" not in error_output.lower():
+                sys.stderr.write(error_output)
 
 
 def rag_stats():

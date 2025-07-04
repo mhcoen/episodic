@@ -47,15 +47,7 @@ except Exception:
     pass  # If the module structure changes, just ignore
 
 
-@contextmanager
-def suppress_telemetry_errors():
-    """Context manager to suppress telemetry error messages."""
-    old_stderr = sys.stderr
-    sys.stderr = StringIO()
-    try:
-        yield
-    finally:
-        sys.stderr = old_stderr
+# Note: suppress_telemetry_errors moved to rag_utils.py
 
 
 class EpisodicRAG:
@@ -69,9 +61,10 @@ class EpisodicRAG:
         
         # Configure ChromaDB client with telemetry disabled
         from chromadb.config import Settings
+        from episodic.rag_utils import suppress_chromadb_telemetry
         
         # Suppress telemetry errors during initialization
-        with suppress_telemetry_errors():
+        with suppress_chromadb_telemetry():
             self.client = chromadb.PersistentClient(
                 path=db_path,
                 settings=Settings(
@@ -98,6 +91,11 @@ class EpisodicRAG:
         chunk_size = chunk_size or config.get('rag_chunk_size', 500)
         overlap = overlap or config.get('rag_chunk_overlap', 100)
         
+        # Validate parameters
+        from episodic.rag_utils import validate_chunk_params
+        if not validate_chunk_params(chunk_size, overlap):
+            raise ValueError("Invalid chunk parameters")
+        
         words = content.split()
         chunks = []
         
@@ -123,14 +121,14 @@ class EpisodicRAG:
     
     def check_duplicate(self, content_hash: str) -> Optional[str]:
         """Check if document already exists."""
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            'SELECT id FROM rag_documents WHERE content_hash = ?',
-            (content_hash,)
-        )
-        result = cursor.fetchone()
-        return result[0] if result else None
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT id FROM rag_documents WHERE content_hash = ?',
+                (content_hash,)
+            )
+            result = cursor.fetchone()
+            return result[0] if result else None
     
     def add_document(self, 
                     content: str, 
@@ -183,17 +181,17 @@ class EpisodicRAG:
             doc_ids.append(chunk_id)
         
         # Track in SQLite (store full document once)
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO rag_documents (id, content, source, metadata, content_hash)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (parent_doc_id, content, source, json.dumps({
-            'indexed_at': datetime.now().isoformat(),
-            'word_count': len(content.split()),
-            'chunk_count': len(chunks)
-        }), content_hash))
-        conn.commit()
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO rag_documents (id, content, source, metadata, content_hash)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (parent_doc_id, content, source, json.dumps({
+                'indexed_at': datetime.now().isoformat(),
+                'word_count': len(content.split()),
+                'chunk_count': len(chunks)
+            }), content_hash))
+            conn.commit()
         
         return doc_ids
     
@@ -276,10 +274,10 @@ class EpisodicRAG:
             self.collection.delete(ids=[doc_id])
             
             # Also remove from SQLite
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM rag_documents WHERE id = ?', (doc_id,))
-            conn.commit()
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM rag_documents WHERE id = ?', (doc_id,))
+                conn.commit()
             
             return True
         except Exception:
@@ -295,12 +293,12 @@ class EpisodicRAG:
             if doc_ids:
                 self.collection.delete(ids=doc_ids)
                 
-                # Remove from SQLite
-                conn = get_connection()
-                cursor = conn.cursor()
-                placeholders = ','.join('?' * len(doc_ids))
-                cursor.execute(f'DELETE FROM rag_documents WHERE id IN ({placeholders})', doc_ids)
-                conn.commit()
+                # Remove from SQLite - use separate queries to avoid dynamic SQL
+                with get_connection() as conn:
+                    cursor = conn.cursor()
+                    for doc_id in doc_ids:
+                        cursor.execute('DELETE FROM rag_documents WHERE id = ?', (doc_id,))
+                    conn.commit()
             
             return len(doc_ids)
         else:
@@ -317,10 +315,10 @@ class EpisodicRAG:
             )
             
             # Clear SQLite table
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM rag_documents')
-            conn.commit()
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM rag_documents')
+                conn.commit()
             
             return count
     
@@ -387,14 +385,14 @@ class EpisodicRAG:
         enhanced_message = message + ''.join(context_parts)
         
         # Track retrieval in database
-        conn = get_connection()
-        cursor = conn.cursor()
-        for doc_id in results['ids']:
-            cursor.execute('''
-                INSERT INTO rag_retrievals (document_id, query, retrieved_at)
-                VALUES (?, ?, ?)
-            ''', (doc_id, message, datetime.now().isoformat()))
-        conn.commit()
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            for doc_id in results['ids']:
+                cursor.execute('''
+                    INSERT INTO rag_retrievals (document_id, query, retrieved_at)
+                    VALUES (?, ?, ?)
+                ''', (doc_id, message, datetime.now().isoformat()))
+            conn.commit()
         
         return enhanced_message, sources_used
 

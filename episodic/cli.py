@@ -252,7 +252,9 @@ def handle_command(command_str: str) -> bool:
             verbose = _has_flag(args, ["--verbose", "-v"])
             topic_scores(node_id=node_id, limit=limit, verbose=verbose)
         
-        elif cmd == "/index":
+        elif cmd == "/index-topics":
+            # Deprecated - redirect to /topics index
+            typer.secho("⚠️  /index-topics is deprecated. Use '/topics index' instead.", fg="yellow")
             from episodic.commands.index_topics import index_topics
             window_size = int(args[0]) if args else 5
             apply = _has_flag(args, ["--apply", "-a"])

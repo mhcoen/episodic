@@ -7,16 +7,15 @@ from datetime import datetime
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.rag import get_rag_system, ensure_rag_initialized
+from episodic.rag_utils import (
+    requires_rag, find_document_by_partial_id, validate_file_for_indexing,
+    suppress_chromadb_telemetry
+)
 
 
+@requires_rag
 def search(query: str, limit: Optional[int] = None):
     """Search the knowledge base."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
     
     rag = get_rag_system()
     n_results = limit or config.get('rag_max_results', 5)
@@ -48,14 +47,9 @@ def search(query: str, limit: Optional[int] = None):
         typer.secho(f"{snippet}", fg=get_text_color())
 
 
+@requires_rag
 def index_text(content: str, source: Optional[str] = None):
     """Index text content into the knowledge base."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
     
     rag = get_rag_system()
     source = source or "manual_input"
@@ -73,34 +67,13 @@ def index_text(content: str, source: Optional[str] = None):
     typer.secho(f"   Words: {len(content.split())}", fg=get_text_color())
 
 
+@requires_rag
 def index_file(filepath: str):
     """Index a file into the knowledge base."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
+    if not validate_file_for_indexing(filepath):
         return
     
     import os
-    if not os.path.exists(filepath):
-        typer.secho(f"File not found: {filepath}", fg="red")
-        return
-    
-    # Check file size
-    file_size = os.path.getsize(filepath)
-    max_size = config.get('rag_max_file_size', 10 * 1024 * 1024)
-    if file_size > max_size:
-        typer.secho(f"File too large: {file_size / 1024 / 1024:.1f}MB (max: {max_size / 1024 / 1024:.1f}MB)", fg="red")
-        return
-    
-    # Check allowed file types
-    file_ext = os.path.splitext(filepath)[1].lower()
-    allowed_types = config.get('rag_allowed_file_types', ['.txt', '.md', '.pdf', '.rst'])
-    if file_ext not in allowed_types:
-        typer.secho(f"Unsupported file type: {file_ext}", fg="red")
-        typer.secho(f"Allowed types: {', '.join(allowed_types)}", fg="yellow")
-        return
     
     # Determine file type and load accordingly
     if filepath.endswith('.pdf'):
@@ -140,36 +113,17 @@ def rag_toggle(enable: Optional[bool] = None):
     
     if enable:
         # Initialize RAG system with telemetry suppression
-        import sys
-        from io import StringIO
-        
-        # Capture stderr to suppress telemetry messages
-        old_stderr = sys.stderr
-        captured_stderr = StringIO()
-        sys.stderr = captured_stderr
-        
-        try:
+        with suppress_chromadb_telemetry():
             if ensure_rag_initialized():
                 rag = get_rag_system()
                 if rag:
                     stats = rag.get_stats()
                     typer.secho(f"Knowledge base: {stats['total_documents']} documents", fg=get_text_color())
-        finally:
-            sys.stderr = old_stderr
-            # Only show non-telemetry errors
-            error_output = captured_stderr.getvalue()
-            if error_output and "telemetry" not in error_output.lower():
-                sys.stderr.write(error_output)
 
 
+@requires_rag
 def rag_stats():
     """Show RAG system statistics."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
     
     rag = get_rag_system()
     stats = rag.get_stats()
@@ -201,14 +155,9 @@ def rag_stats():
             typer.secho(f"{count} documents", fg=get_system_color())
 
 
+@requires_rag
 def docs_list(limit: Optional[int] = None, source: Optional[str] = None):
     """List documents in the knowledge base."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
     
     rag = get_rag_system()
     docs = rag.list_documents(limit=limit, source_filter=source)
@@ -240,33 +189,19 @@ def docs_list(limit: Optional[int] = None, source: Optional[str] = None):
             typer.secho(f"{doc['content']}", fg=get_text_color())
 
 
+@requires_rag
 def docs_show(doc_id: str):
     """Show full content of a specific document."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
-    
     rag = get_rag_system()
     
     # Support partial ID matching
     docs = rag.list_documents()
-    matching_docs = [d for d in docs if d['id'].startswith(doc_id)]
-    
-    if not matching_docs:
-        typer.secho(f"No document found with ID starting with: {doc_id}", fg="red")
-        return
-    
-    if len(matching_docs) > 1:
-        typer.secho(f"Multiple documents found matching '{doc_id}':", fg="yellow")
-        for doc in matching_docs:
-            typer.secho(f"  {doc['id']} - {doc['source']}", fg=get_text_color())
+    matching_doc = find_document_by_partial_id(doc_id, docs)
+    if not matching_doc:
         return
     
     # Get full document
-    doc = rag.get_document(matching_docs[0]['id'])
+    doc = rag.get_document(matching_doc['id'])
     if not doc:
         typer.secho(f"Failed to retrieve document.", fg="red")
         return
@@ -296,32 +231,16 @@ def docs_show(doc_id: str):
     typer.secho(doc['content'], fg=get_text_color())
 
 
+@requires_rag
 def docs_remove(doc_id: str):
     """Remove a document from the knowledge base."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
-    
     rag = get_rag_system()
     
     # Support partial ID matching
     docs = rag.list_documents()
-    matching_docs = [d for d in docs if d['id'].startswith(doc_id)]
-    
-    if not matching_docs:
-        typer.secho(f"No document found with ID starting with: {doc_id}", fg="red")
+    doc_to_remove = find_document_by_partial_id(doc_id, docs)
+    if not doc_to_remove:
         return
-    
-    if len(matching_docs) > 1:
-        typer.secho(f"Multiple documents found matching '{doc_id}':", fg="yellow")
-        for doc in matching_docs:
-            typer.secho(f"  {doc['id']} - {doc['source']}", fg=get_text_color())
-        return
-    
-    doc_to_remove = matching_docs[0]
     
     # Confirm removal
     typer.secho(f"Remove document: {doc_to_remove['source']} ({doc_to_remove['id'][:8]}...)?", 
@@ -345,14 +264,9 @@ def docs_remove(doc_id: str):
         typer.secho("Failed to remove document.", fg="red")
 
 
+@requires_rag
 def docs_clear(source: Optional[str] = None):
     """Clear documents from the knowledge base."""
-    if not config.get('rag_enabled', False):
-        typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
-        return
-    
-    if not ensure_rag_initialized():
-        return
     
     # Confirm clearing
     if source:

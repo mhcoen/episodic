@@ -100,7 +100,23 @@ tests/
 
 ## Current Session Context
 
-### Working Session (2025-01-01)
+### Working Session (2025-01-07)
+- Implemented RAG (Retrieval Augmented Generation) functionality
+  - Core RAG module (`episodic/rag.py`) with ChromaDB vector database integration
+  - Document chunking with configurable size and overlap for better retrieval
+  - Duplicate detection using SHA-256 content hashing
+  - Commands: `/rag [on|off]`, `/search` (alias `/s`), `/index` (alias `/i`), `/docs [list|show|remove|clear]`
+  - Automatic context enhancement for chat messages when RAG enabled
+  - Graceful degradation when dependencies (chromadb, sentence-transformers) missing
+  - Fixed ChromaDB telemetry errors with multiple suppression approaches
+  - Created `episodic/rag_utils.py` to consolidate common patterns (@requires_rag decorator, validation utilities)
+  - Fixed /index command collision (topic indexing deprecated and shows warning)
+  - Improved error handling with context managers for all database operations
+  - Fixed SQL injection risk by avoiding dynamic SQL construction
+  - Database tables: `rag_documents` for indexed content, `rag_retrievals` for tracking usage
+  - Configuration in `config_defaults.py` under `RAG_DEFAULTS`
+
+### Previous Session (2025-01-01)
 - Fixed topic message count showing 0 for ongoing topics
   - Modified count_nodes_in_topic() to use get_head() for ongoing topics
 - Fixed excessive topic creation due to min_messages_before_topic_change=2
@@ -257,6 +273,17 @@ Topic detection sensitivity varies drastically by model:
   - `params` - Model parameters
   - `docs` - Configuration docs
 
+#### RAG (Knowledge Base) Commands
+- `/rag [on|off]` - Enable/disable RAG or show stats
+- `/search <query>` or `/s <query>` - Search the knowledge base
+- `/index <file>` or `/i <file>` - Index a file into knowledge base
+- `/index --text "<content>"` - Index text directly
+- `/docs` - Document management with subactions:
+  - `list` (default) - List all documents
+  - `show <doc_id>` - Show document content
+  - `remove <doc_id>` - Remove a document
+  - `clear [source]` - Clear documents
+
 #### Deprecated Commands (still work with warnings)
 - `/rename-topics` → `/topics rename`
 - `/compress-current-topic` → `/topics compress`
@@ -316,6 +343,8 @@ pytest tests/unit -m "not slow"
 - **CLI Interface** (`cli.py`): Typer-based command-line interface with talk-first design
 - **Visualization** (`visualization.py`): NetworkX and Plotly-based graph visualization with real-time updates
 - **Configuration** (`config.py`): Application configuration management
+- **RAG System** (`rag.py`): Retrieval Augmented Generation with ChromaDB vector database
+- **RAG Utilities** (`rag_utils.py`): Common patterns and utilities for RAG functionality
 
 #### Key Design Patterns
 - **Thread-safe database operations**: Uses thread-local connections and context managers
@@ -333,6 +362,8 @@ pytest tests/unit -m "not slow"
 - **configuration**: Key-value configuration storage
 - **conversations**: Conversation metadata
 - **migration_history**: Applied migrations tracking
+- **rag_documents**: Indexed documents with content hash for duplicate detection
+- **rag_retrievals**: Tracks which documents were used in responses
 - Indexes on frequently queried columns for performance
 - SQLite with full-text search capabilities
 - Configurable database path via EPISODIC_DB_PATH environment variable

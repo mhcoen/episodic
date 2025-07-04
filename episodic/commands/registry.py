@@ -120,6 +120,16 @@ def register_all_commands():
     except ImportError:
         rag_available = False
     
+    # Import web search commands
+    try:
+        from episodic.commands.web_search import (
+            websearch, websearch_command, websearch_toggle, 
+            websearch_config, websearch_stats, websearch_cache_clear
+        )
+        websearch_available = True
+    except ImportError:
+        websearch_available = False
+    
     # Register navigation commands
     command_registry.register("init", init, "Initialize the database", "Navigation")
     command_registry.register("add", add, "Add a new node manually", "Navigation")
@@ -210,6 +220,10 @@ def register_all_commands():
         command_registry.register("search", search, "Search the knowledge base", "Knowledge Base", aliases=["s"])
         command_registry.register("index", index_file, "Index a file or text into knowledge base", "Knowledge Base", aliases=["i"])
         command_registry.register("docs", docs_command, "Manage documents (list/show/remove/clear)", "Knowledge Base")
+    
+    # Register web search commands if available
+    if websearch_available:
+        command_registry.register("websearch", websearch_command, "Search the web for current information", "Knowledge Base", aliases=["ws"])
 
 
 # Initialize registry on import

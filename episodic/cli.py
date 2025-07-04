@@ -385,6 +385,13 @@ def handle_command(command_str: str) -> bool:
                 else:
                     index_file(args[0])
         
+        # Web search commands
+        elif cmd == "/websearch" or cmd == "/ws":
+            from episodic.commands.web_search import websearch_command
+            action = args[0] if args else None
+            remaining_args = args[1:] if len(args) > 1 else []
+            websearch_command(action, *remaining_args)
+        
         # Convenience shortcuts
         elif cmd == "/s":  # Shortcut for /search
             if not args:

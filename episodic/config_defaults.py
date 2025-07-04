@@ -101,13 +101,29 @@ RAG_DEFAULTS = {
     "rag_allowed_file_types": [".txt", ".md", ".pdf", ".rst"],  # Allowed file extensions for indexing
 }
 
+# Web search settings
+WEB_SEARCH_DEFAULTS = {
+    "web_search_enabled": False,  # Enable web search functionality
+    "web_search_provider": "duckduckgo",  # Search provider: duckduckgo, google, bing
+    "web_search_auto_enhance": False,  # Auto-search when no good local results
+    "web_search_cache_duration": 3600,  # Cache search results for 1 hour
+    "web_search_max_results": 5,  # Maximum results per search
+    "web_search_rate_limit": 60,  # Maximum searches per hour
+    "web_search_index_results": True,  # Index web results into RAG for future use
+    "web_search_timeout": 10,  # Search timeout in seconds
+    "web_search_require_confirmation": False,  # Ask before performing searches
+    "web_search_excluded_domains": [],  # Domains to exclude from results
+    "web_search_show_urls": True,  # Show URLs in search results
+}
+
 # Combine all defaults
 DEFAULT_CONFIG = {
     **CORE_DEFAULTS,
     **TOPIC_DEFAULTS,
     **STREAMING_DEFAULTS,
     **MODEL_PARAMS_DEFAULTS,
-    **RAG_DEFAULTS
+    **RAG_DEFAULTS,
+    **WEB_SEARCH_DEFAULTS
 }
 
 # Configuration value documentation
@@ -161,6 +177,19 @@ CONFIG_DOCS = {
     "rag_show_citations": "Show which documents were used in responses",
     "rag_citation_style": "How to display citations: 'inline' or 'footnote'",
     "rag_allowed_file_types": "List of allowed file extensions for indexing",
+    
+    # Web search settings
+    "web_search_enabled": "Enable web search functionality for current information",
+    "web_search_provider": "Search provider to use (duckduckgo, google, bing)",
+    "web_search_auto_enhance": "Automatically search web when local results insufficient",
+    "web_search_cache_duration": "How long to cache search results (seconds)",
+    "web_search_max_results": "Maximum number of web results to retrieve",
+    "web_search_rate_limit": "Maximum searches allowed per hour",
+    "web_search_index_results": "Index web search results into RAG for future use",
+    "web_search_timeout": "Timeout for web searches (seconds)",
+    "web_search_require_confirmation": "Ask user before performing web searches",
+    "web_search_excluded_domains": "List of domains to exclude from search results",
+    "web_search_show_urls": "Display URLs in search result output",
 }
 
 # REMOVED - No special threshold behavior needed

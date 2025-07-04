@@ -344,8 +344,14 @@ class EpisodicRAG:
         }
     
     def enhance_with_context(self, message: str, n_results: int = None,
-                           threshold: float = None) -> Tuple[str, List[str]]:
+                           threshold: float = None, include_web: bool = None) -> Tuple[str, List[str]]:
         """Enhance a message with relevant context from the knowledge base.
+        
+        Args:
+            message: The message to enhance
+            n_results: Number of results to include
+            threshold: Relevance threshold for local results
+            include_web: Whether to include web search results
         
         Returns:
             Tuple of (enhanced_message, list_of_sources_used)
@@ -359,26 +365,68 @@ class EpisodicRAG:
         # Search for relevant context
         results = self.search(message, n_results=n_results, threshold=threshold)
         
-        if not results['documents']:
-            return message, []
+        # Check if we should also search the web
+        should_search_web = self._should_search_web(results, include_web)
         
-        # Build context section
-        context_prefix = config.get('rag_context_prefix', 
-                                  '\n\n[Relevant context from knowledge base]:\n')
-        context_parts = [context_prefix]
+        context_parts = []
         sources_used = []
         
-        for i, (doc, metadata) in enumerate(zip(results['documents'], results['metadatas'])):
-            source = metadata.get('source', 'Unknown')
-            if source not in sources_used:
-                sources_used.append(source)
+        # Add local results if any
+        if results['documents']:
+            context_prefix = config.get('rag_context_prefix', 
+                                      '\n\n[Relevant context from knowledge base]:\n')
+            context_parts.append(context_prefix)
             
-            # Add numbered context
-            context_parts.append(f"\n{i+1}. From {source}:")
-            context_parts.append(doc)
+            for i, (doc, metadata) in enumerate(zip(results['documents'], results['metadatas'])):
+                source = metadata.get('source', 'Unknown')
+                if source not in sources_used:
+                    sources_used.append(source)
+                
+                # Add numbered context
+                context_parts.append(f"\n{i+1}. From {source}:")
+                context_parts.append(doc)
+        
+        # Add web results if needed
+        if should_search_web and config.get('web_search_enabled', False):
+            from episodic.web_search import get_web_search_manager
+            
+            web_manager = get_web_search_manager()
+            web_results = web_manager.search(message, num_results=3)  # Fewer web results
+            
+            if web_results:
+                if context_parts:
+                    context_parts.append("\n")
+                context_parts.append("\n[Current web information]:\n")
+                
+                for i, result in enumerate(web_results):
+                    source = f"web:{result.title}"
+                    sources_used.append(source)
+                    
+                    context_parts.append(f"\n{len(results['documents']) + i + 1}. {result.title}")
+                    context_parts.append(f"   {result.snippet}")
+                    
+                    # Optionally index for future use
+                    if config.get('web_search_index_results', True):
+                        try:
+                            content = f"{result.title}\n\n{result.snippet}\n\nSource: {result.url}"
+                            self.add_document(
+                                content=content,
+                                source=f"web:{result.url}",
+                                metadata={
+                                    'title': result.title,
+                                    'url': result.url,
+                                    'search_query': message,
+                                    'search_timestamp': result.timestamp.isoformat()
+                                }
+                            )
+                        except Exception:
+                            pass  # Ignore indexing errors
+        
+        if not context_parts:
+            return message, []
         
         # Add citation note if enabled
-        if config.get('rag_include_citations', True):
+        if config.get('rag_include_citations', True) and sources_used:
             context_parts.append(f"\n\n[Sources: {', '.join(sources_used)}]")
         
         # Combine original message with context
@@ -395,6 +443,32 @@ class EpisodicRAG:
             conn.commit()
         
         return enhanced_message, sources_used
+    
+    def _should_search_web(self, local_results: Dict, include_web: Optional[bool]) -> bool:
+        """Determine if web search should be performed."""
+        # Explicit user preference
+        if include_web is not None:
+            return include_web
+        
+        # Check auto-enhance setting
+        if not config.get('web_search_auto_enhance', False):
+            return False
+        
+        # No local results or all have low relevance
+        if not local_results['documents']:
+            return True
+        
+        # Check if local results are good enough
+        if local_results['distances']:
+            # ChromaDB distance: lower is better, 0 is perfect match
+            best_distance = min(local_results['distances'][0])
+            relevance_threshold = 1 - config.get('rag_search_threshold', 0.7)
+            
+            # If best result is too far (low relevance), search web
+            if best_distance > relevance_threshold:
+                return True
+        
+        return False
 
 
 # Global RAG instance

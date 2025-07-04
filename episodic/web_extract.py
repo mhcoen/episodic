@@ -248,3 +248,55 @@ async def fetch_page_content(url: str) -> Optional[str]:
     if result:
         return result.get('content', '')
     return None
+
+
+def fetch_page_content_sync(url: str) -> Optional[str]:
+    """
+    Synchronous version of fetch_page_content.
+    
+    Args:
+        url: URL to fetch content from
+        
+    Returns:
+        Extracted content as string, or None if failed
+    """
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return None
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    }
+    
+    try:
+        # For weather sites, disable SSL verification
+        verify_ssl = not any(domain in url for domain in ['accuweather.com', 'weather.com', 'weather.gov'])
+        
+        response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
+        
+        if response.status_code != 200:
+            return None
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style"]):
+            script.decompose()
+        
+        # Extract content based on site
+        extractor = WebContentExtractor()
+        content = extractor._extract_main_content(soup, url)
+        
+        return content
+        
+    except Exception as e:
+        if config.get('debug'):
+            typer.secho(f"\nFailed to extract from {url}: {type(e).__name__}: {e}", fg="red")
+        return None

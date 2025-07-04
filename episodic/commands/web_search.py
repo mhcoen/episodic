@@ -72,8 +72,7 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
         if extract and i <= 3:  # Only extract for first 3 results to avoid delays
             typer.secho(f"    📄 Extracting content...", fg=get_system_color(), nl=False)
             
-            import asyncio
-            from episodic.web_extract import fetch_page_content
+            from episodic.web_extract import fetch_page_content_sync
             
             try:
                 # Fix URL if needed
@@ -91,8 +90,8 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                 if not extract_url.startswith(('http://', 'https://')):
                     extract_url = 'https://' + extract_url.lstrip('/')
                 
-                # Extract content
-                content = asyncio.run(fetch_page_content(extract_url))
+                # Extract content using synchronous version
+                content = fetch_page_content_sync(extract_url)
                 
                 if content and len(content) > 50:
                     typer.secho(" ✓", fg="green")
@@ -108,8 +107,8 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                     typer.secho(" ✗", fg="red")
             except Exception as e:
                 typer.secho(" ✗", fg="red")
-                if config.get('debug'):
-                    typer.secho(f"    Error: {e}", fg="red")
+                # Always show extraction errors for debugging
+                typer.secho(f"    Error: {type(e).__name__}: {str(e)}", fg="red")
     
     # Optionally index results into RAG
     if index and config.get('rag_enabled', False):

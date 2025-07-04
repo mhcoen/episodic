@@ -135,6 +135,36 @@ def websearch_config():
     if excluded:
         typer.secho("Excluded domains: ", nl=False, fg=get_text_color())
         typer.secho(f"{', '.join(excluded)}", fg=get_system_color())
+    
+    # Show provider-specific configuration
+    provider = config.get('web_search_provider', 'duckduckgo').lower()
+    typer.secho(f"\n{provider.title()} Provider Configuration:", fg=get_heading_color())
+    
+    if provider == 'searx':
+        typer.secho("Instance URL: ", nl=False, fg=get_text_color())
+        typer.secho(config.get('searx_instance_url', 'https://searx.be'), fg=get_system_color())
+    elif provider == 'google':
+        api_key = config.get('google_api_key') or config.get('GOOGLE_API_KEY')
+        engine_id = config.get('google_search_engine_id') or config.get('GOOGLE_SEARCH_ENGINE_ID')
+        typer.secho("API Key: ", nl=False, fg=get_text_color())
+        typer.secho("Configured" if api_key else "Not configured", 
+                   fg="green" if api_key else "red")
+        typer.secho("Search Engine ID: ", nl=False, fg=get_text_color())
+        typer.secho("Configured" if engine_id else "Not configured", 
+                   fg="green" if engine_id else "red")
+    elif provider == 'bing':
+        api_key = config.get('bing_api_key') or config.get('BING_API_KEY')
+        typer.secho("API Key: ", nl=False, fg=get_text_color())
+        typer.secho("Configured" if api_key else "Not configured", 
+                   fg="green" if api_key else "red")
+        typer.secho("Endpoint: ", nl=False, fg=get_text_color())
+        typer.secho(config.get('bing_endpoint', 'Default'), fg=get_system_color())
+    else:  # duckduckgo
+        typer.secho("No configuration required (free, no API key)", fg=get_text_color())
+    
+    # Show available providers
+    typer.secho("\nAvailable providers: ", nl=False, fg=get_text_color())
+    typer.secho("duckduckgo, searx, google, bing", fg=get_system_color())
 
 
 def websearch_stats():

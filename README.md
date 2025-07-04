@@ -142,7 +142,9 @@ python -m episodic -e scripts/my-conversation.txt
 > /websearch on            # Enable web search
 > /websearch Python 3.12   # Search the web
 > /ws latest AI news       # Short form
-# Web results can enhance responses when local knowledge is insufficient!
+> /websearch config        # Show configuration
+> /set web_search_provider google  # Switch provider
+# Providers: duckduckgo (default), searx, google, bing
 ```
 
 ## Project Structure

@@ -104,7 +104,7 @@ RAG_DEFAULTS = {
 # Web search settings
 WEB_SEARCH_DEFAULTS = {
     "web_search_enabled": False,  # Enable web search functionality
-    "web_search_provider": "duckduckgo",  # Search provider: duckduckgo, google, bing
+    "web_search_provider": "duckduckgo",  # Search provider: duckduckgo, searx, google, bing
     "web_search_auto_enhance": False,  # Auto-search when no good local results
     "web_search_cache_duration": 3600,  # Cache search results for 1 hour
     "web_search_max_results": 5,  # Maximum results per search
@@ -114,6 +114,17 @@ WEB_SEARCH_DEFAULTS = {
     "web_search_require_confirmation": False,  # Ask before performing searches
     "web_search_excluded_domains": [],  # Domains to exclude from results
     "web_search_show_urls": True,  # Show URLs in search results
+    
+    # Provider-specific settings
+    "searx_instance_url": "https://searx.be",  # Searx instance URL (can be self-hosted)
+    
+    # Google Custom Search (requires setup at https://developers.google.com/custom-search)
+    "google_api_key": None,  # Or set GOOGLE_API_KEY env var
+    "google_search_engine_id": None,  # Or set GOOGLE_SEARCH_ENGINE_ID env var
+    
+    # Bing Search (requires Azure Cognitive Services)
+    "bing_api_key": None,  # Or set BING_API_KEY env var
+    "bing_endpoint": "https://api.bing.microsoft.com/v7.0/search",
 }
 
 # Combine all defaults
@@ -180,7 +191,7 @@ CONFIG_DOCS = {
     
     # Web search settings
     "web_search_enabled": "Enable web search functionality for current information",
-    "web_search_provider": "Search provider to use (duckduckgo, google, bing)",
+    "web_search_provider": "Search provider to use (duckduckgo, searx, google, bing)",
     "web_search_auto_enhance": "Automatically search web when local results insufficient",
     "web_search_cache_duration": "How long to cache search results (seconds)",
     "web_search_max_results": "Maximum number of web results to retrieve",
@@ -190,6 +201,13 @@ CONFIG_DOCS = {
     "web_search_require_confirmation": "Ask user before performing web searches",
     "web_search_excluded_domains": "List of domains to exclude from search results",
     "web_search_show_urls": "Display URLs in search result output",
+    
+    # Provider-specific settings
+    "searx_instance_url": "URL of Searx/SearxNG instance to use (default: https://searx.be)",
+    "google_api_key": "Google Custom Search API key (or set GOOGLE_API_KEY env var)",
+    "google_search_engine_id": "Google Custom Search Engine ID (or set GOOGLE_SEARCH_ENGINE_ID)",
+    "bing_api_key": "Bing Search API key from Azure (or set BING_API_KEY env var)",
+    "bing_endpoint": "Bing Search API endpoint URL",
 }
 
 # REMOVED - No special threshold behavior needed

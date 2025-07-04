@@ -10,7 +10,7 @@ from datetime import datetime
 
 import typer
 from episodic.config import config
-from episodic.llm import query_llm_with_context
+from episodic.llm import query_llm
 from episodic.web_search import SearchResult
 from episodic.web_extract import fetch_page_content_sync
 
@@ -72,15 +72,15 @@ Answer:"""
         
         try:
             # Use LLM to synthesize the answer
-            response = query_llm_with_context(
+            response_text, cost_info = query_llm(
+                prompt=synthesis_prompt,
                 system_message="You are a helpful assistant that synthesizes web search results into clear, comprehensive answers.",
-                user_input=synthesis_prompt,
                 model=self.synthesis_model,
                 temperature=0.3,  # Lower temperature for factual accuracy
                 max_tokens=500
             )
             
-            return response
+            return response_text
             
         except Exception as e:
             if config.get('debug'):

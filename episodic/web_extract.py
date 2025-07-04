@@ -133,7 +133,7 @@ class WebContentExtractor:
         # If not found, try CSS selectors
         if not content_parts:
             temp_selectors = [
-                '.CurrentConditions--tempValue--MHmYY',  # weather.com
+                '[class*="CurrentConditions--tempValue"]',  # weather.com
                 '[data-testid="TemperatureValue"]',  # modern sites
                 '.temperature-display'
             ]
@@ -157,7 +157,7 @@ class WebContentExtractor:
         # If not found, try CSS selectors
         if len(content_parts) < 2:
             condition_selectors = [
-                '.CurrentConditions--phraseValue--2xXSr',  # weather.com
+                '[class*="CurrentConditions--phraseValue"]',  # weather.com
                 '[data-testid="wxPhrase"]'
             ]
             
@@ -169,7 +169,7 @@ class WebContentExtractor:
         
         # Look for forecast summary
         forecast_selectors = [
-            '.DetailsSummary--summaryText--*',
+            '[class*="DetailsSummary--summaryText"]',  # weather.com
             '.forecast-text', '.summary',
             '.today-forecast'
         ]
@@ -263,8 +263,13 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
     try:
         import requests
         from bs4 import BeautifulSoup
+        import warnings
+        import urllib3
     except ImportError:
         return None
+    
+    # Suppress SSL warnings for weather sites
+    warnings.filterwarnings('ignore', category=urllib3.exceptions.InsecureRequestWarning)
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -279,9 +284,14 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         # For weather sites, disable SSL verification
         verify_ssl = not any(domain in url for domain in ['accuweather.com', 'weather.com', 'weather.gov'])
         
-        response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
+        # Make request with suppressed warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
         
         if response.status_code != 200:
+            if config.get('debug'):
+                typer.secho(f"\nHTTP {response.status_code} for {url}", fg="red")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -294,9 +304,13 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         extractor = WebContentExtractor()
         content = extractor._extract_main_content(soup, url)
         
-        return content
+        # Debug: show what we got
+        if config.get('debug') and content:
+            typer.secho(f"\nExtracted {len(content)} chars from {url}", fg="yellow")
+        
+        return content if content and len(content) > 50 else None
         
     except Exception as e:
-        if config.get('debug'):
-            typer.secho(f"\nFailed to extract from {url}: {type(e).__name__}: {e}", fg="red")
+        # Always show errors for debugging
+        typer.secho(f"\nExtraction error for {url}: {type(e).__name__}: {str(e)}", fg="red")
         return None

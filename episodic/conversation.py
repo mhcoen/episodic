@@ -12,6 +12,7 @@ This module handles all conversation-related operations including:
 import shutil
 import textwrap
 import logging
+import sys
 import time
 import threading
 import queue
@@ -19,6 +20,7 @@ import re
 from typing import Optional, List, Dict, Any, Tuple
 
 import typer
+import click
 from episodic.color_utils import secho_color, force_color_output
 
 # Force color output if needed
@@ -56,9 +58,9 @@ logger = logging.getLogger(__name__)
 def debug_print(message: str, indent: bool = False) -> None:
     """Print debug message with consistent formatting."""
     if indent:
-        typer.secho(f"   {message}", fg=typer.colors.CYAN)
+        secho_color(f"   {message}", fg='bright_cyan')
     else:
-        typer.secho(f"🔍 DEBUG: {message}", fg=typer.colors.YELLOW, bold=True)
+        secho_color(f"🔍 DEBUG: {message}", fg='yellow', bold=True)
 
 
 class ConversationManager:
@@ -182,7 +184,7 @@ class ConversationManager:
                 )
                 
                 if config.get("debug"):
-                    typer.secho(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)", fg=typer.colors.GREEN, bold=True)
+                    secho_color(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)", fg='green', bold=True)
                     
                 # Update current topic reference
                 if self.current_topic and self.current_topic[0] == current_topic['name']:
@@ -258,7 +260,7 @@ class ConversationManager:
         """Print text with automatic wrapping while preserving formatting."""
         # Check if wrapping is enabled (default to True)
         if config.get("text_wrap", True) == False:
-            typer.secho(str(text), **typer_kwargs)
+            secho_color(str(text), **typer_kwargs)
             return
         
         wrap_width = self.get_wrap_width()
@@ -294,7 +296,7 @@ class ConversationManager:
         wrapped_text = '\n'.join(wrapped_lines)
         
         # Print with the specified formatting
-        typer.secho(wrapped_text, **typer_kwargs)
+        secho_color(wrapped_text, **typer_kwargs)
     
     def wrapped_llm_print(self, text: str, **typer_kwargs) -> None:
         """Print LLM text with automatic wrapping while preserving formatting."""
@@ -413,7 +415,7 @@ class ConversationManager:
             
             # Display drift information
             prev_short_id = previous_user.get("short_id", "??")
-            typer.secho(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_system_color())
+            secho_color(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_system_color())
             
             # Show additional context if debug mode is enabled
             if config.get("debug"):
@@ -471,8 +473,8 @@ class ConversationManager:
             # Check if automatic topic detection is enabled
             if config.get("automatic_topic_detection"):
                 if config.get("debug"):
-                    typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                    typer.secho(f" Topic detection check")
+                    secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                    secho_color(f" Topic detection check")
                     debug_print(f"Recent nodes count: {len(recent_nodes) if recent_nodes else 0}", indent=True)
                     debug_print(f"Current topic: {self.current_topic}", indent=True)
                     debug_print(f"Min messages before topic change: {config.get('min_messages_before_topic_change')}", indent=True)
@@ -521,12 +523,12 @@ class ConversationManager:
                                     debug_print(f"New topic: {new_topic_name}", indent=True)
                     except Exception as e:
                         if config.get("debug"):
-                            typer.secho(f"   ❌ Topic detection error: {e}", fg=typer.colors.RED, bold=True)
+                            secho_color(f"   ❌ Topic detection error: {e}", fg='red', bold=True)
                         # Continue without topic detection on error
                         topic_changed = False
                 else:
                     if config.get("debug"):
-                        typer.secho("   ⚠️  Not enough history for topic detection", fg=typer.colors.YELLOW, bold=True)
+                        secho_color("   ⚠️  Not enough history for topic detection", fg='yellow', bold=True)
             else:
                 # Automatic topic detection is disabled
                 if config.get("debug"):
@@ -584,10 +586,10 @@ class ConversationManager:
                                         topic_cost_info.get("threshold_used")
                                     ))
                                 if config.get("debug"):
-                                    typer.secho(f"   ✅ Stored window detection score for {user_node['short_id']}", fg=typer.colors.GREEN, bold=True)
+                                    secho_color(f"   ✅ Stored window detection score for {user_node['short_id']}", fg='green', bold=True)
                     except Exception as e:
                         if config.get("debug"):
-                            typer.secho(f"   ⚠️ Failed to store window detection score: {e}", fg=typer.colors.YELLOW, bold=True)
+                            secho_color(f"   ⚠️ Failed to store window detection score: {e}", fg='yellow', bold=True)
                 
                 # Also store general detection scores
                 from episodic.db import store_topic_detection_scores
@@ -665,7 +667,7 @@ class ConversationManager:
                     store_topic_detection_scores(**scores_data)
                 except Exception as e:
                     if config.get("debug"):
-                        typer.secho(f"   ⚠️  Failed to store topic detection scores: {e}", fg=typer.colors.YELLOW, bold=True)
+                        secho_color(f"   ⚠️  Failed to store topic detection scores: {e}", fg='yellow', bold=True)
             
             # Add topic detection costs to session
             if topic_cost_info:
@@ -1107,7 +1109,7 @@ class ConversationManager:
                                             
                                             # Check wrap
                                             if wrap_width and current_position + len(current_word) > wrap_width:
-                                                typer.secho('\n', nl=False)
+                                                secho_color('\n', nl=False)
                                                 current_position = 0
                                                 line_start = True
                                             
@@ -1129,7 +1131,7 @@ class ConversationManager:
                                         
                                         # Print space or newline
                                         if char == '\n':
-                                            typer.secho('\n', nl=False)
+                                            secho_color('\n', nl=False)
                                             current_position = 0
                                             line_start = True
                                             in_numbered_list = False  # Reset after newline
@@ -1154,15 +1156,14 @@ class ConversationManager:
                                     word_is_bold = True
                                     
                                 if wrap_width and current_position + len(current_word) > wrap_width:
-                                    typer.secho('\n', nl=False)
+                                    secho_color('\n', nl=False)
                                 llm_color = get_llm_color()
                                 if isinstance(llm_color, str):
                                     llm_color = llm_color.lower()
                                 secho_color(current_word, fg=llm_color, nl=False, bold=word_is_bold)
                         
                         # Get the full response
-                        display_response = ''.join(full_response_parts)
-                        
+                        display_response = ''.join(full_response_parts)                        
                         # Add newline after streaming
                         typer.echo("")
                         
@@ -1246,7 +1247,7 @@ class ConversationManager:
                                 context_display = f"{int(context_percentage)}%"
                             
                             cost_msg = f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: {format_cost(cost_info.get('cost_usd', 0.0))} USD | Context: {context_display} full"
-                            typer.secho(cost_msg, fg=get_system_color())
+                            secho_color(cost_msg, fg=get_system_color())
                         
                     else:
                         # Non-streaming response
@@ -1296,13 +1297,13 @@ class ConversationManager:
                             # Show blank line, then status messages, then LLM response
                             typer.echo("")
                             for msg in status_messages:
-                                typer.secho(msg, fg=get_system_color())
-                            typer.secho("🤖 ", fg=get_llm_color(), nl=False)
+                                secho_color(msg, fg=get_system_color())
+                            secho_color("🤖 ", fg=get_llm_color(), nl=False)
                             self.wrapped_llm_print(display_response, fg=get_llm_color())
                         else:
                             # No status messages, just show blank line then LLM response
                             typer.echo("")  # Blank line
-                            typer.secho("🤖 ", fg=get_llm_color(), nl=False)
+                            secho_color("🤖 ", fg=get_llm_color(), nl=False)
                             self.wrapped_llm_print(display_response, fg=get_llm_color())
 
                 # Update session costs
@@ -1368,8 +1369,8 @@ class ConversationManager:
                                 # Check if boundary analysis is enabled (default: True)
                                 if config.get("analyze_topic_boundaries", True):
                                     if config.get("debug"):
-                                        typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                                        typer.secho(f" Analyzing topic boundary...")
+                                        secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                                        secho_color(f" Analyzing topic boundary...")
                                     
                                     # Get recent conversation history for analysis
                                     # We need more context than just recent_nodes
@@ -1432,8 +1433,8 @@ class ConversationManager:
                                 
                                     
                                     if config.get("debug"):
-                                        typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                                        typer.secho(f" Extracting name for previous topic '{previous_topic['name']}'")
+                                        secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                                        secho_color(f" Extracting name for previous topic '{previous_topic['name']}'")
                                         typer.echo(f"   Topic has {len(topic_nodes)} nodes")
                                         typer.echo(f"   Segment preview: {segment[:200]}...")
                                     
@@ -1486,8 +1487,8 @@ class ConversationManager:
                             # Check if boundary analysis is enabled (default: True)
                             if config.get("analyze_topic_boundaries", True):
                                 if config.get("debug"):
-                                    typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                                    typer.secho(f" Analyzing initial topic boundary...")
+                                    secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                                    secho_color(f" Analyzing initial topic boundary...")
                                 
                                 # Get recent conversation history for analysis
                                 full_ancestry = get_ancestry(user_node_id)
@@ -1568,8 +1569,8 @@ class ConversationManager:
                                         segment = build_conversation_segment(nodes, max_length=2000)
                                         
                                         if config.get("debug"):
-                                            typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                                            typer.secho(f" Creating topic for initial conversation:")
+                                            secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                                            secho_color(f" Creating topic for initial conversation:")
                                             typer.echo(f"   From node {first_user_short_id} to {actual_boundary}")
                                             typer.echo(f"   Conversation preview: {segment[:200]}...")
                                 
@@ -1593,7 +1594,7 @@ class ConversationManager:
                                         # Set as current topic
                                         self.set_current_topic(topic_name, first_user_node_id)
                                         typer.echo("")
-                                        typer.secho(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
+                                        secho_color(f"📌 Created topic for initial conversation: {topic_name}", fg=get_system_color())
                                         
                                         # Now close the initial topic at the actual boundary
                                         update_topic_end_node(topic_name, first_user_node_id, actual_boundary)
@@ -1616,7 +1617,7 @@ class ConversationManager:
                     self.set_current_topic(placeholder_topic_name, user_node_id)
                     
                     typer.echo("")
-                    typer.secho(f"🔄 Topic changed", fg=get_system_color())
+                    secho_color(f"🔄 Topic changed", fg=get_system_color())
                     
                     # Note: We'll extract a proper name for this topic after a few messages
                     # This is tracked in self.current_topic
@@ -1674,8 +1675,8 @@ class ConversationManager:
                                         segment = build_conversation_segment(topic_nodes, max_length=1500)
                                         
                                         if config.get("debug"):
-                                            typer.secho(f"\n🔍 DEBUG:", fg=typer.colors.YELLOW, bold=True, nl=False)
-                                            typer.secho(f" Auto-extracting name for topic '{topic_name}'")
+                                            secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                                            secho_color(f" Auto-extracting name for topic '{topic_name}'")
                                             typer.echo(f"   Messages in topic: {user_messages}")
                                         
                                         topic_extracted, _ = extract_topic_ollama(segment)
@@ -1770,7 +1771,7 @@ class ConversationManager:
                                             assistant_short_id = assistant_node.get('short_id', assistant_node_id) if assistant_node else assistant_node_id
                                             
                                             typer.echo("")
-                                            typer.secho(f"📌 Created initial topic: {topic_name} (from {first_user_short_id} to {assistant_short_id})", fg=get_system_color())
+                                            secho_color(f"📌 Created initial topic: {topic_name} (from {first_user_short_id} to {assistant_short_id})", fg=get_system_color())
                                         else:
                                             if config.get('debug', False):
                                                 typer.echo(f"   DEBUG: Only {len(user_nodes)} user messages, skipping initial topic creation")

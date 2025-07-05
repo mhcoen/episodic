@@ -51,22 +51,15 @@ def secho_color(text: str, fg: Optional[str] = None, bg: Optional[str] = None,
                 bold: bool = False, dim: bool = False, underline: bool = False,
                 blink: bool = False, reverse: bool = False, nl: bool = True):
     """
-    Enhanced secho that forces color output when appropriate.
+    Simple wrapper that forces color output.
     
-    This is a drop-in replacement for typer.secho that handles non-TTY environments.
+    This is a drop-in replacement for typer.secho that ensures colors work
+    even in non-TTY environments.
     """
-    import typer
-    
-    # Check if we should force color
-    if should_force_color():
-        # Use click's echo with explicit color=True
-        styled = click.style(text, fg=fg, bg=bg, bold=bold, dim=dim,
-                           underline=underline, blink=blink, reverse=reverse)
-        click.echo(styled, nl=nl, color=True)
-    else:
-        # Use regular typer.secho
-        typer.secho(text, fg=fg, bg=bg, bold=bold, dim=dim,
-                   underline=underline, blink=blink, reverse=reverse, nl=nl)
+    # Use click's style and echo with color=True to force colors
+    styled = click.style(text, fg=fg, bg=bg, bold=bold, dim=dim,
+                       underline=underline, blink=blink, reverse=reverse)
+    click.echo(styled, nl=nl, color=True)
 
 
 # Initialize color forcing on import if needed

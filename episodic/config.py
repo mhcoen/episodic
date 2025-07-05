@@ -16,12 +16,17 @@ class Config:
             config_dir = home_dir / ".episodic"
             config_dir.mkdir(exist_ok=True)
             self.config_file = config_dir / "config.json"
+            self.default_config_file = config_dir / "config.default.json"
         else:
             self.config_file = Path(config_file)
+            self.default_config_file = self.config_file.parent / "config.default.json"
 
         # Initialize or load the configuration
         self.config: Dict[str, Any] = {}
         self._load()
+        
+        # Ensure config.default.json exists
+        self._ensure_default_config()
 
     def _load(self) -> None:
         """Load the configuration from disk."""
@@ -53,6 +58,12 @@ class Config:
         """Save the configuration to disk."""
         with open(self.config_file, 'w') as f:
             json.dump(self.config, f, indent=2)
+    
+    def _ensure_default_config(self) -> None:
+        """Ensure config.default.json exists with current defaults."""
+        if not self.default_config_file.exists():
+            with open(self.default_config_file, 'w') as f:
+                json.dump(DEFAULT_CONFIG, f, indent=2)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value.

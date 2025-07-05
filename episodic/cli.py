@@ -217,6 +217,19 @@ def handle_command(command_str: str) -> bool:
             from episodic.commands import config_docs
             config_docs()
         
+        elif cmd == "/reset":
+            from episodic.commands import reset, reset_all
+            if args:
+                if args[0].lower() == "all":
+                    save_flag = "--save" in args
+                    reset_all(save=save_flag)
+                else:
+                    param = args[0]
+                    save_flag = "--save" in args
+                    reset(param, save=save_flag)
+            else:
+                reset()
+        
         # Topic commands
         elif cmd == "/topics":
             from episodic.commands import topics

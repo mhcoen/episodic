@@ -95,7 +95,7 @@ def register_all_commands():
         # Navigation
         init, add, show, print_node, head, ancestry, list_nodes,
         # Settings  
-        set, verify, cost, model_params, config_docs,
+        set, verify, cost, model_params, config_docs, reset,
         # Topics
         topics, compress_current_topic, rename_ongoing_topics,
         # Compression
@@ -204,6 +204,7 @@ def register_all_commands():
     command_registry.register("cost", cost, "Show session cost", "Configuration")
     command_registry.register("model-params", model_params, "Show/set model parameters", "Configuration", aliases=["mp"])
     command_registry.register("config-docs", config_docs, "Show configuration documentation", "Configuration")
+    command_registry.register("reset", reset, "Reset parameters to defaults", "Configuration")
     
     # Register other commands
     command_registry.register("model", handle_model, "Switch or show language model", "Conversation")

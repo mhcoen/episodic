@@ -58,6 +58,7 @@ STREAMING_DEFAULTS = {
     "stream_char_mode": False,  # Stream character by character instead of word by word
     "stream_char_rate": 1000,  # Characters per second for character-mode streaming
     "stream_line_delay": 0.1,  # Delay in seconds between lines when streaming
+    "streaming": False,  # Legacy streaming setting (use stream_responses instead)
 }
 
 # Model parameter defaults for different contexts
@@ -209,6 +210,7 @@ CONFIG_DOCS = {
     "stream_char_mode": "Stream character by character instead of word by word",
     "stream_char_rate": "Characters per second when using character-mode streaming",
     "stream_line_delay": "Delay in seconds between lines when streaming multi-line responses",
+    "streaming": "Legacy streaming setting (deprecated, use stream_responses instead)",
     
     # Model parameters
     "main_params": "Model parameters for main conversation",

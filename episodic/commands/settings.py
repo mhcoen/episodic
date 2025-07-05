@@ -26,6 +26,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     # If no parameter is provided, show all parameters and their current values
     if not param:
         typer.secho("Current parameters:", fg=get_heading_color(), bold=True)
+        typer.secho("(Changes are temporary - resets on restart)", fg=get_text_color())
         
         # Core conversation settings
         typer.secho("\nConversation:", fg=get_heading_color())
@@ -114,7 +115,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             # Set to the provided value
             val = value.lower() in ["on", "true", "yes", "1"]
             config.set("show_cost", val)
-            typer.echo(f"Cost display: {'ON' if val else 'OFF'}")
+            typer.echo(f"Cost display: {'ON' if val else 'OFF'} (this session only)")
 
     # Handle the 'cache' parameter
     elif param.lower() == "cache":
@@ -433,7 +434,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     elif '.' in param.lower():
         try:
             config.set(param.lower(), value)
-            typer.echo(f"Set {param} to {value}")
+            typer.echo(f"Set {param} to {value} (this session only)")
         except ValueError as e:
             typer.secho(f"Error: {e}", fg="red")
         except Exception as e:
@@ -476,7 +477,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             # Try to set it as a general config parameter
             try:
                 config.set(param, value)
-                typer.echo(f"Set {param} to {value}")
+                typer.echo(f"Set {param} to {value} (this session only)")
                 # Show documentation if available
                 doc = config.get_doc(param)
                 if doc != "No documentation available":

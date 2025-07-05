@@ -67,7 +67,7 @@ class Config:
         return self.config.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
-        """Set a configuration value.
+        """Set a configuration value (runtime only, not persisted).
 
         Args:
             key: The configuration key to set
@@ -103,7 +103,7 @@ class Config:
             if param_name == 'reset' or param_name == '*':
                 if actual_param_set in DEFAULT_CONFIG:
                     self.config[actual_param_set] = DEFAULT_CONFIG[actual_param_set].copy()
-                    self._save()
+                    # Don't save - runtime only
                 return
             
             # Get the actual parameter name
@@ -137,13 +137,13 @@ class Config:
             elif actual_param_name == 'max_tokens' and value is not None:
                 value = int(value)
             
-            # Set the parameter
+            # Set the parameter in memory only
             self.config[actual_param_set][actual_param_name] = value
-            self._save()
+            # Don't save - runtime only
         else:
-            # Standard configuration setting
+            # Standard configuration setting - runtime only
             self.config[key] = value
-            self._save()
+            # Don't save - runtime only
 
     def get_model_params(self, param_set: str, model: str = None) -> Dict[str, Any]:
         """Get model parameters for a specific context.

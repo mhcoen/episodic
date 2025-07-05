@@ -125,6 +125,11 @@ tests/
   - Web results can be indexed into RAG for future use
   - Configuration in `config_defaults.py` under `WEB_SEARCH_DEFAULTS`
   - Graceful degradation when dependencies (aiohttp, beautifulsoup4) missing
+- Fixed color display issues
+  - Root cause: Warp terminal was overriding ANSI color codes with its theme
+  - Solution: Simplified color handling to use click.echo(color=True) consistently
+  - Removed complex reset parameter logic that was added during debugging
+  - Colors now work correctly in both standard Terminal.app and Warp with proper themes
 
 ### Previous Session (2025-01-01)
 - Fixed topic message count showing 0 for ongoing topics

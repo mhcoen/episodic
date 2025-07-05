@@ -26,7 +26,9 @@ def reset(param: Optional[str] = None, save: bool = False):
             config.config[param] = default_value
             
             if save:
-                config._save()
+                # Create a method to explicitly save when needed
+                with open(config.config_file, 'w') as f:
+                    json.dump(config.config, f, indent=2)
                 typer.secho(f"Reset {param} to default value (saved to config file)", 
                           fg=get_system_color())
             else:
@@ -92,7 +94,9 @@ def reset_all(save: bool = False):
         config.config[key] = value
     
     if save:
-        config._save()
+        # Explicitly save when requested
+        with open(config.config_file, 'w') as f:
+            json.dump(config.config, f, indent=2)
         typer.secho("✅ Reset all parameters to defaults (saved to config file)", 
                   fg=get_system_color())
     else:

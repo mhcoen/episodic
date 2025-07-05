@@ -35,20 +35,16 @@ class Config:
                 with open(self.config_file, 'r') as f:
                     self.config = json.load(f)
 
-                # Check for any missing defaults and add them
-                config_changed = False
+                # Check for any missing defaults and add them in memory only
                 for key, value in DEFAULT_CONFIG.items():
                     if key not in self.config:
                         self.config[key] = value
-                        config_changed = True
-                
-                # Save if we added any defaults
-                if config_changed:
-                    self._save()
+                        # Don't save - just use defaults in memory to preserve comments
             except json.JSONDecodeError:
-                # If the file is corrupted, start with defaults
+                # If the file is corrupted, use defaults but don't overwrite
+                print("Warning: Config file is corrupted, using defaults")
                 self.config = DEFAULT_CONFIG.copy()
-                self._save()
+                # Don't save - let user fix their config file
         else:
             # If the file doesn't exist, create it with default values
             self.config = DEFAULT_CONFIG.copy()

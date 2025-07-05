@@ -54,6 +54,10 @@ STREAMING_DEFAULTS = {
     "stream_responses": True,
     "stream_rate": 15,  # Words per second for constant-rate streaming
     "stream_constant_rate": False,  # Whether to use constant-rate streaming
+    "stream_natural_rhythm": False,  # Add natural pauses and rhythm to streaming
+    "stream_char_mode": False,  # Stream character by character instead of word by word
+    "stream_char_rate": 1000,  # Characters per second for character-mode streaming
+    "stream_line_delay": 0.1,  # Delay in seconds between lines when streaming
 }
 
 # Model parameter defaults for different contexts
@@ -129,12 +133,43 @@ WEB_SEARCH_DEFAULTS = {
     "bing_endpoint": "https://api.bing.microsoft.com/v7.0/search",
 }
 
+# Caching and performance settings
+CACHE_DEFAULTS = {
+    "use_context_cache": True,  # Use context caching to reduce API costs
+    "benchmark": False,  # Enable performance benchmarking
+    "benchmark_display": False,  # Display benchmark results after commands
+}
+
+# Compression settings
+COMPRESSION_DEFAULTS = {
+    "compression_model": "ollama/llama3",  # Model to use for topic compression
+    "compression_min_nodes": 10,  # Minimum nodes required before allowing compression
+    "show_compression_notifications": True,  # Show notifications when topics are compressed
+}
+
+# Model selection settings
+MODEL_SELECTION_DEFAULTS = {
+    "topic_detection_model": "ollama/llama3",  # Model to use for topic detection
+    "model": None,  # Current conversation model (set via /model command)
+}
+
+# Display settings
+DISPLAY_DEFAULTS = {
+    "color_mode": "full",  # Color mode: none, basic, or full
+    "text_wrap": True,  # Enable text wrapping for long lines
+    "context_depth": 5,  # Default context depth for building conversation history
+}
+
 # Combine all defaults
 DEFAULT_CONFIG = {
     **CORE_DEFAULTS,
     **TOPIC_DEFAULTS,
     **STREAMING_DEFAULTS,
     **MODEL_PARAMS_DEFAULTS,
+    **CACHE_DEFAULTS,
+    **COMPRESSION_DEFAULTS,
+    **MODEL_SELECTION_DEFAULTS,
+    **DISPLAY_DEFAULTS,
     **RAG_DEFAULTS,
     **WEB_SEARCH_DEFAULTS
 }
@@ -170,6 +205,10 @@ CONFIG_DOCS = {
     "stream_responses": "Enable streaming responses for better UX",
     "stream_rate": "Words per second for constant-rate streaming",
     "stream_constant_rate": "Use constant rate streaming instead of token-based",
+    "stream_natural_rhythm": "Add natural pauses at punctuation for more human-like streaming",
+    "stream_char_mode": "Stream character by character instead of word by word",
+    "stream_char_rate": "Characters per second when using character-mode streaming",
+    "stream_line_delay": "Delay in seconds between lines when streaming multi-line responses",
     
     # Model parameters
     "main_params": "Model parameters for main conversation",
@@ -212,6 +251,29 @@ CONFIG_DOCS = {
     "google_search_engine_id": "Google Custom Search Engine ID (or set GOOGLE_SEARCH_ENGINE_ID)",
     "bing_api_key": "Bing Search API key from Azure (or set BING_API_KEY env var)",
     "bing_endpoint": "Bing Search API endpoint URL",
+    
+    # Caching and performance
+    "use_context_cache": "Enable prompt caching to reduce API costs when supported",
+    "benchmark": "Enable performance benchmarking for operations",
+    "benchmark_display": "Automatically display benchmark results after commands",
+    
+    # Compression settings
+    "compression_model": "LLM model to use for compressing/summarizing topics",
+    "compression_min_nodes": "Minimum conversation nodes required before compression is allowed",
+    "show_compression_notifications": "Display notifications when topics are automatically compressed",
+    
+    # Model selection
+    "topic_detection_model": "Specific model to use for topic detection (can differ from main model)",
+    "model": "Current conversation model (set via /model command)",
+    
+    # Display settings
+    "color_mode": "Terminal color mode: 'none' (no colors), 'basic' (8 colors), or 'full' (256 colors)",
+    "text_wrap": "Enable wrapping of long lines to fit terminal width",
+    "context_depth": "Default number of previous messages to include in conversation context",
+    
+    # Detection thresholds
+    "drift_threshold": "Semantic drift threshold for topic changes (0.9+ indicates topic change)",
+    "keyword_threshold": "Keyword-based topic detection threshold",
 }
 
 # REMOVED - No special threshold behavior needed

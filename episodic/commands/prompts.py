@@ -35,7 +35,7 @@ def prompts(action: Optional[str] = None, name: Optional[str] = None):
                     typer.secho(f"   {prompt_data['description']}", 
                                fg=get_text_color(), dim=True)
         
-        typer.secho("\n💡 Use '/prompts use <name>' to switch prompts", 
+        typer.secho("\n💡 Use '/prompt use <name>' to switch prompts", 
                    fg=get_text_color(), dim=True)
         
     elif action == "use" and name:
@@ -44,7 +44,7 @@ def prompts(action: Optional[str] = None, name: Optional[str] = None):
         
         if name not in available:
             typer.secho(f"Error: Prompt '{name}' not found", fg="red")
-            typer.secho("Use '/prompts list' to see available prompts", fg=get_text_color())
+            typer.secho("Use '/prompt list' to see available prompts", fg=get_text_color())
             return
         
         # Load the prompt to verify it's valid
@@ -100,7 +100,7 @@ def prompts(action: Optional[str] = None, name: Optional[str] = None):
             typer.secho(f"Version: {prompt_data['version']}", fg=get_text_color(), dim=True)
         
     else:
-        typer.secho("Usage: /prompts [list|use <name>|show <name>]", fg=get_text_color())
+        typer.secho("Usage: /prompt [list|use <name>|show <name>]", fg=get_text_color())
         typer.secho("  list        - Show available prompts", fg=get_text_color())
         typer.secho("  use <name>  - Switch to a different prompt", fg=get_text_color())
         typer.secho("  show <name> - Show prompt details", fg=get_text_color())

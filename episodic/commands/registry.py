@@ -208,7 +208,7 @@ def register_all_commands():
     
     # Register other commands
     command_registry.register("model", handle_model, "Switch or show language model", "Conversation")
-    command_registry.register("prompts", prompts, "Manage system prompts", "Conversation")
+    command_registry.register("prompt", prompts, "Manage system prompts", "Conversation", aliases=["prompts"])
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
     command_registry.register("visualize", visualize, "Visualize conversation graph", "Utility")
     command_registry.register("benchmark", benchmark, "Show performance statistics", "Utility")

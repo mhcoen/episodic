@@ -45,7 +45,7 @@ def help():
     typer.secho("\n💬 Conversation:", fg=get_heading_color(), bold=True)
     commands = [
         ("/model [name]", "Switch language model or show current"),
-        ("/prompts [list|use <name>]", "Manage system prompts"),
+        ("/prompt [list|use <name>]", "Manage system prompts"),
         ("/summary [N|all]", "Summarize recent conversation"),
         ("/topics", "List all conversation topics"),
         ("/rename-topics", "Rename ongoing-discussion topics"),

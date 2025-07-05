@@ -313,7 +313,7 @@ def handle_command(command_str: str) -> bool:
                     pass
             visualize(output=output, no_browser=no_browser, port=port)
         
-        elif cmd == "/prompts":
+        elif cmd == "/prompt" or cmd == "/prompts":
             from episodic.commands import prompts
             if args:
                 if len(args) >= 2:

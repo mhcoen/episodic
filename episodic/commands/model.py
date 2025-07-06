@@ -15,7 +15,7 @@ from episodic.llm_config import (
 )
 
 # Constants
-LOCAL_PROVIDERS = ["ollama", "localai"]
+LOCAL_PROVIDERS = ["ollama", "lmstudio", "local", "localai"]
 PRICING_TOKEN_COUNT = 1000
 
 # Import cost_per_token from litellm if available
@@ -175,7 +175,11 @@ def handle_model(name: Optional[str] = None):
                     typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
                     typer.secho(")", fg=get_text_color())
                     typer.secho("Pricing: ", nl=False, fg=get_text_color(), bold=True)
-                    typer.secho("Not available", fg=typer.colors.YELLOW)
+                    # Check if it's a local provider
+                    if provider in LOCAL_PROVIDERS:
+                        typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
+                    else:
+                        typer.secho("Not available", fg=typer.colors.YELLOW)
             else:
                 typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
                 typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
@@ -183,7 +187,11 @@ def handle_model(name: Optional[str] = None):
                 typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
                 typer.secho(")", fg=get_text_color())
                 typer.secho("Pricing: ", nl=False, fg=get_text_color(), bold=True)
-                typer.secho("Not available", fg=typer.colors.YELLOW)
+                # Check if it's a local provider
+                if provider in LOCAL_PROVIDERS:
+                    typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
+                else:
+                    typer.secho("Not available", fg=typer.colors.YELLOW)
         except Exception:
             typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
             typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
@@ -191,6 +199,10 @@ def handle_model(name: Optional[str] = None):
             typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
             typer.secho(")", fg=get_text_color())
             typer.secho("Pricing: ", nl=False, fg=get_text_color(), bold=True)
-            typer.secho("Not available", fg=typer.colors.YELLOW)
+            # Check if it's a local provider
+            if provider in LOCAL_PROVIDERS:
+                typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
+            else:
+                typer.secho("Not available", fg=typer.colors.YELLOW)
     except ValueError as e:
         typer.secho(f"Error: {str(e)}", fg=typer.colors.RED, bold=True)

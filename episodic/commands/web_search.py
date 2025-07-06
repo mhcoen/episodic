@@ -291,7 +291,7 @@ def websearch_config():
     # Show hint about synthesis settings
     if config.get('web_search_synthesize', True):
         typer.secho("\n💡 ", nl=False)
-        typer.secho("For synthesis settings: ", nl=False, fg="dim white")
+        typer.secho("For synthesis settings: ", nl=False, fg=typer.colors.WHITE, dim=True)
         typer.secho("/websearch synthesis", fg="bright_cyan")
 
 
@@ -347,7 +347,7 @@ def websearch_synthesis():
         typer.secho("ENABLED", fg="bright_green", bold=True)
     else:
         typer.secho("DISABLED", fg="bright_red", bold=True)
-        typer.secho("  (Enable with: /set web-search-synthesize true)", fg="dim white")
+        typer.secho("  (Enable with: /set web-search-synthesize true)", fg=typer.colors.WHITE, dim=True)
         return
     
     # Style settings with visual examples
@@ -369,7 +369,7 @@ def websearch_synthesis():
         else:
             typer.secho(f"    {style:15}", nl=False, fg=get_text_color())
         typer.secho(f"{length:12}", nl=False, fg="bright_magenta")
-        typer.secho(f"{desc}", fg="dim white")
+        typer.secho(f"{desc}", fg=typer.colors.WHITE, dim=True)
     
     # Detail level settings
     typer.secho("\n🔍 ", nl=False)
@@ -389,7 +389,7 @@ def websearch_synthesis():
             typer.secho(f"{detail:15}", nl=False, fg="bright_cyan", bold=True)
         else:
             typer.secho(f"    {detail:15}", nl=False, fg=get_text_color())
-        typer.secho(f"{desc}", fg="dim white")
+        typer.secho(f"{desc}", fg=typer.colors.WHITE, dim=True)
     
     # Format settings
     typer.secho("\n📝 ", nl=False)
@@ -409,7 +409,7 @@ def websearch_synthesis():
             typer.secho(f"{fmt:15}", nl=False, fg="bright_cyan", bold=True)
         else:
             typer.secho(f"    {fmt:15}", nl=False, fg=get_text_color())
-        typer.secho(f"{desc}", fg="dim white")
+        typer.secho(f"{desc}", fg=typer.colors.WHITE, dim=True)
     
     # Source selection
     typer.secho("\n📚 ", nl=False)
@@ -429,7 +429,7 @@ def websearch_synthesis():
             typer.secho(f"{src:15}", nl=False, fg="bright_cyan", bold=True)
         else:
             typer.secho(f"    {src:15}", nl=False, fg=get_text_color())
-        typer.secho(f"{desc}", fg="dim white")
+        typer.secho(f"{desc}", fg=typer.colors.WHITE, dim=True)
     
     # Advanced settings
     typer.secho("\n⚙️  ", nl=False)
@@ -441,7 +441,7 @@ def websearch_synthesis():
     if max_tokens:
         typer.secho(f"{max_tokens}", fg="bright_yellow")
     else:
-        typer.secho("Auto (based on style)", fg="dim white")
+        typer.secho("Auto (based on style)", fg=typer.colors.WHITE, dim=True)
     
     # Synthesis model
     synthesis_model = config.get('web_synthesis_model')
@@ -450,7 +450,7 @@ def websearch_synthesis():
         typer.secho(f"{synthesis_model}", fg="bright_yellow")
     else:
         main_model = config.get('model', 'gpt-3.5-turbo')
-        typer.secho(f"Main model ({main_model})", fg="dim white")
+        typer.secho(f"Main model ({main_model})", fg=typer.colors.WHITE, dim=True)
     
     # Display settings
     typer.secho("\n👁️  ", nl=False)
@@ -469,15 +469,15 @@ def websearch_synthesis():
     # Usage examples
     typer.secho("\n💡 ", nl=False)
     typer.secho("Quick Settings", fg=get_heading_color(), bold=True)
-    typer.secho("  Brief news:  ", nl=False, fg="dim white")
+    typer.secho("  Brief news:  ", nl=False, fg=typer.colors.WHITE, dim=True)
     typer.secho("/set web-synthesis-style concise", fg="bright_cyan")
-    typer.secho("  Research:    ", nl=False, fg="dim white")
+    typer.secho("  Research:    ", nl=False, fg=typer.colors.WHITE, dim=True)
     typer.secho("/set web-synthesis-style comprehensive", fg="bright_cyan")
-    typer.secho("  Academic:    ", nl=False, fg="dim white")
+    typer.secho("  Academic:    ", nl=False, fg=typer.colors.WHITE, dim=True)
     typer.secho("/set web-synthesis-format academic", fg="bright_cyan")
     
-    typer.secho("\n" + "─" * 50, fg="dim white")
-    typer.secho("Customize prompt: ", nl=False, fg="dim white")
+    typer.secho("\n" + "─" * 50, fg=typer.colors.WHITE, dim=True)
+    typer.secho("Customize prompt: ", nl=False, fg=typer.colors.WHITE, dim=True)
     typer.secho("prompts/web_synthesis.md", fg="bright_cyan")
 
 

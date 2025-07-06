@@ -24,7 +24,11 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
     if extract is None:
         extract = config.get('web_search_extract_content', False)
     if synthesize is None:
-        synthesize = config.get('web_search_synthesize', False)
+        synthesize = config.get('web_search_synthesize', True)
+    
+    # Override synthesis if web_show_raw is enabled
+    if config.get('web_show_raw', False):
+        synthesize = False
     
     # If synthesizing, we need to extract content
     if synthesize:

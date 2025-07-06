@@ -119,8 +119,9 @@ WEB_SEARCH_DEFAULTS = {
     "web_search_excluded_domains": [],  # Domains to exclude from results
     "web_search_show_urls": True,  # Show URLs in search results
     "web_search_extract_content": False,  # Extract actual page content from search results
-    "web_search_synthesize": False,  # Synthesize results into comprehensive answer
+    "web_search_synthesize": True,  # Synthesize results into comprehensive answer (default)
     "web_show_sources": False,  # Show sources when synthesizing
+    "web_show_raw": False,  # Show raw search results instead of synthesizing
     
     # Provider-specific settings
     "searx_instance_url": "https://searx.be",  # Searx instance URL (can be self-hosted)

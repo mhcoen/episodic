@@ -241,6 +241,10 @@ def websearch_config():
         ('Index results', 'web_search_index_results'),
         ('Require confirmation', 'web_search_require_confirmation'),
         ('Show URLs', 'web_search_show_urls'),
+        ('Extract content', 'web_search_extract_content'),
+        ('Synthesize', 'web_search_synthesize'),
+        ('Show raw results', 'web_show_raw'),
+        ('Show sources', 'web_show_sources'),
     ]
     
     for label, key in settings:
@@ -283,6 +287,26 @@ def websearch_config():
     # Show available providers
     typer.secho("\nAvailable providers: ", nl=False, fg=get_text_color())
     typer.secho("duckduckgo, searx, google, bing", fg=get_system_color())
+    
+    # Show synthesis configuration if enabled
+    if config.get('web_search_synthesize', True):
+        typer.secho("\n🔄 Synthesis Configuration:", fg=get_heading_color(), bold=True)
+        
+        synthesis_settings = [
+            ('Style', 'web_synthesis_style', 'concise, standard, comprehensive, exhaustive'),
+            ('Detail', 'web_synthesis_detail', 'minimal, moderate, detailed, maximum'),
+            ('Format', 'web_synthesis_format', 'paragraph, bullet-points, mixed, academic'),
+            ('Max tokens', 'web_synthesis_max_tokens', 'number or None for auto'),
+            ('Sources', 'web_synthesis_sources', 'first-only, top-three, all-relevant, selective'),
+            ('Model', 'web_synthesis_model', 'model name or None for main model'),
+        ]
+        
+        for label, key, options in synthesis_settings:
+            value = config.get(key)
+            typer.secho(f"{label}: ", nl=False, fg=get_text_color())
+            typer.secho(f"{value}", fg=get_system_color(), nl=False)
+            if value and options:
+                typer.secho(f" ({options})", fg="dim white")
 
 
 def websearch_stats():

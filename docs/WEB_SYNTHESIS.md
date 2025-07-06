@@ -54,14 +54,44 @@ Web search synthesis provides Perplexity-like answers by searching the web, extr
 - **Synthesis model**: Uses your main conversation model by default
 
 ### User Controls
+
+#### Basic Controls
 - `/ws <query>` - Automatically synthesizes answer
 - `/ws <query> --summarize` - Explicitly request synthesis
 - `/set web-show-raw true` - Show raw search results instead
 - `/set web-show-sources true` - Show source URLs with synthesis
-- `/set web-synthesis-model <model>` - Use different model for synthesis
+
+#### Synthesis Configuration
+- `/set web-synthesis-style <option>` - Control synthesis length:
+  - `concise` - Brief summary (~150 words)
+  - `standard` - Balanced response (~300 words) [default]
+  - `comprehensive` - Detailed analysis (~500 words)
+  - `exhaustive` - Full exploration (~800+ words)
+
+- `/set web-synthesis-detail <option>` - Control detail level:
+  - `minimal` - Just essential facts
+  - `moderate` - Facts with context [default]
+  - `detailed` - Facts, context, and explanations
+  - `maximum` - Everything including nuances
+
+- `/set web-synthesis-format <option>` - Control output format:
+  - `paragraph` - Flowing prose
+  - `bullet-points` - Structured lists
+  - `mixed` - Combination based on content [default]
+  - `academic` - Formal with citations
+
+- `/set web-synthesis-sources <option>` - Control source usage:
+  - `first-only` - Use only top result
+  - `top-three` - Use top 3 results [default]
+  - `all-relevant` - Use all results
+  - `selective` - Smart selection (future)
+
+- `/set web-synthesis-max-tokens <number>` - Direct token control
+- `/set web-synthesis-model <model>` - Use specific model for synthesis
 
 ## Example Usage
 
+### Basic Usage
 ```
 > /ws what's the weather like in Peru?
 
@@ -77,6 +107,34 @@ Based on the latest information, here's the current weather situation in Peru:
 
 **General Weather Patterns**
 Peru experiences varied weather conditions due to its diverse geography...
+```
+
+### Concise Style
+```
+> /set web-synthesis-style concise
+> /ws latest AI news
+
+AI News Summary
+
+• OpenAI releases GPT-4 Turbo with 128k context window and lower pricing
+• Google announces Gemini Ultra achieving state-of-the-art on multiple benchmarks
+• Meta open-sources Code Llama 70B for improved code generation
+
+Key development: Major focus on longer context windows and specialized models.
+```
+
+### Academic Format
+```
+> /set web-synthesis-format academic
+> /ws climate change impacts on coral reefs
+
+Climate Change Effects on Coral Reef Ecosystems
+
+Recent studies demonstrate significant impacts of climate change on coral reef systems worldwide [Source 1]. Ocean acidification, resulting from increased atmospheric CO2 absorption, reduces coral calcification rates by 15-30% [Source 2]. 
+
+Temperature anomalies exceeding 1°C above seasonal averages trigger mass bleaching events, with the 2016-2017 event affecting 75% of global reefs [Source 3]. Projections indicate that under current emission trajectories, 90% of coral reefs will experience annual severe bleaching by 2050 [Source 1].
+
+Mitigation strategies include marine protected areas, assisted evolution programs, and reef restoration initiatives [Source 2].
 ```
 
 ## Technical Details
@@ -110,3 +168,23 @@ The synthesis prompt includes:
 6. **Cached Results**: Avoids repeated searches for same queries
 
 The result is a clean, Perplexity-like answer that combines information from multiple web sources into a coherent response.
+
+## Custom Prompt Templates
+
+You can customize the synthesis prompt by editing the template at:
+`prompts/web_synthesis.md`
+
+The template supports the following variables:
+- `{query}` - The user's search query
+- `{search_results}` - Formatted search results
+- `{extracted_content}` - Extracted page content
+- `{style}`, `{detail}`, `{format}` - Current configuration values
+- `{style_instructions}`, `{detail_instructions}`, `{format_instructions}` - Specific instructions
+- `{style_description}` - Human-readable description of expected length
+- `{additional_requirements}` - Extra requirements based on configuration
+
+This allows you to:
+- Add domain-specific instructions
+- Customize formatting preferences
+- Include specific guidelines for your use case
+- Adjust tone and style requirements

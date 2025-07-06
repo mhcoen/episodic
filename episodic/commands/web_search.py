@@ -346,8 +346,8 @@ def websearch_command(action: Optional[str] = None, *args):
     else:
         # Treat as search query
         # Check for flags
-        extract = False
-        synthesize = False
+        extract = None  # Let websearch use defaults
+        synthesize = None  # Let websearch use defaults
         filtered_args = []
         
         for arg in args:

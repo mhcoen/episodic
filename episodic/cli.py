@@ -427,7 +427,11 @@ def handle_command(command_str: str) -> bool:
         
         elif cmd == "/help":
             from episodic.commands import help
-            help()
+            # Check for --all flag
+            if args and args[0] == "--all":
+                help(advanced=True)
+            else:
+                help()
         
         else:
             typer.secho(f"Unknown command: {cmd}", fg="red")

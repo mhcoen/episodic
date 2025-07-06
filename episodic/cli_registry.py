@@ -107,62 +107,146 @@ def handle_legacy_command(cmd: str, args: List[str]) -> bool:
     return handle_command(command_str)
 
 
-def show_help_with_categories():
+def show_help_with_categories(advanced=False):
     """Show help information organized by categories."""
-    typer.secho("\n📚 Episodic Commands", fg=get_heading_color(), bold=True)
-    typer.secho("=" * 60, fg=get_heading_color())
+    from episodic.color_utils import secho_color
     
-    # Get commands by category
-    categories = command_registry.get_commands_by_category()
+    # Header
+    typer.echo()
+    secho_color("🤖 Episodic Help", fg=get_heading_color(), bold=True)
+    secho_color("═" * 50, fg=get_heading_color())
     
-    # Define category order
-    category_order = [
-        "Navigation", "Conversation", "Topics", "Configuration",
-        "Knowledge Base", "Compression", "Utility"
-    ]
+    # Quick start
+    secho_color("\n✨ GETTING STARTED", fg=get_heading_color(), bold=True)
+    secho_color("─" * 18, fg=get_heading_color())
+    secho_color("  Just type to chat ", fg=get_text_color(), nl=False)
+    secho_color("(no / needed)", fg=get_system_color())
+    secho_color("  /topics              ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("See your conversation topics", fg=get_text_color())
+    secho_color("  /set cost on         ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show token usage", fg=get_text_color())
+    secho_color("  /help                ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show this help", fg=get_text_color())
     
-    for category in category_order:
-        if category not in categories:
-            continue
-            
-        commands = categories[category]
-        if not commands:
-            continue
-        
-        # Category header
-        typer.secho(f"\n{get_category_icon(category)} {category}:", 
-                   fg=get_heading_color(), bold=True)
-        
-        # Show commands
-        for cmd_info in commands:
-            if cmd_info.deprecated:
-                continue  # Skip deprecated commands in main help
-            
-            # Format command name with aliases
-            cmd_display = f"/{cmd_info.name}"
-            if cmd_info.aliases:
-                cmd_display += f" (/{', /'.join(cmd_info.aliases)})"
-            
-            typer.secho(f"  {cmd_display:<30} ", 
-                       fg=get_system_color(), bold=True, nl=False)
-            typer.secho(cmd_info.description, fg=get_text_color())
+    # Essential conversation commands
+    secho_color("\n💬 CONVERSATION", fg=get_heading_color(), bold=True)
+    secho_color("─" * 15, fg=get_heading_color())
+    secho_color("  /model               ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Choose AI model", fg=get_text_color())
+    secho_color("  /cost                ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show session costs", fg=get_text_color())
+    secho_color("  /summary [n]         ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Summarize last n messages", fg=get_text_color())
+    secho_color("  /topics              ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("View conversation topics", fg=get_text_color())
     
-    # Show deprecated commands separately
-    deprecated_cmds = [
-        cmd for cmds in categories.values() 
-        for cmd in cmds if cmd.deprecated
-    ]
+    # Basic settings
+    secho_color("\n⚙️  BASIC SETTINGS", fg=get_heading_color(), bold=True)
+    secho_color("─" * 17, fg=get_heading_color())
+    secho_color("  /set <param> <value> ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Change settings ", fg=get_text_color(), nl=False)
+    secho_color("(use dashes: stream-rate)", fg=get_system_color(), dim=True)
+    secho_color("  /set                 ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show all current settings", fg=get_text_color())
+    secho_color("  /reset all           ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Reset to defaults", fg=get_text_color())
     
-    if deprecated_cmds:
-        typer.secho("\n⚠️  Deprecated Commands:", fg="yellow", bold=True)
-        for cmd_info in deprecated_cmds:
-            typer.secho(f"  /{cmd_info.name:<25} → Use /{cmd_info.replacement}",
-                       fg="yellow")
+    # Knowledge and search
+    secho_color("\n📚 KNOWLEDGE & SEARCH", fg=get_heading_color(), bold=True)
+    secho_color("─" * 21, fg=get_heading_color())
     
-    typer.secho("\n" + "─" * 60, fg=get_heading_color())
-    typer.secho("Type /help <command> for detailed help on a specific command",
-               fg=get_text_color())
-    typer.secho("Type /exit or /quit to leave", fg=get_text_color())
+    # RAG section
+    secho_color("  Knowledge Base (RAG):", fg=get_text_color(), bold=True)
+    secho_color("    /rag on/off        ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Enable knowledge base", fg=get_text_color())
+    secho_color("    /search <query>    ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Search your documents ", fg=get_text_color(), nl=False)
+    secho_color("(/s)", fg=get_system_color(), dim=True)
+    secho_color("    /index <file>      ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Add document to knowledge ", fg=get_text_color(), nl=False)
+    secho_color("(/i)", fg=get_system_color(), dim=True)
+    secho_color("    /docs              ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Manage indexed documents", fg=get_text_color())
+    
+    # Web search section
+    secho_color("\n  Web Search:", fg=get_text_color(), bold=True)
+    secho_color("    /websearch <query> ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Search the web ", fg=get_text_color(), nl=False)
+    secho_color("(/ws)", fg=get_system_color(), dim=True)
+    secho_color("    /websearch on/off  ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Enable web search", fg=get_text_color())
+    
+    if not advanced:
+        # Show hint about advanced commands
+        secho_color("\n" + "─" * 50, fg=get_heading_color())
+        secho_color("💡 ", fg="bright_yellow", nl=False)
+        secho_color("Type ", fg=get_text_color(), nl=False)
+        secho_color("/help --all", fg=get_system_color(), bold=True, nl=False)
+        secho_color(" for advanced commands", fg=get_text_color())
+        secho_color("🔍 ", fg="bright_cyan", nl=False)
+        secho_color("Type ", fg=get_text_color(), nl=False)
+        secho_color("/help <command>", fg=get_system_color(), bold=True, nl=False)
+        secho_color(" for detailed help", fg=get_text_color())
+    else:
+        # Show advanced commands
+        show_advanced_help()
+    
+    typer.echo()  # Final newline
+
+
+def show_advanced_help():
+    """Show advanced commands for power users."""
+    from episodic.color_utils import secho_color
+    
+    # Advanced configuration
+    secho_color("\n🎛️  ADVANCED CONFIGURATION", fg=get_heading_color(), bold=True)
+    secho_color("─" * 26, fg=get_heading_color())
+    secho_color("  /set main.temp 0.7   ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Set model temperature", fg=get_text_color())
+    secho_color("  /model-params        ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("View all model parameters", fg=get_text_color())
+    secho_color("  /prompt <name>       ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Change system prompt", fg=get_text_color())
+    
+    # Topic management
+    secho_color("\n📑 TOPIC MANAGEMENT", fg=get_heading_color(), bold=True)
+    secho_color("─" * 19, fg=get_heading_color())
+    secho_color("  /topics rename       ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Rename ongoing topics", fg=get_text_color())
+    secho_color("  /topics compress     ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Manually compress topic", fg=get_text_color())
+    secho_color("  /topics stats        ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Topic statistics", fg=get_text_color())
+    
+    # DAG navigation
+    secho_color("\n🧭 DAG NAVIGATION", fg=get_heading_color(), bold=True)
+    secho_color("─" * 17, fg=get_heading_color())
+    secho_color("  /show <id>           ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show node details", fg=get_text_color())
+    secho_color("  /list [--count n]    ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("List recent nodes", fg=get_text_color())
+    secho_color("  /ancestry <id>       ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show conversation path", fg=get_text_color())
+    secho_color("  /head [<id>]         ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Show/set current node", fg=get_text_color())
+    
+    # System commands
+    secho_color("\n🔧 SYSTEM", fg=get_heading_color(), bold=True)
+    secho_color("─" * 9, fg=get_heading_color())
+    secho_color("  /verify              ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Check system integrity", fg=get_text_color())
+    secho_color("  /benchmark           ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Performance statistics", fg=get_text_color())
+    secho_color("  /visualize           ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Open graph visualization", fg=get_text_color())
+    secho_color("  /init [--erase]      ", fg=get_system_color(), bold=True, nl=False)
+    secho_color("Initialize database", fg=get_text_color())
+    
+    # Show hint about compression
+    secho_color("\n" + "─" * 50, fg=get_heading_color())
+    secho_color("📦 ", fg="bright_magenta", nl=False)
+    secho_color("For compression commands, use ", fg=get_text_color(), nl=False)
+    secho_color("/compression stats", fg=get_system_color(), bold=True)
 
 
 def get_category_icon(category: str) -> str:

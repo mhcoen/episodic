@@ -36,7 +36,9 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
             typer.secho("Search cancelled.", fg=get_text_color())
             return
     
-    typer.secho(f"\n🔍 Searching web for: '{query}'", fg=get_heading_color(), bold=True)
+    # Show search message only if not synthesizing or debug is on
+    if not synthesize or config.get('debug', False):
+        typer.secho(f"\n🔍 Searching web for: '{query}'", fg=get_heading_color(), bold=True)
     
     results = manager.search(query, num_results=limit)
     
@@ -44,44 +46,50 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
         typer.secho("No results found.", fg=get_text_color())
         return
     
-    typer.secho("─" * 60, fg=get_heading_color())
+    # Show separator only if not synthesizing or debug is on
+    if not synthesize or config.get('debug', False):
+        typer.secho("─" * 60, fg=get_heading_color())
     
     # Track extracted content for synthesis
     extracted_content = {}
     
-    # Display results
-    for i, result in enumerate(results, 1):
-        typer.secho(f"\n[{i}] ", nl=False, fg=get_system_color(), bold=True)
-        typer.secho(result.title, fg=get_system_color(), bold=True)
-        
-        if config.get('web_search_show_urls', True):
-            # Clean up DuckDuckGo URLs
-            url = result.url
-            if url.startswith('//duckduckgo.com/l/?uddg='):
-                # Extract the actual URL from DuckDuckGo redirect
-                import urllib.parse
-                try:
-                    parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
-                    if 'uddg' in parsed:
-                        url = urllib.parse.unquote(parsed['uddg'][0])
-                except:
-                    pass  # Keep original if parsing fails
+    # Display results only if not synthesizing or debug is on
+    if not synthesize or config.get('debug', False):
+        for i, result in enumerate(results, 1):
+            typer.secho(f"\n[{i}] ", nl=False, fg=get_system_color(), bold=True)
+            typer.secho(result.title, fg=get_system_color(), bold=True)
             
-            # Truncate very long URLs
-            if len(url) > 80:
-                url = url[:77] + "..."
+            if config.get('web_search_show_urls', True):
+                # Clean up DuckDuckGo URLs
+                url = result.url
+                if url.startswith('//duckduckgo.com/l/?uddg='):
+                    # Extract the actual URL from DuckDuckGo redirect
+                    import urllib.parse
+                    try:
+                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                        if 'uddg' in parsed:
+                            url = urllib.parse.unquote(parsed['uddg'][0])
+                    except:
+                        pass  # Keep original if parsing fails
                 
-            typer.secho(f"    {url}", fg="cyan")
-        
-        # Clean up snippet - remove excessive whitespace
-        snippet = ' '.join(result.snippet.split())
-        typer.secho(f"    {snippet}", fg=get_text_color())
-        
-        # Extract content if requested
-        if extract and i <= 3:  # Only extract for first 3 results to avoid delays
-            typer.secho(f"    📄 Extracting content...", fg=get_system_color(), nl=False)
+                # Truncate very long URLs
+                if len(url) > 80:
+                    url = url[:77] + "..."
+                    
+                typer.secho(f"    {url}", fg="cyan")
             
-            from episodic.web_extract import fetch_page_content_sync
+            # Clean up snippet - remove excessive whitespace
+            snippet = ' '.join(result.snippet.split())
+            typer.secho(f"    {snippet}", fg=get_text_color())
+        
+    # Extract content if requested
+    if extract:
+        from episodic.web_extract import fetch_page_content_sync
+        
+        for i, result in enumerate(results[:3], 1):  # Only extract for first 3 results
+            # Show extraction status only if displaying results or debug is on
+            if not synthesize or config.get('debug', False):
+                typer.secho(f"    📄 Extracting content...", fg=get_system_color(), nl=False)
             
             try:
                 # Fix URL if needed
@@ -103,7 +111,9 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                 content = fetch_page_content_sync(extract_url)
                 
                 if content and len(content) > 50:
-                    typer.secho(" ✓", fg="green")
+                    # Show success only if displaying results or debug is on
+                    if not synthesize or config.get('debug', False):
+                        typer.secho(" ✓", fg="green")
                     
                     # Store extracted content
                     clean_url = result.url
@@ -127,11 +137,14 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                     # Update the result object for indexing
                     result.snippet = content[:1000]  # Use more content for indexing
                 else:
-                    typer.secho(" ✗", fg="red")
+                    # Show failure only if displaying results or debug is on
+                    if not synthesize or config.get('debug', False):
+                        typer.secho(" ✗", fg="red")
             except Exception as e:
-                typer.secho(" ✗", fg="red")
-                # Always show extraction errors for debugging
-                typer.secho(f"    Error: {type(e).__name__}: {str(e)}", fg="red")
+                # Show errors only if displaying results or debug is on
+                if not synthesize or config.get('debug', False):
+                    typer.secho(" ✗", fg="red")
+                    typer.secho(f"    Error: {type(e).__name__}: {str(e)}", fg="red")
     
     # Synthesize results if requested
     if synthesize and extracted_content:

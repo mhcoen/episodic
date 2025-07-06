@@ -336,7 +336,7 @@ def websearch_command(action: Optional[str] = None, *args):
         for arg in args:
             if arg.lower() in ['--extract', '-e']:
                 extract = True
-            elif arg.lower() in ['--synthesize', '-s']:
+            elif arg.lower() in ['--synthesize', '-s', '--summarize']:
                 synthesize = True
             else:
                 filtered_args.append(arg)

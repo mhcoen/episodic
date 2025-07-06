@@ -75,15 +75,27 @@ Answer:"""
         
         try:
             # Use LLM to synthesize the answer
-            response_text, cost_info = query_llm(
-                prompt=synthesis_prompt,
-                system_message="You are a helpful assistant that synthesizes web search results into clear, comprehensive answers.",
-                model=self.synthesis_model,
-                temperature=0.3,  # Lower temperature for factual accuracy
-                max_tokens=500
-            )
-            
-            return response_text
+            # Check if streaming is enabled
+            if config.get("stream_responses", True):
+                # Return prompt info for streaming
+                return {
+                    'prompt': synthesis_prompt,
+                    'system_message': "You are a helpful assistant that synthesizes web search results into clear, comprehensive answers.",
+                    'model': self.synthesis_model,
+                    'temperature': 0.3,
+                    'max_tokens': 500,
+                    'streaming': True
+                }
+            else:
+                response_text, cost_info = query_llm(
+                    prompt=synthesis_prompt,
+                    system_message="You are a helpful assistant that synthesizes web search results into clear, comprehensive answers.",
+                    model=self.synthesis_model,
+                    temperature=0.3,  # Lower temperature for factual accuracy
+                    max_tokens=500
+                )
+                
+                return response_text
             
         except Exception as e:
             if config.get('debug'):
@@ -91,16 +103,17 @@ Answer:"""
             return None
 
 
-def format_synthesized_answer(answer: str, sources: List[SearchResult]) -> None:
+def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
     """
     Format and display a synthesized answer with sources.
     
     Args:
-        answer: The synthesized answer
+        answer: The synthesized answer (string or dict with streaming info)
         sources: List of source search results
     """
     from episodic.configuration import get_heading_color, get_text_color, get_system_color
-    from episodic.text_formatter import format_and_display_text
+    from episodic.text_formatter import format_and_display_text, stream_with_word_wrap
+    from episodic.llm import _execute_llm_query
     
     # Display the answer header
     typer.secho("\n📊 Synthesized Answer", fg=get_heading_color(), bold=True)
@@ -109,12 +122,31 @@ def format_synthesized_answer(answer: str, sources: List[SearchResult]) -> None:
     # Display the formatted answer with proper formatting
     typer.echo()  # Blank line
     
-    # Use the unified formatter for consistent display
-    format_and_display_text(
-        answer,
-        base_color=get_text_color(),
-        value_color=get_system_color()  # Use system color for values after colons
-    )
+    # Check if we need to stream
+    if isinstance(answer, dict) and answer.get('streaming'):
+        # Set up streaming
+        messages = [
+            {"role": "system", "content": answer['system_message']},
+            {"role": "user", "content": answer['prompt']}
+        ]
+        
+        stream_generator, _ = _execute_llm_query(
+            messages,
+            model=answer['model'],
+            temperature=answer.get('temperature', 0.3),
+            max_tokens=answer.get('max_tokens', 500),
+            stream=True
+        )
+        
+        # Stream with word wrap
+        stream_with_word_wrap(stream_generator, answer['model'], color=get_text_color())
+    else:
+        # Use the unified formatter for consistent display
+        format_and_display_text(
+            answer,
+            base_color=get_text_color(),
+            value_color=get_system_color()  # Use system color for values after colons
+        )
     
     # Display sources
     typer.echo()  # Blank line

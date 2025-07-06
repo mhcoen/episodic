@@ -245,108 +245,119 @@ def display_markdown(text: str, base_color: Optional[str] = None,
     format_and_display_text(text, base_color, value_color)
 
 
-class StreamingFormatter:
+def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = None, 
+                         wrap_width: Optional[int] = None) -> str:
     """
-    Handles formatting for streaming text output.
+    Stream output with word wrapping and bold support.
     
-    This class maintains state across chunks to properly handle
-    formatting that spans multiple chunks.
+    Args:
+        stream_generator: Generator yielding text chunks
+        model: Model name (for process_stream_response)
+        color: Color for output (defaults to LLM color)
+        wrap_width: Width for wrapping (defaults to terminal width)
+        
+    Returns:
+        Complete response text
     """
+    from episodic.llm import process_stream_response
+    from episodic.config import config
     
-    def __init__(self, base_color: Optional[str] = None, 
-                 value_color: Optional[str] = None,
-                 wrap_width: Optional[int] = None):
-        self.base_color = base_color or get_text_color()
-        self.value_color = value_color or get_system_color()
-        self.wrap_width = wrap_width if wrap_width is not None else get_wrap_width()
+    if color is None:
+        color = get_llm_color()
+    if isinstance(color, str):
+        color = color.lower()
         
-        # The color functions already return strings, but lowercase them for typer
-        if isinstance(self.base_color, str):
-            self.base_color = self.base_color.lower()
-        if isinstance(self.value_color, str):
-            self.value_color = self.value_color.lower()
+    if wrap_width is None:
+        wrap_width = get_wrap_width() if config.get("text_wrap", True) else None
+    
+    # State tracking
+    full_response_parts = []
+    current_word = ""
+    current_position = 0
+    in_bold = False
+    bold_count = 0
+    line_start = True
+    in_numbered_list = False
+    
+    for chunk in process_stream_response(stream_generator, model):
+        full_response_parts.append(chunk)
         
-        # State tracking
-        self.current_line = ""
-        self.line_position = 0
-        self.in_bold = False
-        self.bold_count = 0
-        self.in_bullet_key = False  # Tracking if we're in a bullet list key
-        self.after_colon = False    # Tracking if we're after a colon in a bullet
-        self.is_bullet_line = False
-        
-    def process_chunk(self, chunk: str) -> None:
-        """Process a chunk of streaming text."""
         for char in chunk:
             if char == '*':
-                self.bold_count += 1
-                if self.bold_count == 2:
+                bold_count += 1
+                if bold_count == 2:
                     # Toggle bold state
-                    self.in_bold = not self.in_bold
-                    self.bold_count = 0
+                    in_bold = not in_bold
+                    bold_count = 0
                 continue
-            elif self.bold_count == 1:
-                # Single asterisk, add it to output
-                self._output_char('*')
-                self.bold_count = 0
+            elif bold_count == 1:
+                # Single asterisk, add it to word
+                current_word += '*'
+                bold_count = 0
             
-            if char == '\n':
-                # End of line - flush current line
-                self._flush_line()
-                typer.echo()
-                self.line_position = 0
-                self.current_line = ""
-                self.is_bullet_line = False
-                self.in_bullet_key = False
-                self.after_colon = False
+            if char in ' \n':
+                # End of word
+                if current_word:
+                    # Check if this is a numbered list item at the start of a line
+                    word_is_bold = in_bold
+                    if line_start and current_word.rstrip('.').isdigit():
+                        in_numbered_list = True  # Start bolding for numbered list
+                    
+                    # Bold everything in numbered list until colon
+                    if in_numbered_list:
+                        word_is_bold = True
+                    
+                    # Check if this word ends with colon to stop bolding next words
+                    if current_word.endswith(':') and in_numbered_list:
+                        word_is_bold = True
+                        # Will reset in_numbered_list after printing this word
+                    
+                    # Check wrap
+                    if wrap_width and current_position + len(current_word) > wrap_width:
+                        secho_color('\n', nl=False)
+                        current_position = 0
+                        line_start = True
+                    
+                    # Print word
+                    secho_color(current_word, fg=color, nl=False, bold=word_is_bold)
+                    current_position += len(current_word)
+                    
+                    # Reset numbered list flag after printing word with colon
+                    if current_word.endswith(':') and in_numbered_list:
+                        in_numbered_list = False
+                    
+                    current_word = ""
+                    
+                    if not char.isspace():
+                        line_start = False
+                
+                # Print space or newline
+                if char == '\n':
+                    secho_color('\n', nl=False)
+                    current_position = 0
+                    line_start = True
+                    in_numbered_list = False  # Reset after newline
+                else:
+                    # Space
+                    if current_position > 0:  # Don't print leading spaces
+                        secho_color(' ', fg=color, nl=False)
+                        current_position += 1
             else:
-                self.current_line += char
-                
-                # Check if we're starting a bullet line
-                if self.line_position == 0 and not self.is_bullet_line:
-                    # Check for bullet pattern at start of line
-                    bullet_match = re.match(r'^(\s*)([-•*])\s+', self.current_line)
-                    if bullet_match:
-                        self.is_bullet_line = True
-                        # If the next content starts with **, we're in a key
-                        remaining = self.current_line[len(bullet_match.group(0)):]
-                        if remaining.startswith('**'):
-                            self.in_bullet_key = True
-                
-                # Check for colon in bullet line
-                if self.is_bullet_line and not self.after_colon and char == ':':
-                    # Check if we're at the end of a bold key
-                    if self.in_bold and self.in_bullet_key:
-                        self.after_colon = True
-                
-                self._output_char(char)
+                # Accumulate character
+                current_word += char
     
-    def _output_char(self, char: str) -> None:
-        """Output a single character with appropriate formatting."""
-        # Determine color
-        if self.after_colon and self.is_bullet_line:
-            color = self.value_color
-        else:
-            color = self.base_color
+    # Print any remaining word
+    if current_word:
+        word_is_bold = in_bold or (in_numbered_list and not current_word.endswith(':'))
         
-        # Determine if bold
-        is_bold = self.in_bold and not self.after_colon
+        # Check wrap
+        if wrap_width and current_position + len(current_word) > wrap_width:
+            secho_color('\n', nl=False)
         
-        # Check for wrapping
-        if self.wrap_width and self.line_position >= self.wrap_width and char == ' ':
-            typer.echo()
-            self.line_position = 0
-            return
-        
-        secho_color(char, fg=color, bold=is_bold, nl=False)
-        self.line_position += 1
+        secho_color(current_word, fg=color, nl=False, bold=word_is_bold)
     
-    def _flush_line(self) -> None:
-        """Flush any remaining content in the current line."""
-        # Nothing special needed - characters already output
-        pass
+    # Ensure we end with a newline
+    if current_position > 0:
+        typer.echo()
     
-    def finish(self) -> None:
-        """Finish streaming and ensure proper line ending."""
-        if self.current_line and not self.current_line.endswith('\n'):
-            typer.echo()
+    return ''.join(full_response_parts)

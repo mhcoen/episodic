@@ -104,17 +104,9 @@ Please structure the summary clearly with sections if there are multiple distinc
                     stream=True
                 )
                 
-                # Process the stream with StreamingFormatter
-                from episodic.text_formatter import StreamingFormatter
-                formatter = StreamingFormatter(base_color=get_llm_color())
-                
-                full_response_parts = []
-                for chunk in process_stream_response(stream_generator, model):
-                    formatter.process_chunk(chunk)
-                    full_response_parts.append(chunk)
-                
-                formatter.finish()
-                display_response = ''.join(full_response_parts)
+                # Process the stream with word wrapping
+                from episodic.text_formatter import stream_with_word_wrap
+                display_response = stream_with_word_wrap(stream_generator, model, color=get_llm_color())
                 
                 # Calculate cost info for streaming response
                 from litellm import token_counter, cost_per_token

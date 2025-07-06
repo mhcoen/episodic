@@ -312,11 +312,13 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
                         word_is_bold = True
                         # Will reset in_numbered_list after printing this word
                     
-                    # Check wrap
-                    if wrap_width and current_position + len(current_word) > wrap_width:
+                    # Check wrap - account for the space we're about to print
+                    space_len = 1 if current_position > 0 else 0
+                    if wrap_width and current_position + space_len + len(current_word) > wrap_width:
                         secho_color('\n', nl=False)
                         current_position = 0
                         line_start = True
+                        space_len = 0  # Don't print space at start of new line
                     
                     # Print word
                     secho_color(current_word, fg=color, nl=False, bold=word_is_bold)

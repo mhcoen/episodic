@@ -1,7 +1,9 @@
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict
 from .config_defaults import DEFAULT_CONFIG, CONFIG_DOCS
+from .param_mappings import ENV_VAR_MAPPING
 
 class Config:
     def __init__(self, config_file: str = None):
@@ -62,7 +64,7 @@ class Config:
                 json.dump(DEFAULT_CONFIG, f, indent=2)
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get a configuration value.
+        """Get a configuration value, checking environment variables first.
 
         Args:
             key: The configuration key to get
@@ -71,6 +73,25 @@ class Config:
         Returns:
             The configuration value, or the default if the key doesn't exist
         """
+        # Check environment variable first
+        if key in ENV_VAR_MAPPING:
+            env_value = os.environ.get(ENV_VAR_MAPPING[key])
+            if env_value is not None:
+                # Convert boolean strings
+                if env_value.lower() in ['true', '1', 'yes', 'on']:
+                    return True
+                elif env_value.lower() in ['false', '0', 'no', 'off']:
+                    return False
+                # Try to convert numbers
+                try:
+                    if '.' in env_value:
+                        return float(env_value)
+                    else:
+                        return int(env_value)
+                except ValueError:
+                    return env_value
+        
+        # Fall back to config file
         return self.config.get(key, default)
 
     def set(self, key: str, value: Any) -> None:

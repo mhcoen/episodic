@@ -12,6 +12,7 @@ from episodic.configuration import (
 )
 from episodic.conversation import conversation_manager
 from episodic.llm import enable_cache, disable_cache
+from episodic.param_mappings import normalize_param_name, get_display_name
 
 
 # Global variables for settings
@@ -43,23 +44,23 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho(f"{config.get('text_wrap', True)}", fg=get_system_color())
         typer.secho("  stream: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_responses', True)}", fg=get_system_color())
-        typer.secho("  stream_rate: ", nl=False, fg=get_text_color())
+        typer.secho("  stream-rate: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_rate', 15)} words/sec", fg=get_system_color())
-        typer.secho("  stream_constant_rate: ", nl=False, fg=get_text_color())
+        typer.secho("  stream-constant-rate: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_constant_rate', False)}", fg=get_system_color())
-        typer.secho("  stream_natural_rhythm: ", nl=False, fg=get_text_color())
+        typer.secho("  stream-natural-rhythm: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_natural_rhythm', False)}", fg=get_system_color())
-        typer.secho("  stream_char_mode: ", nl=False, fg=get_text_color())
+        typer.secho("  stream-char-mode: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_char_mode', False)}", fg=get_system_color())
-        typer.secho("  stream_char_rate: ", nl=False, fg=get_text_color())
+        typer.secho("  stream-char-rate: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_char_rate', 1000)} chars/sec", fg=get_system_color())
-        typer.secho("  stream_line_delay: ", nl=False, fg=get_text_color())
+        typer.secho("  stream-line-delay: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('stream_line_delay', 0.1)}s", fg=get_system_color())
         typer.secho("  cost: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
         typer.secho("  topics: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_topics', False)}", fg=get_system_color())
-        typer.secho("  hybrid_topics: ", nl=False, fg=get_text_color())
+        typer.secho("  hybrid-topics: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('use_hybrid_topic_detection', False)}", fg=get_system_color())
         
         # Analysis features
@@ -71,26 +72,26 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         
         # Topic detection & compression
         typer.secho("\nTopic Management:", fg=get_heading_color())
-        typer.secho("  automatic_topic_detection: ", nl=False, fg=get_text_color())
+        typer.secho("  topic-auto: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('automatic_topic_detection', True)}", fg=get_system_color())
-        typer.secho("  topic_detection_model: ", nl=False, fg=get_text_color())
+        typer.secho("  topic-model: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
-        typer.secho("  auto_compress_topics: ", nl=False, fg=get_text_color())
+        typer.secho("  comp-auto: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('auto_compress_topics', True)}", fg=get_system_color())
-        typer.secho("  compression_model: ", nl=False, fg=get_text_color())
+        typer.secho("  comp-model: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('compression_model', 'ollama/llama3')}", fg=get_system_color())
-        typer.secho("  compression_min_nodes: ", nl=False, fg=get_text_color())
+        typer.secho("  comp-min: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('compression_min_nodes', 10)}", fg=get_system_color())
-        typer.secho("  show_compression_notifications: ", nl=False, fg=get_text_color())
+        typer.secho("  comp-notify: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('show_compression_notifications', True)}", fg=get_system_color())
-        typer.secho("  min_messages_before_topic_change: ", nl=False, fg=get_text_color())
+        typer.secho("  topic-min: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('min_messages_before_topic_change', 8)}", fg=get_system_color())
         
         # Performance monitoring
         typer.secho("\nPerformance:", fg=get_heading_color())
         typer.secho("  benchmark: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('benchmark', False)}", fg=get_system_color())
-        typer.secho("  benchmark_display: ", nl=False, fg=get_text_color())
+        typer.secho("  benchmark-display: ", nl=False, fg=get_text_color())
         typer.secho(f"{config.get('benchmark_display', False)}", fg=get_system_color())
         
         # Debug
@@ -104,8 +105,11 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("  main.temp, topic.temp, comp.temp, etc.", fg=get_system_color())
         return
 
+    # Normalize parameter name (convert dashes to underscores, expand aliases)
+    normalized_param = normalize_param_name(param.lower())
+    
     # Handle the 'cost' parameter
-    if param.lower() == "cost":
+    if normalized_param == "show_cost":
         if not value:
             # Toggle the current value if no value is provided
             current = config.get("show_cost", False)
@@ -118,7 +122,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Cost display: {'ON' if val else 'OFF'} (this session only)")
 
     # Handle the 'cache' parameter
-    elif param.lower() == "cache":
+    elif normalized_param == "use_context_cache":
         if not value:
             # Toggle the current value if no value is provided
             current = config.get("use_context_cache", True)
@@ -135,7 +139,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 disable_cache()
 
     # Handle the 'topics' parameter
-    elif param.lower() == "topics":
+    elif normalized_param == "show_topics":
         if not value:
             current = config.get("show_topics", False)
             typer.echo(f"Current topics display: {current}")
@@ -145,7 +149,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Topics display set to {val}")
     
     # Handle hybrid topic detection
-    elif param.lower() == "hybrid_topics":
+    elif normalized_param == "use_hybrid_topic_detection":
         if not value:
             current = config.get("use_hybrid_topic_detection", False)
             typer.echo(f"Hybrid topic detection: {'ON' if current else 'OFF'}")
@@ -157,7 +161,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Note: Requires sentence-transformers for embeddings")
 
     # Handle the 'stream' parameter for streaming responses
-    elif param.lower() == "stream":
+    elif normalized_param == "stream_responses":
         if not value:
             # Toggle the current value if no value is provided
             current = config.get("stream_responses", True)
@@ -170,7 +174,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Response streaming: {'ON' if val else 'OFF'}")
 
     # Handle 'stream_rate' parameter
-    elif param.lower() == "stream_rate":
+    elif normalized_param == "stream_rate":
         if not value:
             typer.echo(f"Current stream rate: {config.get('stream_rate', 15)} words/sec")
         else:
@@ -187,7 +191,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Stream rate must be a number")
 
     # Handle 'stream_constant_rate' parameter
-    elif param.lower() == "stream_constant_rate":
+    elif normalized_param == "stream_constant_rate":
         if not value:
             current = config.get("stream_constant_rate", False)
             typer.echo(f"Current constant rate streaming: {current}")
@@ -197,7 +201,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Constant rate streaming: {'ON' if val else 'OFF'}")
 
     # Handle 'stream_natural_rhythm' parameter
-    elif param.lower() == "stream_natural_rhythm":
+    elif normalized_param == "stream_natural_rhythm":
         if not value:
             current = config.get("stream_natural_rhythm", False)
             typer.echo(f"Current natural rhythm streaming: {current}")
@@ -207,7 +211,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Natural rhythm streaming: {'ON' if val else 'OFF'}")
 
     # Handle 'stream_char_mode' parameter
-    elif param.lower() == "stream_char_mode":
+    elif normalized_param == "stream_char_mode":
         if not value:
             current = config.get("stream_char_mode", False)
             typer.echo(f"Current character streaming mode: {current}")
@@ -217,7 +221,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Character streaming mode: {'ON' if val else 'OFF'}")
 
     # Handle 'stream_char_rate' parameter
-    elif param.lower() == "stream_char_rate":
+    elif normalized_param == "stream_char_rate":
         if not value:
             typer.echo(f"Current character rate: {config.get('stream_char_rate', 1000)} chars/sec")
         else:
@@ -234,7 +238,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Character rate must be a number")
 
     # Handle 'stream_line_delay' parameter
-    elif param.lower() == "stream_line_delay":
+    elif normalized_param == "stream_line_delay":
         if not value:
             typer.echo(f"Current line delay: {config.get('stream_line_delay', 0.1)}s")
         else:
@@ -251,7 +255,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Line delay must be a number")
 
     # Handle the 'depth' parameter for context depth
-    elif param.lower() == "depth":
+    elif normalized_param == "depth":
         if not value:
             typer.echo(f"Current context depth: {default_context_depth}")
         else:
@@ -266,7 +270,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Context depth must be a number")
 
     # Handle the 'drift' parameter
-    elif param.lower() == "drift":
+    elif normalized_param == "show_drift":
         if not value:
             current = config.get("show_drift", True)
             typer.echo(f"Current drift display: {current}")
@@ -276,7 +280,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Drift display set to {val}")
 
     # Handle the 'semdepth' parameter for semantic depth
-    elif param.lower() == "semdepth":
+    elif normalized_param == "semdepth":
         if not value:
             typer.echo(f"Current semantic depth: {default_semdepth}")
         else:
@@ -291,7 +295,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Semantic depth must be a number")
 
     # Handle debug parameter
-    elif param.lower() == "debug":
+    elif normalized_param == "debug":
         if not value:
             current = config.get("debug", False)
             typer.echo(f"Current debug mode: {current}")
@@ -301,7 +305,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Debug mode set to {val}")
 
     # Handle color parameter
-    elif param.lower() == "color":
+    elif normalized_param == "color_mode":
         if not value:
             current = config.get("color_mode", DEFAULT_COLOR_MODE)
             typer.echo(f"Current color mode: {current}")
@@ -314,7 +318,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Invalid color mode. Available options: none, basic, full")
 
     # Handle the 'wrap' parameter
-    elif param.lower() == "wrap":
+    elif normalized_param == "text_wrap":
         if not value:
             current = config.get("text_wrap", True)
             typer.echo(f"Current text wrapping: {'ON' if current else 'OFF'}")
@@ -324,7 +328,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Text wrapping: {'ON' if val else 'OFF'}")
 
     # Handle the 'automatic_topic_detection' parameter
-    elif param.lower() == "automatic_topic_detection":
+    elif normalized_param == "automatic_topic_detection":
         if not value:
             current = config.get("automatic_topic_detection", True)
             typer.echo(f"Current automatic topic detection: {'ON' if current else 'OFF'}")
@@ -336,7 +340,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Use '/index <n>' to manually detect topics")
 
     # Handle the 'auto_compress_topics' parameter
-    elif param.lower() == "auto_compress_topics":
+    elif normalized_param == "auto_compress_topics":
         if not value:
             current = config.get("auto_compress_topics", True)
             typer.echo(f"Current auto compression: {'ON' if current else 'OFF'}")
@@ -353,7 +357,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 stop_auto_compression()
 
     # Handle the 'show_compression_notifications' parameter
-    elif param.lower() == "show_compression_notifications":
+    elif normalized_param == "show_compression_notifications":
         if not value:
             current = config.get("show_compression_notifications", True)
             typer.echo(f"Current compression notifications: {'ON' if current else 'OFF'}")
@@ -363,7 +367,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Compression notifications: {'ON' if val else 'OFF'}")
 
     # Handle the 'compression_min_nodes' parameter
-    elif param.lower() == "compression_min_nodes":
+    elif normalized_param == "compression_min_nodes":
         if not value:
             typer.echo(f"Current compression minimum nodes: {config.get('compression_min_nodes', 10)}")
         else:
@@ -378,7 +382,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Compression minimum nodes must be a number")
 
     # Handle the 'compression_model' parameter
-    elif param.lower() == "compression_model":
+    elif normalized_param == "compression_model":
         if not value:
             typer.echo(f"Current compression model: {config.get('compression_model', 'ollama/llama3')}")
         else:
@@ -386,7 +390,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Compression model set to {value}")
 
     # Handle the 'topic_detection_model' parameter
-    elif param.lower() == "topic_detection_model":
+    elif normalized_param == "topic_detection_model":
         if not value:
             typer.echo(f"Current topic detection model: {config.get('topic_detection_model', 'ollama/llama3')}")
         else:
@@ -394,7 +398,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Topic detection model set to {value}")
 
     # Handle the 'min_messages_before_topic_change' parameter
-    elif param.lower() == "min_messages_before_topic_change":
+    elif normalized_param == "min_messages_before_topic_change":
         if not value:
             typer.echo(f"Current minimum messages: {config.get('min_messages_before_topic_change', 8)}")
         else:
@@ -409,7 +413,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Minimum messages must be a number")
 
     # Handle benchmark parameter
-    elif param.lower() == "benchmark":
+    elif normalized_param == "benchmark":
         if not value:
             current = config.get("benchmark", False)
             typer.echo(f"Current benchmark mode: {current}")
@@ -421,7 +425,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.echo("Use '/benchmark' to see performance summary")
 
     # Handle benchmark_display parameter
-    elif param.lower() == "benchmark_display":
+    elif normalized_param == "benchmark_display":
         if not value:
             current = config.get("benchmark_display", False)
             typer.echo(f"Current benchmark display: {current}")
@@ -431,9 +435,9 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             typer.echo(f"Benchmark display set to {val}")
 
     # Handle model parameter syntax (main.temp, topic.max, etc.)
-    elif '.' in param.lower():
+    elif '.' in normalized_param:
         try:
-            config.set(param.lower(), value)
+            config.set(normalized_param, value)
             typer.echo(f"Set {param} to {value} (this session only)")
         except ValueError as e:
             typer.secho(f"Error: {e}", fg="red")
@@ -444,15 +448,15 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         # Check if value is None (user just typed /set <param> without a value)
         if value is None:
             # Try to show the current value instead of setting to None
-            # Check if param exists in config (even if value is None)
-            if param in config.config:
-                current_value = config.get(param)
+            # Check if normalized param exists in config (even if value is None)
+            if normalized_param in config.config:
+                current_value = config.get(normalized_param)
                 typer.secho(f"Current value of {param}: ", nl=False, fg=get_text_color())
                 if current_value is None:
                     # Check if we have defaults for this parameter
                     from episodic.config_defaults import DEFAULT_CONFIG
-                    if param in DEFAULT_CONFIG:
-                        default_value = DEFAULT_CONFIG[param]
+                    if normalized_param in DEFAULT_CONFIG:
+                        default_value = DEFAULT_CONFIG[normalized_param]
                         typer.secho("None (using defaults)", fg=get_system_color())
                         if isinstance(default_value, dict):
                             typer.secho("  Default values:", fg=get_text_color())
@@ -468,7 +472,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 else:
                     typer.secho(f"{current_value}", fg=get_system_color())
                 # Show documentation if available
-                doc = config.get_doc(param)
+                doc = config.get_doc(normalized_param)
                 if doc != "No documentation available":
                     typer.secho(f"  ({doc})", fg=get_text_color())
             else:
@@ -476,10 +480,10 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         else:
             # Try to set it as a general config parameter
             try:
-                config.set(param, value)
+                config.set(normalized_param, value)
                 typer.echo(f"Set {param} to {value} (this session only)")
                 # Show documentation if available
-                doc = config.get_doc(param)
+                doc = config.get_doc(normalized_param)
                 if doc != "No documentation available":
                     typer.secho(f"  ({doc})", fg=get_text_color())
             except:
@@ -488,13 +492,13 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
                 typer.secho("  Conversation: ", nl=False, fg=get_heading_color())
                 typer.secho("depth, cache", fg=get_system_color())
                 typer.secho("  Display: ", nl=False, fg=get_heading_color())
-                typer.secho("color, wrap, stream, stream_rate, stream_constant_rate, cost, topics", fg=get_system_color())
+                typer.secho("color, wrap, stream, stream-rate, stream-constant, cost, topics", fg=get_system_color())
                 typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
                 typer.secho("drift, semdepth", fg=get_system_color())
                 typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
-                typer.secho("automatic_topic_detection, topic_detection_model, auto_compress_topics, compression_model, compression_min_nodes, show_compression_notifications, min_messages_before_topic_change", fg=get_system_color())
+                typer.secho("topic-auto, topic-model, topic-min, comp-auto, comp-model, comp-min", fg=get_system_color())
                 typer.secho("  Performance: ", nl=False, fg=get_heading_color())
-                typer.secho("benchmark, benchmark_display", fg=get_system_color())
+                typer.secho("benchmark, benchmark-display", fg=get_system_color())
                 typer.secho("  Model Parameters: ", nl=False, fg=get_heading_color())
                 typer.secho("main.temp, topic.temp, comp.temp (see /model-params)", fg=get_system_color())
                 typer.secho("  Debugging: ", nl=False, fg=get_heading_color())

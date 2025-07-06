@@ -38,8 +38,8 @@ Just type to chat! No prefix needed.
 ```bash
 /set stream true              # Streaming responses
 /set debug true               # Debug mode
-/set show_cost true           # Show costs
-/set auto_compress_topics true # Auto-compress
+/set cost true                # Show costs
+/set comp-auto true           # Auto-compress
 ```
 
 ### Navigation
@@ -55,7 +55,7 @@ Just type to chat! No prefix needed.
 ```bash
 /rag on
 /websearch on
-/set web_search_auto_enhance true
+/set web-auto true
 ```
 
 ### Offline Mode
@@ -67,9 +67,9 @@ Just type to chat! No prefix needed.
 
 ### Long Conversations
 ```bash
-/set automatic_topic_detection true
-/set auto_compress_topics true
-/set show_topics true
+/set topic-auto true
+/set comp-auto true
+/set topics true
 ```
 
 ## Tips

@@ -107,15 +107,15 @@ Episodic uses semantic drift detection to identify topic changes. When drift exc
 #### 1. Sliding Window (Default)
 Compares groups of messages to detect semantic shifts:
 ```bash
-/set use_sliding_window_detection true
-/set sliding_window_size 3  # Compare 3-message windows
-/set drift_threshold 0.9    # Threshold for topic change
+/set topic-window true
+/set window-size 3  # Compare 3-message windows
+/set drift 0.9    # Threshold for topic change
 ```
 
 #### 2. Hybrid Detection (Experimental)
 Combines multiple signals:
 ```bash
-/set use_hybrid_topic_detection true
+/set hybrid-topics true
 ```
 Signals include:
 - Semantic drift (embedding similarity)
@@ -127,15 +127,15 @@ Signals include:
 #### 3. Manual Detection
 Disable automatic detection and control topics manually:
 ```bash
-/set automatic_topic_detection false
+/set topic-auto false
 /topics index 5  # Manually run detection on last 5 messages
 ```
 
 ### Topic Compression
 When topics end, they can be automatically compressed:
 ```bash
-/set auto_compress_topics true
-/set compression_min_nodes 10  # Minimum messages before compression
+/set comp-auto true
+/set comp-min 10  # Minimum messages before compression
 /compression stats  # View compression queue
 ```
 
@@ -169,10 +169,10 @@ When topics end, they can be automatically compressed:
 
 ### RAG Configuration
 ```bash
-/set rag_auto_search true         # Auto-search on each message
-/set rag_search_threshold 0.7     # Minimum relevance score
-/set rag_max_results 5            # Max results to include
-/set rag_chunk_size 500           # Words per document chunk
+/set rag-auto true         # Auto-search on each message
+/set rag-threshold 0.7     # Minimum relevance score
+/set rag-results 5         # Max results to include
+/set rag-chunk 500         # Words per document chunk
 ```
 
 ## Web Search
@@ -195,10 +195,10 @@ When topics end, they can be automatically compressed:
 
 ### Configuration
 ```bash
-/set web_search_auto_enhance true      # Auto-search when needed
-/set web_search_max_results 5          # Number of results
-/set web_search_synthesize true        # Synthesize results
-/set web_search_extract_content true   # Extract page content
+/set web-auto true      # Auto-search when needed
+/set web-results 5      # Number of results
+/set web-synthesize true        # Synthesize results
+/set web-extract true   # Extract page content
 ```
 
 ### Search Providers
@@ -221,7 +221,7 @@ When topics end, they can be automatically compressed:
 #### Display Settings
 ```bash
 /set stream true              # Enable response streaming
-/set stream_rate 15          # Words per second
+/set stream-rate 15          # Words per second
 /set color full              # Color mode (none/basic/full)
 /set wrap true               # Enable text wrapping
 ```
@@ -244,6 +244,36 @@ When topics end, they can be automatically compressed:
 ### Configuration Files
 - `~/.episodic/config.json` - User configuration
 - `~/.episodic/config.default.json` - Default values reference
+
+### Environment Variables
+All configuration values can be set via environment variables:
+```bash
+# Web Search
+export EPISODIC_WEB_PROVIDER=google
+export GOOGLE_API_KEY=your-key
+export GOOGLE_SEARCH_ENGINE_ID=your-id
+export EPISODIC_WEB_ENABLED=true
+export EPISODIC_WEB_AUTO=true
+
+# RAG
+export EPISODIC_RAG_ENABLED=true
+export EPISODIC_RAG_AUTO=true
+export EPISODIC_RAG_THRESHOLD=0.7
+
+# Topic Detection
+export EPISODIC_TOPIC_MODEL=ollama/llama3
+export EPISODIC_TOPIC_AUTO=true
+export EPISODIC_TOPIC_MIN=8
+
+# Display
+export EPISODIC_COLOR_MODE=full
+export EPISODIC_STREAM_RATE=20
+export EPISODIC_SHOW_COST=true
+
+# Core
+export EPISODIC_DEBUG=true
+export EPISODIC_CACHE=true
+```
 
 ## Advanced Features
 
@@ -289,8 +319,8 @@ The `TransitionDetector` in `episodic/topics/keywords.py` identifies:
 #### 3. Boundary Analysis
 When enabled, analyzes where topics actually change:
 ```bash
-/set analyze_topic_boundaries true
-/set use_llm_boundary_analysis true  # Use LLM for analysis
+/set topic-boundaries true
+/set topic-llm-analysis true  # Use LLM for analysis
 ```
 
 ### Hybrid Scoring System

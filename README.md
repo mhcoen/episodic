@@ -98,9 +98,9 @@ Episodic is highly configurable. Common settings:
 
 ```bash
 /set stream true              # Enable response streaming
-/set auto_compress_topics true # Automatic topic compression
-/set rag_enabled true         # Enable document search
-/set web_search_enabled true  # Enable web search
+/set comp-auto true           # Automatic topic compression
+/set rag true                 # Enable document search
+/set web-enabled true         # Enable web search
 ```
 
 See the [User Guide](USER_GUIDE.md#configuration) for all configuration options.

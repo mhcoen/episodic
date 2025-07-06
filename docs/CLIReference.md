@@ -87,7 +87,7 @@ Configure parameters
 /set <parameter>             # Show specific value
 /set <parameter> <value>     # Set value (session only)
 
-# Common settings:
+# Common settings (also support short aliases):
 /set debug on                # Enable debug mode
 /set cache off              # Disable caching
 /set stream true            # Enable streaming

@@ -108,14 +108,65 @@ def handle_legacy_command(cmd: str, args: List[str]) -> bool:
 
 
 def show_help_with_categories():
-    """Show help information organized by categories."""
+    """Show basic help information with common commands."""
     typer.secho("\n📚 Episodic Commands", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 60, fg=get_heading_color())
+    
+    # Basic commands for new users
+    typer.secho("\n🚀 Getting Started:", fg=get_heading_color(), bold=True)
+    basic_commands = [
+        ("/init", "Initialize the database"),
+        ("/model", "Switch language model or show current"),
+        ("/help", "Show this help message"),
+        ("/exit", "Exit the application"),
+    ]
+    
+    for cmd, desc in basic_commands:
+        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
+    # Common conversation commands
+    typer.secho("\n💬 Conversation:", fg=get_heading_color(), bold=True)
+    conversation_commands = [
+        ("/topics", "List conversation topics"),
+        ("/summary", "Summarize recent conversation"),
+        ("/cost", "Show session cost information"),
+        ("/set <param> <value>", "Configure settings (e.g., /set debug on)"),
+    ]
+    
+    for cmd, desc in conversation_commands:
+        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
+    # Knowledge base commands if RAG is enabled
+    if command_registry.get_command("rag"):
+        typer.secho("\n📚 Knowledge Base:", fg=get_heading_color(), bold=True)
+        kb_commands = [
+            ("/rag on", "Enable knowledge base"),
+            ("/index <file>", "Index a document"),
+            ("/search <query>", "Search the knowledge base"),
+        ]
+        
+        for cmd, desc in kb_commands:
+            typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
+    
+    typer.secho("\n" + "─" * 60, fg=get_heading_color())
+    typer.secho("💡 Type messages directly to chat", fg=get_text_color(), dim=True)
+    typer.secho("📖 Type '/help --all' to see all available commands", 
+               fg=get_text_color(), bold=True)
+    typer.secho("🚪 Type '/exit' or '/quit' to leave", fg=get_text_color(), dim=True)
+
+
+def show_advanced_help():
+    """Show all available commands organized by categories."""
+    typer.secho("\n📚 Episodic Commands (Advanced)", fg=get_heading_color(), bold=True)
     typer.secho("=" * 60, fg=get_heading_color())
     
     # Get commands by category
     categories = command_registry.get_commands_by_category()
     
-    # Define category order
+    # Define category order for advanced view
     category_order = [
         "Navigation", "Conversation", "Topics", "Configuration",
         "Knowledge Base", "Compression", "Utility"
@@ -129,15 +180,17 @@ def show_help_with_categories():
         if not commands:
             continue
         
+        # Skip deprecated commands in count
+        active_commands = [cmd for cmd in commands if not cmd.deprecated]
+        if not active_commands:
+            continue
+        
         # Category header
         typer.secho(f"\n{get_category_icon(category)} {category}:", 
                    fg=get_heading_color(), bold=True)
         
         # Show commands
-        for cmd_info in commands:
-            if cmd_info.deprecated:
-                continue  # Skip deprecated commands in main help
-            
+        for cmd_info in active_commands:
             # Format command name with aliases
             cmd_display = f"/{cmd_info.name}"
             if cmd_info.aliases:
@@ -160,9 +213,10 @@ def show_help_with_categories():
                        fg="yellow")
     
     typer.secho("\n" + "─" * 60, fg=get_heading_color())
-    typer.secho("Type /help <command> for detailed help on a specific command",
-               fg=get_text_color())
-    typer.secho("Type /exit or /quit to leave", fg=get_text_color())
+    typer.secho("💡 Type messages directly to chat", fg=get_text_color(), dim=True)
+    typer.secho("📝 Common settings: /set debug off, /set cost on, /set topics on", 
+               fg=get_text_color(), dim=True)
+    typer.secho("🚪 Type '/exit' or '/quit' to leave", fg=get_text_color(), dim=True)
 
 
 def get_category_icon(category: str) -> str:

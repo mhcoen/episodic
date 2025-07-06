@@ -11,12 +11,15 @@ from episodic.configuration import (
 from episodic.benchmark import display_benchmark_summary
 
 
-def help():
+def help(advanced: bool = False):
     """Show help information with available commands."""
     # Check if we should use the new registry-based help
     try:
-        from episodic.cli_registry import show_help_with_categories
-        show_help_with_categories()
+        from episodic.cli_registry import show_help_with_categories, show_advanced_help
+        if advanced:
+            show_advanced_help()
+        else:
+            show_help_with_categories()
         return
     except ImportError:
         pass

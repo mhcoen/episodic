@@ -22,7 +22,7 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
     if index is None:
         index = config.get('web_search_index_results', True)
     if extract is None:
-        extract = config.get('web_search_extract_content', False)
+        extract = config.get('web_search_extract_content', True)
     if synthesize is None:
         synthesize = config.get('web_search_synthesize', True)
     

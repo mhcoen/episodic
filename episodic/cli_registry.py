@@ -109,9 +109,8 @@ def handle_legacy_command(cmd: str, args: List[str]) -> bool:
 
 def show_help_with_categories():
     """Show basic help information with common commands."""
-    typer.secho("\n📚 Episodic Commands", fg=get_heading_color(), bold=True)
-    typer.secho("=" * 60, fg=get_heading_color())
-    
+    typer.secho("\n⌨️ Type messages directly to chat.", fg=get_heading_color(), bold=True)
+
     # Basic commands for new users
     typer.secho("\n🚀 Getting Started:", fg=get_heading_color(), bold=True)
     basic_commands = [
@@ -151,9 +150,20 @@ def show_help_with_categories():
             typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
             typer.secho(desc, fg=get_text_color())
     
-    typer.secho("\n" + "─" * 60, fg=get_heading_color())
-    typer.secho("💡 Type messages directly to chat", fg=get_text_color(), dim=True)
-    typer.secho("📖 Type '/help --all' to see all available commands", 
+    # Web search commands
+    if command_registry.get_command("websearch"):
+        typer.secho("\n🌐 Web Search:", fg=get_heading_color(), bold=True)
+        web_commands = [
+            ("/websearch <query>", "Search the web (alias: /ws)"),
+            ("/websearch on", "Enable automatic web search"),
+        ]
+        
+        for cmd, desc in web_commands:
+            typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
+    
+    #   typer.secho("\n" + "─" * 60, fg=get_heading_color())
+    typer.secho("\n📖 Type '/help --all' to see all available commands", 
                fg=get_text_color(), bold=True)
     typer.secho("🚪 Type '/exit' or '/quit' to leave", fg=get_text_color(), dim=True)
 

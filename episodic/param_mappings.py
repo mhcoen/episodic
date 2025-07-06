@@ -53,6 +53,7 @@ PARAM_MAPPING = {
     'web-search-extract-content': 'web_search_extract_content',
     'web-search-rate-limit': 'web_search_rate_limit',
     'web-search-cache-ttl': 'web_search_cache_ttl',
+    'web-show-sources': 'web_show_sources',
     'google-api-key': 'google_api_key',
     'google-search-engine-id': 'google_search_engine_id',
     'bing-api-key': 'bing_api_key',

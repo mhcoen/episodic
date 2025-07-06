@@ -149,7 +149,7 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
         )
     
     # Display sources only if configured to show them
-    if config.get('web_search_show_sources', False):
+    if config.get('web_show_sources', False):
         typer.echo()  # Blank line
         typer.secho("Sources:", fg=get_system_color(), bold=True)
         for i, source in enumerate(sources, 1):

@@ -293,12 +293,10 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
                 else:
                     header_level += 1
                 continue
-            elif in_header and header_level > 0 and char == ' ':
-                # Skip the space after header markers
-                continue
-            elif line_start and in_header and char not in '# ':
-                # First non-header character, we're now in header text
+            elif in_header and header_level > 0 and char == ' ' and line_start:
+                # Skip only the first space after header markers
                 line_start = False
+                continue
             
             if char == '*':
                 bold_count += 1

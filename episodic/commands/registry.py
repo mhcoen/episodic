@@ -175,7 +175,7 @@ def register_all_commands():
     
     # Register web search commands if available
     if websearch_available:
-        command_registry.register("websearch", websearch_command, "Search the web for current information", "Knowledge Base", aliases=["ws"])
+        command_registry.register("websearch", websearch_command, "Search the web (config/synthesis/stats/cache)", "Knowledge Base", aliases=["ws"])
 
 
 # Initialize registry on import

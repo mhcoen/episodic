@@ -288,25 +288,11 @@ def websearch_config():
     typer.secho("\nAvailable providers: ", nl=False, fg=get_text_color())
     typer.secho("duckduckgo, searx, google, bing", fg=get_system_color())
     
-    # Show synthesis configuration if enabled
+    # Show hint about synthesis settings
     if config.get('web_search_synthesize', True):
-        typer.secho("\n🔄 Synthesis Configuration:", fg=get_heading_color(), bold=True)
-        
-        synthesis_settings = [
-            ('Style', 'web_synthesis_style', 'concise, standard, comprehensive, exhaustive'),
-            ('Detail', 'web_synthesis_detail', 'minimal, moderate, detailed, maximum'),
-            ('Format', 'web_synthesis_format', 'paragraph, bullet-points, mixed, academic'),
-            ('Max tokens', 'web_synthesis_max_tokens', 'number or None for auto'),
-            ('Sources', 'web_synthesis_sources', 'first-only, top-three, all-relevant, selective'),
-            ('Model', 'web_synthesis_model', 'model name or None for main model'),
-        ]
-        
-        for label, key, options in synthesis_settings:
-            value = config.get(key)
-            typer.secho(f"{label}: ", nl=False, fg=get_text_color())
-            typer.secho(f"{value}", fg=get_system_color(), nl=False)
-            if value and options:
-                typer.secho(f" ({options})", fg="dim white")
+        typer.secho("\n💡 ", nl=False)
+        typer.secho("For synthesis settings: ", nl=False, fg="dim white")
+        typer.secho("/websearch synthesis", fg="bright_cyan")
 
 
 def websearch_stats():
@@ -347,6 +333,154 @@ def websearch_cache_clear():
     typer.secho("✅ Web search cache cleared", fg=get_system_color())
 
 
+def websearch_synthesis():
+    """Show unified web synthesis settings with current values and options."""
+    from episodic.text_formatter import format_and_display_text
+    
+    typer.secho("\n🎨 Web Search Synthesis Settings", fg=get_heading_color(), bold=True)
+    typer.secho("═" * 50, fg=get_heading_color())
+    
+    # Check if synthesis is enabled
+    synthesis_enabled = config.get('web_search_synthesize', True)
+    typer.secho("\nSynthesis: ", nl=False, fg=get_text_color())
+    if synthesis_enabled:
+        typer.secho("ENABLED", fg="bright_green", bold=True)
+    else:
+        typer.secho("DISABLED", fg="bright_red", bold=True)
+        typer.secho("  (Enable with: /set web-search-synthesize true)", fg="dim white")
+        return
+    
+    # Style settings with visual examples
+    typer.secho("\n📏 ", nl=False)
+    typer.secho("Length Style", fg=get_system_color(), bold=True)
+    current_style = config.get('web_synthesis_style', 'standard')
+    
+    styles = [
+        ('concise', '~150 words', 'Brief summary with key points', current_style == 'concise'),
+        ('standard', '~300 words', 'Balanced detail and brevity', current_style == 'standard'),
+        ('comprehensive', '~500 words', 'Detailed analysis with examples', current_style == 'comprehensive'),
+        ('exhaustive', '800+ words', 'Full exploration of all aspects', current_style == 'exhaustive')
+    ]
+    
+    for style, length, desc, is_current in styles:
+        if is_current:
+            typer.secho(f"  ▶ ", nl=False, fg="bright_cyan")
+            typer.secho(f"{style:15}", nl=False, fg="bright_cyan", bold=True)
+        else:
+            typer.secho(f"    {style:15}", nl=False, fg=get_text_color())
+        typer.secho(f"{length:12}", nl=False, fg="bright_magenta")
+        typer.secho(f"{desc}", fg="dim white")
+    
+    # Detail level settings
+    typer.secho("\n🔍 ", nl=False)
+    typer.secho("Detail Level", fg=get_system_color(), bold=True)
+    current_detail = config.get('web_synthesis_detail', 'moderate')
+    
+    details = [
+        ('minimal', 'Just essential facts', current_detail == 'minimal'),
+        ('moderate', 'Facts with context', current_detail == 'moderate'),
+        ('detailed', 'Facts, context, and explanations', current_detail == 'detailed'),
+        ('maximum', 'Everything including nuances', current_detail == 'maximum')
+    ]
+    
+    for detail, desc, is_current in details:
+        if is_current:
+            typer.secho(f"  ▶ ", nl=False, fg="bright_cyan")
+            typer.secho(f"{detail:15}", nl=False, fg="bright_cyan", bold=True)
+        else:
+            typer.secho(f"    {detail:15}", nl=False, fg=get_text_color())
+        typer.secho(f"{desc}", fg="dim white")
+    
+    # Format settings
+    typer.secho("\n📝 ", nl=False)
+    typer.secho("Output Format", fg=get_system_color(), bold=True)
+    current_format = config.get('web_synthesis_format', 'mixed')
+    
+    formats = [
+        ('paragraph', 'Flowing prose in paragraphs', current_format == 'paragraph'),
+        ('bullet-points', 'Structured lists throughout', current_format == 'bullet-points'),
+        ('mixed', 'Automatic based on content', current_format == 'mixed'),
+        ('academic', 'Formal style with citations', current_format == 'academic')
+    ]
+    
+    for fmt, desc, is_current in formats:
+        if is_current:
+            typer.secho(f"  ▶ ", nl=False, fg="bright_cyan")
+            typer.secho(f"{fmt:15}", nl=False, fg="bright_cyan", bold=True)
+        else:
+            typer.secho(f"    {fmt:15}", nl=False, fg=get_text_color())
+        typer.secho(f"{desc}", fg="dim white")
+    
+    # Source selection
+    typer.secho("\n📚 ", nl=False)
+    typer.secho("Source Usage", fg=get_system_color(), bold=True)
+    current_sources = config.get('web_synthesis_sources', 'top-three')
+    
+    sources = [
+        ('first-only', 'Use only the top result', current_sources == 'first-only'),
+        ('top-three', 'Use top 3 results', current_sources == 'top-three'),
+        ('all-relevant', 'Use all search results', current_sources == 'all-relevant'),
+        ('selective', 'Smart selection (coming soon)', current_sources == 'selective')
+    ]
+    
+    for src, desc, is_current in sources:
+        if is_current:
+            typer.secho(f"  ▶ ", nl=False, fg="bright_cyan")
+            typer.secho(f"{src:15}", nl=False, fg="bright_cyan", bold=True)
+        else:
+            typer.secho(f"    {src:15}", nl=False, fg=get_text_color())
+        typer.secho(f"{desc}", fg="dim white")
+    
+    # Advanced settings
+    typer.secho("\n⚙️  ", nl=False)
+    typer.secho("Advanced Settings", fg=get_system_color(), bold=True)
+    
+    # Max tokens
+    max_tokens = config.get('web_synthesis_max_tokens')
+    typer.secho("  Max tokens: ", nl=False, fg=get_text_color())
+    if max_tokens:
+        typer.secho(f"{max_tokens}", fg="bright_yellow")
+    else:
+        typer.secho("Auto (based on style)", fg="dim white")
+    
+    # Synthesis model
+    synthesis_model = config.get('web_synthesis_model')
+    typer.secho("  Model: ", nl=False, fg=get_text_color())
+    if synthesis_model:
+        typer.secho(f"{synthesis_model}", fg="bright_yellow")
+    else:
+        main_model = config.get('model', 'gpt-3.5-turbo')
+        typer.secho(f"Main model ({main_model})", fg="dim white")
+    
+    # Display settings
+    typer.secho("\n👁️  ", nl=False)
+    typer.secho("Display Options", fg=get_system_color(), bold=True)
+    
+    show_sources = config.get('web_show_sources', False)
+    typer.secho("  Show sources: ", nl=False, fg=get_text_color())
+    typer.secho("Yes" if show_sources else "No", fg="bright_green" if show_sources else "bright_red")
+    
+    show_raw = config.get('web_show_raw', False)
+    typer.secho("  Show raw results: ", nl=False, fg=get_text_color())
+    typer.secho("Yes" if show_raw else "No", fg="bright_green" if show_raw else "bright_red")
+    if show_raw:
+        typer.secho("    (This overrides synthesis)", fg="yellow")
+    
+    # Usage examples
+    typer.secho("\n💡 ", nl=False)
+    typer.secho("Quick Settings", fg=get_heading_color(), bold=True)
+    typer.secho("  Brief news:  ", nl=False, fg="dim white")
+    typer.secho("/set web-synthesis-style concise", fg="bright_cyan")
+    typer.secho("  Research:    ", nl=False, fg="dim white")
+    typer.secho("/set web-synthesis-style comprehensive", fg="bright_cyan")
+    typer.secho("  Academic:    ", nl=False, fg="dim white")
+    typer.secho("/set web-synthesis-format academic", fg="bright_cyan")
+    
+    typer.secho("\n" + "─" * 50, fg="dim white")
+    typer.secho("Customize prompt: ", nl=False, fg="dim white")
+    typer.secho("prompts/web_synthesis.md", fg="bright_cyan")
+
+
 def websearch_command(action: Optional[str] = None, *args):
     """Main websearch command handler."""
     if not action:
@@ -362,6 +496,8 @@ def websearch_command(action: Optional[str] = None, *args):
         websearch_toggle(False)
     elif action == "config":
         websearch_config()
+    elif action == "synthesis":
+        websearch_synthesis()
     elif action == "stats":
         websearch_stats()
     elif action == "cache":

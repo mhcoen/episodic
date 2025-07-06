@@ -29,7 +29,8 @@ You are tasked with synthesizing web search results into a comprehensive answer.
 3. **Clarity**: Present information in a clear, organized manner
 4. **Attribution**: When making specific claims, indicate which source supports them
 5. **Conflicting Information**: If sources disagree, present multiple viewpoints
-6. **Limitations**: Acknowledge when information is incomplete or unavailable
+6. **Minor Discrepancies**: If a source disagrees in a minor way, ignore it
+7. **Limitations**: Acknowledge when information is incomplete or unavailable
 
 ## Response Requirements
 

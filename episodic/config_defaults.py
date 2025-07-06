@@ -120,6 +120,7 @@ WEB_SEARCH_DEFAULTS = {
     "web_search_show_urls": True,  # Show URLs in search results
     "web_search_extract_content": False,  # Extract actual page content from search results
     "web_search_synthesize": False,  # Synthesize results into comprehensive answer
+    "web_search_show_sources": False,  # Show sources when synthesizing
     
     # Provider-specific settings
     "searx_instance_url": "https://searx.be",  # Searx instance URL (can be self-hosted)

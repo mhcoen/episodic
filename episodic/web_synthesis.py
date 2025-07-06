@@ -148,9 +148,10 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
             value_color=get_system_color()  # Use system color for values after colons
         )
     
-    # Display sources
-    typer.echo()  # Blank line
-    typer.secho("Sources:", fg=get_system_color(), bold=True)
-    for i, source in enumerate(sources, 1):
-        typer.secho(f"  [{i}] {source.title}", fg=get_text_color())
-        typer.secho(f"      {source.url}", fg="cyan")
+    # Display sources only if configured to show them
+    if config.get('web_search_show_sources', False):
+        typer.echo()  # Blank line
+        typer.secho("Sources:", fg=get_system_color(), bold=True)
+        for i, source in enumerate(sources, 1):
+            typer.secho(f"  [{i}] {source.title}", fg=get_text_color())
+            typer.secho(f"      {source.url}", fg="cyan")

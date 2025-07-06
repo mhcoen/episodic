@@ -41,8 +41,6 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
             typer.secho("Search cancelled.", fg=get_text_color())
             return
     
-    # TEMPORARY DEBUG
-    typer.secho(f"PARAMS: synthesize={synthesize}, extract={extract}", fg="red")
     
     # Show search message only if not synthesizing or debug is on
     if not synthesize or config.get('debug', False):
@@ -155,21 +153,16 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                     typer.secho(f"    Error: {type(e).__name__}: {str(e)}", fg="red")
     
     # Synthesize results if requested
-    if synthesize:
-        if not extracted_content:
-            typer.secho("\n⚠️  No content extracted for synthesis", fg="yellow")
-            if config.get('debug', False):
-                typer.secho(f"Extract was: {extract}, Content: {extracted_content}", fg="yellow")
+    if synthesize and extracted_content:
+        from episodic.web_synthesis import WebSynthesizer, format_synthesized_answer
+        
+        synthesizer = WebSynthesizer()
+        synthesized_answer = synthesizer.synthesize_results(query, results, extracted_content)
+        
+        if synthesized_answer:
+            format_synthesized_answer(synthesized_answer, results[:3])  # Show top 3 sources
         else:
-            from episodic.web_synthesis import WebSynthesizer, format_synthesized_answer
-            
-            synthesizer = WebSynthesizer()
-            synthesized_answer = synthesizer.synthesize_results(query, results, extracted_content)
-            
-            if synthesized_answer:
-                format_synthesized_answer(synthesized_answer, results[:3])  # Show top 3 sources
-            else:
-                typer.secho("\n⚠️  Could not synthesize results", fg="yellow")
+            typer.secho("\n⚠️  Could not synthesize results", fg="yellow")
     
     # Optionally index results into RAG
     if index and config.get('rag_enabled', False):
@@ -368,4 +361,5 @@ def websearch_command(action: Optional[str] = None, *args):
                 filtered_args.append(arg)
         
         query = f"{action} {' '.join(filtered_args)}".strip()
-        websearch(query, extract=extract, synthesize=synthesize)
+        # Pass all parameters explicitly with keywords
+        websearch(query, limit=None, index=None, extract=extract, synthesize=synthesize)

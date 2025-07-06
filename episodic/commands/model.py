@@ -168,6 +168,7 @@ def handle_model(name: Optional[str] = None):
     try:
         set_default_model(name)
         config.set("model", name)
+        # Get the provider AFTER set_default_model has updated it
         provider = get_current_provider()
         
         # Display model with pricing

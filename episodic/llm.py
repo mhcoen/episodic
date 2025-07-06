@@ -86,8 +86,30 @@ def get_model_string(model_name: str) -> str:
     # If model already has a provider prefix, return it as-is
     if "/" in model_name:
         return model_name
-        
-    provider = get_current_provider()
+    
+    # Find which provider actually has this model
+    actual_provider = None
+    from episodic.llm_config import get_available_providers, get_provider_models
+    providers = get_available_providers()
+    for provider_name, provider_config in providers.items():
+        models = get_provider_models(provider_name)
+        if models:
+            for model in models:
+                if isinstance(model, dict):
+                    m_name = model.get("name", "unknown")
+                else:
+                    m_name = model
+                if m_name == model_name:
+                    actual_provider = provider_name
+                    break
+            if actual_provider:
+                break
+    
+    # If we found the provider, use it; otherwise fall back to default
+    if not actual_provider:
+        actual_provider = get_current_provider()
+    
+    provider = actual_provider
 
     # For local models, use the format "local/model_name"
     if provider == "local":

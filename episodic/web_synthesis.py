@@ -111,16 +111,12 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
         answer: The synthesized answer (string or dict with streaming info)
         sources: List of source search results
     """
-    from episodic.configuration import get_heading_color, get_text_color, get_system_color
+    from episodic.configuration import get_heading_color, get_text_color, get_system_color, get_llm_color
     from episodic.text_formatter import format_and_display_text, stream_with_word_wrap
     from episodic.llm import _execute_llm_query
     
-    # Display the answer header
-    typer.secho("\n📊 Synthesized Answer", fg=get_heading_color(), bold=True)
-    typer.secho("─" * 60, fg=get_heading_color())
-    
-    # Display the formatted answer with proper formatting
-    typer.echo()  # Blank line
+    # Just add a blank line before the answer
+    typer.echo()
     
     # Check if we need to stream
     if isinstance(answer, dict) and answer.get('streaming'):
@@ -138,13 +134,13 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
             stream=True
         )
         
-        # Stream with word wrap
-        stream_with_word_wrap(stream_generator, answer['model'], color=get_text_color())
+        # Stream with word wrap using LLM color
+        stream_with_word_wrap(stream_generator, answer['model'], color=get_llm_color())
     else:
-        # Use the unified formatter for consistent display
+        # Use the unified formatter for consistent display with LLM color
         format_and_display_text(
             answer,
-            base_color=get_text_color(),
+            base_color=get_llm_color(),
             value_color=get_system_color()  # Use system color for values after colons
         )
     

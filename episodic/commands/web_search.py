@@ -14,6 +14,10 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
         typer.secho("Web search is not enabled. Use '/websearch on' to enable.", fg="yellow")
         return
     
+    # DEBUG: Check what's in config
+    if True:  # Always show for debugging
+        typer.secho(f"DEBUG CONFIG: web_search_synthesize={config.get('web_search_synthesize')}, web_show_raw={config.get('web_show_raw')}", fg="yellow")
+    
     manager = get_web_search_manager()
     
     # Use configured defaults if not specified
@@ -26,6 +30,10 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
     if synthesize is None:
         synthesize = config.get('web_search_synthesize', True)
     
+    # Debug what's happening
+    if config.get('debug', False):
+        typer.secho(f"DEBUG: synthesize={synthesize}, extract={extract}, web_show_raw={config.get('web_show_raw', False)}", fg="yellow")
+    
     # Override synthesis if web_show_raw is enabled
     if config.get('web_show_raw', False):
         synthesize = False
@@ -33,6 +41,9 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
     # If synthesizing, we need to extract content
     if synthesize:
         extract = True
+        
+    if config.get('debug', False):
+        typer.secho(f"DEBUG after override: synthesize={synthesize}, extract={extract}", fg="yellow")
     
     # Check if confirmation required
     if config.get('web_search_require_confirmation', False):

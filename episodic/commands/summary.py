@@ -90,6 +90,7 @@ Please structure the summary clearly with sections if there are multiple distinc
                 
                 # Use the LLM with streaming
                 from episodic.llm import _execute_llm_query, process_stream_response
+                from episodic.text_formatter import StreamingFormatter
                 model = config.get("model", "gpt-3.5-turbo")
                 
                 messages = [
@@ -104,14 +105,16 @@ Please structure the summary clearly with sections if there are multiple distinc
                     stream=True
                 )
                 
-                # Process the stream
+                # Process the stream with proper formatting
+                formatter = StreamingFormatter(base_color=get_llm_color())
                 full_response_parts = []
-                for chunk in process_stream_response(stream_generator, model):
-                    typer.echo(chunk, nl=False)
-                    full_response_parts.append(chunk)
                 
+                for chunk in process_stream_response(stream_generator, model):
+                    full_response_parts.append(chunk)
+                    formatter.process_chunk(chunk)
+                
+                formatter.finish()
                 display_response = ''.join(full_response_parts)
-                typer.echo()  # Final newline
                 
                 # Calculate cost info for streaming response
                 from litellm import token_counter, cost_per_token

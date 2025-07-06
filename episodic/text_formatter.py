@@ -285,6 +285,21 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
         full_response_parts.append(chunk)
         
         for char in chunk:
+            # Check for header markers at line start
+            if line_start and char == '#':
+                if not in_header:
+                    in_header = True
+                    header_level = 1
+                else:
+                    header_level += 1
+                continue
+            elif in_header and header_level > 0 and char == ' ':
+                # Skip the space after header markers
+                continue
+            elif line_start and in_header and char not in '# ':
+                # First non-header character, we're now in header text
+                line_start = False
+            
             if char == '*':
                 bold_count += 1
                 if bold_count == 2:
@@ -300,19 +315,6 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
             if char in ' \n':
                 # End of word
                 if current_word:
-                    # Check for markdown headers at line start
-                    if line_start and current_word.startswith('#'):
-                        # Count the number of # characters
-                        header_count = len(current_word) - len(current_word.lstrip('#'))
-                        if header_count > 0 and (len(current_word) == header_count or current_word[header_count] == ' '):
-                            in_header = True
-                            header_level = header_count
-                            # Skip the # characters and space
-                            current_word = current_word[header_count:].lstrip()
-                            if not current_word:
-                                current_word = ""
-                                continue
-                    
                     # Check if this is a numbered list item at the start of a line
                     word_is_bold = in_bold or in_header
                     if line_start and current_word.rstrip('.').isdigit():

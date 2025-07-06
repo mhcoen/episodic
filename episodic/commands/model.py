@@ -30,10 +30,31 @@ def handle_model(name: Optional[str] = None):
     if name is None:
         # Show current model
         current_model = config.get("model", get_default_model())
+        
+        # Find the actual provider for this model
+        actual_provider = None
+        providers = get_available_providers()
+        for provider_name, provider_config in providers.items():
+            models = get_provider_models(provider_name)
+            if models:
+                for model in models:
+                    if isinstance(model, dict):
+                        model_name = model.get("name", "unknown")
+                    else:
+                        model_name = model
+                    if model_name == current_model:
+                        actual_provider = provider_name
+                        break
+                if actual_provider:
+                    break
+        
+        if not actual_provider:
+            actual_provider = get_current_provider()
+        
         typer.secho(f"Current model: ", nl=False, fg=get_text_color())
         typer.secho(f"{current_model}", nl=False, fg=get_system_color())
         typer.secho(f" (Provider: ", nl=False, fg=get_text_color())
-        typer.secho(f"{get_current_provider()}", nl=False, fg=get_system_color())
+        typer.secho(f"{actual_provider}", nl=False, fg=get_system_color())
         typer.secho(")", fg=get_text_color())
 
         # Get provider models using our own configuration

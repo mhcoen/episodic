@@ -278,6 +278,8 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
     bold_count = 0
     line_start = True
     in_numbered_list = False
+    in_header = False
+    header_level = 0
     
     for chunk in process_stream_response(stream_generator, model):
         full_response_parts.append(chunk)
@@ -298,8 +300,21 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
             if char in ' \n':
                 # End of word
                 if current_word:
+                    # Check for markdown headers at line start
+                    if line_start and current_word.startswith('#'):
+                        # Count the number of # characters
+                        header_count = len(current_word) - len(current_word.lstrip('#'))
+                        if header_count > 0 and (len(current_word) == header_count or current_word[header_count] == ' '):
+                            in_header = True
+                            header_level = header_count
+                            # Skip the # characters and space
+                            current_word = current_word[header_count:].lstrip()
+                            if not current_word:
+                                current_word = ""
+                                continue
+                    
                     # Check if this is a numbered list item at the start of a line
-                    word_is_bold = in_bold
+                    word_is_bold = in_bold or in_header
                     if line_start and current_word.rstrip('.').isdigit():
                         in_numbered_list = True  # Start bolding for numbered list
                     
@@ -339,6 +354,7 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
                     current_position = 0
                     line_start = True
                     in_numbered_list = False  # Reset after newline
+                    in_header = False  # Reset header state
                 else:
                     # Space
                     if current_position > 0:  # Don't print leading spaces
@@ -350,7 +366,7 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
     
     # Print any remaining word
     if current_word:
-        word_is_bold = in_bold or (in_numbered_list and not current_word.endswith(':'))
+        word_is_bold = in_bold or in_header or (in_numbered_list and not current_word.endswith(':'))
         
         # Check wrap
         if wrap_width and current_position + len(current_word) > wrap_width:

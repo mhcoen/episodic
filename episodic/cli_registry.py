@@ -60,7 +60,7 @@ def handle_command_with_registry(command_str: str) -> bool:
     # Handle the command based on its type
     try:
         # Special handling for unified commands
-        if cmd in ["topics", "compression", "settings"]:
+        if cmd in ["topics", "compression"]:
             # These commands expect action as first argument
             if args:
                 action = args[0]

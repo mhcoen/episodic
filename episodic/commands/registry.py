@@ -97,19 +97,16 @@ def register_all_commands():
         # Settings  
         set, verify, cost, model_params, config_docs, reset,
         # Topics
-        topics, compress_current_topic, rename_ongoing_topics,
+        topics,
         # Compression
-        compress, compression_stats, compression_queue, api_call_stats, reset_api_stats,
+        compress,
         # Other
         visualize, prompts, summary, benchmark, help, handle_model
     )
-    from episodic.commands.index_topics import index_topics
-    from episodic.commands.debug_topics import topic_scores
     
     # Import unified commands
     from episodic.commands.unified_topics import topics_command
     from episodic.commands.unified_compression import compression_command
-    from episodic.commands.unified_settings import settings_command
     
     # Import RAG commands
     try:
@@ -150,53 +147,7 @@ def register_all_commands():
         "Manage compression (stats/queue/compress)",
         "Compression"  
     )
-    command_registry.register(
-        "settings", settings_command,
-        "Manage settings (show/set/verify/docs)",
-        "Configuration"
-    )
     
-    # Register old commands as deprecated
-    command_registry.register(
-        "rename-topics", rename_ongoing_topics,
-        "Rename ongoing topics", "Topics",
-        deprecated=True, replacement="topics rename"
-    )
-    command_registry.register(
-        "compress-current-topic", compress_current_topic,
-        "Compress current topic", "Topics",
-        deprecated=True, replacement="topics compress"
-    )
-    command_registry.register(
-        "index", index_topics,
-        "Index topics manually", "Topics", 
-        deprecated=True, replacement="topics index"
-    )
-    command_registry.register(
-        "topic-scores", topic_scores,
-        "Show topic detection scores", "Topics",
-        deprecated=True, replacement="topics scores"
-    )
-    command_registry.register(
-        "compression-stats", compression_stats,
-        "Show compression statistics", "Compression",
-        deprecated=True, replacement="compression stats"
-    )
-    command_registry.register(
-        "compression-queue", compression_queue,
-        "Show compression queue", "Compression",
-        deprecated=True, replacement="compression queue"
-    )
-    command_registry.register(
-        "api-stats", api_call_stats,
-        "Show API call statistics", "Compression",
-        deprecated=True, replacement="compression api-stats"
-    )
-    command_registry.register(
-        "reset-api-stats", reset_api_stats,
-        "Reset API statistics", "Compression",
-        deprecated=True, replacement="compression reset-api"
-    )
     
     # Register settings commands (keep both old and new)
     command_registry.register("set", set, "Configure parameters", "Configuration")

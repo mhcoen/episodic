@@ -536,9 +536,6 @@ def execute_script(filename: str):
             typer.secho(f"Error reading script: {str(e)}", fg="red", err=True)
 
 
-def setup_readline():
-    """Set up readline for command history with arrow keys."""
-    # No longer needed - prompt_toolkit handles this
 
 
 def save_to_history(message: str):
@@ -566,8 +563,6 @@ def setup_environment():
     # Initialize database
     init_db()
     
-    # Set up readline for command history
-    setup_readline()
     
     # Load active prompt (no longer needed - prompt manager handles this)
     # The prompt manager will get the active prompt when needed
@@ -719,7 +714,6 @@ def talk_loop() -> None:
                     'white': '#ffffff'
                 }
                 color_name = get_color_scheme()["prompt"].lower()
-                hex_color = color_map.get(color_name, '#00ff00')
                 prompt_html = HTML(f'<ansigreen><b>&gt; </b></ansigreen>')
             
             # Get user input with full readline support

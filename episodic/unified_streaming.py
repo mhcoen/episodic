@@ -144,8 +144,19 @@ def unified_stream_response(
                             is_numbered_list_start = True
                             in_list_item = True  # Start bolding
                     
+                    # Check if this is a markdown header
+                    is_header = line_start and word.startswith('#')
+                    
+                    # Check if starting a bulleted list
+                    is_bullet = line_start and word == '-'
+                    if is_bullet:
+                        in_list_item = True
+                    
+                    # Strip bold markers to check for colon
+                    word_without_bold = word.replace('**', '')
+                    
                     # Determine if word should be bold
-                    word_is_bold = in_bold or (in_list_item and not word.endswith(':'))
+                    word_is_bold = in_bold or (in_list_item and not word_without_bold.endswith(':')) or is_header
                     
                     # Handle list indentation for continuation lines
                     if line_start and in_list_item and not is_numbered_list_start:
@@ -170,18 +181,9 @@ def unified_stream_response(
                     # Handle bold markers
                     display_word = word
                     if '**' in word:
-                        # Strip bold markers for display
-                        parts = word.split('**')
-                        display_word = ''
-                        for i, part in enumerate(parts):
-                            if i % 2 == 1:  # Odd parts are bold
-                                in_bold = True
-                            else:
-                                in_bold = False
-                            display_word += part
-                    
-                    # Strip any remaining ** in the middle
-                    display_word = display_word.replace('**', '')
+                        # Process bold markers but don't toggle in_bold state
+                        # since we're handling bold based on list/header state
+                        display_word = word.replace('**', '')
                     
                     # Print the word
                     secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
@@ -291,6 +293,7 @@ def unified_stream_response(
         line_start = True
         in_bold = False
         in_numbered_list = False
+        in_list_item = False
         
         accumulated_text = ""
         for chunk_content in process_stream_response(stream_generator, model):
@@ -353,6 +356,7 @@ def unified_stream_response(
                 current_position = 0
                 line_start = True
                 in_numbered_list = False
+                in_list_item = False
                 time.sleep(interval)
                 continue
             
@@ -362,22 +366,23 @@ def unified_stream_response(
                 if word_without_period.isdigit() and len(word_without_period) <= 2:
                     in_numbered_list = True
             
+            # Check if this is a markdown header
+            is_header = line_start and word.startswith('#')
+            
+            # Check if starting a bulleted list  
+            is_bullet = line_start and word == '-'
+            if is_bullet:
+                in_list_item = True
+            
             # Determine if bold
-            word_is_bold = in_bold or in_numbered_list
+            word_is_bold = in_bold or in_numbered_list or is_header or in_list_item
             
             # Handle bold markers
             display_word = word
             if '**' in word:
-                parts = word.split('**')
-                display_word = ''
-                for i, part in enumerate(parts):
-                    if i % 2 == 1:
-                        in_bold = True
-                    else:
-                        in_bold = False
-                    display_word += part
-            
-            display_word = display_word.replace('**', '')
+                # Process bold markers but don't toggle in_bold state
+                # since we're handling bold based on list/header state
+                display_word = word.replace('**', '')
             
             # Check if we need to wrap
             if wrap_width and current_position > 0 and current_position + len(display_word) + 1 > wrap_width:
@@ -398,6 +403,9 @@ def unified_stream_response(
             # Check if word ends with colon
             if display_word.endswith(':') and in_numbered_list:
                 in_numbered_list = False
+            
+            if display_word.endswith(':') and in_list_item:
+                in_list_item = False
             
             # Check for newlines
             if '\n' in display_word:
@@ -426,51 +434,9 @@ def unified_stream_response(
                 
                 # Process character by character
                 for char in chunk_content:
-                    # Check for bold marker
+                    # Skip processing bold markers - we'll strip them from words
                     if current_word.endswith('*') and char == '*':
-                        # Remove the * from current word
-                        current_word = current_word[:-1]
-                        
-                        # Print pending word if any
-                        if current_word:
-                            # Check if starting numbered list
-                            if line_start and current_word.rstrip('.').isdigit():
-                                in_numbered_list = True
-                            
-                            # Check if this is a markdown header
-                            is_header = line_start and current_word.startswith('#')
-                            
-                            # Check if starting a bulleted list
-                            is_bullet = line_start and current_word == '-'
-                            if is_bullet:
-                                in_list_item = True
-                            
-                            word_is_bold = in_bold or in_numbered_list or is_header or in_list_item
-                            
-                            # Wrap if needed
-                            if wrap_width and current_position > 0 and current_position + len(current_word) + 1 > wrap_width:
-                                typer.echo()
-                                current_position = 0
-                                line_start = True
-                            
-                            if current_position > 0:
-                                secho_color(' ', fg=color, nl=False)
-                                current_position += 1
-                            
-                            secho_color(current_word, fg=color, nl=False, bold=word_is_bold)
-                            current_position += len(current_word)
-                            
-                            if current_word.endswith(':') and in_numbered_list:
-                                in_numbered_list = False
-                            
-                            if current_word.endswith(':') and in_list_item:
-                                in_list_item = False
-                            
-                            current_word = ""
-                            line_start = False
-                        
-                        # Toggle bold
-                        in_bold = not in_bold
+                        current_word += char
                         continue
                     
                     # Check for word boundary
@@ -501,8 +467,10 @@ def unified_stream_response(
                                 secho_color(' ', fg=color, nl=False)
                                 current_position += 1
                             
-                            secho_color(current_word, fg=color, nl=False, bold=word_is_bold)
-                            current_position += len(current_word)
+                            # Strip bold markers from display
+                            display_word = current_word.replace('**', '')
+                            secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
+                            current_position += len(display_word)
                             
                             if current_word.endswith(':') and in_numbered_list:
                                 in_numbered_list = False
@@ -537,7 +505,9 @@ def unified_stream_response(
             if current_position > 0:
                 secho_color(' ', fg=color, nl=False)
             
-            secho_color(current_word, fg=color, nl=False, bold=word_is_bold)
+            # Strip bold markers from display
+            display_word = current_word.replace('**', '')
+            secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
         
         # Final newline
         typer.echo("")

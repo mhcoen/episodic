@@ -133,6 +133,7 @@ def unified_stream_response(
                     if word == '\n':
                         typer.echo()
                         line_position = 0
+                        line_start = True  # Next word will be at start of line
                         in_list_item = False
                         continue
                     
@@ -164,6 +165,7 @@ def unified_stream_response(
                     if wrap_width and line_position > 0 and line_position + len(word) + 1 > wrap_width:
                         secho_color('\n', fg=color, nl=False)
                         line_position = 0
+                        line_start = True  # Next word will be at start of line
                     
                     # Add space before word if needed
                     if line_position > 0:
@@ -180,11 +182,13 @@ def unified_stream_response(
                     # Print the word
                     secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
                     line_position += len(display_word)
+                    line_start = False  # We've printed a word, no longer at line start
                     
                     # Check for line breaks in word
                     if '\n' in display_word:
                         last_newline = display_word.rfind('\n')
                         line_position = len(display_word) - last_newline - 1
+                        line_start = True  # After newline, we're at line start
                         in_list_item = False  # Reset list state on explicit newline
                     
                     # Check if word ends with colon to stop list bolding
@@ -273,7 +277,9 @@ def unified_stream_response(
                 word_queue.put(accumulated_text.strip())
         finally:
             stop_event.set()
-            printer_thread.join(timeout=1.0)
+            # Wait for printer thread to finish completely
+            # Don't use timeout - we need to ensure all text is printed
+            printer_thread.join()
             
     elif use_constant_rate and stream_rate > 0:
         # Constant rate streaming

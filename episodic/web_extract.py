@@ -312,5 +312,9 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         
     except Exception as e:
         # Always show errors for debugging
-        typer.secho(f"\nExtraction error for {url}: {type(e).__name__}: {str(e)}", fg="red")
+        # Show concise error message
+        if "timeout" in str(e).lower():
+            typer.secho(f"⚠️  Timeout fetching {url.split('/')[2]}", fg="yellow")
+        else:
+            typer.secho(f"⚠️  Failed to fetch {url.split('/')[2]}: {type(e).__name__}", fg="yellow")
         return None

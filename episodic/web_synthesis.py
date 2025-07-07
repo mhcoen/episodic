@@ -279,7 +279,7 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
         
         # Use unified streaming for consistent formatting
         from episodic.unified_streaming import unified_stream_response
-        unified_stream_response(stream_generator, answer['model'])
+        unified_stream_response(stream_generator, answer['model'], prefix="✨ ")
     else:
         # Use the unified formatter for consistent display with LLM color
         format_and_display_text(

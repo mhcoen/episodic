@@ -217,12 +217,32 @@ def unified_stream_response(
         
         # Feed words to the queue
         try:
+            accumulated_text = ""
             for chunk_content in process_stream_response(stream_generator, model):
                 if chunk_content:
                     full_response_parts.append(chunk_content)
-                    words = chunk_content.split()
-                    for word in words:
-                        word_queue.put(word)
+                    # Accumulate text to handle word boundaries properly
+                    accumulated_text += chunk_content
+                    
+                    # Split into words while preserving whitespace context
+                    import re
+                    words = re.findall(r'\S+\s*|\n', accumulated_text)
+                    
+                    # Process complete words (those with trailing space or newline)
+                    while words and (words[0].endswith(' ') or words[0].endswith('\n') or len(words) > 1):
+                        word = words.pop(0)
+                        word_queue.put(word.rstrip())  # Put word without trailing space
+                        accumulated_text = accumulated_text[len(word):]
+                    
+                    # Keep any incomplete word for next iteration
+                    if words:
+                        accumulated_text = words[0]
+                    else:
+                        accumulated_text = ""
+            
+            # Process any remaining text
+            if accumulated_text.strip():
+                word_queue.put(accumulated_text.strip())
         finally:
             stop_event.set()
             printer_thread.join(timeout=1.0)
@@ -238,68 +258,88 @@ def unified_stream_response(
         in_bold = False
         in_numbered_list = False
         
+        accumulated_text = ""
         for chunk_content in process_stream_response(stream_generator, model):
             if chunk_content:
                 full_response_parts.append(chunk_content)
                 
-                # Split into words
-                words = chunk_content.split()
-                word_buffer.extend(words)
+                # Accumulate text to handle word boundaries properly
+                accumulated_text += chunk_content
                 
-                # Process buffered words
-                while word_buffer:
-                    word = word_buffer.pop(0)
-                    
-                    # Check if starting numbered list
-                    if line_start and len(word) > 0:
-                        word_without_period = word.rstrip('.')
-                        if word_without_period.isdigit() and len(word_without_period) <= 2:
-                            in_numbered_list = True
-                    
-                    # Determine if bold
-                    word_is_bold = in_bold or in_numbered_list
-                    
-                    # Handle bold markers
-                    display_word = word
-                    if '**' in word:
-                        parts = word.split('**')
-                        display_word = ''
-                        for i, part in enumerate(parts):
-                            if i % 2 == 1:
-                                in_bold = True
-                            else:
-                                in_bold = False
-                            display_word += part
-                    
-                    display_word = display_word.replace('**', '')
-                    
-                    # Check if we need to wrap
-                    if wrap_width and current_position > 0 and current_position + len(display_word) + 1 > wrap_width:
-                        typer.echo()
-                        current_position = 0
-                        line_start = True
-                    
-                    # Add space if needed
-                    if current_position > 0:
-                        secho_color(' ', fg=color, nl=False)
-                        current_position += 1
-                    
-                    # Print word
-                    secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
-                    current_position += len(display_word)
-                    line_start = False
-                    
-                    # Check if word ends with colon
-                    if display_word.endswith(':') and in_numbered_list:
-                        in_numbered_list = False
-                    
-                    # Check for newlines
-                    if '\n' in display_word:
-                        current_position = 0
-                        line_start = True
-                        in_numbered_list = False
-                    
-                    time.sleep(interval)
+                # Split into words while preserving whitespace context
+                import re
+                words = re.findall(r'\S+\s*|\n', accumulated_text)
+                
+                # Process complete words (those with trailing space or newline)
+                while words and (words[0].endswith(' ') or words[0].endswith('\n') or len(words) > 1):
+                    word = words.pop(0)
+                    word_buffer.append(word.rstrip())  # Add word without trailing space
+                    accumulated_text = accumulated_text[len(word):]
+                
+                # Keep any incomplete word for next iteration
+                if words:
+                    accumulated_text = words[0]
+                else:
+                    accumulated_text = ""
+        
+        # Process any remaining text
+        if accumulated_text.strip():
+            word_buffer.append(accumulated_text.strip())
+        
+        # Process buffered words
+        while word_buffer:
+            word = word_buffer.pop(0)
+            
+            # Check if starting numbered list
+            if line_start and len(word) > 0:
+                word_without_period = word.rstrip('.')
+                if word_without_period.isdigit() and len(word_without_period) <= 2:
+                    in_numbered_list = True
+            
+            # Determine if bold
+            word_is_bold = in_bold or in_numbered_list
+            
+            # Handle bold markers
+            display_word = word
+            if '**' in word:
+                parts = word.split('**')
+                display_word = ''
+                for i, part in enumerate(parts):
+                    if i % 2 == 1:
+                        in_bold = True
+                    else:
+                        in_bold = False
+                    display_word += part
+            
+            display_word = display_word.replace('**', '')
+            
+            # Check if we need to wrap
+            if wrap_width and current_position > 0 and current_position + len(display_word) + 1 > wrap_width:
+                typer.echo()
+                current_position = 0
+                line_start = True
+            
+            # Add space if needed
+            if current_position > 0:
+                secho_color(' ', fg=color, nl=False)
+                current_position += 1
+            
+            # Print word
+            secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
+            current_position += len(display_word)
+            line_start = False
+            
+            # Check if word ends with colon
+            if display_word.endswith(':') and in_numbered_list:
+                in_numbered_list = False
+            
+            # Check for newlines
+            if '\n' in display_word:
+                current_position = 0
+                line_start = True
+                in_numbered_list = False
+            
+            time.sleep(interval)
         
         # Final newline if needed
         if current_position > 0:

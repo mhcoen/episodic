@@ -204,6 +204,14 @@ def handle_command(command_str: str) -> bool:
             model_name = args[0] if args else None
             handle_model(model_name)
         
+        elif cmd == "/muse":
+            from episodic.commands.mode import handle_muse
+            handle_muse(args)
+        
+        elif cmd == "/chat":
+            from episodic.commands.mode import handle_chat
+            handle_chat(args)
+        
         # Settings commands
         elif cmd == "/set":
             from episodic.commands import set

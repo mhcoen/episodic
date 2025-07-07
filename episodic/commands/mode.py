@@ -11,6 +11,10 @@ def muse_command(enable: bool = True):
     """Enable or disable muse mode (all input becomes web searches)."""
     if enable:
         config.set("muse_mode", True)
+        # Also enable web search if not already enabled
+        if not config.get("web_search_enabled", False):
+            config.set("web_search_enabled", True)
+            typer.secho("✓ Web search enabled automatically", fg="green")
         typer.secho("🎭 Muse mode ", nl=False, fg=get_system_color(), bold=True)
         typer.secho("ENABLED", fg="bright_green", bold=True)
         typer.secho("All input will be treated as web search queries", fg=get_text_color())
@@ -33,6 +37,10 @@ def chat_command(enable: bool = True):
     else:
         # Chat off means muse on
         config.set("muse_mode", True)
+        # Also enable web search if not already enabled
+        if not config.get("web_search_enabled", False):
+            config.set("web_search_enabled", True)
+            typer.secho("✓ Web search enabled automatically", fg="green")
         typer.secho("🎭 Muse mode ", nl=False, fg=get_system_color(), bold=True)
         typer.secho("ENABLED", fg="bright_green", bold=True)
         typer.secho("All input will be treated as web search queries", fg=get_text_color())

@@ -115,6 +115,7 @@ def unified_stream_response(
     in_bold = False
     in_numbered_list = False
     in_list_item = False
+    in_header = False
     accumulated_text = ""
     start_time = time.time()
     
@@ -150,18 +151,19 @@ def unified_stream_response(
                                     if char == '\n':
                                         _print_word('\n', color, wrap_width, 
                                                    current_position, line_start,
-                                                   in_bold, in_numbered_list, in_list_item)
+                                                   in_bold, in_numbered_list, in_list_item, in_header)
                                         current_position = 0
                                         line_start = True
                                         in_list_item = False
                                         in_numbered_list = False
+                                        in_header = False
                                 # Ignore other whitespace between words
                         else:
                             # Regular word - print it
-                            current_position, line_start, in_bold, in_numbered_list, in_list_item = \
+                            current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header = \
                                 _print_word(word, color, wrap_width, 
                                           current_position, line_start,
-                                          in_bold, in_numbered_list, in_list_item)
+                                          in_bold, in_numbered_list, in_list_item, in_header)
                             
                             # Apply delay
                             elapsed = time.time() - start_time
@@ -174,10 +176,10 @@ def unified_stream_response(
                 # Special case: process newlines even without space
                 parts = accumulated_text.split('\n', 1)
                 if parts[0]:
-                    current_position, line_start, in_bold, in_numbered_list, in_list_item = \
+                    current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header = \
                         _print_word(parts[0], color, wrap_width,
                                   current_position, line_start,
-                                  in_bold, in_numbered_list, in_list_item)
+                                  in_bold, in_numbered_list, in_list_item, in_header)
                     # Apply delay
                     elapsed = time.time() - start_time
                     delay = calculate_delay(elapsed, parts[0])
@@ -187,19 +189,20 @@ def unified_stream_response(
                 # Print newline
                 _print_word('\n', color, wrap_width,
                            current_position, line_start,
-                           in_bold, in_numbered_list, in_list_item)
+                           in_bold, in_numbered_list, in_list_item, in_header)
                 current_position = 0
                 line_start = True
                 in_list_item = False
                 in_numbered_list = False
+                in_header = False
                 accumulated_text = parts[1] if len(parts) > 1 else ""
     
     # Process any remaining text
     if accumulated_text.strip():
-        current_position, line_start, in_bold, in_numbered_list, in_list_item = \
+        current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header = \
             _print_word(accumulated_text.strip(), color, wrap_width,
                       current_position, line_start,
-                      in_bold, in_numbered_list, in_list_item)
+                      in_bold, in_numbered_list, in_list_item, in_header)
     
     # Final newline if needed
     if current_position > 0:
@@ -225,17 +228,17 @@ def unified_stream_response(
 
 def _print_word(word: str, color: str, wrap_width: Optional[int],
                 current_position: int, line_start: bool,
-                in_bold: bool, in_numbered_list: bool, in_list_item: bool) -> tuple:
+                in_bold: bool, in_numbered_list: bool, in_list_item: bool, in_header: bool) -> tuple:
     """
     Print a single word with appropriate formatting.
     
     Returns:
-        tuple: (new_position, new_line_start, new_in_bold, new_in_numbered_list, new_in_list_item)
+        tuple: (new_position, new_line_start, new_in_bold, new_in_numbered_list, new_in_list_item, new_in_header)
     """
     # Handle newline-only words specially
     if word == '\n':
         typer.echo()
-        return 0, True, in_bold, False, False
+        return 0, True, in_bold, False, False, False
     
     # Check if starting a numbered list item
     is_numbered_list_start = False
@@ -246,7 +249,9 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
             in_numbered_list = True
     
     # Check if this is a markdown header
-    is_header = line_start and word.startswith('#')
+    is_header_start = line_start and word.startswith('#')
+    if is_header_start:
+        in_header = True
     
     # Check if starting a bulleted list
     is_bullet = line_start and word == '-'
@@ -257,7 +262,7 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     word_without_bold = word.replace('**', '')
     
     # Determine if word should be bold
-    word_is_bold = in_bold or in_list_item or in_numbered_list or is_header
+    word_is_bold = in_bold or in_list_item or in_numbered_list or in_header
     
     # Check if we need to wrap
     if wrap_width and current_position > 0 and current_position + len(word) + 1 > wrap_width:
@@ -289,6 +294,7 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         line_start = True
         in_list_item = False
         in_numbered_list = False
+        in_header = False
     
     # Check if word ends with colon to stop list bolding
     if display_word.endswith(':'):
@@ -297,4 +303,4 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         if in_numbered_list:
             in_numbered_list = False
     
-    return current_position, line_start, in_bold, in_numbered_list, in_list_item
+    return current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header

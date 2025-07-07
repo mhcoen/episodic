@@ -217,10 +217,10 @@ def unified_stream_response(
         
         # Feed words to the queue
         try:
-            for chunk_data in process_stream_response(stream_generator, model):
-                if chunk_data['content']:
-                    full_response_parts.append(chunk_data['content'])
-                    words = chunk_data['content'].split()
+            for chunk_content in process_stream_response(stream_generator, model):
+                if chunk_content:
+                    full_response_parts.append(chunk_content)
+                    words = chunk_content.split()
                     for word in words:
                         word_queue.put(word)
         finally:
@@ -238,12 +238,12 @@ def unified_stream_response(
         in_bold = False
         in_numbered_list = False
         
-        for chunk_data in process_stream_response(stream_generator, model):
-            if chunk_data['content']:
-                full_response_parts.append(chunk_data['content'])
+        for chunk_content in process_stream_response(stream_generator, model):
+            if chunk_content:
+                full_response_parts.append(chunk_content)
                 
                 # Split into words
-                words = chunk_data['content'].split()
+                words = chunk_content.split()
                 word_buffer.extend(words)
                 
                 # Process buffered words
@@ -313,12 +313,12 @@ def unified_stream_response(
         in_numbered_list = False
         current_word = ""
         
-        for chunk_data in process_stream_response(stream_generator, model):
-            if chunk_data['content']:
-                full_response_parts.append(chunk_data['content'])
+        for chunk_content in process_stream_response(stream_generator, model):
+            if chunk_content:
+                full_response_parts.append(chunk_content)
                 
                 # Process character by character
-                for char in chunk_data['content']:
+                for char in chunk_content:
                     # Check for bold marker
                     if current_word.endswith('*') and char == '*':
                         # Remove the * from current word

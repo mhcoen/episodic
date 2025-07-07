@@ -273,7 +273,7 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
             messages,
             model=answer['model'],
             temperature=answer.get('temperature', 0.3),
-            max_tokens=answer.get('max_tokens', 500),
+            max_tokens=answer.get('max_tokens', 1500),
             stream=True
         )
         

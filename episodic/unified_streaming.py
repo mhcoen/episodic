@@ -417,6 +417,7 @@ def unified_stream_response(
         line_start = True
         in_bold = False
         in_numbered_list = False
+        in_list_item = False
         current_word = ""
         
         for chunk_content in process_stream_response(stream_generator, model):
@@ -436,7 +437,15 @@ def unified_stream_response(
                             if line_start and current_word.rstrip('.').isdigit():
                                 in_numbered_list = True
                             
-                            word_is_bold = in_bold or in_numbered_list
+                            # Check if this is a markdown header
+                            is_header = line_start and current_word.startswith('#')
+                            
+                            # Check if starting a bulleted list
+                            is_bullet = line_start and current_word == '-'
+                            if is_bullet:
+                                in_list_item = True
+                            
+                            word_is_bold = in_bold or in_numbered_list or is_header or in_list_item
                             
                             # Wrap if needed
                             if wrap_width and current_position > 0 and current_position + len(current_word) + 1 > wrap_width:
@@ -453,6 +462,9 @@ def unified_stream_response(
                             
                             if current_word.endswith(':') and in_numbered_list:
                                 in_numbered_list = False
+                            
+                            if current_word.endswith(':') and in_list_item:
+                                in_list_item = False
                             
                             current_word = ""
                             line_start = False
@@ -469,7 +481,15 @@ def unified_stream_response(
                             if line_start and current_word.rstrip('.').isdigit():
                                 in_numbered_list = True
                             
-                            word_is_bold = in_bold or in_numbered_list
+                            # Check if this is a markdown header
+                            is_header = line_start and current_word.startswith('#')
+                            
+                            # Check if starting a bulleted list
+                            is_bullet = line_start and current_word == '-'
+                            if is_bullet:
+                                in_list_item = True
+                            
+                            word_is_bold = in_bold or in_numbered_list or is_header or in_list_item
                             
                             # Wrap if needed
                             if wrap_width and current_position > 0 and current_position + len(current_word) + 1 > wrap_width:
@@ -487,6 +507,9 @@ def unified_stream_response(
                             if current_word.endswith(':') and in_numbered_list:
                                 in_numbered_list = False
                             
+                            if current_word.endswith(':') and in_list_item:
+                                in_list_item = False
+                            
                             current_word = ""
                             line_start = False
                         
@@ -496,6 +519,7 @@ def unified_stream_response(
                             current_position = 0
                             line_start = True
                             in_numbered_list = False
+                            in_list_item = False
                     else:
                         # Accumulate character
                         current_word += char

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "mcp-server-memory",
+      "args": [
+        "/Users/mhcoen/proj/episodic/.mcp-memory"
+      ],
+      "env": {}
+    }
+  }
+}

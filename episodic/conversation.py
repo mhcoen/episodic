@@ -718,6 +718,9 @@ class ConversationManager:
                         from episodic.unified_streaming import unified_stream_response
                         display_response = unified_stream_response(stream_generator, model, prefix="🤖 ")
                         
+                        # Add blank line after response
+                        typer.echo("")
+                        
                         # Skip the old streaming implementation - the code below is disabled
                         # because unified_stream_response handles all streaming modes now
                         

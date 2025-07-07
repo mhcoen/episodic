@@ -158,20 +158,12 @@ def unified_stream_response(
                     # Determine if word should be bold
                     word_is_bold = in_bold or (in_list_item and not word_without_bold.endswith(':')) or is_header
                     
-                    # Handle list indentation for continuation lines
-                    if line_start and in_list_item and not is_numbered_list_start:
-                        # This is a continuation line in a list item
-                        secho_color('   ', fg=color, nl=False)  # 3 spaces for indent
-                        line_position = 3
+                    # Don't add indentation - let the content naturally flow
                     
                     # Check if we need to wrap
                     if wrap_width and line_position > 0 and line_position + len(word) + 1 > wrap_width:
                         secho_color('\n', fg=color, nl=False)
                         line_position = 0
-                        # If in list, add indent on new line
-                        if in_list_item:
-                            secho_color('   ', fg=color, nl=False)
-                            line_position = 3
                     
                     # Add space before word if needed
                     if line_position > 0:

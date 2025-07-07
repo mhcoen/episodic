@@ -51,6 +51,20 @@ def handle_chat_message(user_input: str) -> None:
     global current_node_id
     
     try:
+        # Check if we're in muse mode
+        if config.get("muse_mode", False):
+            # In muse mode, treat all input as web search
+            from episodic.commands.web_search import websearch
+            # Check if web search is enabled
+            if not config.get('web_search_enabled', False):
+                typer.secho("⚠️  Web search is not enabled. Use '/websearch on' to enable.", fg="yellow")
+                return
+            
+            # Perform web search with synthesis
+            websearch(user_input, synthesize=True)
+            return
+        
+        # Normal chat mode - continue with LLM
         # Get the current model from config
         model = config.get("model", "gpt-3.5-turbo")
         
@@ -613,6 +627,16 @@ def display_startup_info():
         except Exception:
             typer.secho("Pricing: ", nl=False, fg=get_text_color())
             typer.secho("Not available", fg=typer.colors.YELLOW)
+    
+    # Display current mode
+    if config.get("muse_mode", False):
+        typer.secho("Mode: ", nl=False, fg=get_text_color())
+        typer.secho("🎭 Muse", fg=typer.colors.BRIGHT_CYAN, bold=True)
+        typer.secho(" (all input → web search)", fg=typer.colors.WHITE, dim=True)
+    else:
+        typer.secho("Mode: ", nl=False, fg=get_text_color())
+        typer.secho("💬 Chat", fg=typer.colors.BRIGHT_GREEN, bold=True)
+        typer.secho(" (input → LLM)", fg=typer.colors.WHITE, dim=True)
     
     typer.echo()  # Blank line for spacing
 

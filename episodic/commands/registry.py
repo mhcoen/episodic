@@ -104,6 +104,9 @@ def register_all_commands():
         visualize, prompts, summary, benchmark, help, handle_model
     )
     
+    # Import mode commands
+    from episodic.commands.mode import handle_muse, handle_chat
+    
     # Import unified commands
     from episodic.commands.unified_topics import topics_command
     from episodic.commands.unified_compression import compression_command
@@ -161,6 +164,8 @@ def register_all_commands():
     command_registry.register("model", handle_model, "Switch or show language model", "Conversation")
     command_registry.register("prompt", prompts, "Manage system prompts", "Conversation", aliases=["prompts"])
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
+    command_registry.register("muse", handle_muse, "Enable muse mode (web search for all input)", "Conversation")
+    command_registry.register("chat", handle_chat, "Enable chat mode (normal LLM conversation)", "Conversation")
     command_registry.register("visualize", visualize, "Visualize conversation graph", "Utility")
     command_registry.register("benchmark", benchmark, "Show performance statistics", "Utility")
     command_registry.register("help", help, "Show help information", "Utility")

@@ -13,6 +13,7 @@ CORE_DEFAULTS = {
     "debug": False,
     "show_cost": False,
     "show_drift": True,
+    "muse_mode": False,  # When True, all input is treated as web search queries
 }
 
 # Topic detection settings
@@ -191,6 +192,7 @@ CONFIG_DOCS = {
     "debug": "Enable debug output for troubleshooting",
     "show_cost": "Display token usage and cost information",
     "show_drift": "Show semantic drift scores in topic detection",
+    "muse_mode": "Muse mode: treat all input as web search queries (like Perplexity)",
     
     # Topic detection
     "automatic_topic_detection": "Enable automatic topic detection during conversations",

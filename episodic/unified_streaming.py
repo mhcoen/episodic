@@ -231,29 +231,48 @@ def unified_stream_response(
                     # Accumulate text to handle word boundaries properly
                     accumulated_text += chunk_content
                     
-                    # Split into words while preserving whitespace context including multiple newlines
-                    import re
+                    # Process accumulated text into words
+                    # We want to send complete words to the printer, but keep partial words
+                    # for the next iteration to avoid breaking words mid-stream
                     
+                    # Find the last space or newline in the accumulated text
+                    last_break = max(
+                        accumulated_text.rfind(' '),
+                        accumulated_text.rfind('\n')
+                    )
                     
-                    # This regex captures: non-whitespace followed by spaces, or sequences of newlines
-                    words = re.findall(r'\S+\s*|\n+', accumulated_text)
-                    
-                    # Process complete words (those with trailing space or newline)
-                    while words and (words[0].endswith(' ') or '\n' in words[0] or len(words) > 1):
-                        word = words.pop(0)
-                        # For newline sequences, preserve them entirely
-                        if word.strip() == '':  # Just newlines
-                            for nl in word:
-                                word_queue.put('\n')
-                        else:
-                            word_queue.put(word.rstrip())  # Put word without trailing space
-                        accumulated_text = accumulated_text[len(word):]
-                    
-                    # Keep any incomplete word for next iteration
-                    if words:
-                        accumulated_text = words[0]
-                    else:
-                        accumulated_text = ""
+                    if last_break > 0:
+                        # We have at least one complete word
+                        complete_text = accumulated_text[:last_break + 1]
+                        remaining_text = accumulated_text[last_break + 1:]
+                        
+                        # Split complete text into words, preserving structure
+                        import re
+                        # This regex better preserves the original structure
+                        words = re.split(r'(\s+)', complete_text)
+                        
+                        for word in words:
+                            if word:  # Skip empty strings from split
+                                if word.isspace():
+                                    # Handle whitespace specially
+                                    if '\n' in word:
+                                        # Send each newline separately
+                                        for char in word:
+                                            if char == '\n':
+                                                word_queue.put('\n')
+                                            # Ignore other whitespace between words
+                                else:
+                                    # Regular word
+                                    word_queue.put(word)
+                        
+                        accumulated_text = remaining_text
+                    elif '\n' in accumulated_text:
+                        # Special case: even if we don't have a space, process newlines
+                        parts = accumulated_text.split('\n', 1)
+                        if parts[0]:
+                            word_queue.put(parts[0])
+                        word_queue.put('\n')
+                        accumulated_text = parts[1] if len(parts) > 1 else ""
             
             # Process any remaining text
             if accumulated_text.strip():
@@ -281,29 +300,44 @@ def unified_stream_response(
                 # Accumulate text to handle word boundaries properly
                 accumulated_text += chunk_content
                 
-                # Split into words while preserving whitespace context including multiple newlines
-                import re
+                # Process accumulated text into words
+                # Find the last space or newline in the accumulated text
+                last_break = max(
+                    accumulated_text.rfind(' '),
+                    accumulated_text.rfind('\n')
+                )
                 
-                
-                # This regex captures: non-whitespace followed by spaces, or sequences of newlines
-                words = re.findall(r'\S+\s*|\n+', accumulated_text)
-                
-                # Process complete words (those with trailing space or newline)
-                while words and (words[0].endswith(' ') or '\n' in words[0] or len(words) > 1):
-                    word = words.pop(0)
-                    # For newline sequences, preserve them entirely
-                    if word.strip() == '':  # Just newlines
-                        for nl in word:
-                            word_buffer.append('\n')
-                    else:
-                        word_buffer.append(word.rstrip())  # Add word without trailing space
-                    accumulated_text = accumulated_text[len(word):]
-                
-                # Keep any incomplete word for next iteration
-                if words:
-                    accumulated_text = words[0]
-                else:
-                    accumulated_text = ""
+                if last_break > 0:
+                    # We have at least one complete word
+                    complete_text = accumulated_text[:last_break + 1]
+                    remaining_text = accumulated_text[last_break + 1:]
+                    
+                    # Split complete text into words, preserving structure
+                    import re
+                    words = re.split(r'(\s+)', complete_text)
+                    
+                    for word in words:
+                        if word:  # Skip empty strings from split
+                            if word.isspace():
+                                # Handle whitespace specially
+                                if '\n' in word:
+                                    # Add each newline separately
+                                    for char in word:
+                                        if char == '\n':
+                                            word_buffer.append('\n')
+                                        # Ignore other whitespace between words
+                            else:
+                                # Regular word
+                                word_buffer.append(word)
+                    
+                    accumulated_text = remaining_text
+                elif '\n' in accumulated_text:
+                    # Special case: process newlines even without space
+                    parts = accumulated_text.split('\n', 1)
+                    if parts[0]:
+                        word_buffer.append(parts[0])
+                    word_buffer.append('\n')
+                    accumulated_text = parts[1] if len(parts) > 1 else ""
         
         # Process any remaining text
         if accumulated_text.strip():

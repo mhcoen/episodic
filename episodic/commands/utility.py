@@ -47,7 +47,8 @@ def help(advanced: bool = False):
     # Conversation commands
     typer.secho("\n💬 Conversation:", fg=get_heading_color(), bold=True)
     commands = [
-        ("/model [name]", "Switch language model or show current"),
+        ("/model [chat|list]", "Show/set models for all contexts"),
+        ("/mset [context.param]", "Show/set model parameters"),
         ("/prompt [list|use <name>]", "Manage system prompts"),
         ("/summary [N|all]", "Summarize recent conversation"),
         ("/topics", "List all conversation topics"),
@@ -66,7 +67,6 @@ def help(advanced: bool = False):
         ("/set [param] [value]", "Configure parameters (e.g., debug, cost)"),
         ("/verify", "Verify database and configuration"),
         ("/config-docs", "Show configuration documentation"),
-        ("/model-params [set]", "Show/set model parameters"),
         ("/benchmark", "Show performance statistics"),
     ]
     
@@ -128,7 +128,7 @@ def help(advanced: bool = False):
     typer.secho("\n" + "=" * 60, fg=get_heading_color())
     typer.secho("💡 Type messages directly to chat, use '/' prefix for commands", 
                fg=get_text_color(), dim=True)
-    typer.secho("📝 Common settings: /set debug off, /set cost on, /set topics on", 
+    typer.secho("📝 Examples: /model chat gpt-4, /mset chat.temperature 0.7", 
                fg=get_text_color(), dim=True)
 
 

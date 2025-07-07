@@ -206,6 +206,19 @@ Topic detection sensitivity varies drastically by model:
 
 ### Key System Understanding
 
+#### Four LLM Contexts
+The system supports different models and parameters for four distinct contexts:
+1. **Chat** - Main conversation model (set with `/model chat <name>`)
+2. **Detection** - Topic detection model (set with `/model detection <name>`)
+3. **Compression** - Compression/summarization model (set with `/model compression <name>`)
+4. **Synthesis** - Web search synthesis model (set with `/model synthesis <name>`)
+
+Each context can have independent model parameters set with `/mset`:
+- `/mset chat.temperature 0.7`
+- `/mset detection.temperature 0`
+- `/mset compression.max_tokens 500`
+- `/mset synthesis.temperature 0.3`
+
 #### Topic Detection Flow
 1. User sends message → Topic detection runs (ollama/llama3 with JSON output)
 2. If topic change detected → Close previous topic at last assistant response
@@ -280,11 +293,19 @@ Topic detection sensitivity varies drastically by model:
   - `compress` - Manual compression
   - `api-stats` - API usage stats
   - `reset-api` - Reset API stats
-#### Settings and Configuration Commands
-- `/set <param> <value>` - Set a configuration parameter
+#### Model and Configuration Commands
+- `/model` - Show current chat model
+- `/model list` - Show all models for all contexts
+- `/model chat <name>` - Set chat (main conversation) model
+- `/model detection <name>` - Set topic detection model
+- `/model compression <name>` - Set compression model
+- `/model synthesis <name>` - Set web synthesis model
+- `/mset` - Show all model parameters
+- `/mset chat` - Show parameters for chat model
+- `/mset chat.temperature 0.7` - Set specific parameter
+- `/set <param> <value>` - Set other configuration parameters
 - `/verify` - Verify configuration
 - `/cost` - Show session costs
-- `/model-params` - Show/set model parameters for different contexts
 - `/config-docs` - Show configuration documentation
 - `/reset` - Reset configuration to defaults
 

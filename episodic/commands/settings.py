@@ -383,6 +383,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
 
     # Handle the 'compression_model' parameter
     elif normalized_param == "compression_model":
+        typer.secho("⚠️  /set compression_model is deprecated. Use '/model compression <name>' instead.", fg="yellow")
         if not value:
             typer.echo(f"Current compression model: {config.get('compression_model', 'ollama/llama3')}")
         else:
@@ -391,6 +392,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
 
     # Handle the 'topic_detection_model' parameter
     elif normalized_param == "topic_detection_model":
+        typer.secho("⚠️  /set topic_detection_model is deprecated. Use '/model detection <name>' instead.", fg="yellow")
         if not value:
             typer.echo(f"Current topic detection model: {config.get('topic_detection_model', 'ollama/llama3')}")
         else:
@@ -436,6 +438,13 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
 
     # Handle model parameter syntax (main.temp, topic.max, etc.)
     elif '.' in normalized_param:
+        # Check if this is a model parameter
+        prefix = normalized_param.split('.')[0]
+        if prefix in ['main', 'topic', 'compression', 'synthesis']:
+            context_map = {'main': 'chat', 'topic': 'detection'}
+            context = context_map.get(prefix, prefix)
+            typer.secho(f"⚠️  /set {param} is deprecated. Use '/mset {context}.{normalized_param.split('.', 1)[1]}' instead.", fg="yellow")
+        
         try:
             config.set(normalized_param, value)
             typer.echo(f"Set {param} to {value} (this session only)")

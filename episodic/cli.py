@@ -200,9 +200,16 @@ def handle_command(command_str: str) -> bool:
         
         # Model command
         elif cmd == "/model":
-            from episodic.commands import handle_model
-            model_name = args[0] if args else None
-            handle_model(model_name)
+            from episodic.commands.unified_model import model_command
+            context = args[0] if args else None
+            model_name = args[1] if len(args) > 1 else None
+            model_command(context, model_name)
+        
+        elif cmd == "/mset":
+            from episodic.commands.mset import mset_command
+            param_spec = args[0] if args else None
+            value = args[1] if len(args) > 1 else None
+            mset_command(param_spec, value)
         
         elif cmd == "/muse":
             from episodic.commands.mode import handle_muse
@@ -298,6 +305,12 @@ def handle_command(command_str: str) -> bool:
             index_topics(window_size=window_size, apply=apply, verbose=verbose)
         
         # Compression commands
+        elif cmd == "/compression":
+            from episodic.commands.unified_compression import compression_command
+            action = args[0] if args else None
+            remaining_args = args[1:] if len(args) > 1 else []
+            compression_command(action, *remaining_args)
+        
         elif cmd == "/compress":
             from episodic.commands import compress
             strategy = _parse_flag_value(args, ["--strategy", "-s"]) or "simple"
@@ -601,52 +614,6 @@ def setup_environment():
     # Reset benchmarks for new session
     reset_benchmarks()
 
-
-def display_startup_info():
-    """Display welcome message and model information."""
-    typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
-    typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
-    
-    # Display current model and pricing information
-    from episodic.llm_config import get_default_model, get_current_provider
-    
-    current_model = get_default_model()
-    provider = get_current_provider()
-    
-    # Check if it's a local provider
-    LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
-    
-    # Display model info
-    typer.secho("Using model: ", nl=False, fg=get_text_color())
-    typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-    typer.secho(" (Provider: ", nl=False, fg=get_text_color())
-    typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-    typer.secho(")", fg=get_text_color())
-    
-    # Display pricing info
-    if provider in LOCAL_PROVIDERS:
-        typer.secho("Pricing: ", nl=False, fg=get_text_color())
-        typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
-    else:
-        try:
-            input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
-            typer.secho("Pricing: ", nl=False, fg=get_text_color())
-            typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
-        except Exception:
-            typer.secho("Pricing: ", nl=False, fg=get_text_color())
-            typer.secho("Not available", fg=typer.colors.YELLOW)
-    
-    # Display current mode
-    if config.get("muse_mode", False):
-        typer.secho("Mode: ", nl=False, fg=get_text_color())
-        typer.secho("🎭 Muse", fg=typer.colors.BRIGHT_CYAN, bold=True)
-        typer.secho(" (all input → web search)", fg=typer.colors.WHITE, dim=True)
-    else:
-        typer.secho("Mode: ", nl=False, fg=get_text_color())
-        typer.secho("💬 Chat", fg=typer.colors.BRIGHT_GREEN, bold=True)
-        typer.secho(" (input → LLM)", fg=typer.colors.WHITE, dim=True)
-    
-    typer.echo()  # Blank line for spacing
 
 
 def display_welcome():

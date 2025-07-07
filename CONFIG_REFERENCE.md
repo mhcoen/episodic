@@ -14,14 +14,42 @@ This document describes all configuration options available in Episodic.
 
 ## Setting Configuration
 
+### Model Selection
 ```bash
-# Set a single value
+# Show current chat model
+> /model
+
+# Show all models for all contexts
+> /model list
+
+# Set models for different contexts
+> /model chat gpt-4
+> /model detection ollama/llama3
+> /model compression gpt-3.5-turbo
+> /model synthesis claude-3-haiku
+```
+
+### Model Parameters
+```bash
+# Show all parameters
+> /mset
+
+# Show parameters for specific context
+> /mset chat
+> /mset detection
+
+# Set specific parameters
+> /mset chat.temperature 0.7
+> /mset detection.temperature 0
+> /mset compression.max_tokens 500
+> /mset synthesis.top_p 0.9
+```
+
+### Other Configuration
+```bash
+# Set general configuration values
 > /set debug true
 > /set min_messages_before_topic_change 10
-
-# Set model parameters
-> /model-params main
-> /model-params set main.temperature 0.7
 ```
 
 ## Configuration Categories
@@ -34,7 +62,10 @@ This document describes all configuration options available in Episodic.
 | `debug` | false | Enable debug output |
 | `show_cost` | false | Show cost after each response |
 | `show_drift` | true | Show drift scores in debug |
-| `model` | "gpt-3.5-turbo" | Default LLM model |
+| `model` | "gpt-3.5-turbo" | Chat (main conversation) model |
+| `topic_detection_model` | "ollama/llama3" | Topic detection model |
+| `compression_model` | "ollama/llama3" | Compression model |
+| `synthesis_model` | "gpt-3.5-turbo" | Web search synthesis model |
 | `context_depth` | 5 | Number of previous messages to include |
 | `cache_prompts` | true | Enable prompt caching |
 
@@ -79,21 +110,25 @@ This document describes all configuration options available in Episodic.
 ### Model Parameters
 
 Model parameters are organized by context:
-- `main_params` - Main conversation parameters
-- `topic_params` - Topic detection parameters
-- `compression_params` - Compression parameters
+- `chat` - Main conversation parameters (stored as `main_params`)
+- `detection` - Topic detection parameters (stored as `topic_params`)
+- `compression` - Compression parameters (stored as `compression_params`)
+- `synthesis` - Web synthesis parameters (stored as `synthesis_params`)
 
 Each supports:
-- `temperature` (0.0-2.0)
-- `max_tokens` (integer)
-- `top_p` (0.0-1.0)
-- `presence_penalty` (-2.0-2.0)
-- `frequency_penalty` (-2.0-2.0)
+- `temperature` (0.0-2.0) - Randomness/creativity
+- `max_tokens` (integer) - Maximum response length
+- `top_p` (0.0-1.0) - Nucleus sampling threshold
+- `presence_penalty` (-2.0-2.0) - Penalize repeated topics
+- `frequency_penalty` (-2.0-2.0) - Penalize repeated words
+
+Note: Some models don't support all parameters (e.g., Google Gemini doesn't support presence/frequency penalties)
 
 Example:
 ```bash
-> /model-params set main.temperature 0.8
-> /model-params set topic.temperature 0.0
+> /mset chat.temperature 0.8
+> /mset detection.temperature 0.0
+> /mset compression.max_tokens 500
 ```
 
 ## Environment Variables
@@ -118,7 +153,8 @@ Configuration is stored in the SQLite database in the `configuration` table. Cha
 ```bash
 /set min_messages_before_topic_change 6
 /set topic_window_size 4
-/model-params set topic.temperature 0.0
+/model detection ollama/llama3
+/mset detection.temperature 0.0
 ```
 
 ### For Faster Responses
@@ -131,7 +167,8 @@ Configuration is stored in the SQLite database in the `configuration` table. Cha
 ### For Cost Savings
 ```bash
 /set show_cost true
-/set compression_model "gpt-3.5-turbo"
+/model compression gpt-3.5-turbo
+/model detection ollama/llama3
 /set context_depth 3
 ```
 

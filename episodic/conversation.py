@@ -1167,9 +1167,6 @@ class ConversationManager:
                         # Add newline after streaming
                         typer.echo("")
                         
-                        # Add blank line after response (as requested by user)
-                        typer.echo("")
-                        
                         # For streaming, estimate token counts from the response we have
                         # This is approximate but avoids making a duplicate API call
                         from litellm import token_counter
@@ -1794,9 +1791,6 @@ class ConversationManager:
                 # Show topic evolution if enabled (after topic detection)
                 if config.get("show_topics", False):
                     _display_topic_evolution(assistant_node_id)
-                
-                # Add blank line after LLM response
-                typer.echo("")
                 
                 return assistant_node_id, display_response
 

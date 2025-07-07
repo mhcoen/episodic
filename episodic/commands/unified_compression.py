@@ -20,27 +20,27 @@ from .topics import compress_current_topic as compress_topic_impl
 
 
 def compression_command(
-    action: str = typer.Argument("stats", help="Action: stats|queue|compress|api-stats|reset-api"),
-    # Compress-specific options
-    topic_name: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic name to compress"),
+    action: str = typer.Argument("stats", help="Action: stats|queue|api-stats|reset-api"),
     # Stats-specific options
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed statistics")
 ):
     """
-    Unified compression management command.
+    Compression information and management command.
     
     Actions:
       stats       - Show compression statistics (default)
       queue       - Show pending compressions
-      compress    - Manually compress a topic or branch
       api-stats   - Show API call statistics
       reset-api   - Reset API call statistics
       
     Examples:
       /compression                    # Show compression stats
       /compression queue              # Show pending compressions
-      /compression compress --topic "machine-learning"
       /compression api-stats          # Show API usage
+      
+    For actual compression, use:
+      /compress                      # Compress current branch
+      /compress-current-topic        # Compress current topic
     """
     
     if action == "stats":
@@ -48,14 +48,6 @@ def compression_command(
         
     elif action == "queue":
         queue_impl()
-        
-    elif action == "compress":
-        if topic_name:
-            # Compress specific topic
-            compress_impl(topic_name)
-        else:
-            # Compress current topic
-            compress_topic_impl()
             
     elif action == "api-stats":
         api_stats_impl()
@@ -65,7 +57,7 @@ def compression_command(
         
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.echo("\nAvailable actions: stats, queue, compress, api-stats, reset-api")
+        typer.echo("\nAvailable actions: stats, queue, api-stats, reset-api")
 
 
 # Backward compatibility aliases

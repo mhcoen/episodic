@@ -110,6 +110,8 @@ def register_all_commands():
     # Import unified commands
     from episodic.commands.unified_topics import topics_command
     from episodic.commands.unified_compression import compression_command
+    from episodic.commands.unified_model import model_command
+    from episodic.commands.mset import mset_command
     
     # Import RAG commands
     try:
@@ -147,7 +149,7 @@ def register_all_commands():
     )
     command_registry.register(
         "compression", compression_command,
-        "Manage compression (stats/queue/compress)",
+        "Compression info (stats/queue/api-stats)",
         "Compression"  
     )
     
@@ -156,12 +158,14 @@ def register_all_commands():
     command_registry.register("set", set, "Configure parameters", "Configuration")
     command_registry.register("verify", verify, "Verify configuration", "Configuration")
     command_registry.register("cost", cost, "Show session cost", "Configuration")
-    command_registry.register("model-params", model_params, "Show/set model parameters", "Configuration", aliases=["mp"])
+    command_registry.register("model-params", model_params, "Show/set model parameters", "Configuration", 
+                            aliases=["mp"], deprecated=True, replacement="mset")
     command_registry.register("config-docs", config_docs, "Show configuration documentation", "Configuration")
     command_registry.register("reset", reset, "Reset parameters to defaults", "Configuration")
     
-    # Register other commands
-    command_registry.register("model", handle_model, "Switch or show language model", "Conversation")
+    # Register new unified model commands
+    command_registry.register("model", model_command, "Manage models for all contexts (chat/detection/compression/synthesis)", "Configuration")
+    command_registry.register("mset", mset_command, "Set model parameters (e.g., mset chat.temperature 0.7)", "Configuration")
     command_registry.register("prompt", prompts, "Manage system prompts", "Conversation", aliases=["prompts"])
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
     command_registry.register("muse", handle_muse, "Enable muse mode (web search for all input)", "Conversation")

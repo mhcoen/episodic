@@ -111,6 +111,17 @@ def show_help_with_categories():
     """Show basic help information with common commands."""
     typer.secho("\n⌨️ Type messages directly to chat.", fg=get_heading_color(), bold=True)
 
+    # Mode switching - most prominent
+    typer.secho("\n🎭 Mode Selection:", fg=get_heading_color(), bold=True)
+    mode_commands = [
+        ("/muse on", "Enable Muse mode (Perplexity-like web search)"),
+        ("/chat on", "Enable Chat mode (normal LLM conversation)"),
+    ]
+    
+    for cmd, desc in mode_commands:
+        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
     # Basic commands for new users
     typer.secho("\n🚀 Getting Started:", fg=get_heading_color(), bold=True)
     basic_commands = [

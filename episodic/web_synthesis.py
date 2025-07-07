@@ -250,6 +250,10 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
     # Just add a blank line before the answer
     typer.echo()
     
+    # Add sparkle emoji if in muse mode
+    if config.get("muse_mode", False):
+        typer.secho("✨ ", nl=False, fg=get_llm_color())
+    
     # Check if we need to stream
     if isinstance(answer, dict) and answer.get('streaming'):
         # Set up streaming

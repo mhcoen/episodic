@@ -129,6 +129,13 @@ def unified_stream_response(
                     # Determine if we're at the start of a line
                     line_start = (line_position == 0)
                     
+                    # Handle newline-only words specially
+                    if word == '\n':
+                        typer.echo()
+                        line_position = 0
+                        in_list_item = False
+                        continue
+                    
                     # Check if starting a numbered list item
                     is_numbered_list_start = False
                     if line_start and len(word) > 0:
@@ -224,14 +231,20 @@ def unified_stream_response(
                     # Accumulate text to handle word boundaries properly
                     accumulated_text += chunk_content
                     
-                    # Split into words while preserving whitespace context
+                    # Split into words while preserving whitespace context including multiple newlines
                     import re
-                    words = re.findall(r'\S+\s*|\n', accumulated_text)
+                    # This regex captures: non-whitespace followed by spaces, or sequences of newlines
+                    words = re.findall(r'\S+\s*|\n+', accumulated_text)
                     
                     # Process complete words (those with trailing space or newline)
-                    while words and (words[0].endswith(' ') or words[0].endswith('\n') or len(words) > 1):
+                    while words and (words[0].endswith(' ') or '\n' in words[0] or len(words) > 1):
                         word = words.pop(0)
-                        word_queue.put(word.rstrip())  # Put word without trailing space
+                        # For newline sequences, preserve them entirely
+                        if word.strip() == '':  # Just newlines
+                            for nl in word:
+                                word_queue.put('\n')
+                        else:
+                            word_queue.put(word.rstrip())  # Put word without trailing space
                         accumulated_text = accumulated_text[len(word):]
                     
                     # Keep any incomplete word for next iteration
@@ -266,14 +279,20 @@ def unified_stream_response(
                 # Accumulate text to handle word boundaries properly
                 accumulated_text += chunk_content
                 
-                # Split into words while preserving whitespace context
+                # Split into words while preserving whitespace context including multiple newlines
                 import re
-                words = re.findall(r'\S+\s*|\n', accumulated_text)
+                # This regex captures: non-whitespace followed by spaces, or sequences of newlines
+                words = re.findall(r'\S+\s*|\n+', accumulated_text)
                 
                 # Process complete words (those with trailing space or newline)
-                while words and (words[0].endswith(' ') or words[0].endswith('\n') or len(words) > 1):
+                while words and (words[0].endswith(' ') or '\n' in words[0] or len(words) > 1):
                     word = words.pop(0)
-                    word_buffer.append(word.rstrip())  # Add word without trailing space
+                    # For newline sequences, preserve them entirely
+                    if word.strip() == '':  # Just newlines
+                        for nl in word:
+                            word_buffer.append('\n')
+                    else:
+                        word_buffer.append(word.rstrip())  # Add word without trailing space
                     accumulated_text = accumulated_text[len(word):]
                 
                 # Keep any incomplete word for next iteration
@@ -289,6 +308,15 @@ def unified_stream_response(
         # Process buffered words
         while word_buffer:
             word = word_buffer.pop(0)
+            
+            # Handle newline-only words specially
+            if word == '\n':
+                typer.echo()
+                current_position = 0
+                line_start = True
+                in_numbered_list = False
+                time.sleep(interval)
+                continue
             
             # Check if starting numbered list
             if line_start and len(word) > 0:

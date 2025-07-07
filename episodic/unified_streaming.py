@@ -233,6 +233,8 @@ def unified_stream_response(
                     
                     # Split into words while preserving whitespace context including multiple newlines
                     import re
+                    
+                    
                     # This regex captures: non-whitespace followed by spaces, or sequences of newlines
                     words = re.findall(r'\S+\s*|\n+', accumulated_text)
                     
@@ -281,6 +283,8 @@ def unified_stream_response(
                 
                 # Split into words while preserving whitespace context including multiple newlines
                 import re
+                
+                
                 # This regex captures: non-whitespace followed by spaces, or sequences of newlines
                 words = re.findall(r'\S+\s*|\n+', accumulated_text)
                 
@@ -480,4 +484,19 @@ def unified_stream_response(
         # Final newline
         typer.echo("")
     
-    return ''.join(full_response_parts)
+    # Join the full response
+    full_response = ''.join(full_response_parts)
+    
+    # Post-process to ensure markdown headers have proper spacing
+    # This ensures headers (###, ##, etc.) always have a blank line before them
+    # unless they're at the start of the text or already have proper spacing
+    import re
+    
+    # Replace any header that doesn't have double newline before it (except at start)
+    # This matches: any character that's not a newline, followed by a single newline, followed by headers
+    full_response = re.sub(r'([^\n\r])\n(#{1,6} )', r'\1\n\n\2', full_response)
+    
+    # Also handle case where header follows text with just a space
+    full_response = re.sub(r'([^\n\r]) (#{1,6} )', r'\1\n\n\2', full_response)
+    
+    return full_response

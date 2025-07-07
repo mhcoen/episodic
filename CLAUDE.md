@@ -280,13 +280,13 @@ Topic detection sensitivity varies drastically by model:
   - `compress` - Manual compression
   - `api-stats` - API usage stats
   - `reset-api` - Reset API stats
-- `/settings` - Settings management:
-  - `show` (default) - Show all settings
-  - `set <param> <value>` - Set parameter
-  - `verify` - Verify configuration
-  - `cost` - Show session costs
-  - `params` - Model parameters
-  - `docs` - Configuration docs
+#### Settings and Configuration Commands
+- `/set <param> <value>` - Set a configuration parameter
+- `/verify` - Verify configuration
+- `/cost` - Show session costs
+- `/model-params` - Show/set model parameters for different contexts
+- `/config-docs` - Show configuration documentation
+- `/reset` - Reset configuration to defaults
 
 #### RAG (Knowledge Base) Commands
 - `/rag [on|off]` - Enable/disable RAG or show stats

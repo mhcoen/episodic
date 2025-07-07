@@ -38,10 +38,10 @@ def settings_command(
       docs    - Show configuration documentation
       
     Examples:
-      /settings                        # Show all settings
-      /settings set --param debug --value true
-      /settings params --set main      # Show main model params
-      /settings docs                   # Show config documentation
+      /set debug true                  # Set a parameter
+      /verify                          # Verify configuration
+      /model-params main               # Show main model params
+      /config-docs                     # Show config documentation
     """
     
     if action == "show":

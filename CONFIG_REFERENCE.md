@@ -5,13 +5,10 @@ This document describes all configuration options available in Episodic.
 ## Viewing Configuration
 
 ```bash
-# Show all current settings
-> /settings
-
 # Show configuration documentation
-> /settings docs
+> /config-docs
 
-# Show specific category
+# Show specific parameter value
 > /set topic_detection_model
 ```
 
@@ -19,8 +16,8 @@ This document describes all configuration options available in Episodic.
 
 ```bash
 # Set a single value
-> /settings set debug true
-> /settings set min_messages_before_topic_change 10
+> /set debug true
+> /set min_messages_before_topic_change 10
 
 # Set model parameters
 > /model-params main
@@ -119,40 +116,45 @@ Configuration is stored in the SQLite database in the `configuration` table. Cha
 
 ### For Better Topic Detection
 ```bash
-/settings set min_messages_before_topic_change 6
-/settings set topic_window_size 4
+/set min_messages_before_topic_change 6
+/set topic_window_size 4
 /model-params set topic.temperature 0.0
 ```
 
 ### For Faster Responses
 ```bash
-/settings set stream_responses false
-/settings set context_depth 3
-/settings set cache_prompts true
+/set stream_responses false
+/set context_depth 3
+/set cache_prompts true
 ```
 
 ### For Cost Savings
 ```bash
-/settings set show_cost true
-/settings set compression_model "gpt-3.5-turbo"
-/settings set context_depth 3
+/set show_cost true
+/set compression_model "gpt-3.5-turbo"
+/set context_depth 3
 ```
 
 ### For Debugging
 ```bash
-/settings set debug true
-/settings set show_drift true
-/settings set show_benchmarks true
+/set debug true
+/set show_drift true
+/set show_benchmarks true
 ```
 
 ## Resetting Configuration
 
 To reset a value to default:
 ```bash
-/settings set parameter_name
+/reset parameter_name
 ```
 
 To reset all configuration:
+```bash
+/reset all
+```
+
+To reset everything including conversation history:
 ```bash
 /init --erase  # WARNING: This erases everything!
 ```

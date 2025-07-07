@@ -128,6 +128,7 @@ def register_all_commands():
             websearch, websearch_command, websearch_toggle, 
             websearch_config, websearch_stats, websearch_cache_clear
         )
+        from episodic.commands.web_provider import web_command
         websearch_available = True
     except ImportError:
         websearch_available = False
@@ -184,6 +185,7 @@ def register_all_commands():
     
     # Register web search commands if available
     if websearch_available:
+        command_registry.register("web", web_command, "Manage web search providers", "Configuration")
         command_registry.register("websearch", websearch_command, "Search the web (config/synthesis/stats/cache)", "Knowledge Base", aliases=["ws"])
 
 

@@ -256,12 +256,19 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
     
     # Check if we need to stream
     if isinstance(answer, dict) and answer.get('streaming'):
-        # Set up streaming
+        # Instead of using our own streaming, let's use the conversation manager's
+        # streaming to ensure consistent formatting including numbered list bolding
+        from episodic.conversation import conversation_manager
+        
+        # The conversation manager expects the response to come from an LLM query,
+        # so we need to make this synthesis look like a regular LLM response
         messages = [
             {"role": "system", "content": answer['system_message']},
             {"role": "user", "content": answer['prompt']}
         ]
         
+        # Let the conversation manager handle the streaming with all its formatting
+        from episodic.llm import _execute_llm_query
         stream_generator, _ = _execute_llm_query(
             messages,
             model=answer['model'],
@@ -270,8 +277,9 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
             stream=True
         )
         
-        # Stream with word wrap using LLM color
-        stream_with_word_wrap(stream_generator, answer['model'], color=get_llm_color())
+        # Use unified streaming for consistent formatting
+        from episodic.unified_streaming import unified_stream_response
+        unified_stream_response(stream_generator, answer['model'])
     else:
         # Use the unified formatter for consistent display with LLM color
         format_and_display_text(
@@ -280,9 +288,11 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
             value_color=get_system_color()  # Use system color for values after colons
         )
     
+    # Add blank line after response
+    typer.echo()
+    
     # Display sources only if configured to show them
     if config.get('web_show_sources', False):
-        typer.echo()  # Blank line
         typer.secho("Sources:", fg=get_system_color(), bold=True)
         for i, source in enumerate(sources, 1):
             typer.secho(f"  [{i}] {source.title}", fg=get_text_color())

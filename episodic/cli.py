@@ -435,6 +435,12 @@ def handle_command(command_str: str) -> bool:
                     index_file(args[0])
         
         # Web search commands
+        elif cmd == "/web":
+            from episodic.commands.web_provider import web_command
+            subcommand = args[0] if args else None
+            provider_name = args[1] if len(args) > 1 else None
+            web_command(subcommand, provider_name)
+        
         elif cmd == "/websearch" or cmd == "/ws":
             from episodic.commands.web_search import websearch_command
             action = args[0] if args else None

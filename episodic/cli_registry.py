@@ -127,6 +127,7 @@ def show_help_with_categories():
     basic_commands = [
         ("/init", "Initialize the database"),
         ("/model", "Show/change current chat model"),
+        ("/web", "Manage web search providers"),
     ]
     
     for cmd, desc in basic_commands:

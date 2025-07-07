@@ -104,9 +104,9 @@ Please structure the summary clearly with sections if there are multiple distinc
                     stream=True
                 )
                 
-                # Process the stream with word wrapping
-                from episodic.text_formatter import stream_with_word_wrap
-                display_response = stream_with_word_wrap(stream_generator, model, color=get_llm_color())
+                # Use unified streaming for consistent formatting
+                from episodic.unified_streaming import unified_stream_response
+                display_response = unified_stream_response(stream_generator, model, prefix="📝 ")
                 
                 # Calculate cost info for streaming response
                 from litellm import token_counter, cost_per_token

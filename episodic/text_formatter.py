@@ -246,7 +246,7 @@ def display_markdown(text: str, base_color: Optional[str] = None,
 
 
 def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = None, 
-                         wrap_width: Optional[int] = None) -> str:
+                         wrap_width: Optional[int] = None, prefix: Optional[str] = None) -> str:
     """
     Stream output with word wrapping and bold support.
     
@@ -281,7 +281,8 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
     in_header = False
     header_level = 0
     
-    for chunk in process_stream_response(stream_generator, model):
+    for chunk_data in process_stream_response(stream_generator, model):
+        chunk = chunk_data.get('content', '')
         full_response_parts.append(chunk)
         
         for char in chunk:
@@ -315,8 +316,12 @@ def stream_with_word_wrap(stream_generator, model: str, color: Optional[str] = N
                 if current_word:
                     # Check if this is a numbered list item at the start of a line
                     word_is_bold = in_bold or in_header
-                    if line_start and current_word.rstrip('.').isdigit():
-                        in_numbered_list = True  # Start bolding for numbered list
+                    # Check for numbered list: "1." or "1" at start of line
+                    if line_start and len(current_word) > 0:
+                        # Strip trailing period and check if it's a digit
+                        word_without_period = current_word.rstrip('.')
+                        if word_without_period.isdigit() and len(word_without_period) <= 2:
+                            in_numbered_list = True  # Start bolding for numbered list
                     
                     # Bold everything in numbered list until colon
                     if in_numbered_list:

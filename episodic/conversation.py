@@ -714,25 +714,15 @@ class ConversationManager:
                         # Display blank line before response
                         typer.echo("")
                         
-                        # Stream the response with proper formatting
-                        llm_color = get_llm_color()
-                        if isinstance(llm_color, str):
-                            llm_color = llm_color.lower()
-                        secho_color("🤖 ", fg=llm_color, nl=False)  # Robot emoji without newline
+                        # Use unified streaming for consistent formatting
+                        from episodic.unified_streaming import unified_stream_response
+                        display_response = unified_stream_response(stream, model, prefix="🤖 ")
                         
-                        # Process the stream and display it
-                        from episodic.llm import process_stream_response
-                        full_response_parts = []
+                        # Skip the old streaming implementation - the code below is disabled
+                        # because unified_stream_response handles all streaming modes now
                         
-                        # Get streaming rate configuration
-                        stream_rate = config.get("stream_rate", 15)  # Default to 15 words per second
-                        use_constant_rate = config.get("stream_constant_rate", False)
-                        use_natural_rhythm = config.get("stream_natural_rhythm", False)
-                        use_char_streaming = config.get("stream_char_mode", False)
-                        
-                        if config.get("debug"):
-                            debug_print(f"Streaming modes - char: {use_char_streaming}, natural: {use_natural_rhythm}, constant: {use_constant_rate}")
-                        
+                        # OLD STREAMING CODE STARTS HERE - DISABLED
+                        """
                         if False:  # Disabled character streaming
                             pass
                             
@@ -1166,6 +1156,8 @@ class ConversationManager:
                         display_response = ''.join(full_response_parts)                        
                         # Add newline after streaming
                         typer.echo("")
+                        """
+                        # END OF OLD STREAMING CODE
                         
                         # For streaming, estimate token counts from the response we have
                         # This is approximate but avoids making a duplicate API call

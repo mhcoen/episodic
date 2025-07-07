@@ -77,6 +77,8 @@ def unified_stream_response(
         margin = 4
         max_width = 100
         wrap_width = min(terminal_width - margin, max_width)
+        if config.get("debug"):
+            debug_print(f"Terminal width: {terminal_width}, wrap width: {wrap_width}")
     
     # Determine delay calculation method
     if stream_rate <= 0:
@@ -192,6 +194,7 @@ def unified_stream_response(
                            in_bold, in_numbered_list, in_list_item, in_header)
                 current_position = 0
                 line_start = True
+                # Reset all formatting states on newline
                 in_list_item = False
                 in_numbered_list = False
                 in_header = False
@@ -235,6 +238,10 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     Returns:
         tuple: (new_position, new_line_start, new_in_bold, new_in_numbered_list, new_in_list_item, new_in_header)
     """
+    # Debug output
+    if config.get("debug", False) and word != '\n' and not word.isspace():
+        debug_print(f"Word: '{word}', line_start={line_start}, in_header={in_header}, in_numbered={in_numbered_list}, in_list={in_list_item}", indent=True)
+    
     # Handle newline-only words specially
     if word == '\n':
         typer.echo()
@@ -248,10 +255,16 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
             is_numbered_list_start = True
             in_numbered_list = True
     
-    # Check if this is a markdown header
+    # Check if this is a markdown header and remove the ### prefix
     is_header_start = line_start and word.startswith('#')
     if is_header_start:
         in_header = True
+        # Remove the ### prefix from the word
+        word = word.lstrip('#').lstrip()  # Remove # symbols and any following space
+        if not word:  # If word was just ###, skip it
+            return current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header
+        if config.get("debug", False):
+            debug_print(f"Detected header start, cleaned word: '{word}'", indent=True)
     
     # Check if starting a bulleted list
     is_bullet = line_start and word == '-'
@@ -264,8 +277,14 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     # Determine if word should be bold
     word_is_bold = in_bold or in_list_item or in_numbered_list or in_header
     
+    # Debug: Print headers and lists with a marker when debug is enabled
+    if config.get("debug", False) and line_start and (word.startswith('#') or word.rstrip('.').isdigit() or word == '-'):
+        typer.echo(f"\n[DEBUG] Word '{word}' at line_start, states: header={in_header}, num={in_numbered_list}, list={in_list_item}, bold={word_is_bold}", err=True)
+    
     # Check if we need to wrap
     if wrap_width and current_position > 0 and current_position + len(word) + 1 > wrap_width:
+        if config.get("debug", False):
+            debug_print(f"Wrapping: pos={current_position}, word_len={len(word)}, wrap_width={wrap_width}", indent=True)
         secho_color('\n', fg=color, nl=False)
         current_position = 0
         line_start = True
@@ -283,7 +302,30 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         display_word = word.replace('**', '')
     
     # Print the word
-    secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
+    if config.get("debug", False) and word_is_bold:
+        debug_print(f"Printing '{display_word}' with bold=True", indent=True)
+    
+    # Print with proper ANSI codes
+    if word_is_bold:
+        # Use raw ANSI codes to ensure bold works with color
+        import sys
+        color_codes = {
+            'cyan': '\033[36m',
+            'green': '\033[32m',
+            'yellow': '\033[33m',
+            'blue': '\033[34m',
+            'magenta': '\033[35m',
+            'red': '\033[31m',
+            'white': '\033[37m',
+        }
+        color_code = color_codes.get(color, '\033[37m')  # Default to white
+        # Print with color + bold using raw output
+        sys.stdout.write(f"{color_code}\033[1m{display_word}\033[0m")
+        sys.stdout.flush()
+    else:
+        # Use normal secho for non-bold text
+        secho_color(display_word, fg=color, nl=False, bold=False)
+    
     current_position += len(display_word)
     line_start = False
     

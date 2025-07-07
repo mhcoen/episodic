@@ -1,0 +1,34 @@
+> /muse on
+✓ Web search enabled automatically
+🎭 Muse mode ENABLED
+All input will be treated as web search queries
+(Like Perplexity - synthesized answers from web search)
+> what are the top movies out now?
+
+✨ If you're looking to catch a movie in theaters right now, there are several popular
+options that are generating buzz among audiences and critics alike. Here's a look at
+some of the top movies currently showing:
+
+### Top Movies in Theaters
+
+1. F1 The Movie (2025)
+- Overview: This film is gaining attention for its engaging storyline and Brad Pitt's
+charismatic performance. It combines the thrill of Formula 1 racing with a compelling
+narrative.
+- Reception: It holds an 83% rating on Rotten Tomatoes, indicating generally
+favorable reviews from critics [Source 1].
+
+2. 28 Years Later
+- Overview: This is a highly anticipated sequel in the zombie genre, continuing the
+story from the popular "28 Days Later" series.
+- Buzz: It is noted as one of the best zombie movies currently available, attracting
+fans of the genre [Source 1].
+
+### Other Noteworthy Releases
+
+- M3GAN 2.0: This sequel builds on the success of its predecessor, offering a mix of
+horror and science fiction elements that have captivated audiences [Source 1].
+- Classic Re-releases: Some theaters are also showcasing re-releases of classic
+films, providing a nostalgic experience for moviegoers [Source 3].
+
+> 

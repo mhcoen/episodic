@@ -4,8 +4,6 @@ to be used by all streaming outputs (LLM, Muse, Summary, etc.)
 """
 
 import time
-import queue
-import threading
 import math
 import random
 from typing import Optional, List, Generator
@@ -80,434 +78,131 @@ def unified_stream_response(
         max_width = 100
         wrap_width = min(terminal_width - margin, max_width)
     
-    if use_natural_rhythm and stream_rate > 0:
-        # Use natural rhythm streaming with sinusoidal variation
-        word_queue = queue.Queue()
-        stop_event = threading.Event()
+    # Determine delay calculation method
+    if stream_rate <= 0:
+        # Immediate mode - no delays
+        calculate_delay = lambda elapsed, word: 0
+    elif use_natural_rhythm:
+        # Natural rhythm with sinusoidal variation
+        base_interval = 1.0 / stream_rate
+        amplitude = base_interval * 0.3  # 30% variation
+        period = 4.0  # 4-second cycle (like breathing)
         
-        # Function to print words with natural rhythm
-        def natural_rhythm_printer():
-            import math
-            import random
+        def calculate_delay(elapsed: float, word: str) -> float:
+            rhythm_factor = math.sin(2 * math.pi * elapsed / period)
+            interval = base_interval + amplitude * rhythm_factor
+            # Add slight random variation
+            interval = max(0.02, interval + random.uniform(-0.02, 0.02))
             
-            current_line = ""
-            line_position = 0
-            in_bold = False
-            in_list_item = False
-            list_indent = 0
-            words_per_second = stream_rate
-            base_interval = 1.0 / words_per_second  # Base interval in seconds
-            
-            # Rhythm parameters
-            amplitude = base_interval * 0.3  # 30% variation
-            period = 4.0  # 4-second cycle (like breathing)
-            start_time = time.time()
-            
-            # Punctuation delays (in seconds)
+            # Add punctuation delays
             punctuation_delays = {
-                '.': 0.3,
-                '!': 0.3,
-                '?': 0.3,
-                ':': 0.2,
-                ';': 0.2,
-                ',': 0.1,
-                '\n': 0.4
+                '.': 0.3, '!': 0.3, '?': 0.3,
+                ':': 0.2, ';': 0.2, ',': 0.1, '\n': 0.4
             }
-            
-            while not stop_event.is_set() or not word_queue.empty():
-                try:
-                    word = word_queue.get(timeout=0.1)
-                    
-                    # Calculate delay with natural rhythm
-                    elapsed = time.time() - start_time
-                    rhythm_factor = math.sin(2 * math.pi * elapsed / period)
-                    interval = base_interval + amplitude * rhythm_factor
-                    
-                    # Add slight random variation
-                    interval = max(0.02, interval + random.uniform(-0.02, 0.02))
-                    
-                    # Determine if we're at the start of a line
-                    line_start = (line_position == 0)
-                    
-                    # Handle newline-only words specially
-                    if word == '\n':
-                        typer.echo()
-                        line_position = 0
-                        line_start = True  # Next word will be at start of line
-                        in_list_item = False
-                        continue
-                    
-                    # Check if starting a numbered list item
-                    is_numbered_list_start = False
-                    if line_start and len(word) > 0:
-                        word_without_period = word.rstrip('.')
-                        if word_without_period.isdigit() and len(word_without_period) <= 2:
-                            is_numbered_list_start = True
-                            in_list_item = True  # Start bolding
-                    
-                    # Check if this is a markdown header
-                    is_header = line_start and word.startswith('#')
-                    
-                    # Check if starting a bulleted list
-                    is_bullet = line_start and word == '-'
-                    if is_bullet:
-                        in_list_item = True
-                    
-                    # Strip bold markers to check for colon
-                    word_without_bold = word.replace('**', '')
-                    
-                    # Determine if word should be bold
-                    word_is_bold = in_bold or (in_list_item and not word_without_bold.endswith(':')) or is_header
-                    
-                    # Don't add indentation - let the content naturally flow
-                    
-                    # Check if we need to wrap
-                    if wrap_width and line_position > 0 and line_position + len(word) + 1 > wrap_width:
-                        secho_color('\n', fg=color, nl=False)
-                        line_position = 0
-                        line_start = True  # Next word will be at start of line
-                    
-                    # Add space before word if needed
-                    if line_position > 0:
-                        secho_color(' ', fg=color, nl=False)
-                        line_position += 1
-                    
-                    # Handle bold markers
-                    display_word = word
-                    if '**' in word:
-                        # Process bold markers but don't toggle in_bold state
-                        # since we're handling bold based on list/header state
-                        display_word = word.replace('**', '')
-                    
-                    # Print the word
-                    secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
-                    line_position += len(display_word)
-                    line_start = False  # We've printed a word, no longer at line start
-                    
-                    # Check for line breaks in word
-                    if '\n' in display_word:
-                        last_newline = display_word.rfind('\n')
-                        line_position = len(display_word) - last_newline - 1
-                        line_start = True  # After newline, we're at line start
-                        in_list_item = False  # Reset list state on explicit newline
-                    
-                    # Check if word ends with colon to stop list bolding
-                    if display_word.endswith(':') and in_list_item:
-                        in_list_item = False
-                    
-                    # Apply delay
-                    time.sleep(interval)
-                    
-                    # Check for punctuation delays
-                    for punct, delay in punctuation_delays.items():
-                        if display_word.rstrip().endswith(punct):
-                            time.sleep(delay)
-                            break
-                            
-                except queue.Empty:
-                    continue
-                except Exception as e:
-                    if config.get("debug"):
-                        debug_print(f"Natural rhythm printer error: {e}")
+            for punct, delay in punctuation_delays.items():
+                if word.rstrip().endswith(punct):
+                    interval += delay
                     break
-            
-            # Ensure we have a newline at the end if needed
-            if line_position > 0:
-                typer.echo("")
-        
-        # Start the printer thread
-        printer_thread = threading.Thread(target=natural_rhythm_printer)
-        printer_thread.daemon = True
-        printer_thread.start()
-        
-        # Feed words to the queue
-        try:
-            accumulated_text = ""
-            for chunk_content in process_stream_response(stream_generator, model):
-                if chunk_content:
-                    full_response_parts.append(chunk_content)
-                    # Accumulate text to handle word boundaries properly
-                    accumulated_text += chunk_content
-                    
-                    # Process accumulated text into words
-                    # We want to send complete words to the printer, but keep partial words
-                    # for the next iteration to avoid breaking words mid-stream
-                    
-                    # Find the last space or newline in the accumulated text
-                    last_break = max(
-                        accumulated_text.rfind(' '),
-                        accumulated_text.rfind('\n')
-                    )
-                    
-                    if last_break > 0:
-                        # We have at least one complete word
-                        complete_text = accumulated_text[:last_break + 1]
-                        remaining_text = accumulated_text[last_break + 1:]
-                        
-                        # Split complete text into words, preserving structure
-                        import re
-                        # This regex better preserves the original structure
-                        words = re.split(r'(\s+)', complete_text)
-                        
-                        for word in words:
-                            if word:  # Skip empty strings from split
-                                if word.isspace():
-                                    # Handle whitespace specially
-                                    if '\n' in word:
-                                        # Send each newline separately
-                                        for char in word:
-                                            if char == '\n':
-                                                word_queue.put('\n')
-                                            # Ignore other whitespace between words
-                                else:
-                                    # Regular word
-                                    word_queue.put(word)
-                        
-                        accumulated_text = remaining_text
-                    elif '\n' in accumulated_text:
-                        # Special case: even if we don't have a space, process newlines
-                        parts = accumulated_text.split('\n', 1)
-                        if parts[0]:
-                            word_queue.put(parts[0])
-                        word_queue.put('\n')
-                        accumulated_text = parts[1] if len(parts) > 1 else ""
-            
-            # Process any remaining text
-            if accumulated_text.strip():
-                word_queue.put(accumulated_text.strip())
-        finally:
-            stop_event.set()
-            # Wait for printer thread to finish completely
-            # Don't use timeout - we need to ensure all text is printed
-            printer_thread.join()
-            
-    elif use_constant_rate and stream_rate > 0:
-        # Constant rate streaming
-        word_buffer = []
-        words_per_second = stream_rate
-        interval = 1.0 / words_per_second
-        
-        current_position = 0
-        line_start = True
-        in_bold = False
-        in_numbered_list = False
-        in_list_item = False
-        
-        accumulated_text = ""
-        for chunk_content in process_stream_response(stream_generator, model):
-            if chunk_content:
-                full_response_parts.append(chunk_content)
-                
-                # Accumulate text to handle word boundaries properly
-                accumulated_text += chunk_content
-                
-                # Process accumulated text into words
-                # Find the last space or newline in the accumulated text
-                last_break = max(
-                    accumulated_text.rfind(' '),
-                    accumulated_text.rfind('\n')
-                )
-                
-                if last_break > 0:
-                    # We have at least one complete word
-                    complete_text = accumulated_text[:last_break + 1]
-                    remaining_text = accumulated_text[last_break + 1:]
-                    
-                    # Split complete text into words, preserving structure
-                    import re
-                    words = re.split(r'(\s+)', complete_text)
-                    
-                    for word in words:
-                        if word:  # Skip empty strings from split
-                            if word.isspace():
-                                # Handle whitespace specially
-                                if '\n' in word:
-                                    # Add each newline separately
-                                    for char in word:
-                                        if char == '\n':
-                                            word_buffer.append('\n')
-                                        # Ignore other whitespace between words
-                            else:
-                                # Regular word
-                                word_buffer.append(word)
-                    
-                    accumulated_text = remaining_text
-                elif '\n' in accumulated_text:
-                    # Special case: process newlines even without space
-                    parts = accumulated_text.split('\n', 1)
-                    if parts[0]:
-                        word_buffer.append(parts[0])
-                    word_buffer.append('\n')
-                    accumulated_text = parts[1] if len(parts) > 1 else ""
-        
-        # Process any remaining text
-        if accumulated_text.strip():
-            word_buffer.append(accumulated_text.strip())
-        
-        # Process buffered words
-        while word_buffer:
-            word = word_buffer.pop(0)
-            
-            # Handle newline-only words specially
-            if word == '\n':
-                typer.echo()
-                current_position = 0
-                line_start = True
-                in_numbered_list = False
-                in_list_item = False
-                time.sleep(interval)
-                continue
-            
-            # Check if starting numbered list
-            if line_start and len(word) > 0:
-                word_without_period = word.rstrip('.')
-                if word_without_period.isdigit() and len(word_without_period) <= 2:
-                    in_numbered_list = True
-            
-            # Check if this is a markdown header
-            is_header = line_start and word.startswith('#')
-            
-            # Check if starting a bulleted list  
-            is_bullet = line_start and word == '-'
-            if is_bullet:
-                in_list_item = True
-            
-            # Determine if bold
-            word_is_bold = in_bold or in_numbered_list or is_header or in_list_item
-            
-            # Handle bold markers
-            display_word = word
-            if '**' in word:
-                # Process bold markers but don't toggle in_bold state
-                # since we're handling bold based on list/header state
-                display_word = word.replace('**', '')
-            
-            # Check if we need to wrap
-            if wrap_width and current_position > 0 and current_position + len(display_word) + 1 > wrap_width:
-                typer.echo()
-                current_position = 0
-                line_start = True
-            
-            # Add space if needed
-            if current_position > 0:
-                secho_color(' ', fg=color, nl=False)
-                current_position += 1
-            
-            # Print word
-            secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
-            current_position += len(display_word)
-            line_start = False
-            
-            # Check if word ends with colon
-            if display_word.endswith(':') and in_numbered_list:
-                in_numbered_list = False
-            
-            if display_word.endswith(':') and in_list_item:
-                in_list_item = False
-            
-            # Check for newlines
-            if '\n' in display_word:
-                current_position = 0
-                line_start = True
-                in_numbered_list = False
-            
-            time.sleep(interval)
-        
-        # Final newline if needed
-        if current_position > 0:
-            typer.echo("")
-            
+            return interval
     else:
-        # Immediate display (no rate limiting) - most detailed logic
-        current_position = 0
-        line_start = True
-        in_bold = False
-        in_numbered_list = False
-        in_list_item = False
-        current_word = ""
-        
-        for chunk_content in process_stream_response(stream_generator, model):
-            if chunk_content:
-                full_response_parts.append(chunk_content)
+        # Constant rate streaming
+        interval = 1.0 / stream_rate
+        calculate_delay = lambda elapsed, word: interval
+    
+    # State tracking
+    current_position = 0
+    line_start = True
+    in_bold = False
+    in_numbered_list = False
+    in_list_item = False
+    accumulated_text = ""
+    start_time = time.time()
+    
+    # Process stream
+    for chunk_content in process_stream_response(stream_generator, model):
+        if chunk_content:
+            full_response_parts.append(chunk_content)
+            accumulated_text += chunk_content
+            
+            # Process accumulated text into words
+            # Find the last space or newline in the accumulated text
+            last_break = max(
+                accumulated_text.rfind(' '),
+                accumulated_text.rfind('\n')
+            )
+            
+            if last_break > 0:
+                # We have at least one complete word
+                complete_text = accumulated_text[:last_break + 1]
+                remaining_text = accumulated_text[last_break + 1:]
                 
-                # Process character by character
-                for char in chunk_content:
-                    # Skip processing bold markers - we'll strip them from words
-                    if current_word.endswith('*') and char == '*':
-                        current_word += char
-                        continue
-                    
-                    # Check for word boundary
-                    if char in ' \n\t':
-                        # End of word
-                        if current_word:
-                            # Check if starting numbered list
-                            if line_start and current_word.rstrip('.').isdigit():
-                                in_numbered_list = True
+                # Split complete text into words, preserving structure
+                import re
+                words = re.split(r'(\s+)', complete_text)
+                
+                for word in words:
+                    if word:  # Skip empty strings from split
+                        if word.isspace():
+                            # Handle whitespace specially
+                            if '\n' in word:
+                                # Process each newline
+                                for char in word:
+                                    if char == '\n':
+                                        _print_word('\n', color, wrap_width, 
+                                                   current_position, line_start,
+                                                   in_bold, in_numbered_list, in_list_item)
+                                        current_position = 0
+                                        line_start = True
+                                        in_list_item = False
+                                        in_numbered_list = False
+                                # Ignore other whitespace between words
+                        else:
+                            # Regular word - print it
+                            current_position, line_start, in_bold, in_numbered_list, in_list_item = \
+                                _print_word(word, color, wrap_width, 
+                                          current_position, line_start,
+                                          in_bold, in_numbered_list, in_list_item)
                             
-                            # Check if this is a markdown header
-                            is_header = line_start and current_word.startswith('#')
-                            
-                            # Check if starting a bulleted list
-                            is_bullet = line_start and current_word == '-'
-                            if is_bullet:
-                                in_list_item = True
-                            
-                            word_is_bold = in_bold or in_numbered_list or is_header or in_list_item
-                            
-                            # Wrap if needed
-                            if wrap_width and current_position > 0 and current_position + len(current_word) + 1 > wrap_width:
-                                typer.echo()
-                                current_position = 0
-                                line_start = True
-                            
-                            if current_position > 0:
-                                secho_color(' ', fg=color, nl=False)
-                                current_position += 1
-                            
-                            # Strip bold markers from display
-                            display_word = current_word.replace('**', '')
-                            secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
-                            current_position += len(display_word)
-                            
-                            if current_word.endswith(':') and in_numbered_list:
-                                in_numbered_list = False
-                            
-                            if current_word.endswith(':') and in_list_item:
-                                in_list_item = False
-                            
-                            current_word = ""
-                            line_start = False
-                        
-                        # Handle the whitespace
-                        if char == '\n':
-                            typer.echo()
-                            current_position = 0
-                            line_start = True
-                            in_numbered_list = False
-                            in_list_item = False
-                    else:
-                        # Accumulate character
-                        current_word += char
-        
-        # Print any remaining word
-        if current_word:
-            if line_start and current_word.rstrip('.').isdigit():
-                in_numbered_list = True
-            
-            word_is_bold = in_bold or in_numbered_list
-            
-            if wrap_width and current_position > 0 and current_position + len(current_word) + 1 > wrap_width:
-                typer.echo()
-            
-            if current_position > 0:
-                secho_color(' ', fg=color, nl=False)
-            
-            # Strip bold markers from display
-            display_word = current_word.replace('**', '')
-            secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
-        
-        # Final newline
+                            # Apply delay
+                            elapsed = time.time() - start_time
+                            delay = calculate_delay(elapsed, word)
+                            if delay > 0:
+                                time.sleep(delay)
+                
+                accumulated_text = remaining_text
+            elif '\n' in accumulated_text:
+                # Special case: process newlines even without space
+                parts = accumulated_text.split('\n', 1)
+                if parts[0]:
+                    current_position, line_start, in_bold, in_numbered_list, in_list_item = \
+                        _print_word(parts[0], color, wrap_width,
+                                  current_position, line_start,
+                                  in_bold, in_numbered_list, in_list_item)
+                    # Apply delay
+                    elapsed = time.time() - start_time
+                    delay = calculate_delay(elapsed, parts[0])
+                    if delay > 0:
+                        time.sleep(delay)
+                
+                # Print newline
+                _print_word('\n', color, wrap_width,
+                           current_position, line_start,
+                           in_bold, in_numbered_list, in_list_item)
+                current_position = 0
+                line_start = True
+                in_list_item = False
+                in_numbered_list = False
+                accumulated_text = parts[1] if len(parts) > 1 else ""
+    
+    # Process any remaining text
+    if accumulated_text.strip():
+        current_position, line_start, in_bold, in_numbered_list, in_list_item = \
+            _print_word(accumulated_text.strip(), color, wrap_width,
+                      current_position, line_start,
+                      in_bold, in_numbered_list, in_list_item)
+    
+    # Final newline if needed
+    if current_position > 0:
         typer.echo("")
     
     # Join the full response
@@ -526,3 +221,80 @@ def unified_stream_response(
     full_response = re.sub(r'([^\n\r]) (#{1,6} )', r'\1\n\n\2', full_response)
     
     return full_response
+
+
+def _print_word(word: str, color: str, wrap_width: Optional[int],
+                current_position: int, line_start: bool,
+                in_bold: bool, in_numbered_list: bool, in_list_item: bool) -> tuple:
+    """
+    Print a single word with appropriate formatting.
+    
+    Returns:
+        tuple: (new_position, new_line_start, new_in_bold, new_in_numbered_list, new_in_list_item)
+    """
+    # Handle newline-only words specially
+    if word == '\n':
+        typer.echo()
+        return 0, True, in_bold, False, False
+    
+    # Check if starting a numbered list item
+    is_numbered_list_start = False
+    if line_start and len(word) > 0:
+        word_without_period = word.rstrip('.')
+        if word_without_period.isdigit() and len(word_without_period) <= 2:
+            is_numbered_list_start = True
+            in_numbered_list = True
+    
+    # Check if this is a markdown header
+    is_header = line_start and word.startswith('#')
+    
+    # Check if starting a bulleted list
+    is_bullet = line_start and word == '-'
+    if is_bullet:
+        in_list_item = True
+    
+    # Strip bold markers to check for colon
+    word_without_bold = word.replace('**', '')
+    
+    # Determine if word should be bold
+    word_is_bold = in_bold or in_list_item or in_numbered_list or is_header
+    
+    # Check if we need to wrap
+    if wrap_width and current_position > 0 and current_position + len(word) + 1 > wrap_width:
+        secho_color('\n', fg=color, nl=False)
+        current_position = 0
+        line_start = True
+    
+    # Add space before word if needed
+    if current_position > 0:
+        secho_color(' ', fg=color, nl=False)
+        current_position += 1
+    
+    # Handle bold markers
+    display_word = word
+    if '**' in word:
+        # Process bold markers but don't toggle in_bold state
+        # since we're handling bold based on list/header state
+        display_word = word.replace('**', '')
+    
+    # Print the word
+    secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
+    current_position += len(display_word)
+    line_start = False
+    
+    # Check for line breaks in word
+    if '\n' in display_word:
+        last_newline = display_word.rfind('\n')
+        current_position = len(display_word) - last_newline - 1
+        line_start = True
+        in_list_item = False
+        in_numbered_list = False
+    
+    # Check if word ends with colon to stop list bolding
+    if display_word.endswith(':'):
+        if in_list_item:
+            in_list_item = False
+        if in_numbered_list:
+            in_numbered_list = False
+    
+    return current_position, line_start, in_bold, in_numbered_list, in_list_item

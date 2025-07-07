@@ -100,6 +100,21 @@ tests/
 
 ## Current Session Context
 
+### Working Session (2025-01-07 continued)
+- Fixed unified streaming output formatting issues
+  - Headers (###) now display without markdown markers while keeping text bold
+  - Fixed typer/click ANSI code conflicts preventing bold+color combinations
+  - Solution: Use raw ANSI escape codes for bold text instead of click.style
+  - Bold formatting now works correctly for headers, numbered lists (1., 2.), and bullet lists (-)
+  - Lists are bold up to and including the colon
+- Diagnosed word wrap issues
+  - Terminal width detection working correctly (80 columns)
+  - Issue was hard line breaks in source text, not wrapping logic
+  - Created test files to verify formatting and terminal width detection
+- Added todo items for future muse enhancements:
+  - Incorporate previous query history into muse mode for context-aware responses
+  - Add support for additional web search providers beyond DuckDuckGo
+
 ### Working Session (2025-01-07)
 - Implemented RAG (Retrieval Augmented Generation) functionality
   - Core RAG module (`episodic/rag.py`) with ChromaDB vector database integration
@@ -392,6 +407,9 @@ pytest tests/unit -m "not slow"
 - **Configuration** (`config.py`): Application configuration management
 - **RAG System** (`rag.py`): Retrieval Augmented Generation with ChromaDB vector database
 - **RAG Utilities** (`rag_utils.py`): Common patterns and utilities for RAG functionality
+- **Web Search** (`web_search.py`): Web search integration with provider abstraction
+- **Web Synthesis** (`web_synthesis.py`): Muse mode for Perplexity-like web search synthesis
+- **Unified Streaming** (`unified_streaming.py`): Centralized streaming output with markdown formatting
 
 #### Key Design Patterns
 - **Thread-safe database operations**: Uses thread-local connections and context managers

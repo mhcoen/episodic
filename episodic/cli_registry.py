@@ -119,7 +119,9 @@ def show_help_with_categories():
     ]
     
     for cmd, desc in mode_commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        # Calculate padding to align descriptions at column 30
+        padding = ' ' * max(1, 30 - len(cmd) - 2)  # -2 for the "  " prefix
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Basic commands for new users
@@ -131,7 +133,8 @@ def show_help_with_categories():
     ]
     
     for cmd, desc in basic_commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Common conversation commands
@@ -143,7 +146,8 @@ def show_help_with_categories():
     ]
     
     for cmd, desc in conversation_commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     #   typer.secho("\n" + "─" * 60, fg=get_heading_color())
@@ -190,7 +194,8 @@ def show_advanced_help():
             if cmd_info.aliases:
                 cmd_display += f" (/{', /'.join(cmd_info.aliases)})"
             
-            typer.secho(f"  {cmd_display:<30} ", 
+            padding = ' ' * max(1, 30 - len(cmd_display) - 2)
+            typer.secho(f"  {cmd_display}{padding}", 
                        fg=get_system_color(), bold=True, nl=False)
             typer.secho(cmd_info.description, fg=get_text_color())
     

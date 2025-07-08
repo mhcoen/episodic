@@ -41,7 +41,8 @@ def help(advanced: bool = False):
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Conversation commands
@@ -58,7 +59,8 @@ def help(advanced: bool = False):
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Configuration commands
@@ -71,7 +73,8 @@ def help(advanced: bool = False):
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Document commands
@@ -83,7 +86,8 @@ def help(advanced: bool = False):
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Compression commands
@@ -98,7 +102,8 @@ def help(advanced: bool = False):
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Debug commands
@@ -108,7 +113,8 @@ def help(advanced: bool = False):
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     # Utility commands
@@ -118,11 +124,13 @@ def help(advanced: bool = False):
         ("/script <file>", "Execute commands from a file"),
         ("/save <file>", "Save session commands to script"),
         ("/help", "Show this help message"),
+        ("/help-reindex", "Reindex help documentation"),
         ("/exit, /quit, /q", "Exit the application"),
     ]
     
     for cmd, desc in commands:
-        typer.secho(f"  {cmd:<25} ", fg=get_system_color(), bold=True, nl=False)
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
     typer.secho("\n" + "=" * 60, fg=get_heading_color())

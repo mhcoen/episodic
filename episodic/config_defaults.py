@@ -104,6 +104,7 @@ RAG_DEFAULTS = {
     "rag_show_citations": True,  # Show which documents were used in responses
     "rag_citation_style": "inline",  # How to display citations: 'inline' or 'footnote'
     "rag_allowed_file_types": [".txt", ".md", ".pdf", ".rst"],  # Allowed file extensions for indexing
+    "rag_preserve_formatting": True,  # Use format-preserving chunking (v2)
 }
 
 # Web search settings

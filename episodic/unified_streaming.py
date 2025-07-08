@@ -27,7 +27,8 @@ def unified_stream_response(
     model: str,
     prefix: Optional[str] = None,
     color: Optional[str] = None,
-    wrap_width: Optional[int] = None
+    wrap_width: Optional[int] = None,
+    preserve_formatting: Optional[bool] = None
 ) -> str:
     """
     Unified streaming function that handles all response streaming with consistent formatting.
@@ -41,6 +42,8 @@ def unified_stream_response(
         prefix: Optional prefix to display before streaming (e.g., "🤖 ", "✨ ")
         color: Optional color override (defaults to LLM color)
         wrap_width: Optional wrap width override
+        preserve_formatting: If True, preserves indentation and multiple spaces. 
+                           If None, auto-detects based on content.
         
     Returns:
         The complete response text
@@ -58,6 +61,43 @@ def unified_stream_response(
         if isinstance(color, str):
             color = color.lower()
     
+    # Auto-detect if format preservation is needed
+    if preserve_formatting is None:
+        # Peek at the first chunk to decide
+        import itertools
+        stream_generator, peek_generator = itertools.tee(stream_generator)
+        first_chunk = ""
+        try:
+            for chunk in process_stream_response(peek_generator, model):
+                first_chunk += chunk
+                if len(first_chunk) > 200:  # Check first 200 chars
+                    break
+        except:
+            pass
+        
+        # Check for formatting indicators
+        formatting_indicators = [
+            '  /',      # Indented commands
+            '\n  ',     # Multi-space indentation
+            '    ',     # 4-space indentation
+            '\t',       # Tabs
+            '```',      # Code blocks
+            '|',        # Tables
+        ]
+        preserve_formatting = any(indicator in first_chunk for indicator in formatting_indicators)
+        
+        if config.get("debug"):
+            debug_print(f"Format preservation auto-detected: {preserve_formatting}")
+    
+    # Route to appropriate streaming function
+    if preserve_formatting:
+        # Import the format-preserving function
+        from episodic.unified_streaming_format import stream_with_format_preservation
+        return stream_with_format_preservation(
+            stream_generator, model, prefix, color, wrap_width
+        )
+    
+    # Continue with standard streaming
     # Process the stream and display it
     full_response_parts = []
     
@@ -98,8 +138,8 @@ def unified_stream_response(
             
             # Add punctuation delays
             punctuation_delays = {
-                '.': 0.3, '!': 0.3, '?': 0.3,
-                ':': 0.2, ';': 0.2, ',': 0.1, '\n': 0.4
+                '.': 0.1, '!': 0.1, '?': 0.1,
+                ':': 0.1, ';': 0.1, ',': 0.1, '\n': 0.1
             }
             for punct, delay in punctuation_delays.items():
                 if word.rstrip().endswith(punct):

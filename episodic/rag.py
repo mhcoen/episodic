@@ -22,8 +22,15 @@ logging.getLogger('chromadb').setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message=".*telemetry.*")
 warnings.filterwarnings("ignore", message=".*Failed to send telemetry.*")
 
-import chromadb
-from chromadb.utils import embedding_functions
+# Import chromadb with stderr redirected to suppress telemetry
+_stderr_backup = sys.stderr
+try:
+    sys.stderr = StringIO()
+    import chromadb
+    from chromadb.utils import embedding_functions
+finally:
+    sys.stderr = _stderr_backup
+
 import typer
 
 from episodic.config import config
@@ -55,6 +62,18 @@ try:
             chromadb.telemetry.product._telemetry_client = None
     except:
         pass
+    
+    # Monkey patch print to suppress telemetry errors
+    import builtins
+    _original_print = builtins.print
+    def _filtered_print(*args, **kwargs):
+        # Skip telemetry error messages
+        if args and len(args) > 0:
+            first_arg = str(args[0])
+            if "Failed to send telemetry" in first_arg or "capture() takes" in first_arg:
+                return
+        _original_print(*args, **kwargs)
+    builtins.print = _filtered_print
         
 except Exception:
     pass  # If the module structure changes, just ignore
@@ -99,16 +118,54 @@ class EpisodicRAG:
             )
         
     def chunk_document(self, content: str, chunk_size: int = None, 
-                      overlap: int = None) -> List[Dict[str, Any]]:
+                      overlap: int = None, doc_type: str = None) -> List[Dict[str, Any]]:
         """Split document into overlapping chunks for better retrieval."""
         chunk_size = chunk_size or config.get('rag_chunk_size', 500)
         overlap = overlap or config.get('rag_chunk_overlap', 100)
+        use_format_preserving = config.get('rag_preserve_formatting', True)
         
         # Validate parameters
         from episodic.rag_utils import validate_chunk_params
         if not validate_chunk_params(chunk_size, overlap):
             raise ValueError("Invalid chunk parameters")
         
+        # Use format-preserving chunker if enabled
+        if use_format_preserving:
+            from episodic.rag_chunker import FormatPreservingChunker
+            chunker = FormatPreservingChunker(
+                chunk_size=chunk_size,
+                chunk_overlap=overlap
+            )
+            
+            # Generate a temporary doc_id
+            import uuid
+            temp_doc_id = str(uuid.uuid4())[:8]
+            
+            # Detect document type if not specified
+            if doc_type is None:
+                if content.strip().startswith('#') or '```' in content:
+                    doc_type = 'markdown'
+                else:
+                    doc_type = 'text'
+            
+            # Get format-preserving chunks
+            doc_chunks = chunker.chunk_document(content, temp_doc_id, doc_type)
+            
+            # Convert to expected format
+            chunks = []
+            for chunk in doc_chunks:
+                chunks.append({
+                    'text': chunk.clean_text,  # For embeddings
+                    'original_text': chunk.original_text,  # Preserved formatting
+                    'start_idx': chunk.start_idx,
+                    'end_idx': chunk.end_idx,
+                    'chunk_type': chunk.chunk_type.value,
+                    'metadata': chunk.metadata
+                })
+            
+            return chunks
+        
+        # Fall back to original simple chunking
         words = content.split()
         chunks = []
         
@@ -181,6 +238,14 @@ class EpisodicRAG:
                 'total_chunks': len(chunks),
             }
             
+            # Add format-preserving metadata if available
+            if 'original_text' in chunk_data:
+                doc_metadata['original_text'] = chunk_data['original_text']
+                doc_metadata['chunk_type'] = chunk_data.get('chunk_type', 'unknown')
+                # Merge chunk metadata
+                if 'metadata' in chunk_data:
+                    doc_metadata.update(chunk_data['metadata'])
+            
             # Only add content_hash for first chunk to avoid None values
             if idx == 0:
                 doc_metadata['content_hash'] = content_hash
@@ -240,8 +305,17 @@ class EpisodicRAG:
             # Lower is better, typical range is 0-2
             # For a basic threshold, we'll accept distances < 2.0
             if threshold == 0.0 or distance <= 2.0:
-                filtered_results['documents'].append(results['documents'][0][i])
-                filtered_results['metadatas'].append(results['metadatas'][0][i])
+                # Check if we have original formatted text
+                metadata = results['metadatas'][0][i]
+                if 'original_text' in metadata:
+                    # Use original formatted text for display
+                    document_text = metadata['original_text']
+                else:
+                    # Fall back to clean text
+                    document_text = results['documents'][0][i]
+                
+                filtered_results['documents'].append(document_text)
+                filtered_results['metadatas'].append(metadata)
                 filtered_results['distances'].append(distance)
                 filtered_results['ids'].append(results['ids'][0][i])
         

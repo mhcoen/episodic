@@ -481,6 +481,10 @@ def handle_command(command_str: str) -> bool:
             
             help(advanced=advanced, query=query)
         
+        elif cmd == "/help-reindex":
+            from episodic.commands.help import help_reindex
+            help_reindex()
+        
         else:
             typer.secho(f"Unknown command: {cmd}", fg="red")
             typer.secho("Type '/help' for available commands", fg=get_text_color())

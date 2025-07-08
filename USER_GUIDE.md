@@ -8,9 +8,10 @@
 5. [Topic Management](#topic-management)
 6. [Knowledge Base (RAG)](#knowledge-base-rag)
 7. [Web Search](#web-search)
-8. [Configuration](#configuration)
-9. [Advanced Features](#advanced-features)
-10. [Experimental Features](#experimental-features)
+8. [Muse Mode](#muse-mode)
+9. [Configuration](#configuration)
+10. [Advanced Features](#advanced-features)
+11. [Experimental Features](#experimental-features)
 
 ## Introduction
 
@@ -84,8 +85,12 @@ Simply type your message and press Enter. Episodic will:
 
 ### Model Selection
 ```bash
-/model  # Show available models and select one
-/model gpt-4  # Switch directly to a model
+/model  # Show all four models in use
+/model list  # Show available models with pricing
+/model chat gpt-4  # Set chat (main conversation) model
+/model detection ollama/llama3  # Set topic detection model
+/model compression gpt-3.5-turbo  # Set compression model
+/model synthesis claude-3-haiku  # Set web synthesis model
 ```
 
 ## Topic Management
@@ -207,13 +212,45 @@ When topics end, they can be automatically compressed:
 3. **Google** (Requires API key and search engine ID)
 4. **Bing** (Requires Azure API key)
 
+## Muse Mode
+
+Muse mode transforms Episodic into a Perplexity-like conversational web search tool where all input is automatically treated as web search queries.
+
+### Enabling Muse Mode
+```bash
+/muse  # Enable muse mode
+/chat  # Return to normal chat mode
+```
+
+### How Muse Mode Works
+1. All your input becomes web search queries
+2. Multiple web results are fetched and synthesized
+3. Answers include citations and sources
+4. Follow-up questions maintain context
+
+### Example Usage
+```
+> /muse
+🎭 Muse mode ENABLED
+
+> latest breakthroughs in quantum computing
+[Web search synthesis with citations]
+
+> tell me more about the IBM announcement
+[Contextual follow-up with new search]
+```
+
 ## Configuration
 
 ### Viewing Settings
 ```bash
-/set  # Show all current settings
-/set <param>  # Show specific parameter value
-/config-docs  # Show parameter documentation
+/settings  # Show all current settings (or /set)
+/settings show  # Same as above
+/settings set <param> <value>  # Set a parameter
+/settings verify  # Verify configuration integrity
+/settings cost  # Show session costs
+/settings params  # Show model parameters
+/settings docs  # Show parameter documentation
 ```
 
 ### Common Settings
@@ -228,10 +265,12 @@ When topics end, they can be automatically compressed:
 
 #### Model Parameters
 ```bash
-/set main.temp 0.7           # Main conversation temperature
-/set topic.temp 0.3          # Topic detection temperature
-/set comp.temp 0.5           # Compression temperature
-/model-params                # View all model parameters
+/mset  # Show all model parameters
+/mset chat  # Show chat model parameters
+/mset chat.temperature 0.7  # Set chat temperature
+/mset detection.temperature 0.3  # Set detection temperature
+/mset compression.max_tokens 500  # Set compression max tokens
+/mset synthesis.temperature 0.5  # Set synthesis temperature
 ```
 
 #### Performance
@@ -371,10 +410,11 @@ What are the latest developments in quantum computing?
 
 ### Offline Usage with Ollama
 ```bash
-# Use local models
-/model ollama/llama3
-/set topic_detection_model ollama/llama3
-/set compression_model ollama/llama3
+# Use local models for all contexts
+/model chat ollama/llama3
+/model detection ollama/llama3
+/model compression ollama/llama3
+/model synthesis ollama/llama3
 ```
 
 ## Troubleshooting
@@ -397,6 +437,22 @@ What are the latest developments in quantum computing?
 ```bash
 /set debug true  # Enable detailed debug output
 ```
+
+## Deprecated Commands
+
+The following commands are deprecated but still work with warnings. They will be removed in v0.5.0:
+
+### Topic Commands (use `/topics` instead)
+- `/rename-topics` → `/topics rename`
+- `/compress-current-topic` → `/topics compress`
+- `/index` → `/topics index` (Note: `/index` for RAG still works)
+- `/topic-scores` → `/topics scores`
+
+### Compression Commands (use `/compression` instead)
+- `/compression-stats` → `/compression stats`
+- `/compression-queue` → `/compression queue`
+- `/api-stats` → `/compression api-stats`
+- `/reset-api-stats` → `/compression reset-api`
 
 ## Architecture Notes
 

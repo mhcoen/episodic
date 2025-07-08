@@ -9,6 +9,7 @@ A conversational memory system that creates persistent, navigable conversations 
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
 - **🌐 Web Search**: Search the web for current information without leaving the conversation
+- **🎭 Muse Mode**: Perplexity-like conversational web search with synthesized answers
 - **🤖 Multi-Model Support**: Works with OpenAI, Anthropic, Google, Ollama, and more
 - **🎨 Rich CLI**: Streaming responses, colored output, text wrapping
 
@@ -50,14 +51,16 @@ python -m episodic
 /topics         # See how your conversation is organized
 /search query   # Search your indexed documents
 /websearch query # Search the web
-/model          # Switch between AI models
+/muse           # Enable Perplexity-like web search mode
+/model          # View/switch AI models for all contexts
 /help           # See all available commands
 ```
 
 ## 📖 Documentation
 
 - **[User Guide](USER_GUIDE.md)** - Comprehensive guide to all features
-- **[Configuration](docs/Configuration.md)** - Detailed configuration options
+- **[Configuration Reference](CONFIG_REFERENCE.md)** - Detailed configuration options
+- **[CLI Reference](docs/CLIReference.md)** - Complete command reference
 - **[Development](docs/Development.md)** - Architecture and contribution guidelines
 
 ## 🎯 Use Cases
@@ -87,7 +90,8 @@ Episodic automatically manages long conversations by detecting topic changes and
 Use with local models via Ollama:
 
 ```bash
-> /model ollama/llama3
+> /model chat ollama/llama3
+> /model detection ollama/llama3
 > How does photosynthesis work?
 # Works completely offline with local models
 ```
@@ -103,7 +107,7 @@ Episodic is highly configurable. Common settings:
 /set web-enabled true         # Enable web search
 ```
 
-See the [User Guide](USER_GUIDE.md#configuration) for all configuration options.
+See the [Configuration Reference](CONFIG_REFERENCE.md) for all configuration options.
 
 ## 🏗️ Architecture
 

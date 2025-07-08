@@ -467,12 +467,19 @@ def handle_command(command_str: str) -> bool:
                 index_file(args[0])
         
         elif cmd == "/help":
-            from episodic.commands import help
+            from episodic.commands.help import help
             # Check for --all flag
             advanced = False
-            if args and args[0] == "--all":
-                advanced = True
-            help(advanced=advanced)
+            query = None
+            
+            if args:
+                if args[0] == "--all":
+                    advanced = True
+                else:
+                    # Treat remaining args as search query
+                    query = " ".join(args)
+            
+            help(advanced=advanced, query=query)
         
         else:
             typer.secho(f"Unknown command: {cmd}", fg="red")

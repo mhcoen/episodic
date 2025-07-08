@@ -14,9 +14,11 @@ Just type to chat! No prefix needed.
 
 | Command | Description |
 |---------|-------------|
-| `/model` | Select AI model |
+| `/model` | Show current models |
+| `/model list` | View available models |
 | `/cost` | Show token usage |
 | `/topics` | List conversation topics |
+| `/muse` | Enable web search mode |
 | `/help` | Show all commands |
 
 ### Knowledge & Search
@@ -30,8 +32,10 @@ Just type to chat! No prefix needed.
 ### Configuration
 | Command | Description |
 |---------|-------------|
-| `/set` | Show all settings |
-| `/set param value` | Change setting |
+| `/settings` | Show all settings |
+| `/settings set param value` | Change setting |
+| `/mset` | Show model parameters |
+| `/mset chat.temp 0.7` | Set model parameter |
 | `/reset all` | Reset to defaults |
 
 ### Common Settings
@@ -60,7 +64,8 @@ Just type to chat! No prefix needed.
 
 ### Offline Mode
 ```bash
-/model ollama/llama3
+/model chat ollama/llama3
+/model detection ollama/llama3
 /rag off
 /websearch off
 ```
@@ -76,4 +81,5 @@ Just type to chat! No prefix needed.
 - Use Tab for command completion
 - Use ↑/↓ for command history
 - Node IDs are 2 characters (e.g., `a1`, `b2`)
-- Settings are session-only unless saved
+- Settings persist in the database
+- Use `/muse` for Perplexity-like web search mode

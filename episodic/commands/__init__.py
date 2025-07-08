@@ -16,7 +16,8 @@ from .compression import compress, compression_stats, compression_queue, api_cal
 from .visualization import visualize
 from .prompts import prompts
 from .summary import summary
-from .utility import benchmark, help
+from .utility import benchmark
+from .help import help
 from .model import handle_model
 
 __all__ = [

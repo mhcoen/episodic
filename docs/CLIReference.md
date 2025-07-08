@@ -80,19 +80,31 @@ Show conversation thread
 
 ## Configuration Commands
 
+### /settings
+Unified settings management
+```bash
+/settings                    # Show all settings (default)
+/settings show               # Show all settings
+/settings set <param> <value> # Set a parameter value
+/settings verify             # Verify configuration integrity
+/settings cost               # Show session costs
+/settings params             # Show model parameters
+/settings docs               # Show parameter documentation
+```
+
 ### /set
-Configure parameters
+Legacy settings command (still works)
 ```bash
 /set                         # Show all settings
 /set <parameter>             # Show specific value
-/set <parameter> <value>     # Set value (session only)
+/set <parameter> <value>     # Set value
 
-# Common settings (also support short aliases):
-/set debug on                # Enable debug mode
-/set cache off              # Disable caching
-/set stream true            # Enable streaming
-/set wrap true              # Enable text wrapping
-/set cost on                # Show cost info
+# Common settings:
+/set debug true              # Enable debug mode
+/set cache false             # Disable caching
+/set stream true             # Enable streaming
+/set wrap true               # Enable text wrapping
+/set cost true               # Show cost info
 ```
 
 ### /reset
@@ -116,19 +128,22 @@ Show session costs
 /cost                       # Display token usage and costs
 ```
 
-### /model-params
+### /mset
 View/set model parameters
 ```bash
-/model-params               # Show all parameters
-/model-params main          # Show main params only
-/set main.temp 0.8          # Set temperature
-/set topic.max 100          # Set max tokens
+/mset                       # Show all model parameters
+/mset chat                  # Show chat model params
+/mset detection             # Show detection model params
+/mset chat.temperature 0.8  # Set chat temperature
+/mset detection.max_tokens 100  # Set detection max tokens
+/mset compression.temperature 0.5  # Set compression temperature
+/mset synthesis.top_p 0.9   # Set synthesis nucleus sampling
 ```
 
-### /config-docs
-Show configuration documentation
+### Configuration Documentation
+Access configuration docs through settings command:
 ```bash
-/config-docs                # List all params with docs
+/settings docs              # List all params with documentation
 ```
 
 ## Topic Management
@@ -219,10 +234,14 @@ Manual compression
 ## Conversation Commands
 
 ### /model
-Select language model
+Manage language models for all contexts
 ```bash
-/model                      # Show available models
-/model gpt-4                # Switch to specific model
+/model                      # Show all four models in use
+/model list                 # Show available models with pricing
+/model chat gpt-4           # Set chat (main) model
+/model detection ollama/llama3  # Set topic detection model
+/model compression gpt-3.5-turbo  # Set compression model
+/model synthesis claude-3-haiku  # Set web synthesis model
 ```
 
 ### /prompt, /prompts
@@ -240,6 +259,24 @@ Summarize conversation
 /summary                    # Last 5 messages
 /summary 10                 # Last 10 messages
 /summary all                # Entire conversation
+```
+
+## Mode Commands
+
+### /muse
+Enable Perplexity-like web search mode
+```bash
+/muse                       # Enable muse mode (all input → web search)
+/muse on                    # Same as above
+/muse off                   # Disable muse mode
+```
+
+### /chat
+Return to normal chat mode
+```bash
+/chat                       # Enable chat mode (normal LLM conversation)
+/chat on                    # Same as above
+/chat off                   # Disable chat mode (enables muse)
 ```
 
 ## Utility Commands
@@ -274,21 +311,25 @@ Exit the application
 
 ## Model Parameters
 
-Use dot notation to set model-specific parameters:
+Use /mset command to manage model-specific parameters:
 
 ```bash
-# Main conversation parameters
-/set main.temp 0.7          # Temperature
-/set main.max 2000          # Max tokens
-/set main.top_p 0.9         # Top-p sampling
+# Chat (main conversation) parameters
+/mset chat.temperature 0.7      # Temperature
+/mset chat.max_tokens 2000      # Max tokens
+/mset chat.top_p 0.9            # Top-p sampling
 
 # Topic detection parameters
-/set topic.temp 0.3         # Lower for consistency
-/set topic.max 50           # Minimal tokens needed
+/mset detection.temperature 0.3  # Lower for consistency
+/mset detection.max_tokens 50    # Minimal tokens needed
 
 # Compression parameters
-/set comp.temp 0.5          # Balanced temperature
-/set comp.presence 0.1      # Reduce repetition
+/mset compression.temperature 0.5     # Balanced temperature
+/mset compression.presence_penalty 0.1 # Reduce repetition
+
+# Web synthesis parameters
+/mset synthesis.temperature 0.7  # Balanced for web synthesis
+/mset synthesis.max_tokens 1000  # Good length for summaries
 ```
 
 ## Configuration Examples
@@ -311,9 +352,10 @@ Use dot notation to set model-specific parameters:
 
 ### Offline Mode
 ```bash
-/model ollama/llama3
-/set topic_detection_model ollama/llama3
-/set compression_model ollama/llama3
+/model chat ollama/llama3
+/model detection ollama/llama3
+/model compression ollama/llama3
+/model synthesis ollama/llama3
 /rag off
 /websearch off
 ```
@@ -364,4 +406,20 @@ a1: Hello world
 2. **History**: Use Up/Down arrows for command history
 3. **Shortcuts**: Many commands have short forms (/s for /search, /ws for /websearch)
 4. **Help**: Type /help for quick command reference
-5. **Settings**: Changes via /set are session-only unless using /reset --save
+5. **Settings**: Settings persist in the database automatically
+
+## Deprecated Commands
+
+The following commands are deprecated but still work with warnings (will be removed in v0.5.0):
+
+| Deprecated Command | Use Instead |
+|-------------------|-------------|
+| `/rename-topics` | `/topics rename` |
+| `/compress-current-topic` | `/topics compress` |
+| `/topic-scores` | `/topics scores` |
+| `/compression-stats` | `/compression stats` |
+| `/compression-queue` | `/compression queue` |
+| `/api-stats` | `/compression api-stats` |
+| `/reset-api-stats` | `/compression reset-api` |
+
+Note: `/index` for topic detection is deprecated, but `/index` for RAG document indexing remains active.

@@ -6,10 +6,10 @@ This document describes all configuration options available in Episodic.
 
 ```bash
 # Show configuration documentation
-> /config-docs
+> /settings docs
 
 # Show specific parameter value
-> /set topic_detection_model
+> /settings show topic_detection_model
 ```
 
 ## Setting Configuration
@@ -48,6 +48,10 @@ This document describes all configuration options available in Episodic.
 ### Other Configuration
 ```bash
 # Set general configuration values
+> /settings set debug true
+> /settings set min_messages_before_topic_change 10
+
+# Alternative shorter syntax still works
 > /set debug true
 > /set min_messages_before_topic_change 10
 ```
@@ -142,41 +146,54 @@ Example:
 | `GROQ_API_KEY` | Groq API key |
 | `AZURE_API_KEY` | Azure OpenAI key |
 | `AZURE_API_BASE` | Azure endpoint |
+| `GOOGLE_SEARCH_ENGINE_ID` | Google search engine ID for web search |
+| `BING_API_KEY` | Bing API key for web search |
 
 ## Configuration Storage
 
 Configuration is stored in the SQLite database in the `configuration` table. Changes take effect immediately without restart.
 
+## Memory Storage
+
+Project-specific memory is stored in `PROJECT_MEMORY.md` file in the project root. This file tracks:
+- Testing framework preferences
+- Recent decisions and fixes
+- Current focus areas
+- User preferences
+- Architecture notes
+
+This memory is specific to Claude Code sessions and persists across conversations.
+
 ## Common Configuration Patterns
 
 ### For Better Topic Detection
 ```bash
-/set min_messages_before_topic_change 6
-/set topic_window_size 4
+/settings set min_messages_before_topic_change 6
+/settings set topic_window_size 4
 /model detection ollama/llama3
 /mset detection.temperature 0.0
 ```
 
 ### For Faster Responses
 ```bash
-/set stream_responses false
-/set context_depth 3
-/set cache_prompts true
+/settings set stream_responses false
+/settings set context_depth 3
+/settings set cache_prompts true
 ```
 
 ### For Cost Savings
 ```bash
-/set show_cost true
+/settings set show_cost true
 /model compression gpt-3.5-turbo
 /model detection ollama/llama3
-/set context_depth 3
+/settings set context_depth 3
 ```
 
 ### For Debugging
 ```bash
-/set debug true
-/set show_drift true
-/set show_benchmarks true
+/settings set debug true
+/settings set show_drift true
+/settings set show_benchmarks true
 ```
 
 ## Resetting Configuration

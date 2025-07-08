@@ -456,15 +456,25 @@ class EpisodicRAG:
         # Combine original message with context
         enhanced_message = message + ''.join(context_parts)
         
-        # Track retrieval in database
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            for doc_id in results['ids']:
-                cursor.execute('''
-                    INSERT INTO rag_retrievals (document_id, query, retrieved_at)
-                    VALUES (?, ?, ?)
-                ''', (doc_id, message, datetime.now().isoformat()))
-            conn.commit()
+        # Track retrieval in database if not in help mode
+        # Skip tracking for help queries to avoid polluting retrieval history
+        if not hasattr(self, '_is_help_rag'):
+            try:
+                with get_connection() as conn:
+                    cursor = conn.cursor()
+                    # Use the actual schema which has node_id, not query
+                    # For now, just track document_id without node_id since this is a standalone query
+                    for i, doc_id in enumerate(results['ids']):
+                        relevance_score = 1.0 - results['distances'][i] if results['distances'] else 0.5
+                        cursor.execute('''
+                            INSERT INTO rag_retrievals (document_id, relevance_score)
+                            VALUES (?, ?)
+                        ''', (doc_id, relevance_score))
+                    conn.commit()
+            except Exception as e:
+                # Log error but don't fail the whole operation
+                if config.get('debug'):
+                    typer.secho(f"Warning: Failed to track retrieval: {e}", fg="yellow")
         
         return enhanced_message, sources_used
     

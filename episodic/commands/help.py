@@ -14,6 +14,49 @@ from functools import wraps
 from episodic.unified_streaming import unified_stream_response
 from episodic.commands.utility import help as show_commands_help
 import os
+import re
+
+
+def _clean_help_output(text: str) -> str:
+    """Remove markdown code block markers from help output."""
+    # Remove ```bash and ``` markers
+    text = re.sub(r'```bash\s*\n', '  ', text)
+    text = re.sub(r'```\s*\n', '', text)
+    # Also remove standalone ``` on their own lines
+    text = re.sub(r'^```\s*$', '', text, flags=re.MULTILINE)
+    return text
+
+
+def _display_help_output(text: str, color: str):
+    """Display help output with proper formatting for bold text."""
+    lines = text.split('\n')
+    for line in lines:
+        _process_line_for_display(line, color)
+
+
+def _process_line_for_display(line: str, color: str, newline: bool = True):
+    """Process a line of text to handle markdown bold markers and display it."""
+    import re
+    
+    # Check if line contains bold markers
+    if '**' not in line:
+        typer.secho(line, fg=color, nl=newline)
+        return
+    
+    # Split by bold markers
+    parts = re.split(r'(\*\*[^*]+\*\*)', line)
+    
+    for part in parts:
+        if part.startswith('**') and part.endswith('**'):
+            # This is bold text - remove markers and display bold
+            bold_text = part[2:-2]
+            typer.secho(bold_text, fg=color, bold=True, nl=False)
+        else:
+            # Regular text
+            typer.secho(part, fg=color, nl=False)
+    
+    if newline:
+        typer.echo()  # Add newline at end
 
 
 class HelpRAG:
@@ -26,6 +69,8 @@ class HelpRAG:
         
         # Use composition instead of inheritance
         self.rag = EpisodicRAG()
+        # Mark this as a help RAG to skip retrieval tracking
+        self.rag._is_help_rag = True
         
         # Override the collection to use a help-specific one
         try:
@@ -194,7 +239,7 @@ def help_command(query: str):
     """
     Search Episodic documentation using RAG.
     
-    This uses RAG to search indexed documentation regardless of the global RAG setting.
+    Uses the main chat flow with RAG to provide synthesized answers.
     """
     if not query:
         # Show help topics
@@ -245,95 +290,120 @@ def help_command(query: str):
         typer.secho(f"\n⚠️  Error initializing help system: {str(e)}", fg="yellow")
         return
     
-    # Search documentation
-    typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
-    results = help_rag.search_help(query, n_results=3)
+    # Ensure docs are indexed
+    help_rag.ensure_help_docs_indexed()
     
-    if not results:
-        typer.secho("No relevant documentation found.", fg="yellow")
-        typer.secho("Try different search terms or check the full documentation.", fg=get_text_color(), dim=True)
-        return
-    
-    # Synthesize a helpful answer using the LLM
-    typer.secho("\n💭 Generating answer...", fg=get_text_color(), dim=True)
-    
-    # Build context from search results, limiting each to reasonable size
-    context_parts = []
-    max_chars_per_result = 1000  # Limit each result to avoid token limits
-    
-    for result in results:
-        content = result['content']
-        if len(content) > max_chars_per_result:
-            # Try to find a good breaking point
-            content = content[:max_chars_per_result]
-            last_period = content.rfind('.')
-            last_newline = content.rfind('\n')
-            break_point = max(last_period, last_newline)
-            if break_point > max_chars_per_result * 0.7:  # If we found a good break point
-                content = content[:break_point + 1]
-            content += "..."
-        
-        context_parts.append(f"From {result['source']}:\n{content}\n")
-    
-    context = "\n---\n".join(context_parts)
-    
-    # Create synthesis prompt
-    synthesis_prompt = f"""Based on the following documentation excerpts, provide a clear and helpful answer to the user's question: "{query}"
-
-Documentation context:
-{context}
-
-Please provide a concise, practical answer that directly addresses the user's question. Focus on:
-1. What they need to know
-2. The specific commands or steps to use
-3. Any important configuration options
-4. Brief examples if helpful
-
-Keep the answer focused and actionable."""
-
-    # Get the synthesis model or use main model
-    from episodic.llm import query_llm
-    synthesis_model = config.get('synthesis_model', config.get('model', 'gpt-3.5-turbo'))
+    # Save current RAG state
+    original_rag_enabled = config.get('rag_enabled', False)
+    original_collection = None
     
     try:
-        # Query the LLM for synthesis
-        response_data = query_llm(synthesis_prompt, model=synthesis_model, stream=False)
+        # Temporarily use help collection for RAG
+        from episodic.rag import get_rag_system
+        rag_system = get_rag_system()
+        if rag_system:
+            original_collection = rag_system.collection
+            rag_system.collection = help_rag.collection
         
-        # Extract the actual response text
-        if isinstance(response_data, tuple):
-            response_text = response_data[0]
-        else:
-            response_text = response_data
+        # Enable RAG temporarily
+        config.set('rag_enabled', True)
         
-        # Display the synthesized answer
+        # Create a help-specific prompt that will use RAG enhancement
+        help_prompt = f"""Please provide a clear, practical answer to this question about using Episodic: {query}
+
+Important: Format commands by indenting them with 2 spaces, but do NOT use markdown code blocks (no ```bash or ``` markers). Just indent the commands."""
+        
+        typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
+        
+        # Enhance the prompt with RAG context
+        enhanced_prompt, sources_used = rag_system.enhance_with_context(help_prompt)
+        
+        if sources_used and config.get('debug', False):
+            typer.secho(f"📚 Found relevant documentation from: {', '.join(sources_used)}", 
+                      fg=get_text_color(), dim=True)
+        
+        # Query the LLM with the enhanced prompt
+        from episodic.llm import query_llm
+        from episodic.unified_streaming import unified_stream_response
+        
+        # Get the model to use
+        model = config.get('model', 'gpt-3.5-turbo')
+        
+        # Display the response header
         typer.secho("\n📚 Answer:", fg=get_heading_color(), bold=True)
         typer.secho("─" * 50, fg=get_heading_color())
         
-        # Display the response with color
-        typer.secho(response_text, fg=config.get('llm_color', 'green'))
-        
-        # Show sources
-        typer.secho("\n📄 Sources:", fg=get_text_color(), dim=True)
-        seen_sources = set()
-        for result in results:
-            if result['source'] not in seen_sources:
-                typer.secho(f"  • {result['source']}", fg=get_text_color(), dim=True)
-                seen_sources.add(result['source'])
+        # Check if streaming is enabled
+        if config.get('stream_responses', True):
+            try:
+                # Query with streaming - returns (generator, None) tuple
+                stream_tuple = query_llm(enhanced_prompt, model=model, stream=True)
+                # Extract the generator from the tuple
+                stream_gen = stream_tuple[0] if isinstance(stream_tuple, tuple) else stream_tuple
                 
-    except Exception as e:
-        # Fallback to showing raw results if synthesis fails
-        typer.secho(f"\n⚠️  Could not generate answer: {str(e)}", fg="yellow")
-        typer.secho("\nShowing raw documentation excerpts:", fg=get_text_color())
+                # Stream directly with cleaning
+                from episodic.llm import process_stream_response
+                
+                response_parts = []
+                buffer = ""
+                llm_color = config.get('llm_color', 'green')
+                
+                for chunk in process_stream_response(stream_gen, model):
+                    buffer += chunk
+                    
+                    # Process complete lines
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        
+                        # Skip markdown code block markers
+                        if line.strip() == '```bash':
+                            typer.secho('  ', fg=llm_color, nl=False)
+                            response_parts.append('  ')
+                            continue
+                        elif line.strip() == '```':
+                            continue
+                        
+                        # Process the line for markdown bold markers
+                        processed_line = _process_line_for_display(line, llm_color)
+                        response_parts.append(line + '\n')
+                
+                # Print any remaining buffer
+                if buffer and buffer.strip() not in ['```bash', '```']:
+                    _process_line_for_display(buffer, llm_color, newline=False)
+                    response_parts.append(buffer)
+                
+                # Final newline if needed
+                if response_parts and not response_parts[-1].endswith('\n'):
+                    typer.echo()
+                
+                response_text = ''.join(response_parts)
+                
+            except Exception as stream_error:
+                if config.get('debug', False):
+                    typer.secho(f"Streaming error: {stream_error}", fg="yellow")
+                # Fallback to non-streaming
+                result = query_llm(enhanced_prompt, model=model, stream=False)
+                response_text = result[0] if isinstance(result, tuple) else result
+                # Clean up markdown code blocks before displaying
+                response_text = _clean_help_output(response_text)
+                _display_help_output(response_text, config.get('llm_color', 'green'))
+        else:
+            # Query without streaming
+            result = query_llm(enhanced_prompt, model=model, stream=False)
+            # Extract response text from tuple
+            response_text = result[0] if isinstance(result, tuple) else result
+            # Clean up markdown code blocks before displaying
+            response_text = _clean_help_output(response_text)
+            _display_help_output(response_text, config.get('llm_color', 'green'))
         
-        for i, result in enumerate(results):
-            typer.secho(f"\n📄 From {result['source']}:", fg=get_system_color(), bold=True)
-            typer.secho("─" * 50, fg=get_system_color())
-            
-            # Show truncated content
-            content = result['content']
-            if len(content) > 500:
-                content = content[:500] + "..."
-            typer.echo(content)
-            
-            if i < len(results) - 1:
-                typer.secho("\n" + "─" * 50, fg=get_text_color(), dim=True)
+    except Exception as e:
+        typer.secho(f"\n⚠️  Error getting help: {str(e)}", fg="yellow")
+        typer.secho("Try browsing the documentation files directly.", fg=get_text_color())
+    
+    finally:
+        # Restore original RAG state
+        config.set('rag_enabled', original_rag_enabled)
+        if 'original_show_citations' in locals():
+            config.set('rag_show_citations', original_show_citations)
+        if rag_system and original_collection:
+            rag_system.collection = original_collection

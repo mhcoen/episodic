@@ -254,17 +254,86 @@ def help_command(query: str):
         typer.secho("Try different search terms or check the full documentation.", fg=get_text_color(), dim=True)
         return
     
-    # Display results
-    for i, result in enumerate(results):
-        typer.secho(f"\n📄 From {result['source']}:", fg=get_system_color(), bold=True)
-        typer.secho("─" * 50, fg=get_system_color())
-        
-        # Display content with proper formatting
-        typer.echo(result['content'])
-        
-        if i < len(results) - 1:
-            typer.secho("\n" + "─" * 50, fg=get_text_color(), dim=True)
+    # Synthesize a helpful answer using the LLM
+    typer.secho("\n💭 Generating answer...", fg=get_text_color(), dim=True)
     
-    # Suggest refining search if needed
-    if len(results) >= 3:
-        typer.secho("\n💡 Refine your search for more specific results.", fg=get_text_color(), dim=True)
+    # Build context from search results, limiting each to reasonable size
+    context_parts = []
+    max_chars_per_result = 1000  # Limit each result to avoid token limits
+    
+    for result in results:
+        content = result['content']
+        if len(content) > max_chars_per_result:
+            # Try to find a good breaking point
+            content = content[:max_chars_per_result]
+            last_period = content.rfind('.')
+            last_newline = content.rfind('\n')
+            break_point = max(last_period, last_newline)
+            if break_point > max_chars_per_result * 0.7:  # If we found a good break point
+                content = content[:break_point + 1]
+            content += "..."
+        
+        context_parts.append(f"From {result['source']}:\n{content}\n")
+    
+    context = "\n---\n".join(context_parts)
+    
+    # Create synthesis prompt
+    synthesis_prompt = f"""Based on the following documentation excerpts, provide a clear and helpful answer to the user's question: "{query}"
+
+Documentation context:
+{context}
+
+Please provide a concise, practical answer that directly addresses the user's question. Focus on:
+1. What they need to know
+2. The specific commands or steps to use
+3. Any important configuration options
+4. Brief examples if helpful
+
+Keep the answer focused and actionable."""
+
+    # Get the synthesis model or use main model
+    from episodic.llm import query_llm
+    synthesis_model = config.get('synthesis_model', config.get('model', 'gpt-3.5-turbo'))
+    
+    try:
+        # Query the LLM for synthesis
+        response_data = query_llm(synthesis_prompt, model=synthesis_model, stream=False)
+        
+        # Extract the actual response text
+        if isinstance(response_data, tuple):
+            response_text = response_data[0]
+        else:
+            response_text = response_data
+        
+        # Display the synthesized answer
+        typer.secho("\n📚 Answer:", fg=get_heading_color(), bold=True)
+        typer.secho("─" * 50, fg=get_heading_color())
+        
+        # Display the response with color
+        typer.secho(response_text, fg=config.get('llm_color', 'green'))
+        
+        # Show sources
+        typer.secho("\n📄 Sources:", fg=get_text_color(), dim=True)
+        seen_sources = set()
+        for result in results:
+            if result['source'] not in seen_sources:
+                typer.secho(f"  • {result['source']}", fg=get_text_color(), dim=True)
+                seen_sources.add(result['source'])
+                
+    except Exception as e:
+        # Fallback to showing raw results if synthesis fails
+        typer.secho(f"\n⚠️  Could not generate answer: {str(e)}", fg="yellow")
+        typer.secho("\nShowing raw documentation excerpts:", fg=get_text_color())
+        
+        for i, result in enumerate(results):
+            typer.secho(f"\n📄 From {result['source']}:", fg=get_system_color(), bold=True)
+            typer.secho("─" * 50, fg=get_system_color())
+            
+            # Show truncated content
+            content = result['content']
+            if len(content) > 500:
+                content = content[:500] + "..."
+            typer.echo(content)
+            
+            if i < len(results) - 1:
+                typer.secho("\n" + "─" * 50, fg=get_text_color(), dim=True)

@@ -31,14 +31,16 @@ def model_command(
         /model compression gpt-3.5-turbo # Set compression model
         /model synthesis claude-3-haiku  # Set synthesis model
     """
-    from episodic.commands.model import list_available_models
-    
     # No arguments - show current chat model
     if not context:
         current = config.get("model", "gpt-3.5-turbo")
         model_str = get_model_string(current)
         typer.secho(f"Current chat model: {model_str}", fg=get_heading_color())
-        typer.secho("Use '/model list' to see all contexts", fg=get_text_color(), dim=True)
+        typer.secho("\nTo change models:", fg=get_text_color())
+        typer.secho("  /model chat              ", fg=get_system_color(), nl=False)
+        typer.secho("# Select a new chat model", fg=get_text_color(), dim=True)
+        typer.secho("  /model list              ", fg=get_system_color(), nl=False)
+        typer.secho("# See all model contexts", fg=get_text_color(), dim=True)
         return
     
     # Handle 'list' command
@@ -62,9 +64,9 @@ def model_command(
         typer.secho(f"Valid contexts: {', '.join(valid_contexts)}", fg=get_text_color())
         return
     
-    # If no model specified, show current model for context
+    # If no model specified, show available models and allow selection
     if not model_name:
-        show_model_for_context(context.lower())
+        show_and_select_model_for_context(context.lower())
         return
     
     # Set the model for the context
@@ -90,6 +92,18 @@ def show_all_models():
         typer.secho(f"\n{description}:", fg=get_text_color(), bold=True)
         typer.secho(f"  {context_name:<12} ", fg=get_system_color(), nl=False)
         typer.secho(f"{model_str}", fg=get_heading_color())
+    
+    typer.secho("\n💡 To change a model:", fg=get_text_color())
+    typer.secho("  /model chat              ", fg=get_system_color(), nl=False)
+    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat gpt-4        ", fg=get_system_color(), nl=False)
+    typer.secho("# Direct selection", fg=get_text_color(), dim=True)
+    typer.secho("  /model detection         ", fg=get_system_color(), nl=False)
+    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
+    typer.secho("  /model compression       ", fg=get_system_color(), nl=False)
+    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
+    typer.secho("  /model synthesis         ", fg=get_system_color(), nl=False)
+    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
 
 
 def show_model_for_context(context: str):
@@ -207,3 +221,65 @@ def validate_and_clear_incompatible_params(context: str, model_name: str):
                     f"  ℹ️  Removed unsupported parameters for {model_name}: {', '.join(google_unsupported)}", 
                     fg="yellow"
                 )
+
+
+def show_and_select_model_for_context(context: str):
+    """Show available models and allow selection by number or name."""
+    descriptions = {
+        "chat": "chat",
+        "detection": "topic detection",
+        "compression": "compression",
+        "synthesis": "web synthesis"
+    }
+    
+    typer.secho(f"\n🤖 Select {descriptions[context]} model:", fg=get_heading_color(), bold=True)
+    typer.secho("─" * 50, fg=get_heading_color())
+    
+    # Get all available models
+    models = []
+    providers = get_available_providers()
+    
+    for provider_name, provider_config in providers.items():
+        provider_models = get_provider_models(provider_name)
+        if provider_models:
+            for model in provider_models:
+                if isinstance(model, dict):
+                    model_name = model.get("name", "unknown")
+                else:
+                    model_name = model
+                models.append((model_name, provider_name))
+    
+    # Display models with numbers
+    for idx, (model_name, provider_name) in enumerate(models, 1):
+        typer.secho(f"  {idx:2d}. ", fg="yellow", nl=False)
+        typer.secho(f"{model_name:30s} ", fg="cyan", nl=False)
+        typer.secho(f"({provider_name})", fg="white", dim=True)
+    
+    typer.secho("\n💡 Enter model number or name (or 'cancel' to abort):", fg=get_text_color())
+    
+    # Get user input
+    user_input = typer.prompt("", prompt_suffix="> ")
+    
+    if user_input.lower() == "cancel":
+        typer.secho("Cancelled.", fg="yellow")
+        return
+    
+    # Check if input is a number
+    try:
+        model_index = int(user_input)
+        if 1 <= model_index <= len(models):
+            selected_model, _ = models[model_index - 1]
+            set_model_for_context(context, selected_model)
+        else:
+            typer.secho(f"Invalid number. Please choose between 1 and {len(models)}.", fg="red")
+    except ValueError:
+        # Try to match by name
+        matched = False
+        for model_name, _ in models:
+            if user_input.lower() in model_name.lower() or model_name.lower() == user_input.lower():
+                set_model_for_context(context, model_name)
+                matched = True
+                break
+        
+        if not matched:
+            typer.secho(f"Model '{user_input}' not found. Use exact model name or number.", fg="red")

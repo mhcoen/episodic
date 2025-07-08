@@ -64,6 +64,8 @@
 - [ ] **Fix remaining test failures** - 7 tests still failing (93% passing)
 
 ### Medium Priority  
+- [ ] **Add muse history support** - Include previous query history in /muse mode for follow-up questions
+- [ ] **Add web search providers** - Support additional providers beyond DuckDuckGo
 - [ ] **Improve drift accuracy** - Current embedding approach shows high drift for similar sentences
 - [ ] **Async drift processing** - Calculate drift in background to reduce delays
 

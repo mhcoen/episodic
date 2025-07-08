@@ -19,5 +19,4 @@ __pycache__/
 defunct/
 /episodic.db.backup
 
-# MCP Memory storage
-.mcp-memory/
+# MCP Memory storage (removed - using file-based memory instead)

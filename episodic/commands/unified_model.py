@@ -14,6 +14,19 @@ from episodic.config import config
 from episodic.configuration import get_heading_color, get_system_color, get_text_color
 from episodic.llm import get_model_string
 from episodic.llm_config import get_available_providers, get_provider_models
+import warnings
+import io
+from contextlib import redirect_stdout, redirect_stderr
+
+# Constants
+LOCAL_PROVIDERS = ["ollama", "lmstudio", "local", "localai"]
+PRICING_TOKEN_COUNT = 1000
+
+# Import cost_per_token from litellm if available
+try:
+    from litellm import cost_per_token
+except ImportError:
+    cost_per_token = None
 
 
 def model_command(
@@ -24,28 +37,21 @@ def model_command(
     Manage language models for different contexts.
     
     Usage:
-        /model                          # Show current chat model
-        /model list                     # Show all models for all contexts
-        /model chat gpt-4              # Set chat model to gpt-4
-        /model detection ollama/llama3  # Set detection model
-        /model compression gpt-3.5-turbo # Set compression model
-        /model synthesis claude-3-haiku  # Set synthesis model
+        /model                          # Show all four models in use
+        /model list                     # Show available models with pricing
+        /model chat [name|number]       # Set chat model
+        /model detection [name|number]  # Set detection model
+        /model compression [name|number] # Set compression model
+        /model synthesis [name|number]   # Set synthesis model
     """
-    # No arguments - show current chat model
+    # No arguments - show all models in use
     if not context:
-        current = config.get("model", "gpt-3.5-turbo")
-        model_str = get_model_string(current)
-        typer.secho(f"Current chat model: {model_str}", fg=get_heading_color())
-        typer.secho("\nTo change models:", fg=get_text_color())
-        typer.secho("  /model chat              ", fg=get_system_color(), nl=False)
-        typer.secho("# Select a new chat model", fg=get_text_color(), dim=True)
-        typer.secho("  /model list              ", fg=get_system_color(), nl=False)
-        typer.secho("# See all model contexts", fg=get_text_color(), dim=True)
+        show_current_models()
         return
     
     # Handle 'list' command
     if context.lower() == "list":
-        show_all_models()
+        show_available_models()
         return
     
     # Validate context
@@ -64,46 +70,116 @@ def model_command(
         typer.secho(f"Valid contexts: {', '.join(valid_contexts)}", fg=get_text_color())
         return
     
-    # If no model specified, show available models and allow selection
+    # If no model specified, show error
     if not model_name:
-        show_and_select_model_for_context(context.lower())
+        typer.secho(f"Please specify a model name or number.", fg="red")
+        typer.secho(f"Use '/model list' to see available models.", fg=get_text_color())
         return
     
     # Set the model for the context
     set_model_for_context(context.lower(), model_name)
 
 
-def show_all_models():
-    """Show all models for all contexts."""
-    typer.secho("\n📊 Model Configuration:", fg=get_heading_color(), bold=True)
-    typer.secho("─" * 50, fg=get_heading_color())
-    
+def show_current_models():
+    """Show all four models currently in use."""
     contexts = [
-        ("chat", "model", "Main conversation"),
-        ("detection", "topic_detection_model", "Topic detection"),
-        ("compression", "compression_model", "Compression/summarization"),
-        ("synthesis", "synthesis_model", "Web search synthesis")
+        ("Chat", "model", "chat"),
+        ("Detection", "topic_detection_model", "detection"),
+        ("Compression", "compression_model", "compression"),
+        ("Synthesis", "synthesis_model", "synthesis")
     ]
     
-    for context_name, config_key, description in contexts:
+    typer.secho("\nCurrent models:", fg=get_heading_color(), bold=True)
+    for description, config_key, context_name in contexts:
         current = config.get(config_key, get_default_for_context(context_name))
         model_str = get_model_string(current)
-        
-        typer.secho(f"\n{description}:", fg=get_text_color(), bold=True)
-        typer.secho(f"  {context_name:<12} ", fg=get_system_color(), nl=False)
+        typer.secho(f"  {description:<12} ", fg=get_text_color(), nl=False)
         typer.secho(f"{model_str}", fg=get_heading_color())
     
-    typer.secho("\n💡 To change a model:", fg=get_text_color())
-    typer.secho("  /model chat              ", fg=get_system_color(), nl=False)
-    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat gpt-4        ", fg=get_system_color(), nl=False)
-    typer.secho("# Direct selection", fg=get_text_color(), dim=True)
-    typer.secho("  /model detection         ", fg=get_system_color(), nl=False)
-    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
-    typer.secho("  /model compression       ", fg=get_system_color(), nl=False)
-    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
-    typer.secho("  /model synthesis         ", fg=get_system_color(), nl=False)
-    typer.secho("# Interactive selection", fg=get_text_color(), dim=True)
+    typer.secho("\nUse '/model list' to see available models", fg=get_text_color(), dim=True)
+
+
+def show_available_models():
+    """Show all available models with pricing information."""
+    try:
+        providers = get_available_providers()
+        current_idx = 1
+        all_models = []  # Store models for number selection
+
+        for provider_name, provider_config in providers.items():
+            models = get_provider_models(provider_name)
+            if models:
+                typer.secho(f"\nAvailable models from ", nl=False, fg=get_heading_color(), bold=True)
+                typer.secho(f"{provider_name}:", fg=get_heading_color(), bold=True)
+
+                for model in models:
+                    if isinstance(model, dict):
+                        model_name = model.get("name", "unknown")
+                    else:
+                        model_name = model
+
+                    # Store for number selection
+                    all_models.append(model_name)
+
+                    # Try to get pricing information using cost_per_token
+                    if cost_per_token:
+                        try:
+                            # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
+                            with warnings.catch_warnings(), \
+                                 redirect_stdout(io.StringIO()), \
+                                 redirect_stderr(io.StringIO()):
+                                warnings.simplefilter("ignore")
+                                # Calculate cost for 1000 tokens (both input and output separately)
+                                input_cost_raw = cost_per_token(model=model_name, prompt_tokens=PRICING_TOKEN_COUNT, completion_tokens=0)
+                                output_cost_raw = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=PRICING_TOKEN_COUNT)
+
+                            # Handle tuple results (sum if tuple, use directly if scalar)
+                            input_cost = sum(input_cost_raw) if isinstance(input_cost_raw, tuple) else input_cost_raw
+                            output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
+
+                            if input_cost or output_cost:
+                                pricing = f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
+                            else:
+                                # For local providers, show "Local model" instead of "Pricing not available"
+                                if provider_name in LOCAL_PROVIDERS:
+                                    pricing = "Local model"
+                                else:
+                                    pricing = "Pricing not available"
+                        except Exception:
+                            # For local providers, show "Local model" instead of "Pricing not available"
+                            if provider_name in LOCAL_PROVIDERS:
+                                pricing = "Local model"
+                            else:
+                                pricing = "Pricing not available"
+                    else:
+                        # cost_per_token not available
+                        if provider_name in LOCAL_PROVIDERS:
+                            pricing = "Local model"
+                        else:
+                            pricing = "Pricing not available"
+
+                    typer.secho(f"  ", nl=False)
+                    typer.secho(f"{current_idx:2d}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+                    typer.secho(f". ", nl=False, fg=get_text_color())
+                    typer.secho(f"{model_name:30s}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+                    typer.secho(f"\t(", nl=False, fg=get_text_color())
+                    if pricing == "Local model":
+                        typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)
+                    elif pricing == "Pricing not available":
+                        typer.secho(f"{pricing}", nl=False, fg=typer.colors.YELLOW)
+                    else:
+                        typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+                    typer.secho(")", fg=get_text_color())
+                    current_idx += 1
+
+    except Exception as e:
+        typer.echo(f"Error getting model list: {str(e)}")
+    
+    typer.secho("\nTo change a model:", fg=get_text_color())
+    typer.secho("  /model chat <name|number>", fg=get_system_color())
+    typer.secho("  /model detection <name|number>", fg=get_system_color())
+    typer.secho("  /model compression <name|number>", fg=get_system_color())
+    typer.secho("  /model synthesis <name|number>", fg=get_system_color())
 
 
 def show_model_for_context(context: str):
@@ -146,10 +222,44 @@ def set_model_for_context(context: str, model_name: str):
         "synthesis": "web synthesis"
     }
     
+    # Check if model_name is a number
+    try:
+        model_index = int(model_name)
+        # Build the same model list to map index to model name
+        providers = get_available_providers()
+        current_idx = 1
+        selected_model = None
+        
+        for provider_name, provider_config in providers.items():
+            models = get_provider_models(provider_name)
+            if models:
+                for model in models:
+                    if isinstance(model, dict):
+                        model_full_name = model.get("name", "unknown")
+                    else:
+                        model_full_name = model
+                    
+                    if current_idx == model_index:
+                        selected_model = model_full_name
+                        break
+                    current_idx += 1
+                if selected_model:
+                    break
+        
+        if selected_model:
+            model_name = selected_model
+        else:
+            typer.secho(f"Invalid model number '{model_index}'. Use '/model list' to see available models.", fg="red")
+            return
+            
+    except ValueError:
+        # Not a number, use as model name
+        pass
+    
     # Validate model exists
     if not validate_model_exists(model_name):
         typer.secho(f"Model not found: {model_name}", fg="red")
-        typer.secho("Use '/model' to see available models", fg=get_text_color())
+        typer.secho("Use '/model list' to see available models", fg=get_text_color())
         return
     
     # Set the model
@@ -223,63 +333,3 @@ def validate_and_clear_incompatible_params(context: str, model_name: str):
                 )
 
 
-def show_and_select_model_for_context(context: str):
-    """Show available models and allow selection by number or name."""
-    descriptions = {
-        "chat": "chat",
-        "detection": "topic detection",
-        "compression": "compression",
-        "synthesis": "web synthesis"
-    }
-    
-    typer.secho(f"\n🤖 Select {descriptions[context]} model:", fg=get_heading_color(), bold=True)
-    typer.secho("─" * 50, fg=get_heading_color())
-    
-    # Get all available models
-    models = []
-    providers = get_available_providers()
-    
-    for provider_name, provider_config in providers.items():
-        provider_models = get_provider_models(provider_name)
-        if provider_models:
-            for model in provider_models:
-                if isinstance(model, dict):
-                    model_name = model.get("name", "unknown")
-                else:
-                    model_name = model
-                models.append((model_name, provider_name))
-    
-    # Display models with numbers
-    for idx, (model_name, provider_name) in enumerate(models, 1):
-        typer.secho(f"  {idx:2d}. ", fg="yellow", nl=False)
-        typer.secho(f"{model_name:30s} ", fg="cyan", nl=False)
-        typer.secho(f"({provider_name})", fg="white", dim=True)
-    
-    typer.secho("\n💡 Enter model number or name (or 'cancel' to abort):", fg=get_text_color())
-    
-    # Get user input
-    user_input = typer.prompt("", prompt_suffix="> ")
-    
-    if user_input.lower() == "cancel":
-        typer.secho("Cancelled.", fg="yellow")
-        return
-    
-    # Check if input is a number
-    try:
-        model_index = int(user_input)
-        if 1 <= model_index <= len(models):
-            selected_model, _ = models[model_index - 1]
-            set_model_for_context(context, selected_model)
-        else:
-            typer.secho(f"Invalid number. Please choose between 1 and {len(models)}.", fg="red")
-    except ValueError:
-        # Try to match by name
-        matched = False
-        for model_name, _ in models:
-            if user_input.lower() in model_name.lower() or model_name.lower() == user_input.lower():
-                set_model_for_context(context, model_name)
-                matched = True
-                break
-        
-        if not matched:
-            typer.secho(f"Model '{user_input}' not found. Use exact model name or number.", fg="red")

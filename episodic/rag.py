@@ -179,11 +179,16 @@ class EpisodicRAG:
                 'parent_doc_id': parent_doc_id,
                 'chunk_index': idx,
                 'total_chunks': len(chunks),
-                'content_hash': content_hash if idx == 0 else None
             }
             
+            # Only add content_hash for first chunk to avoid None values
+            if idx == 0:
+                doc_metadata['content_hash'] = content_hash
+            
             if metadata:
-                doc_metadata.update(metadata)
+                # Filter out None values from metadata to avoid ChromaDB issues
+                filtered_metadata = {k: v for k, v in metadata.items() if v is not None}
+                doc_metadata.update(filtered_metadata)
             
             self.collection.add(
                 documents=[chunk_data['text']],
@@ -226,9 +231,15 @@ class EpisodicRAG:
             'ids': []
         }
         
+        # If no results, return empty
+        if not results['distances'] or not results['distances'][0]:
+            return filtered_results
+            
         for i, distance in enumerate(results['distances'][0]):
-            # ChromaDB uses cosine distance, lower is better
-            if distance <= (1 - threshold):
+            # ChromaDB returns L2 distance for normalized embeddings
+            # Lower is better, typical range is 0-2
+            # For a basic threshold, we'll accept distances < 2.0
+            if threshold == 0.0 or distance <= 2.0:
                 filtered_results['documents'].append(results['documents'][0][i])
                 filtered_results['metadatas'].append(results['metadatas'][0][i])
                 filtered_results['distances'].append(distance)

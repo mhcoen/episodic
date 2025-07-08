@@ -62,12 +62,17 @@ class HelpRAG:
             if os.path.exists(doc_path) and doc not in self._indexed_docs:
                 try:
                     # Check if already indexed by looking for the file path in metadata
-                    results = self.collection.get(
-                        where={"source": doc_path},
-                        limit=1
-                    )
+                    try:
+                        results = self.collection.get(
+                            where={"source": doc_path},
+                            limit=1
+                        )
+                        already_indexed = results['ids'] and len(results['ids']) > 0
+                    except Exception:
+                        # If query fails, assume not indexed
+                        already_indexed = False
                     
-                    if not results['ids']:
+                    if not already_indexed:
                         # Not indexed yet, index it
                         typer.secho(f"Indexing help documentation: {doc}...", fg=get_text_color(), dim=True)
                         # Read file content
@@ -107,13 +112,13 @@ class HelpRAG:
         formatted_results = []
         
         # Extract data from search results
-        if results['documents'] and len(results['documents'][0]) > 0:
+        if results['documents'] and len(results['documents']) > 0:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             
-            for i in range(len(results['documents'][0])):
-                content = results['documents'][0][i]
-                metadata = results['metadatas'][0][i] if results['metadatas'] else {}
-                distance = results['distances'][0][i] if results['distances'] else 0
+            for i in range(len(results['documents'])):
+                content = results['documents'][i]
+                metadata = results['metadatas'][i] if results['metadatas'] and i < len(results['metadatas']) else {}
+                distance = results['distances'][i] if results['distances'] and i < len(results['distances']) else 0
                 
                 # Extract source file from metadata
                 source = metadata.get('source', 'Unknown')
@@ -122,7 +127,7 @@ class HelpRAG:
                 formatted_results.append({
                     'content': content,
                     'source': source,
-                    'score': 1 - distance  # Convert distance to similarity score
+                    'score': 2.0 - distance  # Convert L2 distance to similarity-like score
                 })
         
         return formatted_results

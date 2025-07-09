@@ -29,6 +29,7 @@ def mset_command(
         - detection: Topic detection model
         - compression: Compression/summarization model
         - synthesis: Web search synthesis model
+        - embedding: Drift detection embeddings
         
     Parameters:
         - temperature: Randomness (0.0-2.0)
@@ -44,9 +45,14 @@ def mset_command(
         return
     
     # Check if it's just a context name (e.g., "chat")
-    valid_contexts = ["chat", "detection", "compression", "synthesis"]
+    valid_contexts = ["chat", "detection", "compression", "synthesis", "embedding"]
     if param_spec.lower() in valid_contexts and not value:
         show_parameters_for_context(param_spec.lower())
+        return
+        
+    # Special case for "/mset embedding list"
+    if param_spec.lower() == "embedding" and value == "list":
+        list_embedding_models()
         return
     
     # Parse context.parameter format
@@ -98,6 +104,15 @@ def show_all_parameters():
     typer.secho("\nUse '/mset <context>' to see details for a specific context", fg=get_text_color(), dim=True)
     typer.secho("Use '/mset <context>.<param> default' to reset to default value", fg=get_text_color(), dim=True)
     
+    # Show embedding configuration separately
+    typer.echo()
+    typer.secho("🧬 Embedding Configuration:", fg=get_heading_color(), bold=True)
+    provider = config.get("drift_embedding_provider", "sentence-transformers")
+    model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+    threshold = config.get("drift_threshold", 0.9)
+    typer.secho(f"  Provider: {provider}, Model: {model}, Threshold: {threshold}", fg=get_text_color())
+    typer.secho("  Use '/mset embedding' for details or '/mset embedding list' for available models", fg=get_text_color(), dim=True)
+    
     # Now show the models
     typer.echo()  # Add blank line
     from episodic.commands.unified_model import show_current_models
@@ -106,6 +121,11 @@ def show_all_parameters():
 
 def show_parameters_for_context(context: str):
     """Show parameters for a specific context."""
+    # Special handling for embedding context
+    if context == "embedding":
+        show_embedding_parameters()
+        return
+        
     # Get current model for context
     model_key = get_model_key_for_context(context)
     current_model = config.get(model_key, "")
@@ -152,6 +172,11 @@ def show_parameters_for_context(context: str):
 
 def set_parameter(context: str, param: str, value: str):
     """Set a parameter for a context."""
+    # Special handling for embedding context
+    if context == "embedding":
+        set_embedding_parameter(param, value)
+        return
+        
     # Validate parameter name
     valid_params = ["temperature", "max_tokens", "top_p", "presence_penalty", "frequency_penalty"]
     if param not in valid_params:
@@ -295,3 +320,129 @@ def get_unsupported_params(model_name: str) -> list:
     # Add other model-specific exclusions here as needed
     
     return unsupported
+
+
+def show_embedding_parameters():
+    """Show embedding-specific parameters."""
+    provider = config.get("drift_embedding_provider", "sentence-transformers")
+    model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+    threshold = config.get("drift_threshold", 0.9)
+    
+    typer.secho("\n🧬 Embedding Configuration", fg=get_heading_color(), bold=True)
+    typer.secho("─" * 50, fg=get_heading_color())
+    
+    typer.secho(f"  provider             ", fg=get_system_color(), nl=False)
+    typer.secho(f"{provider:<20} ", fg=get_heading_color(), bold=True, nl=False)
+    typer.secho("Embedding backend", fg=get_text_color())
+    
+    typer.secho(f"  model                ", fg=get_system_color(), nl=False)
+    typer.secho(f"{model:<20} ", fg=get_heading_color(), bold=True, nl=False)
+    typer.secho("Model name", fg=get_text_color())
+    
+    typer.secho(f"  threshold            ", fg=get_system_color(), nl=False)
+    typer.secho(f"{threshold:<20} ", fg=get_heading_color(), bold=True, nl=False)
+    typer.secho("Topic change threshold", fg=get_text_color())
+    
+    typer.secho("\nSet with: /mset embedding.<parameter> <value>", fg=get_text_color(), dim=True)
+    typer.secho("List models: /mset embedding list", fg=get_text_color(), dim=True)
+    
+    
+def set_embedding_parameter(param: str, value: str):
+    """Set an embedding-specific parameter."""
+    # Special case: list available models
+    if param == "list" and not value:
+        list_embedding_models()
+        return
+        
+    valid_params = ["provider", "model", "threshold"]
+    if param not in valid_params:
+        typer.secho(f"Unknown embedding parameter: {param}", fg="red")
+        typer.secho(f"Valid parameters: {', '.join(valid_params)}", fg=get_text_color())
+        typer.secho("Use '/mset embedding list' to see available models", fg=get_text_color())
+        return
+    
+    if param == "provider":
+        valid_providers = ["sentence-transformers", "openai", "huggingface"]
+        if value not in valid_providers:
+            typer.secho(f"Unknown provider: {value}", fg="red")
+            typer.secho(f"Valid providers: {', '.join(valid_providers)}", fg=get_text_color())
+            return
+        config.set("drift_embedding_provider", value)
+        typer.secho(f"✓ Set embedding provider = {value}", fg="green")
+        
+    elif param == "model":
+        # Map the config key correctly
+        config.set("drift_embedding_model", value)
+        typer.secho(f"✓ Set embedding model = {value}", fg="green")
+        typer.secho("Note: Model will be downloaded on first use if not cached", fg=get_text_color(), dim=True)
+        
+    elif param == "threshold":
+        try:
+            threshold = float(value)
+            if not (0.0 <= threshold <= 1.0):
+                typer.secho("Threshold must be between 0.0 and 1.0", fg="red")
+                return
+            config.set("drift_threshold", threshold)
+            typer.secho(f"✓ Set drift threshold = {threshold}", fg="green")
+            if threshold < 0.7:
+                typer.secho("⚠️  Low threshold may cause frequent topic changes", fg="yellow")
+            elif threshold > 0.95:
+                typer.secho("⚠️  High threshold may miss topic changes", fg="yellow")
+        except ValueError:
+            typer.secho(f"Invalid threshold value: {value}", fg="red")
+            typer.secho("Expected a number between 0.0 and 1.0", fg=get_text_color())
+
+
+def list_embedding_models():
+    """List available embedding models."""
+    typer.secho("\n📊 Available Embedding Models", fg=get_heading_color(), bold=True)
+    typer.secho("─" * 70, fg=get_heading_color())
+    
+    models = {
+        "sentence-transformers": [
+            ("paraphrase-mpnet-base-v2", "Default, balanced performance (768d)"),
+            ("all-MiniLM-L6-v2", "Fast and lightweight (384d)"),
+            ("all-mpnet-base-v2", "High quality, general purpose (768d)"),
+            ("BAAI/bge-small-en-v1.5", "Small BGE model, good quality (384d)"),
+            ("BAAI/bge-base-en-v1.5", "Medium BGE model, better quality (768d)"),
+            ("BAAI/bge-large-en-v1.5", "Large BGE model, best quality (1024d)"),
+            ("sentence-transformers/all-distilroberta-v1", "DistilRoBERTa based (768d)"),
+            ("thenlper/gte-small", "Small GTE model (384d)"),
+            ("thenlper/gte-base", "Base GTE model (768d)"),
+            ("thenlper/gte-large", "Large GTE model (1024d)"),
+        ],
+        "openai": [
+            ("text-embedding-3-small", "OpenAI small model (1536d)"),
+            ("text-embedding-3-large", "OpenAI large model (3072d)"),
+            ("text-embedding-ada-002", "Legacy Ada model (1536d)"),
+        ],
+        "huggingface": [
+            ("Not yet implemented", "Coming soon"),
+        ]
+    }
+    
+    current_provider = config.get("drift_embedding_provider", "sentence-transformers")
+    current_model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+    
+    for provider, model_list in models.items():
+        is_current_provider = provider == current_provider
+        typer.secho(f"\n{provider}", fg=get_system_color(), bold=True)
+        
+        for model_name, description in model_list:
+            is_current = is_current_provider and model_name == current_model
+            
+            if is_current:
+                typer.secho("  ► ", fg="green", nl=False)
+            else:
+                typer.secho("    ", nl=False)
+                
+            typer.secho(f"{model_name:<40} ", fg=get_heading_color() if is_current else get_text_color(), nl=False)
+            typer.secho(description, fg=get_text_color(), dim=not is_current)
+    
+    typer.secho("\nNote on thresholds:", fg=get_text_color(), bold=True)
+    typer.secho("  • Default model (paraphrase-mpnet): threshold 0.9 works well", fg=get_text_color())
+    typer.secho("  • BGE models: use lower threshold (0.65-0.75) for similar results", fg=get_text_color())
+    typer.secho("  • Dimension (d) indicates embedding vector size", fg=get_text_color())
+    
+    typer.secho("\nSet model: /mset embedding.model <model-name>", fg=get_text_color(), dim=True)
+    typer.secho("Set threshold: /mset embedding.threshold <value>", fg=get_text_color(), dim=True)

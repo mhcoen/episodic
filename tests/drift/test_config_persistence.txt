@@ -1,0 +1,12 @@
+# Test config persistence
+/set drift_embedding_model BAAI/bge-large-en-v1.5
+/set drift_embedding_model
+/echo "Model should be BGE above"
+
+# Trigger first drift calc
+How do I learn Python?
+What are Python lists?
+
+# Check config again
+/set drift_embedding_model
+/echo "Model should still be BGE"

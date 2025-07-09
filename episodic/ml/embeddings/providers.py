@@ -77,7 +77,18 @@ class SentenceTransformersBackend(EmbeddingBackend):
         """Initialize the sentence transformers model with lazy loading."""
         try:
             from sentence_transformers import SentenceTransformer
+            import typer
+            from episodic.config import config
+            
+            if config.get("debug"):
+                typer.echo(f"[DEBUG] Loading SentenceTransformer model: {self.model_name}")
+            
             self.model = SentenceTransformer(self.model_name)
+            
+            if config.get("debug"):
+                typer.echo(f"[DEBUG] Successfully loaded model: {self.model_name}")
+                typer.echo(f"[DEBUG] Model embedding dimension: {self.model.get_sentence_embedding_dimension()}")
+            
         except ImportError:
             raise ImportError(
                 "sentence-transformers is required for this backend. "

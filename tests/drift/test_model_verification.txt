@@ -1,0 +1,12 @@
+# Verify which embedding model is being used
+/init --erase
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set drift_embedding_model BAAI/bge-large-en-v1.5
+
+# First message to initialize drift calculator
+How do I learn Python?
+
+# Second message to trigger drift calculation
+What's the best pasta recipe?

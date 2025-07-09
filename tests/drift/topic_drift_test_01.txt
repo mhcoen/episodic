@@ -10,7 +10,9 @@
 /set show_topics true
 /set topic-auto true
 /set min_messages_before_topic_change 8
-/set drift_threshold 0.85
+/set drift_embedding_model BAAI/bge-large-en-v1.5
+
+/set drift_threshold 0.35
 
 # ==================================================
 # TOPIC 1: Python Programming (Messages 1-10)

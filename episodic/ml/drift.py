@@ -37,6 +37,15 @@ class ConversationalDrift:
             peak_strategy: Peak detection strategy ("threshold", "relative", "rolling_average", "statistical")
             **peak_kwargs: Additional parameters for peak detection strategy
         """
+        # Debug output
+        try:
+            import typer
+            from episodic.config import config
+            if config.get("debug"):
+                typer.echo(f"[DEBUG] ConversationalDrift init: provider={embedding_provider}, model={embedding_model}")
+        except:
+            pass  # Ignore if imports fail
+            
         self.embedding_provider = EmbeddingProvider(
             provider=embedding_provider,
             model=embedding_model

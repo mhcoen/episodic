@@ -1,0 +1,17 @@
+# Compare drift scores between models
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set show_drift true
+/set drift_embedding_model paraphrase-mpnet-base-v2
+/set auto_compress false
+
+# Show model being used
+/set drift_embedding_model
+
+# Test transitions
+What are Python modules and packages?
+Tell me about ancient Rome.
+What is compound interest and how does it work?
+What is DNA and how does it work?
+What's a good recipe for homemade pasta?

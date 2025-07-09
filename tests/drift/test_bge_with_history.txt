@@ -1,0 +1,27 @@
+# Test BGE with enough history for sliding window
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set drift_embedding_model BAAI/bge-large-en-v1.5
+/set drift_threshold 0.65
+/set auto_compress false
+/set topic_change_info true
+
+# Programming (need at least 3 messages before detecting)
+How do I start learning Python?
+What are Python data types and variables?
+How do Python lists and dictionaries work?
+What are Python functions and how to define them?
+
+# History - should trigger topic change now
+Tell me about ancient Rome.
+What was life like in the Roman Empire?
+Who were the most famous Roman emperors?
+
+# Finance - should trigger topic change
+What is compound interest and how does it work?
+How should I start investing for retirement?
+What's the difference between stocks and bonds?
+
+# Check topics
+/topics

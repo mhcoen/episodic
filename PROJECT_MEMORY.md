@@ -1,6 +1,6 @@
 # Episodic Project Memory
 
-Last Updated: 2025-01-09
+Last Updated: 2025-01-09 (continued)
 
 ## Testing
 - **Framework**: pytest (not unittest)
@@ -8,8 +8,17 @@ Last Updated: 2025-01-09
 - **Types**: Unit and integration tests
 - **Command**: `python tests/run_all_tests.py`
 
-## Recent Session (2025-01-09)
-### Python Library Update and Fixes
+## Recent Session (2025-01-09 continued)
+### Embedding Model Configuration and Topic Detection
+- **Issue Fixed**: BGE embedding model wasn't being used by all topic detectors
+- Updated all `ConversationalDrift` instantiations to read config settings
+- Fixed detectors: RealtimeWindowDetector, SlidingWindowDetector, SimpleDriftDetector, HybridTopicDetector
+- **Key Finding**: BGE models produce lower drift scores (0.65-0.7) vs default model (0.9+)
+- Implemented `/mset embedding` command system for easy model configuration
+- Available models: paraphrase-mpnet, BGE family, GTE family, MiniLM variants
+- Documented that topic naming uses same model as topic detection
+
+### Python Library Update and Fixes (earlier)
 - Fixed Python 3.13 regex syntax warning by replacing `\S` and `\s` with explicit character classes
 - Fixed /set command to show short curated list with descriptions
 - Changed /set and /help to use 'all' instead of '--all'
@@ -18,7 +27,7 @@ Last Updated: 2025-01-09
 - Implemented centralized cost tracking in LLMManager
 - Fixed help system file indexing
 
-### Git History Cleanup
+### Git History Cleanup (earlier)
 - **CRITICAL**: Removed all Claude/Anthropic references from entire git history
 - Rewrote 328 commits using git filter-branch
 - Force pushed to private remote repository
@@ -31,8 +40,11 @@ Last Updated: 2025-01-09
 - Separated memory: Claude Desktop uses general memory, Claude Code uses project-specific
 - All LLM cost tracking now centralized through LLMManager
 - Git commits must never mention Claude/Anthropic per CLAUDE.md
+- BGE embedding models need lower thresholds (0.65-0.75) vs default (0.9)
+- Topic naming uses same model as topic detection (not separately configurable)
 
 ## Current Focus
+- **URGENT**: Enforce 500 line cap per file (absolute max 600) - refactor/modularize longer files
 - Next priority: Add previous history to /muse mode for follow-up questions (see TODO.md)
 - Fix compression command structure (confusing /compression unified command)
 - Add support for other web search providers beyond DuckDuckGo
@@ -43,6 +55,13 @@ Last Updated: 2025-01-09
 - Prefers explicit over implicit behavior
 - No AI attribution in commits
 - Prefers simple solutions over complex ones
+- Wants clear, modular configuration options
+- Values understanding why features work the way they do
+
+## Code Quality Guidelines
+- **File Length**: Maximum 500 lines per file (absolute cap at 600)
+- Files exceeding limit must be refactored or modularized
+- Keep modules focused on single responsibilities
 
 ## Architecture Notes
 - Unified streaming in `episodic/unified_streaming.py`
@@ -50,3 +69,5 @@ Last Updated: 2025-01-09
 - Web search with DuckDuckGo provider
 - Topic detection with configurable models
 - Python 3.13.5 (has stricter syntax warnings)
+- Embedding configuration: drift_embedding_provider, drift_embedding_model, drift_threshold
+- All topic detectors now properly read embedding configuration from config

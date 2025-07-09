@@ -1,0 +1,21 @@
+# Test to verify BGE model is being used
+/init --erase
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set drift_embedding_model BAAI/bge-large-en-v1.5
+
+# Show current settings
+/echo "===== Current Configuration ====="
+/set drift_embedding_provider
+/set drift_embedding_model
+/echo "================================="
+
+# First message to initialize drift calculator
+How do I learn Python?
+
+# Second message to trigger drift calculation
+What's the best pasta recipe?
+
+# Check which topics were detected
+/topics

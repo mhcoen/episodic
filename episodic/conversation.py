@@ -335,6 +335,8 @@ class ConversationManager:
                     embedding_provider=embedding_provider,
                     embedding_model=embedding_model
                 )
+                if config.get("debug"):
+                    typer.echo(f"✅ Initialized drift calculator with {embedding_provider}/{embedding_model}")
             except Exception as e:
                 # If drift calculator fails to initialize (e.g., missing dependencies),
                 # disable drift detection for this session
@@ -388,6 +390,9 @@ class ConversationManager:
         calc = self.get_drift_calculator()
         if not calc:
             return  # Drift detection disabled
+        
+        if config.get("debug"):
+            typer.echo(f"   [drift] Using calculator instance: {id(calc)}")
         
         try:
             # Get conversation history from root to current node

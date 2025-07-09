@@ -95,7 +95,14 @@ class HybridTopicDetector:
     
     def __init__(self):
         # Initialize components
-        self.drift_detector = ConversationalDrift()
+        # Get embedding settings from config
+        embedding_provider = config.get("drift_embedding_provider", "sentence-transformers")
+        embedding_model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+        
+        self.drift_detector = ConversationalDrift(
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model
+        )
         self.transition_detector = TransitionDetector()
         self.scorer = HybridScorer()
         self.topic_manager = TopicManager()  # For LLM fallback

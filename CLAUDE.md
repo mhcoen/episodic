@@ -242,6 +242,11 @@ Each context can have independent model parameters set with `/mset`:
 5. After 2+ user messages, topic is automatically renamed based on content
 6. Topics remain "open" (end_node_id=NULL) until closed on topic change
 
+**Note on Topic Naming**: Both topic detection and topic name extraction use the same model configured via `/model detection <name>`. The `topic_detection_model` setting controls both:
+- Detecting when topics change (JSON yes/no response)
+- Extracting descriptive names from conversation content (1-3 word summary)
+This means if you change the detection model, it affects both detection accuracy and naming quality.
+
 #### Database Functions
 - `store_topic()` - Creates new topic entry (end_node_id now optional)
 - `update_topic_end_node()` - Closes topic by setting end boundary
@@ -312,7 +317,7 @@ Each context can have independent model parameters set with `/mset`:
 - `/model` - Show current chat model
 - `/model list` - Show all models for all contexts
 - `/model chat <name>` - Set chat (main conversation) model
-- `/model detection <name>` - Set topic detection model
+- `/model detection <name>` - Set topic detection model (also used for topic naming)
 - `/model compression <name>` - Set compression model
 - `/model synthesis <name>` - Set web synthesis model
 - `/mset` - Show all model parameters

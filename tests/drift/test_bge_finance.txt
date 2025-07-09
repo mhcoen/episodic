@@ -1,0 +1,54 @@
+# Test if BGE detects Finance topic
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set show_drift true
+/set drift_embedding_model BAAI/bge-large-en-v1.5
+/set use_sliding_window_detection true
+/set drift_threshold 0.9
+
+# Disable auto-compression to avoid HF rate limits
+/set auto_compress false
+
+# Programming questions (1-6)
+How do I start learning Python programming?
+What are Python data types and variables?
+How do Python lists and dictionaries work?
+What are Python functions and how to define them?
+How does object-oriented programming work in Python?
+What are Python modules and packages?
+
+# History questions (7-12) 
+Tell me about ancient Rome.
+What was life like in the Roman Empire?
+Who were the most famous Roman emperors?
+What led to the fall of the Roman Empire?
+What was the structure of Roman society?
+How did Roman architecture influence the world?
+
+# Finance questions (13-18)
+What is compound interest and how does it work?
+How should I start investing for retirement?
+What's the difference between stocks and bonds?
+How does the stock market work?
+What are mutual funds and ETFs?
+How can I create a budget and track expenses?
+
+# Science questions (19-24)
+What is DNA and how does it work?
+How does photosynthesis convert light to energy?
+What causes climate change and global warming?
+How do vaccines work to prevent disease?
+What is quantum mechanics about?
+How does the human brain process information?
+
+# Cooking questions (25-30)
+What's a good recipe for homemade pasta?
+How do I make a classic marinara sauce?
+What are the secrets to perfect pizza dough?
+How do I properly season a cast iron pan?
+What's the difference between baking and roasting?
+What are the five mother sauces in French cooking?
+
+# Show detected topics
+/topics

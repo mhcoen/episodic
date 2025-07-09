@@ -64,12 +64,19 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     if not param:
         typer.secho("Common Settings:", fg=get_heading_color(), bold=True)
         
-        # Show current values
-        typer.secho(f"  depth: {default_context_depth}", fg=get_system_color())
-        typer.secho(f"  stream: {config.get('stream_responses', True)}", fg=get_system_color())
-        typer.secho(f"  cost: {config.get('show_cost', False)}", fg=get_system_color())
-        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
-        typer.secho(f"  color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
+        # Show current values with descriptions
+        settings = [
+            (f"depth: {default_context_depth}", "Messages of conversation history to include"),
+            (f"stream: {config.get('stream_responses', True)}", "Stream responses as they generate"),
+            (f"cost: {config.get('show_cost', False)}", "Show token usage and API costs"),
+            (f"topics: {config.get('show_topics', False)}", "Display topic boundaries in chat"),
+            (f"color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", "Color scheme (dark/light/none)"),
+        ]
+        
+        for setting, desc in settings:
+            padding = ' ' * max(1, 25 - len(setting) - 2)
+            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
         
         typer.secho("\nExamples:", fg=get_heading_color())
         typer.secho("  /set cost true", fg=get_system_color())

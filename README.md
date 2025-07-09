@@ -11,6 +11,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🗄️ Persistent Memory**: All conversations stored in a local SQLite database
 - **🎯 Automatic Topic Detection**: Intelligently segments conversations into semantic topics
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
+- **💰 Cost & Usage Tracking**: Real-time tracking of tokens used and costs across all LLM providers
 - **🌐 Web Search**: Search the web and get AI-synthesized summaries of results
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
 - **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info

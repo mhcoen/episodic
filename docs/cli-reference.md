@@ -93,7 +93,7 @@ Configure various parameters
 /set depth 10                # Conversation context depth
 /set stream false            # Disable streaming output
 /set topics true             # Show topic information
-/set color-mode light        # Switch to light mode (dark/light/none)
+/set color-mode basic        # Switch to basic colors (full/basic/none)
 
 # Other useful settings:
 /set debug true              # Enable debug mode

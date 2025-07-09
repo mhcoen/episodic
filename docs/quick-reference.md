@@ -45,7 +45,7 @@ Just type to chat! No prefix needed.
 /set debug true               # Debug mode
 /set cost true                # Show costs
 /set topics true              # Show topic info
-/set color-mode light         # Switch color mode
+/set color-mode basic         # Switch color mode
 ```
 
 ### Navigation

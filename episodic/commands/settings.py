@@ -70,7 +70,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             (f"stream: {config.get('stream_responses', True)}", "Stream responses as they generate"),
             (f"cost: {config.get('show_cost', False)}", "Show token usage and API costs"),
             (f"topics: {config.get('show_topics', False)}", "Display topic boundaries in chat"),
-            (f"color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", "Color scheme (dark/light/none)"),
+            (f"color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", "Color output mode (full/basic/none)"),
         ]
         
         for setting, desc in settings:

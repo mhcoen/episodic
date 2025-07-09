@@ -216,6 +216,7 @@ presence_penalty      0.0        0.0        0.0        0.0
 frequency_penalty     0.0        0.0        0.0        0.0     
 
 Use '/mset <context>' to see details for a specific context
+Use '/mset <context>.<param> default' to reset to default value
 
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────

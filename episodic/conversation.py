@@ -79,11 +79,15 @@ class ConversationManager:
         }
     
     def get_session_costs(self) -> Dict[str, Any]:
-        """Get the current session costs."""
-        return self.session_costs.copy()
+        """Get the current session costs from the centralized LLM manager."""
+        from episodic.llm_manager import llm_manager
+        return llm_manager.get_session_costs()
     
     def reset_session_costs(self) -> None:
-        """Reset session costs to zero."""
+        """Reset session costs in the centralized LLM manager."""
+        from episodic.llm_manager import llm_manager
+        llm_manager.reset_stats()
+        # Keep local tracking for backward compatibility but it won't be used
         self.session_costs = {
             "total_input_tokens": 0,
             "total_output_tokens": 0,

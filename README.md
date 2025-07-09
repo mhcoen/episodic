@@ -2,6 +2,9 @@
 
 A conversational memory system that creates persistent, navigable conversations with Large Language Models (LLMs). Episodic automatically organizes conversations into topics, manages context windows, and provides tools for searching both local knowledge and the web.
 
+## Motivation
+I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It has since become my preferred daily interface and framework for both routine LLM use and developing new capabilities based on them.
+
 ## ✨ Features
 
 - **🗄️ Persistent Memory**: All conversations stored in a local SQLite database

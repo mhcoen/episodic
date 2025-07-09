@@ -34,7 +34,9 @@ pip install -e .
 ```bash
 # Start Episodic (database created automatically on first run)
 python -m episodic
+```
 
+```text
 # Just start chatting!
 > What's the capital of France?
 🤖 The capital of France is Paris.
@@ -82,7 +84,7 @@ python -m episodic
 ### 🎭 Muse Mode - Conversational Web Search
 Muse mode transforms Episodic into a Perplexity-like AI research assistant that searches the web and synthesizes comprehensive answers:
 
-```bash
+```text
 > /muse
 ✨ Muse mode activated! I'll search the web to answer your questions.
 
@@ -104,7 +106,7 @@ Muse mode transforms Episodic into a Perplexity-like AI research assistant that 
 ### 📚 Research Assistant
 Index your papers and documents, then ask questions that search both your knowledge base and the web:
 
-```bash
+```text
 > /rag on
 > /index research_paper.pdf
 > /index thesis_chapter3.md
@@ -120,7 +122,7 @@ Index your papers and documents, then ask questions that search both your knowle
 ### 🧩 Multi-Model Workflows
 Use different models for different tasks to optimize performance and cost:
 
-```bash
+```text
 # Use GPT-4 for complex reasoning
 > /model chat gpt-4o
 
@@ -142,7 +144,7 @@ Use different models for different tasks to optimize performance and cost:
 ### 💾 Long Conversation Management
 Episodic automatically manages long conversations by detecting topic changes and compressing old topics:
 
-```bash
+```text
 > /set topic-auto true
 > /set comp-auto true
 > /set show_topics true  # See topic evolution
@@ -161,7 +163,7 @@ Episodic automatically manages long conversations by detecting topic changes and
 ### 🏠 Offline Usage
 Run completely offline with local models:
 
-```bash
+```text
 # Set all contexts to use local models
 > /model chat ollama/llama3
 > /model detection ollama/llama3  

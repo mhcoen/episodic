@@ -10,6 +10,7 @@
 /set show_topics true
 /set topic-auto true
 /set min_messages_before_topic_change 8
+/set drift_threshold 0.85
 
 # ==================================================
 # TOPIC 1: Python Programming (Messages 1-10)

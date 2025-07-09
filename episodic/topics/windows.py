@@ -35,7 +35,7 @@ class SlidingWindowDetector:
         """
         self.window_size = window_size
         self.drift_calculator = ConversationalDrift()
-        self.threshold = config.get("manual_index_threshold", 0.75)
+        self.threshold = config.get("drift_threshold", 0.9)
     
     def analyze_conversation(
         self, 

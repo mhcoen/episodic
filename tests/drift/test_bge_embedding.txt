@@ -1,0 +1,30 @@
+# Test BGE embedding model
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set comp-auto false
+/set show_drift true
+/set drift_threshold 0.9
+/set min_messages_before_topic_change 8
+
+# Configure BGE embeddings
+/set drift_embedding_provider sentence-transformers
+/set drift_embedding_model BAAI/bge-base-en-v1.5
+
+# Test the same transitions as before
+# Photography (last 2 messages)
+What's the golden hour for photography?
+How do I shoot in low light conditions?
+What's the difference between RAW and JPEG?
+How do I achieve a blurred background effect?
+What are the best camera settings for landscapes?
+How do I use a polarizing filter?
+
+# Personal Finance (should this trigger topic change with BGE?)
+How do I create a budget?
+What's the 50/30/20 rule for budgeting?
+How much should I save for an emergency fund?
+What's the difference between stocks and bonds?
+
+# Check results
+/topics

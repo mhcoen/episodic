@@ -1,0 +1,31 @@
+# Test that Personal Finance topic is detected
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set comp-auto false
+/set show_drift true
+/set drift_threshold 0.9
+/set min_messages_before_topic_change 8
+
+# Photography topic (8 messages)
+What's the rule of thirds in photography?
+How do I use manual mode on my camera?
+What's the difference between aperture and shutter speed?
+How do I take better portraits?
+What's the golden hour for photography?
+How do I shoot in low light conditions?
+What's the difference between RAW and JPEG?
+How do I achieve a blurred background effect?
+
+# Personal Finance topic (8 messages) - Should trigger topic change
+How do I create a budget?
+What's the 50/30/20 rule for budgeting?
+How much should I save for an emergency fund?
+What's the difference between stocks and bonds?
+How do I start investing with little money?
+What's compound interest and why is it important?
+Should I pay off debt or invest first?
+What's a good credit score and how do I improve mine?
+
+# Check results
+/topics

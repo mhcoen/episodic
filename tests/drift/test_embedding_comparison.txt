@@ -1,0 +1,24 @@
+# Test different embedding models on the same transition
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set comp-auto false
+/set show_drift true
+/set min_messages_before_topic_change 4
+
+# Current model (paraphrase-mpnet-base-v2)
+/echo
+/echo "=== Testing with paraphrase-mpnet-base-v2 (default) ==="
+What's the best camera settings for landscapes?
+How do I photograph the night sky?
+How do I create a budget?
+What's the 50/30/20 rule for budgeting?
+
+# Note: To test other models, you would:
+# 1. Exit episodic
+# 2. Set environment variables or config
+# 3. Run this test again
+# 
+# Or create separate test scripts with different models:
+# /set embedding_model all-mpnet-base-v2
+# /set embedding_model all-MiniLM-L12-v2

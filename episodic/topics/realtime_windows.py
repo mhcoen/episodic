@@ -27,7 +27,7 @@ class RealtimeWindowDetector:
         """Initialize with window size (default 3 for 3-3 windows)."""
         self.window_size = window_size
         self.drift_calculator = ConversationalDrift()
-        self.threshold = 0.85  # Default threshold
+        self.threshold = 0.9  # Default threshold
     
     def detect_topic_change(
         self,

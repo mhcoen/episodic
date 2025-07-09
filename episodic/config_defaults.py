@@ -172,6 +172,12 @@ DISPLAY_DEFAULTS = {
     "context_depth": 5,  # Default context depth for building conversation history
 }
 
+# Drift Detection Embedding settings
+DRIFT_EMBEDDING_DEFAULTS = {
+    "drift_embedding_provider": "sentence-transformers",  # Provider: sentence-transformers, openai, huggingface
+    "drift_embedding_model": "paraphrase-mpnet-base-v2",  # Model name for drift detection embeddings
+}
+
 # Combine all defaults
 DEFAULT_CONFIG = {
     **CORE_DEFAULTS,
@@ -183,7 +189,8 @@ DEFAULT_CONFIG = {
     **MODEL_SELECTION_DEFAULTS,
     **DISPLAY_DEFAULTS,
     **RAG_DEFAULTS,
-    **WEB_SEARCH_DEFAULTS
+    **WEB_SEARCH_DEFAULTS,
+    **DRIFT_EMBEDDING_DEFAULTS
 }
 
 # Configuration value documentation

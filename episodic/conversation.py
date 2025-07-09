@@ -327,7 +327,14 @@ class ConversationManager:
             
         if self.drift_calculator is None:
             try:
-                self.drift_calculator = ConversationalDrift()
+                # Get embedding settings from config
+                embedding_provider = config.get("drift_embedding_provider", "sentence-transformers")
+                embedding_model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+                
+                self.drift_calculator = ConversationalDrift(
+                    embedding_provider=embedding_provider,
+                    embedding_model=embedding_model
+                )
             except Exception as e:
                 # If drift calculator fails to initialize (e.g., missing dependencies),
                 # disable drift detection for this session

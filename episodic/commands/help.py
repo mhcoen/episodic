@@ -309,27 +309,10 @@ def help_command(query: str):
         # Enable RAG temporarily
         config.set('rag_enabled', True)
         
-        # Create a help-specific prompt that will use RAG enhancement
-        help_prompt = f"""Please provide a clear, practical answer to this question about using Episodic: {query}
+        # Create a simple, direct prompt - context will be added FIRST by RAG
+        help_prompt = f"""Answer this Episodic question: {query}
 
-IMPORTANT: Format your response for the command line:
-- DO NOT use markdown code blocks (no triple backticks)
-- DO NOT write ```bash or ``` anywhere in your response
-- Format commands by indenting them with exactly 2 spaces
-- Use **bold** for emphasis
-- Keep responses concise and focused
-
-Example of correct command formatting:
-  /model chat gpt-4
-  /mset chat.temperature 0.7
-
-When listing commands with descriptions, align them in columns:
-  /model                    Show current models
-  /model list               View available models  
-  /cost                     Show token usage
-  /mset chat.temperature    Set temperature for chat model
-
-IMPORTANT: Keep descriptions aligned at column 30. Add spaces after commands to align descriptions."""
+Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
         
         typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
         
@@ -359,12 +342,13 @@ IMPORTANT: Keep descriptions aligned at column 30. Add spaces after commands to 
                 # Extract the generator from the tuple
                 stream_gen = stream_tuple[0] if isinstance(stream_tuple, tuple) else stream_tuple
                 
-                # Stream the response with format preservation for help text
+                # Stream the response - use regular streaming with wrapping
+                # Don't use format preservation as it prevents proper word wrapping
                 response_text = unified_stream_response(
                     stream_gen,
                     model=model,
-                    color=get_system_color(),
-                    preserve_formatting=True  # Force format preservation for help
+                    color=get_system_color()
+                    # Let regular streaming handle wrapping and bold
                 )
                 
             except Exception as stream_error:

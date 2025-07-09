@@ -336,10 +336,28 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     
     # Handle bold markers
     display_word = word
+    has_inline_bold = False
     if '**' in word:
-        # Process bold markers but don't toggle in_bold state
-        # since we're handling bold based on list/header state
+        # Check if this word should be bold due to inline markers
+        # Count ** markers to determine if we're in bold
+        marker_count = word.count('**')
+        if marker_count > 0:
+            # Simple heuristic: if word starts with ** or we were in bold and no closing **
+            if word.startswith('**'):
+                has_inline_bold = True
+                in_bold = True
+            elif in_bold and word.endswith('**'):
+                has_inline_bold = True
+                in_bold = False
+            elif in_bold:
+                has_inline_bold = True
         display_word = word.replace('**', '')
+    elif in_bold:
+        # We're in the middle of bold text
+        has_inline_bold = True
+    
+    # Determine if word should be bold (from any source)
+    word_is_bold = word_is_bold or has_inline_bold
     
     # Print the word
     if config.get("debug", False) and word_is_bold:

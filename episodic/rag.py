@@ -472,7 +472,7 @@ class EpisodicRAG:
         # Add local results if any
         if results['documents']:
             context_prefix = config.get('rag_context_prefix', 
-                                      '\n\n[Relevant context from knowledge base]:\n')
+                                      'CONTEXT FROM DOCUMENTATION:\n')
             context_parts.append(context_prefix)
             
             for i, (doc, metadata) in enumerate(zip(results['documents'], results['metadatas'])):
@@ -527,8 +527,9 @@ class EpisodicRAG:
         if config.get('rag_include_citations', True) and sources_used:
             context_parts.append(f"\n\n[Sources: {', '.join(sources_used)}]")
         
-        # Combine original message with context
-        enhanced_message = message + ''.join(context_parts)
+        # Combine context FIRST, then original message
+        # This ensures LLM sees relevant context before the question
+        enhanced_message = ''.join(context_parts) + '\n\n' + message
         
         # Track retrieval in database if not in help mode
         # Skip tracking for help queries to avoid polluting retrieval history

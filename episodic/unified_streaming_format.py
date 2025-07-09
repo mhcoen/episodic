@@ -73,15 +73,35 @@ def stream_with_format_preservation(
                 line_position = 0
             
             # Handle partial line in buffer
-            # Only flush if it's getting long or looks complete
-            if len(buffer) > 80 or (buffer and not buffer[-1].isalnum()):
-                typer.secho(buffer, fg=color, nl=False)
+            # Check if buffer needs wrapping
+            if wrap_width and len(buffer) > wrap_width:
+                # Buffer is too long, we need to wrap it
+                # Find last space before wrap_width
+                wrap_point = buffer[:wrap_width].rfind(' ')
+                if wrap_point > 0:
+                    # Print up to wrap point
+                    _print_formatted_line(buffer[:wrap_point], color)
+                    # Keep rest in buffer with proper indentation
+                    remaining = buffer[wrap_point + 1:]
+                    # Detect indentation from the line
+                    indent_match = re.match(r'^(\s*)', buffer)
+                    indent = indent_match.group(1) if indent_match else ''
+                    buffer = indent + remaining
+                    line_position = len(buffer)
+                else:
+                    # No good break point, flush what we have
+                    _print_formatted_line(buffer, color, newline=False)
+                    line_position += len(buffer)
+                    buffer = ""
+            elif len(buffer) > 80 or (buffer and not buffer[-1].isalnum()):
+                # Only flush if it's getting long or looks complete
+                _print_formatted_line(buffer, color, newline=False)
                 line_position += len(buffer)
                 buffer = ""
     
     # Final buffer
     if buffer:
-        typer.secho(buffer, fg=color, nl=False)
+        _print_formatted_line(buffer, color, newline=False)
     
     # Ensure final newline
     typer.echo()
@@ -137,7 +157,7 @@ def _wrap_preserving_indent(line: str, wrap_width: int) -> List[str]:
     return wrapped_lines
 
 
-def _print_formatted_line(line: str, color: str):
+def _print_formatted_line(line: str, color: str, newline: bool = True):
     """
     Print a line with formatting detection and preservation.
     
@@ -146,16 +166,47 @@ def _print_formatted_line(line: str, color: str):
     # Check for bold markers
     if '**' not in line:
         # No bold markers, print as-is with color
-        typer.secho(line, fg=color)
+        typer.secho(line, fg=color, nl=newline)
         return
     
-    # Process line with bold markers
-    parts = re.split(r'(\*\*[^*]+\*\*)', line)
+    # Process line with bold markers - handle ** that might be split across words
+    import re
     
-    for part in parts:
-        if part.startswith('**') and part.endswith('**'):
-            # Bold text - remove markers and print bold
-            bold_text = part[2:-2]
+    # First, let's handle the case where ** might not have content between them
+    # or might be malformed (e.g., "**bold** text **more**")
+    parts = []
+    current_pos = 0
+    
+    # Find all ** positions
+    while True:
+        start = line.find('**', current_pos)
+        if start == -1:
+            # No more **, add rest of line
+            if current_pos < len(line):
+                parts.append(('text', line[current_pos:]))
+            break
+            
+        # Add text before **
+        if start > current_pos:
+            parts.append(('text', line[current_pos:start]))
+        
+        # Find closing **
+        end = line.find('**', start + 2)
+        if end == -1:
+            # No closing **, treat as regular text
+            parts.append(('text', line[start:]))
+            break
+        
+        # Add bold text
+        bold_content = line[start + 2:end]
+        if bold_content:  # Only add if there's actual content
+            parts.append(('bold', bold_content))
+        
+        current_pos = end + 2
+    
+    # Now print the parts
+    for part_type, content in parts:
+        if part_type == 'bold':
             # Use raw ANSI codes for bold + color
             color_codes = {
                 'cyan': '\033[36m',
@@ -167,11 +218,12 @@ def _print_formatted_line(line: str, color: str):
                 'white': '\033[37m',
             }
             color_code = color_codes.get(color, '\033[37m')
-            sys.stdout.write(f"{color_code}\033[1m{bold_text}\033[0m")
+            sys.stdout.write(f"{color_code}\033[1m{content}\033[0m")
             sys.stdout.flush()
         else:
             # Regular text
-            typer.secho(part, fg=color, nl=False)
+            typer.secho(content, fg=color, nl=False)
     
     # End of line
-    typer.echo()
+    if newline:
+        typer.echo()

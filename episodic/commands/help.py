@@ -86,14 +86,12 @@ class HelpRAG:
         """Ensure help documentation is indexed."""
         help_docs = [
             "USER_GUIDE.md",
-            "docs/CLIReference.md", 
-            "QUICK_REFERENCE.md",
-            "CONFIG_REFERENCE.md",
+            "docs/cli-reference.md", 
+            "docs/quick-reference.md",
+            "docs/configuration.md",
             "README.md",
-            "docs/LLMProviders.md",
-            "docs/WebSearchProviders.md",
-            "docs/WEB_SYNTHESIS.md",
-            "docs/HELP_INDEXED_FILES.md"
+            "docs/features.md",
+            "docs/user-guide.md"
         ]
         
         # Get project root directory
@@ -423,14 +421,12 @@ def help_reindex():
         # Define help docs
         help_docs = [
             "USER_GUIDE.md",
-            "docs/CLIReference.md", 
-            "QUICK_REFERENCE.md",
-            "CONFIG_REFERENCE.md",
+            "docs/cli-reference.md", 
+            "docs/quick-reference.md",
+            "docs/configuration.md",
             "README.md",
-            "docs/LLMProviders.md",
-            "docs/WebSearchProviders.md",
-            "docs/WEB_SYNTHESIS.md",
-            "docs/HELP_INDEXED_FILES.md"  # Include the index file itself
+            "docs/features.md",
+            "docs/user-guide.md"
         ]
         
         # Get project root directory

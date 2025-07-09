@@ -75,9 +75,27 @@ This document describes all configuration options available in Episodic.
 
 ### Display Settings
 
+#### Color Mode Options
+
+The `color_mode` setting controls how Episodic displays colors in the terminal:
+
+- **full** (default): Full 256-color palette with rich colors and gradients
+  - Best for modern terminals (iTerm2, Terminal.app, VS Code, etc.)
+  - Provides cyan for system messages, distinct colors for headers, etc.
+  
+- **basic**: Limited to 8 standard ANSI colors
+  - For older terminals or when full colors aren't supported
+  - Uses basic red, green, blue, cyan, magenta, yellow, black, white
+  
+- **none**: No colors at all, plain text only
+  - For terminals without color support
+  - Useful for piping output to files or other programs
+
+Set with: `/set color-mode full`, `/set color-mode basic`, or `/set color-mode none`
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `color_mode` | "light" | Color scheme: light, dark, custom, none |
+| `color_mode` | "full" | Color output mode: full (256 colors), basic (8 colors), none (no colors) |
 | `stream_responses` | true | Stream LLM responses |
 | `stream_rate` | 15 | Streaming speed (words/sec) |
 | `stream_constant_rate` | false | Use constant streaming rate |

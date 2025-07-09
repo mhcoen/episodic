@@ -200,6 +200,37 @@ Episodic is highly configurable. Common settings:
 
 See the [Configuration Reference](CONFIG_REFERENCE.md) for all configuration options.
 
+### Model Parameters
+
+Fine-tune model behavior across four contexts with `/mset`:
+
+```
+⚙️  Model Parameters:
+──────────────────────────────────────────────────────────────────────
+Parameter            Chat     Detection Compression Synthesis  
+──────────────────────────────────────────────────────────────────────
+temperature           0.7        0.0        0.3        0.3     
+max_tokens           2000        50        500       1500     
+top_p                 1.0       0.95        1.0        1.0     
+presence_penalty      0.0        0.0        0.0        0.0     
+frequency_penalty     0.0        0.0        0.0        0.0     
+
+Use '/mset <context>' to see details for a specific context
+
+🤖 Current Models:
+─────────────────────────────────────────────────────────────
+Chat:        gpt-4
+Detection:   ollama/llama3  
+Compression: gpt-3.5-turbo
+Synthesis:   claude-3-haiku
+```
+
+Each context serves a specific purpose:
+- **Chat**: Main conversation with the user
+- **Detection**: Identifying topic changes  
+- **Compression**: Summarizing conversation branches
+- **Synthesis**: Web search result synthesis
+
 ## 🏗️ Architecture
 
 Episodic uses a modular architecture:

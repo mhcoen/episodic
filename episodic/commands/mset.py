@@ -96,6 +96,11 @@ def show_all_parameters():
         typer.secho(row, fg=get_text_color())
     
     typer.secho("\nUse '/mset <context>' to see details for a specific context", fg=get_text_color(), dim=True)
+    
+    # Now show the models
+    typer.echo()  # Add blank line
+    from episodic.commands.unified_model import show_current_models
+    show_current_models()
 
 
 def show_parameters_for_context(context: str):

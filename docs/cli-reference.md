@@ -133,6 +133,8 @@ View/set model parameters
 /mset detection.max_tokens 100  # Set detection max tokens
 /mset compression.temperature 0.5  # Set compression temperature
 /mset synthesis.top_p 0.9   # Set synthesis nucleus sampling
+/mset chat.temperature default  # Reset to default value
+/mset detection.top_p default   # Remove override, use default
 ```
 
 ### Configuration Documentation

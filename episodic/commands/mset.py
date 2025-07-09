@@ -96,6 +96,7 @@ def show_all_parameters():
         typer.secho(row, fg=get_text_color())
     
     typer.secho("\nUse '/mset <context>' to see details for a specific context", fg=get_text_color(), dim=True)
+    typer.secho("Use '/mset <context>.<param> default' to reset to default value", fg=get_text_color(), dim=True)
     
     # Now show the models
     typer.echo()  # Add blank line
@@ -146,6 +147,7 @@ def show_parameters_for_context(context: str):
             typer.secho(f"{desc} [{range_str}]", fg=get_text_color())
     
     typer.secho(f"\nSet with: /mset {context}.<parameter> <value>", fg=get_text_color(), dim=True)
+    typer.secho(f"Reset to default: /mset {context}.<parameter> default", fg=get_text_color(), dim=True)
 
 
 def set_parameter(context: str, param: str, value: str):
@@ -155,6 +157,22 @@ def set_parameter(context: str, param: str, value: str):
     if param not in valid_params:
         typer.secho(f"Unknown parameter: {param}", fg="red")
         typer.secho(f"Valid parameters: {', '.join(valid_params)}", fg=get_text_color())
+        return
+    
+    # Get current parameters
+    param_key = get_param_key_for_context(context)
+    params = config.get(param_key, {})
+    if not isinstance(params, dict):
+        params = {}
+    
+    # Handle "default" as a special value to remove the parameter
+    if value.lower() == "default":
+        if param in params:
+            del params[param]
+            config.set(param_key, params)
+            typer.secho(f"✓ Reset {context}.{param} to default", fg="green")
+        else:
+            typer.secho(f"{context}.{param} is already using default value", fg=get_text_color())
         return
     
     # Parse and validate value
@@ -170,12 +188,6 @@ def set_parameter(context: str, param: str, value: str):
     if param in unsupported:
         typer.secho(f"⚠️  Warning: {current_model} does not support '{param}'", fg="yellow")
         typer.secho("The parameter will be stored but ignored by this model", fg=get_text_color())
-    
-    # Get current parameters
-    param_key = get_param_key_for_context(context)
-    params = config.get(param_key, {})
-    if not isinstance(params, dict):
-        params = {}
     
     # Set the new value
     params[param] = parsed_value

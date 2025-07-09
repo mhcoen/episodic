@@ -51,8 +51,6 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho(f"  stream-rate: {config.get('stream_rate', 15)} words/sec", fg=get_system_color())
         typer.secho(f"  stream-constant-rate: {config.get('stream_constant_rate', False)}", fg=get_system_color())
         typer.secho(f"  stream-natural-rhythm: {config.get('stream_natural_rhythm', False)}", fg=get_system_color())
-        typer.secho(f"  stream-char-mode: {config.get('stream_char_mode', False)}", fg=get_system_color())
-        typer.secho(f"  stream-char-rate: {config.get('stream_char_rate', 1000)} chars/sec", fg=get_system_color())
         typer.secho(f"  stream-line-delay: {config.get('stream_line_delay', 0.1)}s", fg=get_system_color())
         
         # Topic detection
@@ -207,32 +205,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             config.set("stream_natural_rhythm", val)
             typer.echo(f"Natural rhythm streaming: {'ON' if val else 'OFF'}")
 
-    # Handle 'stream_char_mode' parameter
-    elif normalized_param == "stream_char_mode":
-        if not value:
-            current = config.get("stream_char_mode", False)
-            typer.echo(f"Current character streaming mode: {current}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("stream_char_mode", val)
-            typer.echo(f"Character streaming mode: {'ON' if val else 'OFF'}")
-
-    # Handle 'stream_char_rate' parameter
-    elif normalized_param == "stream_char_rate":
-        if not value:
-            typer.echo(f"Current character rate: {config.get('stream_char_rate', 1000)} chars/sec")
-        else:
-            try:
-                rate = int(value)
-                if rate < 100:
-                    typer.echo("Character rate must be at least 100 chars/sec")
-                elif rate > 10000:
-                    typer.echo("Character rate must be at most 10000 chars/sec")
-                else:
-                    config.set("stream_char_rate", rate)
-                    typer.echo(f"Character rate set to {rate} chars/sec")
-            except ValueError:
-                typer.echo("Character rate must be a number")
+    # Note: stream-char-mode and stream-char-rate were removed as they were never implemented
 
     # Handle 'stream_line_delay' parameter
     elif normalized_param == "stream_line_delay":

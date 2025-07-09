@@ -1,0 +1,101 @@
+# Topic Drift Detection Test Script 01
+# Expected: 5 distinct topics with clear boundaries
+# 
+# Configuration for testing
+/init --erase
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set show_topics true
+/set topic-auto true
+/set min_messages_before_topic_change 8
+
+# ==================================================
+# TOPIC 1: Python Programming (Messages 1-10)
+# ==================================================
+How do I read a file in Python?
+What's the difference between lists and tuples in Python?
+How do I handle exceptions in Python?
+What are Python decorators and how do they work?
+How can I create a virtual environment in Python?
+What's the difference between __init__ and __new__ in Python?
+How do I work with JSON data in Python?
+What are Python generators and when should I use them?
+How do I implement multithreading in Python?
+What's the Global Interpreter Lock (GIL) in Python?
+
+# ==================================================
+# TOPIC 2: Fitness and Exercise (Messages 11-20)
+# ==================================================
+What's the best workout routine for beginners?
+How many days a week should I exercise?
+What's the difference between cardio and strength training?
+How do I properly do a squat?
+What should I eat before and after a workout?
+How long should I rest between sets?
+What's the best way to build muscle mass?
+How do I prevent injuries while exercising?
+Should I stretch before or after working out?
+What's the ideal heart rate for fat burning?
+
+# ==================================================
+# TOPIC 3: Photography Techniques (Messages 21-30)
+# ==================================================
+What's the rule of thirds in photography?
+How do I use manual mode on my camera?
+What's the difference between aperture and shutter speed?
+How do I take better portraits?
+What's the golden hour for photography?
+How do I shoot in low light conditions?
+What's the difference between RAW and JPEG?
+How do I achieve a blurred background effect?
+What are the best camera settings for landscapes?
+How do I use a polarizing filter?
+
+# ==================================================
+# TOPIC 4: Personal Finance (Messages 31-40)
+# ==================================================
+How do I create a budget?
+What's the 50/30/20 rule for budgeting?
+How much should I save for an emergency fund?
+What's the difference between stocks and bonds?
+How do I start investing with little money?
+What's compound interest and why is it important?
+Should I pay off debt or invest first?
+What's a good credit score and how do I improve mine?
+How do I save for retirement?
+What's the difference between a Roth and traditional IRA?
+
+# ==================================================
+# TOPIC 5: Gardening and Plants (Messages 41-50)
+# ==================================================
+How do I start a vegetable garden?
+What vegetables are easiest to grow for beginners?
+How often should I water my plants?
+What's the best soil for container gardening?
+How do I know when to harvest tomatoes?
+What's the difference between annual and perennial plants?
+How do I prevent pests in my garden naturally?
+When is the best time to plant seeds?
+How much sunlight do herbs need?
+What's companion planting and how does it work?
+
+# ==================================================
+# Summary and Analysis
+# ==================================================
+/set skip_llm_response false
+/set debug false
+/set show_drift false
+/set show_topics false
+
+# Display the detected topics
+/topics
+
+# Show topic statistics
+/topics stats
+
+# Expected Results:
+# - 5 topics detected
+# - Topic boundaries at messages: 11, 21, 31, 41
+# - High semantic drift scores at topic transitions
+# - Each topic should have exactly 10 messages

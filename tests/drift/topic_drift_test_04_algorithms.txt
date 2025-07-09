@@ -1,0 +1,106 @@
+# Topic Drift Detection Test Script 04 - Algorithm Comparison
+# Tests different detection algorithms on the same conversation
+# Run multiple times with different settings to compare
+#
+# First run: Sliding Window Detection (default)
+# Second run: Hybrid Detection
+# Third run: LLM-based Detection
+#
+# Configuration for testing
+/init --erase
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set show_topics true
+/set topic-auto true
+
+# Test which algorithm is currently active
+/set use_sliding_window_detection
+/set use_hybrid_topic_detection
+
+# ==================================================
+# TEST CONVERSATION - Same for all algorithms
+# ==================================================
+
+# Section 1: Computer Programming (8 messages)
+What is object-oriented programming?
+How do I implement inheritance in code?
+What are design patterns in software?
+How do I refactor legacy code?
+What's test-driven development?
+How do I debug efficiently?
+What's the difference between git merge and rebase?
+How do I optimize database queries?
+
+# Section 2: Digital Photography (8 messages)  
+What camera should I buy for beginners?
+How do I shoot in manual mode?
+What's the exposure triangle?
+How do I take sharp photos?
+What lens should I use for portraits?
+How do I edit photos in Lightroom?
+What's the difference between RAW and JPEG?
+How do I photograph the night sky?
+
+# Section 3: Personal Finance (8 messages)
+How do I create a budget?
+What's an emergency fund?
+How do I start investing?
+What's dollar-cost averaging?
+Should I pay off debt or invest?
+How do credit scores work?
+What's the 4% retirement rule?
+How do I reduce taxes legally?
+
+# Section 4: Fitness and Nutrition (8 messages)
+How do I lose weight effectively?
+What's the best workout for beginners?
+How much protein do I need?
+What's intermittent fasting?
+How do I build muscle?
+What supplements are worth taking?
+How important is sleep for fitness?
+What's the best diet plan?
+
+# Section 5: Home Gardening (8 messages)
+How do I start a garden?
+What vegetables grow easily?
+How often should I water plants?
+What's composting?
+How do I deal with pests naturally?
+When should I plant tomatoes?
+How do I improve soil quality?
+What tools do I need for gardening?
+
+# ==================================================
+# Results Analysis
+# ==================================================
+/set skip_llm_response false
+/set debug false
+/set show_drift false
+/set show_topics false
+
+# Show detected topics
+/topics
+/topics stats
+
+# For comparing algorithms, run this script three times:
+# 
+# Run 1 - Sliding Window (default):
+# /set use_sliding_window_detection true
+# /set use_hybrid_topic_detection false
+# 
+# Run 2 - Hybrid Detection:
+# /set use_sliding_window_detection false  
+# /set use_hybrid_topic_detection true
+#
+# Run 3 - LLM Detection:
+# /set use_sliding_window_detection false
+# /set use_hybrid_topic_detection false
+# /set skip_llm_response false  # Need LLM for this
+#
+# Compare:
+# - Number of topics detected
+# - Boundary placement accuracy
+# - Detection confidence scores
+# - Processing time

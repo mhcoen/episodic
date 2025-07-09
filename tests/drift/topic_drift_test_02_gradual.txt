@@ -1,0 +1,116 @@
+# Topic Drift Detection Test Script 02 - Gradual Transitions
+# Expected: 3 topics with gradual/natural transitions
+# Tests the system's ability to detect subtle topic drift
+#
+# Configuration for testing
+/init --erase
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set show_topics true
+/set topic-auto true
+/set min_messages_before_topic_change 8
+
+# ==================================================
+# TOPIC 1: Web Development → Cloud Computing (Gradual transition)
+# Messages 1-8: Pure web development
+# Messages 9-12: Bridge (deployment/scaling)
+# Messages 13-20: Cloud computing
+# ==================================================
+
+# Pure Web Development
+How do I center a div in CSS?
+What's the difference between flexbox and grid?
+How do I make a responsive navigation menu?
+What are React hooks and how do they work?
+How do I handle form validation in JavaScript?
+What's the best way to optimize website performance?
+How do I implement lazy loading for images?
+What's the difference between localStorage and sessionStorage?
+
+# Transitional messages (deployment/scaling web apps)
+How do I deploy a React app to production?
+What's the best hosting solution for a Node.js application?
+How do I set up continuous deployment for my web app?
+What's the difference between vertical and horizontal scaling?
+
+# Cloud Computing
+How does AWS Lambda work?
+What's the difference between IaaS, PaaS, and SaaS?
+How do I set up auto-scaling in AWS?
+What are Docker containers and why use them?
+How does Kubernetes orchestrate containers?
+What's the difference between AWS S3 and EBS?
+How do I implement a microservices architecture?
+What's a load balancer and how does it work?
+
+# ==================================================
+# TOPIC 2: Data Science → Machine Learning (Natural progression)
+# Messages 21-28: Data science basics
+# Messages 29-32: Statistical learning (bridge)
+# Messages 33-40: Machine learning
+# ==================================================
+
+# Data Science Basics
+How do I handle missing data in pandas?
+What's the difference between mean, median, and mode?
+How do I create visualizations with matplotlib?
+What's exploratory data analysis (EDA)?
+How do I merge DataFrames in pandas?
+What's the difference between correlation and causation?
+How do I handle outliers in my dataset?
+What are the best practices for data cleaning?
+
+# Statistical Learning Bridge
+What's the difference between descriptive and inferential statistics?
+How do I perform hypothesis testing?
+What's linear regression and when should I use it?
+How do I interpret p-values and confidence intervals?
+
+# Machine Learning
+What's the difference between supervised and unsupervised learning?
+How does a decision tree algorithm work?
+What's cross-validation and why is it important?
+How do I handle overfitting in my models?
+What's the difference between classification and regression?
+How does a neural network learn?
+What are ensemble methods in machine learning?
+How do I choose the right machine learning algorithm?
+
+# ==================================================
+# TOPIC 3: Cooking Basics → Restaurant Management (Dramatic shift)
+# Messages 41-48: Home cooking
+# Messages 49-50: Sharp transition to business
+# ==================================================
+
+# Home Cooking
+What's the best way to cook chicken breast?
+How do I make fluffy scrambled eggs?
+What's the difference between baking and roasting?
+How do I properly season a cast iron pan?
+What's the secret to perfect rice every time?
+How do I know when meat is properly cooked?
+What herbs go well with fish?
+How do I make a basic vinaigrette?
+
+# Sharp Transition to Restaurant Management
+How do I calculate food cost percentage for a restaurant?
+What's the best POS system for a small restaurant?
+
+# ==================================================
+# Analysis Commands
+# ==================================================
+/set skip_llm_response false
+/set debug false
+/set show_drift false
+/set show_topics false
+
+# Display results
+/topics
+/topics stats
+
+# Expected Results:
+# - Topic 1→2: Gradual transition around messages 9-12
+# - Topic 2→3: Natural progression around messages 29-32  
+# - Topic 3→4: Sharp transition at message 49
+# - Semantic drift scores should reflect transition sharpness

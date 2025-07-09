@@ -1,0 +1,127 @@
+# Topic Drift Detection Test Script 03 - Challenging Cases
+# Expected: Tests edge cases and challenging scenarios
+# 
+# Configuration for testing
+/init --erase
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set show_topics true
+/set topic-auto true
+/set min_messages_before_topic_change 8
+
+# ==================================================
+# CHALLENGE 1: Very Similar Topics (Programming Languages)
+# Should these be separate topics or one topic?
+# ==================================================
+
+# Python Programming (Messages 1-8)
+How do I read files in Python?
+What are Python list comprehensions?
+How do I use Python decorators?
+What's the Python GIL?
+How do I handle errors in Python?
+What are Python generators?
+How do I use Python's asyncio?
+What's duck typing in Python?
+
+# JavaScript Programming (Messages 9-16)
+How do I read files in Node.js?
+What are JavaScript arrow functions?
+How do I use JavaScript promises?
+What's the JavaScript event loop?
+How do I handle errors in JavaScript?
+What are JavaScript generators?
+How do I use JavaScript's async/await?
+What's duck typing in JavaScript?
+
+# ==================================================
+# CHALLENGE 2: Returning to Previous Topic
+# Tests if system recognizes return to earlier topic
+# ==================================================
+
+# Fitness Topic First Visit (Messages 17-24)
+What's a good beginner workout routine?
+How often should I go to the gym?
+What's the best protein powder?
+How do I build muscle mass?
+Should I do cardio or weights first?
+What's a good pre-workout meal?
+How long should I rest between sets?
+What's progressive overload?
+
+# Complete Topic Switch to Cooking (Messages 25-32)
+What's the best pasta sauce recipe?
+How do I cook perfect steak?
+What oil is best for frying?
+How do I make bread from scratch?
+What's the difference between baking soda and powder?
+How do I caramelize onions properly?
+What's the secret to crispy bacon?
+How do I make homemade pizza dough?
+
+# Return to Fitness Topic (Messages 33-40)
+What's the best exercise for abs?
+How do I improve my bench press?
+What supplements should I take?
+How do I prevent muscle soreness?
+What's the ideal rep range for strength?
+Should I train to failure?
+How important is sleep for muscle growth?
+What's the best split routine?
+
+# ==================================================
+# CHALLENGE 3: Ambiguous Transitions
+# Questions that could belong to multiple topics
+# ==================================================
+
+# Health and Nutrition (Messages 41-44)
+What foods boost immune system?
+How many calories should I eat daily?
+What are the benefits of intermittent fasting?
+Is keto diet healthy?
+
+# Ambiguous questions (could be fitness or cooking)
+What's the best source of protein?
+How do I meal prep efficiently?
+What are healthy breakfast options?
+Should I count macros?
+
+# More cooking focused (Messages 49-52)
+How do I cook quinoa properly?
+What spices are essential for cooking?
+How do I make a balanced salad?
+What's the best way to store vegetables?
+
+# ==================================================
+# CHALLENGE 4: Rapid Topic Switches (< 8 messages each)
+# Should be ignored due to min_messages threshold
+# ==================================================
+
+# Quick switches (Messages 53-60)
+What's quantum computing?
+How does blockchain work?
+What's the weather like on Mars?
+How do I train my dog?
+What's the capital of Mongolia?
+How do I fix a leaky faucet?
+What's the plot of Hamlet?
+How do I tie a bow tie?
+
+# ==================================================
+# Analysis
+# ==================================================
+/set skip_llm_response false
+/set debug false
+/set show_drift false  
+/set show_topics false
+
+# Show results
+/topics
+/topics stats
+
+# Expected Challenges:
+# 1. Similar topics (Python vs JavaScript) - might merge or stay separate
+# 2. Topic return - system might create new topic or recognize return
+# 3. Ambiguous transitions - boundary detection will be interesting
+# 4. Rapid switches - should be ignored due to threshold

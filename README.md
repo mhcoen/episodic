@@ -74,10 +74,11 @@ python -m episodic
 
 ## 📖 Documentation
 
-- **[User Guide](USER_GUIDE.md)** - Comprehensive guide to all features
-- **[Configuration Reference](CONFIG_REFERENCE.md)** - Detailed configuration options
-- **[CLI Reference](docs/CLIReference.md)** - Complete command reference
-- **[Development](docs/Development.md)** - Architecture and contribution guidelines
+- **[Installation](docs/installation.md)** - Setup instructions
+- **[User Guide](docs/user-guide.md)** - Comprehensive guide
+- **[Features](docs/features.md)** - Detailed feature documentation
+- **[CLI Reference](docs/cli-reference.md)** - All commands
+- **[Configuration](docs/configuration.md)** - Settings and options
 
 ## 🎯 Use Cases
 

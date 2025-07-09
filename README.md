@@ -236,6 +236,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 Built with:
 - [Typer](https://typer.tiangolo.com/) - CLI framework
+- [Rich](https://github.com/Textualize/rich) - Beautiful terminal formatting and colors
+- [NetworkX](https://networkx.org/) - Graph data structures for conversation DAG
 - [LiteLLM](https://github.com/BerriAI/litellm) - Unified LLM interface
 - [ChromaDB](https://www.trychroma.com/) - Vector database
 - [Sentence Transformers](https://www.sbert.net/) - Text embeddings

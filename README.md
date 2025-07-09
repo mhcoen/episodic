@@ -219,7 +219,7 @@ Fine-tune model behavior across four contexts with `/mset`:
 Parameter            Chat     Detection Compression Synthesis  
 ──────────────────────────────────────────────────────────────────────
 temperature           0.7        0.0        0.3        0.3     
-max_tokens           2000        50        500       1500     
+max_tokens           2000         50        500       1500     
 top_p                 1.0       0.95        1.0        1.0     
 presence_penalty      0.0        0.0        0.0        0.0     
 frequency_penalty     0.0        0.0        0.0        0.0     

@@ -20,3 +20,7 @@ defunct/
 /episodic.db.backup
 
 # MCP Memory storage (removed - using file-based memory instead)
+
+# Usage tracking and uploads
+usage_tracking*.json
+uploads/

@@ -29,7 +29,7 @@ Episodic automatically detects topic changes in your conversations and organizes
 > /topics --all
 
 # Rename placeholder topics
-> /rename-topics
+> /topics rename
 🔄 Analyzing ongoing topics...
 ✅ Renamed 'ongoing-1750929426' to 'space-exploration'
 ```
@@ -42,7 +42,7 @@ Episodic includes an intelligent compression system that runs in the background:
 
 ```bash
 # View compression statistics
-> /compression-stats
+> /compression stats
 📊 Compression Statistics
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Total compressions: 5
@@ -54,7 +54,7 @@ Average reduction: 75.3%
 Would compress 25 nodes (3,000 words → ~750 words)
 
 # View pending compressions
-> /compression-queue
+> /compression queue
 📥 Pending Compressions (2 jobs)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. Topic: quantum-physics (priority: 5)

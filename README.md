@@ -9,7 +9,7 @@ A conversational memory system that creates persistent, navigable conversations 
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
 - **🌐 Web Search**: Search the web for current information without leaving the conversation
-- **🎭 Muse Mode**: Perplexity-like conversational web search with synthesized answers
+- **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
 - **🤖 Multi-Model Support**: Works with OpenAI, Anthropic, Google, Ollama, and more
 - **🎨 Rich CLI**: Streaming responses, colored output, text wrapping
 
@@ -19,7 +19,7 @@ A conversational memory system that creates persistent, navigable conversations 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/episodic.git
+git clone https://github.com/mhcoen/episodic.git
 cd episodic
 
 # Install in development mode
@@ -45,15 +45,16 @@ python -m episodic
 # Your conversation is automatically saved and organized!
 ```
 
-### Key Commands
+### Essential Commands
 
 ```bash
 /topics         # See how your conversation is organized
-/search query   # Search your indexed documents
+/search query   # Search your indexed documents  
 /websearch query # Search the web
 /muse           # Enable Perplexity-like web search mode
-/model          # View/switch AI models for all contexts
-/help           # See all available commands
+/model list     # View available AI models
+/help           # See all commands
+/help <query>   # Search documentation (e.g., /help muse mode)
 ```
 
 ## 📖 Documentation
@@ -65,34 +66,100 @@ python -m episodic
 
 ## 🎯 Use Cases
 
-### Research Assistant
+### 🎭 Muse Mode - Conversational Web Search
+Muse mode transforms Episodic into a Perplexity-like AI research assistant that searches the web and synthesizes comprehensive answers:
+
+```bash
+> /muse
+✨ Muse mode activated! I'll search the web to answer your questions.
+
+> What are the latest breakthroughs in fusion energy?
+🔍 Searching web for: latest breakthroughs fusion energy
+📚 Found 8 relevant sources
+✨ Based on recent developments, here are the major breakthroughs in fusion energy:
+
+1. **LLNL's Net Energy Gain** (December 2022): The National Ignition Facility achieved 
+   fusion ignition with 3.15 MJ output from 2.05 MJ input...
+
+2. **Commonwealth Fusion's SPARC Progress**: Their high-temperature superconducting 
+   magnets have demonstrated 20 Tesla field strength...
+
+> How does this compare to ITER's approach?
+# Muse mode maintains context for follow-up questions
+```
+
+### 📚 Research Assistant
 Index your papers and documents, then ask questions that search both your knowledge base and the web:
 
 ```bash
 > /rag on
 > /index research_paper.pdf
-> What are the latest developments in quantum computing?
-# Searches both your documents and the web
+> /index thesis_chapter3.md
+📄 Indexed 2 documents (47 chunks)
+
+> /set rag-auto true  # Auto-search knowledge base
+> What are the latest developments in quantum error correction?
+📚 Using sources: research_paper.pdf, thesis_chapter3.md
+🌐 Also searching web for recent developments...
+# Combines your documents with current web information
 ```
 
-### Long Conversation Management
+### 🧩 Multi-Model Workflows
+Use different models for different tasks to optimize performance and cost:
+
+```bash
+# Use GPT-4 for complex reasoning
+> /model chat gpt-4o
+
+# Use fast local model for topic detection  
+> /model detection ollama/llama3
+
+# Use cheap model for compression
+> /model compression gpt-3.5-turbo
+
+# Configure model parameters
+> /mset chat.temperature 0.7
+> /mset detection.temperature 0  # Deterministic topic detection
+> /mset compression.max_tokens 500
+
+> Explain the halting problem
+🤖 [GPT-4 provides detailed explanation while Llama3 manages topics]
+```
+
+### 💾 Long Conversation Management
 Episodic automatically manages long conversations by detecting topic changes and compressing old topics:
 
 ```bash
-> Let's talk about machine learning
-# ... long discussion ...
-> Now I want to discuss climate change
-🔄 Topic changed
-# Previous topic is compressed, new topic begins
+> /set topic-auto true
+> /set comp-auto true
+> /set show_topics true  # See topic evolution
+
+> Let's discuss machine learning fundamentals
+📌 New topic: machine-learning-fundamentals
+
+# ... extensive discussion ...
+
+> Now I want to understand transformers in detail
+🔄 Topic changed → Compressing previous topic
+📌 New topic: transformer-architecture
+💾 Context usage: 42% (previous topic compressed to 500 tokens)
 ```
 
-### Offline Usage
-Use with local models via Ollama:
+### 🏠 Offline Usage
+Run completely offline with local models:
 
 ```bash
+# Set all contexts to use local models
 > /model chat ollama/llama3
-> /model detection ollama/llama3
-> How does photosynthesis work?
+> /model detection ollama/llama3  
+> /model compression ollama/mistral
+> /model synthesis ollama/llama3
+
+# Disable online features
+> /rag off
+> /websearch off
+
+> Explain how neural networks learn
 # Works completely offline with local models
 ```
 
@@ -101,10 +168,11 @@ Use with local models via Ollama:
 Episodic is highly configurable. Common settings:
 
 ```bash
-/set stream true              # Enable response streaming
+/set stream_responses true    # Enable response streaming
 /set comp-auto true           # Automatic topic compression
-/set rag true                 # Enable document search
-/set web-enabled true         # Enable web search
+/set topic-auto true          # Automatic topic detection
+/set show_cost true           # Display token costs
+/set debug true               # Enable debug output
 ```
 
 See the [Configuration Reference](CONFIG_REFERENCE.md) for all configuration options.
@@ -141,7 +209,7 @@ See [ADAPTIVE_TOPIC_DETECTION_PLAN.md](ADAPTIVE_TOPIC_DETECTION_PLAN.md) for pla
 
 ## 📄 License
 
-[MIT License](LICENSE)
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -184,6 +252,12 @@ Tokens: 1,847 | Cost: $0.0234 USD | Context: 28% full
    Comprehensive benchmark results show...
    🔗 https://example.com/gemini-benchmarks
 ```
+
+## 👤 Author
+
+**Michael H. Coen**  
+Email: mhcoen@gmail.com | mhcoen@alum.mit.edu  
+GitHub: [@mhcoen](https://github.com/mhcoen)
 
 ---
 

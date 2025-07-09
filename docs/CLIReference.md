@@ -80,18 +80,6 @@ Show conversation thread
 
 ## Configuration Commands
 
-### /settings
-Unified settings management
-```bash
-/settings                    # Show all settings (default)
-/settings show               # Show all settings
-/settings set <param> <value> # Set a parameter value
-/settings verify             # Verify configuration integrity
-/settings cost               # Show session costs
-/settings params             # Show model parameters
-/settings docs               # Show parameter documentation
-```
-
 ### /set
 Legacy settings command (still works)
 ```bash
@@ -143,7 +131,7 @@ View/set model parameters
 ### Configuration Documentation
 Access configuration docs through settings command:
 ```bash
-/settings docs              # List all params with documentation
+/config-docs                # List all params with documentation
 ```
 
 ## Topic Management
@@ -338,14 +326,14 @@ Use /mset command to manage model-specific parameters:
 ```bash
 /rag on
 /websearch on
-/set web_search_auto_enhance true
-/set rag_auto_search true
+/set web_search_auto_enhance true  # or: /set web-auto true
+/set rag_auto_search true          # or: /set rag-auto true
 ```
 
 ### Long Conversation Mode
 ```bash
-/set automatic_topic_detection true
-/set auto_compress_topics true
+/set automatic_topic_detection true  # or: /set topic-auto true
+/set auto_compress_topics true       # or: /set comp-auto true
 /set show_topics true
 /set show_cost true
 ```

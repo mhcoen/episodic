@@ -244,13 +244,12 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 
 ### Viewing Settings
 ```bash
-/settings  # Show all current settings (or /set)
-/settings show  # Same as above
-/settings set <param> <value>  # Set a parameter
-/settings verify  # Verify configuration integrity
-/settings cost  # Show session costs
-/settings params  # Show model parameters
-/settings docs  # Show parameter documentation
+/set  # Show all current settings
+/set <param> <value>  # Set a parameter
+/verify  # Verify configuration integrity
+/cost  # Show session costs
+/model_params  # Show model parameters (deprecated, use /mset)
+/config-docs  # Show parameter documentation
 ```
 
 ### Common Settings
@@ -300,7 +299,7 @@ export EPISODIC_RAG_AUTO=true
 export EPISODIC_RAG_THRESHOLD=0.7
 
 # Topic Detection
-export EPISODIC_TOPIC_MODEL=ollama/llama3
+export EPISODIC_TOPIC_DETECTION_MODEL=ollama/llama3
 export EPISODIC_TOPIC_AUTO=true
 export EPISODIC_TOPIC_MIN=8
 
@@ -391,7 +390,7 @@ Planned feature to show topic predictions in real-time.
 
 # Enable web search for current info
 /websearch on
-/set web_search_auto_enhance true
+/set web_search_auto_enhance true  # or: /set web-auto true
 
 # Ask questions - will search both local docs and web
 What are the latest developments in quantum computing?
@@ -400,9 +399,9 @@ What are the latest developments in quantum computing?
 ### Long Conversation Management
 ```bash
 # Enable automatic topic management
-/set automatic_topic_detection true
-/set auto_compress_topics true
-/set show_topics true  # See topic evolution
+/set automatic_topic_detection true  # or: /set topic-auto true
+/set auto_compress_topics true       # or: /set comp-auto true
+/set show_topics true                # See topic evolution
 
 # Monitor context usage
 /set show_cost true

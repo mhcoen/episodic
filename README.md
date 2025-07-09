@@ -160,12 +160,18 @@ Episodic automatically manages long conversations by detecting topic changes and
 > How do Python decorators work?
 📌 New topic: python-decorators
 
-> They're functions that modify other functions. Can you show an example?
-> [Response about @property, @staticmethod, etc...]
+🤖 Decorators are functions that modify other functions. They use the @ syntax...
+
 > What about custom decorators for timing functions?
-> [Discussion about performance monitoring...]
+
+🤖 Here's a timing decorator example:
+   @time_it
+   def slow_function():...
+   
 > Speaking of performance, I've been using FastAPI for my web services
-> [Natural continuation about web frameworks...]
+
+🤖 FastAPI is excellent for high-performance APIs! It's built on Starlette...
+
 > FastAPI's dependency injection is really elegant
 
 🔄 Topic changed → Compressing previous topic

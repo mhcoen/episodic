@@ -673,12 +673,8 @@ class ConversationManager:
                     if config.get("debug"):
                         secho_color(f"   ⚠️  Failed to store topic detection scores: {e}", fg='yellow', bold=True)
             
-            # Add topic detection costs to session
-            if topic_cost_info:
-                self.session_costs["total_input_tokens"] += topic_cost_info.get("input_tokens", 0)
-                self.session_costs["total_output_tokens"] += topic_cost_info.get("output_tokens", 0)
-                self.session_costs["total_tokens"] += topic_cost_info.get("total_tokens", 0)
-                self.session_costs["total_cost_usd"] += topic_cost_info.get("cost_usd", 0.0)
+            # Cost tracking now handled centrally in llm_manager
+            # No need to manually update session costs
             
             # Store debug info to display later
             debug_topic_info = None
@@ -1302,12 +1298,7 @@ class ConversationManager:
                             secho_color("🤖 ", fg=get_llm_color(), nl=False)
                             self.wrapped_llm_print(display_response, fg=get_llm_color())
 
-                # Update session costs
-                if cost_info:
-                    self.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
-                    self.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
-                    self.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
-                    self.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
+                # Cost tracking now handled centrally in llm_manager
 
                 # Add the assistant's response to the database with provider and model information
                 provider = get_current_provider()

@@ -30,42 +30,72 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         
         # Core settings
         typer.secho("\nCore:", fg=get_heading_color())
-        typer.secho(f"  depth: {default_context_depth}", fg=get_system_color())
-        typer.secho(f"  semdepth: {default_semdepth}", fg=get_system_color())
-        typer.secho(f"  cache: {config.get('use_context_cache', True)}", fg=get_system_color())
-        typer.secho(f"  debug: {config.get('debug', False)}", fg=get_system_color())
-        typer.secho(f"  benchmark: {config.get('benchmark', False)}", fg=get_system_color())
-        typer.secho(f"  benchmark-display: {config.get('benchmark_display', False)}", fg=get_system_color())
+        core_settings = [
+            (f"depth: {default_context_depth}", "Messages of conversation history"),
+            (f"semdepth: {default_semdepth}", "Semantic analysis depth"),
+            (f"cache: {config.get('use_context_cache', True)}", "Enable prompt caching"),
+            (f"debug: {config.get('debug', False)}", "Debug output mode"),
+            (f"benchmark: {config.get('benchmark', False)}", "Performance benchmarking"),
+            (f"benchmark-display: {config.get('benchmark_display', False)}", "Show benchmark results"),
+        ]
+        for setting, desc in core_settings:
+            padding = ' ' * max(1, 30 - len(setting) - 2)
+            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
         
         # Display settings
         typer.secho("\nDisplay:", fg=get_heading_color())
-        typer.secho(f"  color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
-        typer.secho(f"  wrap: {config.get('text_wrap', True)}", fg=get_system_color())
-        typer.secho(f"  cost: {config.get('show_cost', False)}", fg=get_system_color())
-        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
-        typer.secho(f"  drift: {config.get('show_drift', True)}", fg=get_system_color())
+        display_settings = [
+            (f"color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", "Color output (full/basic/none)"),
+            (f"wrap: {config.get('text_wrap', True)}", "Wrap long lines"),
+            (f"cost: {config.get('show_cost', False)}", "Show API costs"),
+            (f"topics: {config.get('show_topics', False)}", "Show topic boundaries"),
+            (f"drift: {config.get('show_drift', True)}", "Show drift scores"),
+        ]
+        for setting, desc in display_settings:
+            padding = ' ' * max(1, 30 - len(setting) - 2)
+            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
         
         # Streaming settings
         typer.secho("\nStreaming:", fg=get_heading_color())
-        typer.secho(f"  stream: {config.get('stream_responses', True)}", fg=get_system_color())
-        typer.secho(f"  stream-rate: {config.get('stream_rate', 15)} words/sec", fg=get_system_color())
-        typer.secho(f"  stream-constant-rate: {config.get('stream_constant_rate', False)}", fg=get_system_color())
-        typer.secho(f"  stream-natural-rhythm: {config.get('stream_natural_rhythm', False)}", fg=get_system_color())
-        typer.secho(f"  stream-line-delay: {config.get('stream_line_delay', 0.1)}s", fg=get_system_color())
+        stream_settings = [
+            (f"stream: {config.get('stream_responses', True)}", "Stream responses"),
+            (f"stream-rate: {config.get('stream_rate', 15)} words/sec", "Streaming speed"),
+            (f"stream-constant-rate: {config.get('stream_constant_rate', False)}", "Constant rate mode"),
+            (f"stream-natural-rhythm: {config.get('stream_natural_rhythm', False)}", "Natural pauses"),
+            (f"stream-line-delay: {config.get('stream_line_delay', 0.1)}s", "Delay between lines"),
+        ]
+        for setting, desc in stream_settings:
+            padding = ' ' * max(1, 30 - len(setting) - 2)
+            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
         
         # Topic detection
         typer.secho("\nTopic Detection:", fg=get_heading_color())
-        typer.secho(f"  topic-auto: {config.get('automatic_topic_detection', True)}", fg=get_system_color())
-        typer.secho(f"  topic-model: {config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
-        typer.secho(f"  topic-min: {config.get('min_messages_before_topic_change', 8)}", fg=get_system_color())
-        typer.secho(f"  hybrid-topics: {config.get('use_hybrid_topic_detection', False)}", fg=get_system_color())
+        topic_settings = [
+            (f"topic-auto: {config.get('automatic_topic_detection', True)}", "Auto-detect topics"),
+            (f"topic-model: {config.get('topic_detection_model', 'ollama/llama3')}", "Detection model"),
+            (f"topic-min: {config.get('min_messages_before_topic_change', 8)}", "Min messages for change"),
+            (f"hybrid-topics: {config.get('use_hybrid_topic_detection', False)}", "Hybrid detection mode"),
+        ]
+        for setting, desc in topic_settings:
+            padding = ' ' * max(1, 30 - len(setting) - 2)
+            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
         
         # Compression
         typer.secho("\nCompression:", fg=get_heading_color())
-        typer.secho(f"  comp-auto: {config.get('auto_compress_topics', True)}", fg=get_system_color())
-        typer.secho(f"  comp-model: {config.get('compression_model', 'ollama/llama3')}", fg=get_system_color())
-        typer.secho(f"  comp-min: {config.get('compression_min_nodes', 10)}", fg=get_system_color())
-        typer.secho(f"  comp-notify: {config.get('show_compression_notifications', True)}", fg=get_system_color())
+        comp_settings = [
+            (f"comp-auto: {config.get('auto_compress_topics', True)}", "Auto-compress topics"),
+            (f"comp-model: {config.get('compression_model', 'ollama/llama3')}", "Compression model"),
+            (f"comp-min: {config.get('compression_min_nodes', 10)}", "Min nodes to compress"),
+            (f"comp-notify: {config.get('show_compression_notifications', True)}", "Show notifications"),
+        ]
+        for setting, desc in comp_settings:
+            padding = ' ' * max(1, 30 - len(setting) - 2)
+            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
+            typer.secho(desc, fg=get_text_color())
         
         typer.secho("\nNote: ", nl=False, fg=get_text_color())
         typer.secho("Settings reset on restart. Use /mset for model parameters.", fg=get_text_color())

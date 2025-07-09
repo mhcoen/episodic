@@ -32,7 +32,8 @@ Just type to chat! No prefix needed.
 ### Configuration
 | Command | Description |
 |---------|-------------|
-| `/set` | Show all settings |
+| `/set` | Show common settings |
+| `/set --all` | Show all settings |
 | `/set param value` | Change setting |
 | `/mset` | Show model parameters |
 | `/mset chat.temp 0.7` | Set model parameter |
@@ -43,7 +44,8 @@ Just type to chat! No prefix needed.
 /set stream true              # Streaming responses
 /set debug true               # Debug mode
 /set cost true                # Show costs
-/set comp-auto true           # Auto-compress
+/set topics true              # Show topic info
+/set color-mode light         # Switch color mode
 ```
 
 ### Navigation

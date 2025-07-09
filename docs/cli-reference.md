@@ -81,18 +81,25 @@ Show conversation thread
 ## Configuration Commands
 
 ### /set
-Legacy settings command (still works)
+Configure various parameters
 ```bash
-/set                         # Show all settings
+/set                         # Show common settings
+/set --all                   # Show all settings
 /set <parameter>             # Show specific value
 /set <parameter> <value>     # Set value
 
 # Common settings:
+/set cost true               # Show API costs
+/set depth 10                # Conversation context depth
+/set stream false            # Disable streaming output
+/set topics true             # Show topic information
+/set color-mode light        # Switch to light mode (dark/light/none)
+
+# Other useful settings:
 /set debug true              # Enable debug mode
-/set cache false             # Disable caching
-/set stream true             # Enable streaming
+/set cache false             # Disable prompt caching
 /set wrap true               # Enable text wrapping
-/set cost true               # Show cost info
+/set stream-rate 25          # Words per second for streaming
 ```
 
 ### /reset

@@ -27,89 +27,58 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     # Handle --all flag to show all parameters
     if param == "--all":
         typer.secho("All Settings:", fg=get_heading_color(), bold=True)
-        typer.secho("(Changes are temporary - resets on restart)", fg=get_text_color())
-        
-        # Core conversation settings
-        typer.secho("\nConversation:", fg=get_heading_color())
-        typer.secho("  depth: ", nl=False, fg=get_text_color())
-        typer.secho(f"{default_context_depth}", fg=get_system_color())
-        typer.secho("  cache: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('use_context_cache', True)}", fg=get_system_color())
         
         # Display settings
         typer.secho("\nDisplay:", fg=get_heading_color())
-        typer.secho("  color-mode: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
-        typer.secho("  wrap: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('text_wrap', True)}", fg=get_system_color())
-        typer.secho("  stream: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('stream_responses', True)}", fg=get_system_color())
-        typer.secho("  stream-rate: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('stream_rate', 15)} words/sec", fg=get_system_color())
-        typer.secho("  cost: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
-        typer.secho("  topics: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('show_topics', False)}", fg=get_system_color())
+        typer.secho(f"  color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
+        typer.secho(f"  stream: {config.get('stream_responses', True)}", fg=get_system_color())
+        typer.secho(f"  stream-rate: {config.get('stream_rate', 15)} words/sec", fg=get_system_color())
+        typer.secho(f"  cost: {config.get('show_cost', False)}", fg=get_system_color())
+        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
+        typer.secho(f"  wrap: {config.get('text_wrap', True)}", fg=get_system_color())
         
-        # Topic detection & compression
-        typer.secho("\nTopic Management:", fg=get_heading_color())
-        typer.secho("  topic-auto: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('automatic_topic_detection', True)}", fg=get_system_color())
-        typer.secho("  topic-model: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
-        typer.secho("  topic-min: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('min_messages_before_topic_change', 8)}", fg=get_system_color())
-        typer.secho("  comp-auto: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('auto_compress_topics', True)}", fg=get_system_color())
-        typer.secho("  comp-model: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('compression_model', 'ollama/llama3')}", fg=get_system_color())
+        # Core settings
+        typer.secho("\nCore:", fg=get_heading_color())
+        typer.secho(f"  depth: {default_context_depth}", fg=get_system_color())
+        typer.secho(f"  cache: {config.get('use_context_cache', True)}", fg=get_system_color())
+        typer.secho(f"  debug: {config.get('debug', False)}", fg=get_system_color())
+        typer.secho(f"  benchmark: {config.get('benchmark', False)}", fg=get_system_color())
         
-        # Advanced settings
-        typer.secho("\nAdvanced:", fg=get_heading_color())
-        typer.secho("  drift: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('show_drift', True)}", fg=get_system_color())
-        typer.secho("  benchmark: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('benchmark', False)}", fg=get_system_color())
-        typer.secho("  debug: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('debug', False)}", fg=get_system_color())
+        # Topic detection
+        typer.secho("\nTopics:", fg=get_heading_color())
+        typer.secho(f"  topic-auto: {config.get('automatic_topic_detection', True)}", fg=get_system_color())
+        typer.secho(f"  topic-model: {config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
+        typer.secho(f"  topic-min: {config.get('min_messages_before_topic_change', 8)}", fg=get_system_color())
         
-        typer.secho("\nModel Parameters:", fg=get_heading_color())
-        typer.secho("  Use /mset to configure model parameters", fg=get_text_color())
+        # Compression
+        typer.secho("\nCompression:", fg=get_heading_color())
+        typer.secho(f"  comp-auto: {config.get('auto_compress_topics', True)}", fg=get_system_color())
+        typer.secho(f"  comp-model: {config.get('compression_model', 'ollama/llama3')}", fg=get_system_color())
+        typer.secho(f"  comp-min: {config.get('compression_min_nodes', 10)}", fg=get_system_color())
+        
+        typer.secho("\nNote: ", nl=False, fg=get_text_color())
+        typer.secho("Settings reset on restart. Use /mset for model parameters.", fg=get_text_color())
         return
 
     # If no parameter is provided, show common parameters only
     if not param:
         typer.secho("Common Settings:", fg=get_heading_color(), bold=True)
         
-        # Most used settings
-        typer.secho("  depth: ", nl=False, fg=get_text_color())
-        typer.secho(f"{default_context_depth}", fg=get_system_color())
-        typer.secho(" (conversation context)", fg=get_text_color())
-        
-        typer.secho("  stream: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('stream_responses', True)}", fg=get_system_color())
-        typer.secho(" (streaming output)", fg=get_text_color())
-        
-        typer.secho("  cost: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('show_cost', False)}", fg=get_system_color())
-        typer.secho(" (show API costs)", fg=get_text_color())
-        
-        typer.secho("  topics: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('show_topics', False)}", fg=get_system_color())
-        typer.secho(" (show topic info)", fg=get_text_color())
-        
-        typer.secho("  color-mode: ", nl=False, fg=get_text_color())
-        typer.secho(f"{config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
-        typer.secho(" (dark/light/none)", fg=get_text_color())
+        # Show current values
+        typer.secho(f"  depth: {default_context_depth}", fg=get_system_color())
+        typer.secho(f"  stream: {config.get('stream_responses', True)}", fg=get_system_color())
+        typer.secho(f"  cost: {config.get('show_cost', False)}", fg=get_system_color())
+        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
+        typer.secho(f"  color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
         
         typer.secho("\nExamples:", fg=get_heading_color())
         typer.secho("  /set cost true", fg=get_system_color())
         typer.secho("  /set depth 10", fg=get_system_color())
         typer.secho("  /set stream-rate 25", fg=get_system_color())
         
-        typer.secho("\nFor all settings: ", nl=False, fg=get_text_color())
-        typer.secho("/set --all", fg=get_system_color())
-        typer.secho("For docs: ", nl=False, fg=get_text_color())
+        typer.secho("\nMore: ", nl=False, fg=get_text_color())
+        typer.secho("/set --all", fg=get_system_color(), nl=False)
+        typer.secho(" or ", fg=get_text_color(), nl=False)
         typer.secho("/config-docs", fg=get_system_color())
         return
 

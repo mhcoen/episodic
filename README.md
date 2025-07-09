@@ -49,8 +49,6 @@ python -m episodic
 ✨ Muse mode activated! I'll search the web to answer your questions.
 
 > What major events are happening in Paris this week?
-🔍 Searching web for: major events Paris this week
-📚 Found 6 relevant sources
 ✨ Based on current information, here are the major events in Paris this week:
 
 1. **Paris Fashion Week** continues through Sunday with shows from...

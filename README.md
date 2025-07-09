@@ -157,15 +157,20 @@ Episodic automatically manages long conversations by detecting topic changes and
 > /set comp-auto true
 > /set show_topics true  # See topic evolution
 
-> Let's discuss machine learning fundamentals
-📌 New topic: machine-learning-fundamentals
+> How do Python decorators work?
+📌 New topic: python-decorators
 
-# ... extensive discussion ...
+> They're functions that modify other functions. Can you show an example?
+> [Response about @property, @staticmethod, etc...]
+> What about custom decorators for timing functions?
+> [Discussion about performance monitoring...]
+> Speaking of performance, I've been using FastAPI for my web services
+> [Natural continuation about web frameworks...]
+> FastAPI's dependency injection is really elegant
 
-> Now I want to understand transformers in detail
 🔄 Topic changed → Compressing previous topic
-📌 New topic: transformer-architecture
-💾 Context usage: 42% (previous topic compressed to 500 tokens)
+📌 New topic: fastapi-web-development
+💾 Context usage: 38% (previous topic compressed to 420 tokens)
 ```
 
 ### 🏠 Offline Usage

@@ -11,6 +11,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🎯 Automatic Topic Detection**: Intelligently segments conversations into semantic topics
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
+- **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info
 - **🌐 Web Search**: Search the web for current information without leaving the conversation
 - **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
 - **🤖 Multi-Model Support**: Works with OpenAI, Anthropic, Google, Ollama, and more
@@ -117,6 +118,13 @@ Index your papers and documents, then ask questions that search both your knowle
 📚 Using sources: research_paper.pdf, thesis_chapter3.md
 🌐 Also searching web for recent developments...
 # Combines your documents with current web information
+```
+
+**Smart Fallback**: When RAG is enabled with `rag-auto` and `web-auto` settings, Episodic automatically searches the web if your documents don't contain relevant information (below the relevance threshold). Configure with:
+```bash
+/set rag-auto true              # Enable automatic RAG search
+/set web-auto true              # Enable automatic web fallback
+/set rag_relevance_threshold 0.7  # Adjust sensitivity (0.0-1.0)
 ```
 
 ### 🧩 Multi-Model Workflows

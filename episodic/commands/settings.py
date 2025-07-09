@@ -28,33 +28,46 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     if param == "all":
         typer.secho("All Settings:", fg=get_heading_color(), bold=True)
         
-        # Display settings
-        typer.secho("\nDisplay:", fg=get_heading_color())
-        typer.secho(f"  color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
-        typer.secho(f"  stream: {config.get('stream_responses', True)}", fg=get_system_color())
-        typer.secho(f"  stream-rate: {config.get('stream_rate', 15)} words/sec", fg=get_system_color())
-        typer.secho(f"  cost: {config.get('show_cost', False)}", fg=get_system_color())
-        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
-        typer.secho(f"  wrap: {config.get('text_wrap', True)}", fg=get_system_color())
-        
         # Core settings
         typer.secho("\nCore:", fg=get_heading_color())
         typer.secho(f"  depth: {default_context_depth}", fg=get_system_color())
+        typer.secho(f"  semdepth: {default_semdepth}", fg=get_system_color())
         typer.secho(f"  cache: {config.get('use_context_cache', True)}", fg=get_system_color())
         typer.secho(f"  debug: {config.get('debug', False)}", fg=get_system_color())
         typer.secho(f"  benchmark: {config.get('benchmark', False)}", fg=get_system_color())
+        typer.secho(f"  benchmark-display: {config.get('benchmark_display', False)}", fg=get_system_color())
+        
+        # Display settings
+        typer.secho("\nDisplay:", fg=get_heading_color())
+        typer.secho(f"  color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", fg=get_system_color())
+        typer.secho(f"  wrap: {config.get('text_wrap', True)}", fg=get_system_color())
+        typer.secho(f"  cost: {config.get('show_cost', False)}", fg=get_system_color())
+        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
+        typer.secho(f"  drift: {config.get('show_drift', True)}", fg=get_system_color())
+        
+        # Streaming settings
+        typer.secho("\nStreaming:", fg=get_heading_color())
+        typer.secho(f"  stream: {config.get('stream_responses', True)}", fg=get_system_color())
+        typer.secho(f"  stream-rate: {config.get('stream_rate', 15)} words/sec", fg=get_system_color())
+        typer.secho(f"  stream-constant-rate: {config.get('stream_constant_rate', False)}", fg=get_system_color())
+        typer.secho(f"  stream-natural-rhythm: {config.get('stream_natural_rhythm', False)}", fg=get_system_color())
+        typer.secho(f"  stream-char-mode: {config.get('stream_char_mode', False)}", fg=get_system_color())
+        typer.secho(f"  stream-char-rate: {config.get('stream_char_rate', 1000)} chars/sec", fg=get_system_color())
+        typer.secho(f"  stream-line-delay: {config.get('stream_line_delay', 0.1)}s", fg=get_system_color())
         
         # Topic detection
-        typer.secho("\nTopics:", fg=get_heading_color())
+        typer.secho("\nTopic Detection:", fg=get_heading_color())
         typer.secho(f"  topic-auto: {config.get('automatic_topic_detection', True)}", fg=get_system_color())
         typer.secho(f"  topic-model: {config.get('topic_detection_model', 'ollama/llama3')}", fg=get_system_color())
         typer.secho(f"  topic-min: {config.get('min_messages_before_topic_change', 8)}", fg=get_system_color())
+        typer.secho(f"  hybrid-topics: {config.get('use_hybrid_topic_detection', False)}", fg=get_system_color())
         
         # Compression
         typer.secho("\nCompression:", fg=get_heading_color())
         typer.secho(f"  comp-auto: {config.get('auto_compress_topics', True)}", fg=get_system_color())
         typer.secho(f"  comp-model: {config.get('compression_model', 'ollama/llama3')}", fg=get_system_color())
         typer.secho(f"  comp-min: {config.get('compression_min_nodes', 10)}", fg=get_system_color())
+        typer.secho(f"  comp-notify: {config.get('show_compression_notifications', True)}", fg=get_system_color())
         
         typer.secho("\nNote: ", nl=False, fg=get_text_color())
         typer.secho("Settings reset on restart. Use /mset for model parameters.", fg=get_text_color())

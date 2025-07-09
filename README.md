@@ -29,11 +29,8 @@ pip install -e .
 ### First Conversation
 
 ```bash
-# Start Episodic
+# Start Episodic (database created automatically on first run)
 python -m episodic
-
-# Initialize the database
-> /init
 
 # Just start chatting!
 > What's the capital of France?
@@ -42,7 +39,20 @@ python -m episodic
 > Tell me about its history
 🤖 Paris has a rich history dating back over 2,000 years...
 
-# Your conversation is automatically saved and organized!
+# Enable web search mode for current information
+> /muse on
+✨ Muse mode activated! I'll search the web to answer your questions.
+
+> What major events are happening in Paris this week?
+🔍 Searching web for: major events Paris this week
+📚 Found 6 relevant sources
+✨ Based on current information, here are the major events in Paris this week:
+
+1. **Paris Fashion Week** continues through Sunday with shows from...
+2. **Olympic Legacy Exhibition** at the Grand Palais featuring...
+3. **Night of Museums** - free admission to 120+ museums on Saturday...
+
+# Your conversation is automatically saved and organized into topics!
 ```
 
 ### Essential Commands

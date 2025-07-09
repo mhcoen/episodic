@@ -679,10 +679,10 @@ class ConversationManager:
             # Cost tracking now handled centrally in llm_manager
             # No need to manually update session costs
             
-            # Store debug info to display later
-            debug_topic_info = None
-            if config.get("debug") and topic_changed:
-                debug_topic_info = (new_topic_name, topic_cost_info)
+            # Store topic change info to display later
+            topic_change_info = None
+            if topic_changed:
+                topic_change_info = (new_topic_name, topic_cost_info)
 
             # Query the LLM with context
             try:
@@ -703,13 +703,14 @@ class ConversationManager:
                     if config.get("show_drift"):
                         self.display_semantic_drift(user_node_id)
                     
-                    # Display debug topic info if it was stored
-                    if debug_topic_info:
-                        new_topic_name, topic_cost_info = debug_topic_info
+                    # Display topic change info if topic changed
+                    if topic_change_info:
+                        new_topic_name, topic_cost_info = topic_change_info
                         typer.echo("")
-                        debug_print("Topic change detected")
-                        debug_print(f"New topic: {new_topic_name}", indent=True)
-                        if topic_cost_info:
+                        secho_color("📌 Topic change detected", fg=get_system_color(), bold=True)
+                        if new_topic_name:
+                            secho_color(f"   New topic: {new_topic_name}", fg=get_system_color())
+                        if config.get("debug") and topic_cost_info:
                             debug_print(f"Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}", indent=True)
                     
                     # Simple output for testing
@@ -737,13 +738,14 @@ class ConversationManager:
                         if config.get("show_drift"):
                             self.display_semantic_drift(user_node_id)
                         
-                        # Display debug topic info if it was stored
-                        if debug_topic_info:
-                            new_topic_name, topic_cost_info = debug_topic_info
+                        # Display topic change info if topic changed
+                        if topic_change_info:
+                            new_topic_name, topic_cost_info = topic_change_info
                             typer.echo("")
-                            debug_print("Topic change detected")
-                            debug_print(f"New topic: {new_topic_name}", indent=True)
-                            if topic_cost_info:
+                            secho_color("📌 Topic change detected", fg=get_system_color(), bold=True)
+                            if new_topic_name:
+                                secho_color(f"   New topic: {new_topic_name}", fg=get_system_color())
+                            if config.get("debug") and topic_cost_info:
                                 debug_print(f"Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}", indent=True)
                         
                         # Display blank line before response
@@ -1291,13 +1293,14 @@ class ConversationManager:
                             if config.get("show_drift"):
                                 self.display_semantic_drift(user_node_id)
                             
-                            # Display debug topic info if it was stored
-                            if debug_topic_info:
-                                new_topic_name, topic_cost_info = debug_topic_info
+                            # Display topic change info if topic changed
+                            if topic_change_info:
+                                new_topic_name, topic_cost_info = topic_change_info
                                 typer.echo("")
-                                debug_print("Topic change detected")
-                                debug_print(f"New topic: {new_topic_name}", indent=True)
-                                if topic_cost_info:
+                                secho_color("📌 Topic change detected", fg=get_system_color(), bold=True)
+                                if new_topic_name:
+                                    secho_color(f"   New topic: {new_topic_name}", fg=get_system_color())
+                                if config.get("debug") and topic_cost_info:
                                     debug_print(f"Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}", indent=True)
                             
                             # Collect all status messages to display in one block

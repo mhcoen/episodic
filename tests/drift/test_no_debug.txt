@@ -1,0 +1,21 @@
+# Test that drift and topic changes show without debug
+/init --erase
+/set skip_llm_response true
+/set debug false
+/set show_drift true
+/set min_messages_before_topic_change 4
+
+# Topic 1: Programming (4 messages)
+How do I use Python?
+What are Python lists?
+How do I debug Python?
+What is Python pip?
+
+# Topic 2: Cooking (4 messages)  
+What's a good pasta recipe?
+How do I make pizza?
+What oil is best for cooking?
+How do I bake bread?
+
+# Show results
+/topics

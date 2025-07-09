@@ -62,6 +62,8 @@ def handle_chat_message(user_input: str) -> None:
             
             # Perform web search with synthesis
             websearch(user_input, synthesize=True)
+            # Add blank line before next prompt
+            typer.echo()
             return
         
         # Normal chat mode - continue with LLM
@@ -115,6 +117,9 @@ def handle_chat_message(user_input: str) -> None:
         # Update the current node
         current_node_id = assistant_node_id
         conversation_manager.set_current_node_id(assistant_node_id)
+        
+        # Add blank line before next prompt after successful chat
+        typer.echo()
         
     except Exception as e:
         typer.secho(f"Error querying LLM: {str(e)}", fg="red")
@@ -497,6 +502,9 @@ def handle_command(command_str: str) -> bool:
     
     # Display any pending benchmarks after command execution
     display_pending_benchmark()
+    
+    # Add blank line before next prompt
+    typer.echo()
     
     return False
 

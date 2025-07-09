@@ -6,10 +6,10 @@ This document describes all configuration options available in Episodic.
 
 ```bash
 # Show configuration documentation
-> /settings docs
+> /config-docs
 
 # Show specific parameter value
-> /settings show topic_detection_model
+> /set topic_detection_model
 ```
 
 ## Setting Configuration
@@ -48,8 +48,8 @@ This document describes all configuration options available in Episodic.
 ### Other Configuration
 ```bash
 # Set general configuration values
-> /settings set debug true
-> /settings set min_messages_before_topic_change 10
+> /set debug true
+> /set min_messages_before_topic_change 10
 
 # Alternative shorter syntax still works
 > /set debug true
@@ -168,32 +168,32 @@ This memory is specific to Claude Code sessions and persists across conversation
 
 ### For Better Topic Detection
 ```bash
-/settings set min_messages_before_topic_change 6
-/settings set topic_window_size 4
+/set min_messages_before_topic_change 6
+/set topic_window_size 4
 /model detection ollama/llama3
 /mset detection.temperature 0.0
 ```
 
 ### For Faster Responses
 ```bash
-/settings set stream_responses false
-/settings set context_depth 3
-/settings set cache_prompts true
+/set stream_responses false
+/set context_depth 3
+/set cache_prompts true
 ```
 
 ### For Cost Savings
 ```bash
-/settings set show_cost true
+/set show_cost true
 /model compression gpt-3.5-turbo
 /model detection ollama/llama3
-/settings set context_depth 3
+/set context_depth 3
 ```
 
 ### For Debugging
 ```bash
-/settings set debug true
-/settings set show_drift true
-/settings set show_benchmarks true
+/set debug true
+/set show_drift true
+/set show_benchmarks true
 ```
 
 ## Resetting Configuration

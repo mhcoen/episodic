@@ -32,8 +32,8 @@ Just type to chat! No prefix needed.
 ### Configuration
 | Command | Description |
 |---------|-------------|
-| `/settings` | Show all settings |
-| `/settings set param value` | Change setting |
+| `/set` | Show all settings |
+| `/set param value` | Change setting |
 | `/mset` | Show model parameters |
 | `/mset chat.temp 0.7` | Set model parameter |
 | `/reset all` | Reset to defaults |

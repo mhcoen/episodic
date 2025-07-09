@@ -3,8 +3,7 @@ Unit tests for unified command interfaces.
 
 Tests the new unified command system including:
 - Topics command with subactions
-- Compression command with subactions  
-- Settings command with subactions
+- Compression command with subactions
 - Command registry functionality
 """
 
@@ -18,7 +17,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from episodic.commands.unified_topics import topics_command
 from episodic.commands.unified_compression import compression_command
-from episodic.commands.unified_settings import settings_command
 from episodic.commands.registry import command_registry, CommandInfo
 from tests.fixtures.test_utils import capture_cli_output, isolated_config
 
@@ -113,46 +111,6 @@ class TestUnifiedCompressionCommand(unittest.TestCase):
         """Test /compression reset-api action."""
         compression_command("reset-api")
         mock_reset.assert_called_once()
-
-
-class TestUnifiedSettingsCommand(unittest.TestCase):
-    """Test unified settings command functionality."""
-    
-    @patch('episodic.commands.unified_settings.set_impl')
-    def test_settings_show_action(self, mock_set):
-        """Test /settings show action (default)."""
-        settings_command("show")
-        mock_set.assert_called_once_with()
-        
-    @patch('episodic.commands.unified_settings.set_impl')
-    def test_settings_set_action(self, mock_set):
-        """Test /settings set action."""
-        settings_command("set", param="debug", value="true")
-        mock_set.assert_called_once_with("debug", "true")
-        
-    @patch('episodic.commands.unified_settings.verify_impl')
-    def test_settings_verify_action(self, mock_verify):
-        """Test /settings verify action."""
-        settings_command("verify")
-        mock_verify.assert_called_once()
-        
-    @patch('episodic.commands.unified_settings.cost_impl')
-    def test_settings_cost_action(self, mock_cost):
-        """Test /settings cost action."""
-        settings_command("cost")
-        mock_cost.assert_called_once()
-        
-    @patch('episodic.commands.unified_settings.model_params_impl')
-    def test_settings_params_action(self, mock_params):
-        """Test /settings params action."""
-        settings_command("params", param_set="main")
-        mock_params.assert_called_once_with("main")
-        
-    @patch('episodic.commands.unified_settings.config_docs_impl')
-    def test_settings_docs_action(self, mock_docs):
-        """Test /settings docs action."""
-        settings_command("docs")
-        mock_docs.assert_called_once()
 
 
 class TestCommandRegistry(unittest.TestCase):

@@ -242,10 +242,15 @@ def unified_stream_response(
     
     # Process any remaining text
     if accumulated_text.strip():
-        current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header = \
-            _print_word(accumulated_text.strip(), color, wrap_width,
-                      current_position, line_start,
-                      in_bold, in_numbered_list, in_list_item, in_header)
+        # Split remaining text into words and process with wrapping
+        import re
+        remaining_words = re.split(r'(\s+)', accumulated_text)
+        for word in remaining_words:
+            if word and not word.isspace():  # Skip empty strings and whitespace
+                current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header = \
+                    _print_word(word, color, wrap_width,
+                              current_position, line_start,
+                              in_bold, in_numbered_list, in_list_item, in_header)
     
     # Final newline if needed
     if current_position > 0:

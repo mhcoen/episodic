@@ -41,7 +41,6 @@ episodic/
 │   ├── registry.py          # Command registry system
 │   ├── unified_topics.py    # Unified topic management
 │   ├── unified_compression.py # Unified compression management
-│   ├── unified_settings.py  # Unified settings management
 │   └── ...                  # Other command modules
 ├── topics/                  # Topic detection module
 │   ├── __init__.py          # Public API
@@ -83,7 +82,6 @@ episodic/
 - Unified commands with subactions:
   - `/topics [list|rename|compress|index|scores|stats]`
   - `/compression [stats|queue|compress|api-stats|reset-api]`
-  - `/settings [show|set|verify|cost|params|docs]`
 - Command registry for better organization
 - Deprecated old commands still work with warnings
 

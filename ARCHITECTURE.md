@@ -94,7 +94,6 @@ commands/
 ├── registry.py           # Command registration & discovery
 ├── unified_topics.py     # /topics command with subactions
 ├── unified_compression.py # /compression command
-├── unified_settings.py   # /settings command
 └── [legacy commands]     # Individual command implementations
 ```
 
@@ -109,7 +108,7 @@ commands/
 2. **config_defaults.py** - All default values centralized
 3. **configuration.py** - Constants and environment settings
 
-Configuration is stored in the SQLite database and can be modified via `/settings` command.
+Configuration is stored in the SQLite database and can be modified via `/set` command.
 
 ## Database Schema
 

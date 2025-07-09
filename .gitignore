@@ -24,3 +24,5 @@ defunct/
 # Usage tracking and uploads
 usage_tracking*.json
 uploads/
+CLEANUP_RECOMMENDATIONS.md
+GITHUB_RELEASE_CHECKLIST.md

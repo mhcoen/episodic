@@ -416,6 +416,92 @@ What are the latest developments in quantum computing?
 /model synthesis ollama/llama3
 ```
 
+## Scripting and Automation
+
+### Using Scripts
+
+Execute commands from a script file to automate repetitive tasks:
+```bash
+/script scripts/my-workflow.txt
+```
+
+Script files are plain text files that can contain:
+- **Commands**: Lines starting with `/`
+- **Chat messages**: Lines without a prefix
+- **Comments**: Lines starting with `#`
+- **Empty lines**: Ignored
+
+### Common Use Cases
+
+#### 1. Parameter Profiles
+Create different configuration profiles for various scenarios:
+
+**scripts/dev-profile.txt:**
+```bash
+# Development settings - fast iteration
+/set debug true
+/set stream false
+/set cost true
+/set main.temperature 0.7
+/set main.max_tokens 500
+/model chat gpt-3.5-turbo
+```
+
+**scripts/creative-profile.txt:**
+```bash
+# Creative writing settings
+/set main.temperature 1.2
+/set main.max_tokens 2000
+/set main.top_p 0.95
+/model chat gpt-4
+/prompt creative
+```
+
+#### 2. Test Scenarios
+Create reproducible test cases:
+
+**scripts/test-topics.txt:**
+```bash
+/init --erase
+/set min_messages_before_topic_change 2
+Tell me about space exploration.
+What are the challenges of Mars colonization?
+Now let's discuss Italian cooking.
+What's your favorite pasta recipe?
+/topics
+```
+
+#### 3. Daily Workflow
+Automate your common setup:
+
+**scripts/daily-setup.txt:**
+```bash
+# My daily research setup
+/rag on
+/websearch on
+/set web-auto true
+/set topics true
+/model chat gpt-4
+/muse
+```
+
+### Saving Sessions
+
+Save your current session's commands for later replay:
+```bash
+/save my-session        # Saves to scripts/my-session.txt
+/save profiles/research # Saves to scripts/profiles/research.txt
+```
+
+The saved script includes all commands from your session (except the `/save` command itself).
+
+### Tips
+
+- **Nested directories**: Organize scripts in subdirectories (e.g., `scripts/profiles/`, `scripts/tests/`)
+- **Combine scripts**: Load base settings then specific overrides
+- **Version control**: Track your scripts in git for team sharing
+- **No nesting**: Scripts cannot call other scripts (not supported)
+
 ## Troubleshooting
 
 ### Common Issues

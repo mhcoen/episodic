@@ -25,3 +25,6 @@ defunct/
 usage_tracking*.json
 uploads/
 p/
+
+# Working directory for temporary notes and documentation
+working/

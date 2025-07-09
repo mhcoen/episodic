@@ -226,6 +226,46 @@ Manual compression
 /compress --dry-run         # Preview only
 ```
 
+## Script and Automation
+
+### /script
+Execute commands from a script file
+```bash
+/script scripts/my-script.txt  # Execute commands from file
+```
+
+Script files are plain text files that can contain:
+- Commands (lines starting with `/`)
+- Chat messages (lines without prefix)
+- Comments (lines starting with `#`)
+- Empty lines (ignored)
+
+**Use Cases:**
+- **Parameter profiles**: Load groups of settings for different scenarios
+- **Test scenarios**: Reproducible conversation sequences
+- **Configuration presets**: Apply multiple settings without modifying config files
+- **Automated workflows**: Run sequences of commands and queries
+
+**Example script for parameter profile:**
+```bash
+# Development profile - fast responses, debug info
+/set debug true
+/set stream_responses false
+/set show_cost true
+/set main.temperature 0.7
+/set main.max_tokens 500
+/model chat gpt-3.5-turbo
+```
+
+### /save
+Save current session commands to a script file
+```bash
+/save my-session           # Saves to scripts/my-session.txt
+/save configs/prod         # Saves to scripts/configs/prod.txt
+```
+
+The saved script will include all commands from the current session (excluding the /save command itself), which can be replayed later with `/script`.
+
 ## Conversation Commands
 
 ### /model

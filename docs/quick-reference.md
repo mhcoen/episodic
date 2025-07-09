@@ -55,6 +55,12 @@ Just type to chat! No prefix needed.
 | `/show id` | Show specific node |
 | `/ancestry id` | Show conversation thread |
 
+### Scripts & Automation
+| Command | Description |
+|---------|-------------|
+| `/script file.txt` | Execute commands from file |
+| `/save session-name` | Save commands to script |
+
 ## Quick Setup Examples
 
 ### Research Assistant
@@ -77,6 +83,16 @@ Just type to chat! No prefix needed.
 /set topic-auto true
 /set comp-auto true
 /set topics true
+```
+
+### Parameter Profiles via Scripts
+```bash
+# Save current settings
+/save dev-profile
+
+# Load different profiles
+/script scripts/prod-profile.txt
+/script scripts/debug-profile.txt
 ```
 
 ## Tips

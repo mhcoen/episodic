@@ -891,7 +891,7 @@ class ConversationManager:
                                 
                                 # Split accumulated text into words while preserving whitespace
                                 # Use regex to split on word boundaries but keep the whitespace
-                                words = re.findall(r'\S+\s*|\n', accumulated_text)
+                                words = re.findall(r'[^ \t\r\n\f]+[ \t\r\f]*|\n', accumulated_text)
                                 
                                 # Add complete words to the queue
                                 for word in words[:-1]:  # Keep last potentially incomplete word
@@ -1033,7 +1033,7 @@ class ConversationManager:
                                 
                                 # Split accumulated text into words while preserving whitespace
                                 # Use regex to split on word boundaries but keep the whitespace
-                                words = re.findall(r'\S+\s*|\n', accumulated_text)
+                                words = re.findall(r'[^ \t\r\n\f]+[ \t\r\f]*|\n', accumulated_text)
                                 
                                 # Add complete words to the queue
                                 for word in words[:-1]:  # Keep last potentially incomplete word

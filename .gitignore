@@ -28,3 +28,4 @@ p/
 
 # Working directory for temporary notes and documentation
 working/
+.idea/

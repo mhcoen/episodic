@@ -157,25 +157,23 @@ Episodic automatically manages long conversations by detecting topic changes and
 > /set comp-auto true
 > /set show_topics true  # See topic evolution
 
-> How do Python decorators work?
-📌 New topic: python-decorators
+> What's the best way to implement retry logic in Python?
+📌 New topic: python-retry-patterns
 
-🤖 Decorators are functions that modify other functions. They use the @ syntax...
+🤖 The most robust approach is using the tenacity library with exponential backoff...
 
-> What about custom decorators for timing functions?
+> How do you handle database connection failures?
 
-🤖 Here's a timing decorator example:
-   @time_it
-   def slow_function():...
-   
-> Speaking of performance, I've been using FastAPI for my web services
+🤖 For database connections, implement a connection pool with automatic reconnection...
 
-🤖 FastAPI is excellent for high-performance APIs! It's built on Starlette...
+> Is PostgreSQL better than MySQL for high-traffic applications?
 
-> FastAPI's dependency injection is really elegant
+🤖 PostgreSQL generally handles complex queries and concurrent writes better...
+
+> What about horizontal scaling with read replicas?
 
 🔄 Topic changed → Compressing previous topic
-📌 New topic: fastapi-web-development
+📌 New topic: database-scaling-strategies
 💾 Context usage: 38% (previous topic compressed to 420 tokens)
 ```
 

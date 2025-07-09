@@ -7,14 +7,14 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 ## ✨ Features
 
+- **🤖 Universal LLM Interface**: Chat with OpenAI, Anthropic, Google, Ollama, and more through one interface
 - **🗄️ Persistent Memory**: All conversations stored in a local SQLite database
 - **🎯 Automatic Topic Detection**: Intelligently segments conversations into semantic topics
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
+- **🌐 Web Search**: Search the web and get AI-synthesized summaries of results
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
 - **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info
-- **🌐 Web Search**: Search the web and get AI-synthesized summaries of results
 - **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
-- **🤖 Multi-Model Support**: Works with OpenAI, Anthropic, Google, Ollama, and more
 - **🎨 Rich CLI**: Streaming responses, colored output, text wrapping
 
 ## 🚀 Quick Start

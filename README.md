@@ -68,7 +68,7 @@ python -m episodic
 /muse           # Enable Perplexity-like web search mode
 /model list     # View available AI models
 /help           # See all commands
-/help <query>   # Search documentation (e.g., /help muse mode)
+/help <query>   # Search documentation (e.g., /help How do I use muse mode?)
 ```
 
 ## 📖 Documentation

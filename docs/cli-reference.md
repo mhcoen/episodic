@@ -84,7 +84,7 @@ Show conversation thread
 Configure various parameters
 ```bash
 /set                         # Show common settings
-/set --all                   # Show all settings
+/set all                     # Show all settings
 /set <parameter>             # Show specific value
 /set <parameter> <value>     # Set value
 

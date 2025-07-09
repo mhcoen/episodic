@@ -33,7 +33,7 @@ Just type to chat! No prefix needed.
 | Command | Description |
 |---------|-------------|
 | `/set` | Show common settings |
-| `/set --all` | Show all settings |
+| `/set all` | Show all settings |
 | `/set param value` | Change setting |
 | `/mset` | Show model parameters |
 | `/mset chat.temp 0.7` | Set model parameter |

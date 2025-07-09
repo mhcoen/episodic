@@ -24,8 +24,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     """Configure various parameters."""
     global default_context_depth, default_semdepth
 
-    # Handle --all flag to show all parameters
-    if param == "--all":
+    # Handle 'all' keyword to show all parameters
+    if param == "all":
         typer.secho("All Settings:", fg=get_heading_color(), bold=True)
         
         # Display settings
@@ -77,7 +77,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         typer.secho("  /set stream-rate 25", fg=get_system_color())
         
         typer.secho("\nMore: ", nl=False, fg=get_text_color())
-        typer.secho("/set --all", fg=get_system_color(), nl=False)
+        typer.secho("/set all", fg=get_system_color(), nl=False)
         typer.secho(" or ", fg=get_text_color(), nl=False)
         typer.secho("/config-docs", fg=get_system_color())
         return

@@ -473,15 +473,16 @@ def handle_command(command_str: str) -> bool:
         
         elif cmd == "/help":
             from episodic.commands.help import help
-            # Check for --all flag
+            # Check for 'all' keyword
             advanced = False
             query = None
             
             if args:
-                if args[0] == "--all":
+                if args[0] == "all" and len(args) == 1:
+                    # Only "all" by itself means show all commands
                     advanced = True
                 else:
-                    # Treat remaining args as search query
+                    # Treat all args as search query
                     query = " ".join(args)
             
             help(advanced=advanced, query=query)

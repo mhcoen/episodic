@@ -198,7 +198,7 @@ def help(advanced: bool = False, query: Optional[str] = None):
     
     Usage:
         /help                        # Show available commands
-        /help --all                 # Show all commands (advanced)
+        /help all                    # Show all commands (advanced)
         /help change models          # Search for model-related help
         /help muse mode             # Learn about muse mode
         /help topic detection       # Get help on topic detection

@@ -458,6 +458,9 @@ class ConversationManager:
             
         Processes the message through the LLM and updates the conversation DAG.
         """
+        # Import db functions locally to avoid Python scoping issues
+        from episodic.db import get_node, get_ancestry
+        
         with benchmark_operation("Message Processing"):
             # Get recent messages for context BEFORE adding the new message
             with benchmark_resource("Database", "get recent nodes"):

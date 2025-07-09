@@ -683,20 +683,52 @@ class ConversationManager:
 
             # Query the LLM with context
             try:
-                # Check if streaming is enabled (default to True)
-                use_streaming = config.get("stream_responses", True)
+                # Check if we should skip LLM response (for testing topic detection)
+                skip_llm_response = config.get("skip_llm_response", False)
                 
-                # Query with context
-                with benchmark_resource("LLM Call", model):
-                    if use_streaming:
-                        # Get streaming response
-                        stream_generator, _ = query_with_context(
-                            user_node_id, 
-                            model=model,
-                            system_message=system_message,
-                            context_depth=context_depth,
-                            stream=True
-                        )
+                if skip_llm_response:
+                    # Skip LLM call entirely for testing
+                    display_response = "[LLM response skipped for testing]"
+                    cost_info = {
+                        'input_tokens': 0,
+                        'output_tokens': 0,
+                        'total_tokens': 0,
+                        'cost_usd': 0.0
+                    }
+                    
+                    # Calculate and display semantic drift if enabled
+                    if config.get("show_drift"):
+                        self.display_semantic_drift(user_node_id)
+                    
+                    # Display debug topic info if it was stored
+                    if debug_topic_info:
+                        new_topic_name, topic_cost_info = debug_topic_info
+                        typer.echo("")
+                        debug_print("Topic change detected")
+                        debug_print(f"New topic: {new_topic_name}", indent=True)
+                        if topic_cost_info:
+                            debug_print(f"Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}", indent=True)
+                    
+                    # Simple output for testing
+                    typer.echo("")
+                    secho_color("🤖 [LLM response skipped]", fg=get_system_color())
+                    
+                else:
+                    # Normal LLM processing
+                    # Check if streaming is enabled (default to True)
+                    use_streaming = config.get("stream_responses", True)
+                    
+                    # Query with context
+                    with benchmark_resource("LLM Call", model):
+                        if use_streaming:
+                            # Get streaming response
+                            stream_generator, _ = query_with_context(
+                                user_node_id, 
+                                model=model,
+                                system_message=system_message,
+                                context_depth=context_depth,
+                                stream=True
+                            )
                         
                         # Calculate and display semantic drift if enabled (before streaming)
                         if config.get("show_drift"):
@@ -1241,62 +1273,62 @@ class ConversationManager:
                             cost_msg = f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: {format_cost(cost_info.get('cost_usd', 0.0))} USD | Context: {context_display} full"
                             secho_color(cost_msg, fg=get_system_color())
                         
-                    else:
-                        # Non-streaming response
-                        response, cost_info = query_with_context(
-                            user_node_id, 
-                            model=model,
-                            system_message=system_message,
-                            context_depth=context_depth,
-                            stream=False
-                        )
-                        display_response = response
-                        
-                        # Calculate and display semantic drift if enabled
-                        if config.get("show_drift"):
-                            self.display_semantic_drift(user_node_id)
-                        
-                        # Display debug topic info if it was stored
-                        if debug_topic_info:
-                            new_topic_name, topic_cost_info = debug_topic_info
-                            typer.echo("")
-                            debug_print("Topic change detected")
-                            debug_print(f"New topic: {new_topic_name}", indent=True)
-                            if topic_cost_info:
-                                debug_print(f"Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}", indent=True)
-                        
-                        # Collect all status messages to display in one block
-                        status_messages = []
-                        
-
-                        # Add cost information if enabled
-                        if config.get("show_cost", False) and cost_info:
-                            # Calculate context usage
-                            current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
-                            context_limit = get_model_context_limit(model)
-                            context_percentage = (current_tokens / context_limit) * 100
-                            
-                            # Format context percentage with appropriate precision
-                            if context_percentage < 1.0:
-                                context_display = f"{context_percentage:.1f}%"
-                            else:
-                                context_display = f"{int(context_percentage)}%"
-                            
-                            status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: {format_cost(cost_info.get('cost_usd', 0.0))} USD | Context: {context_display} full")
-
-                        # Display the response block with proper spacing
-                        if status_messages:
-                            # Show blank line, then status messages, then LLM response
-                            typer.echo("")
-                            for msg in status_messages:
-                                secho_color(msg, fg=get_system_color())
-                            secho_color("🤖 ", fg=get_llm_color(), nl=False)
-                            self.wrapped_llm_print(display_response, fg=get_llm_color())
                         else:
-                            # No status messages, just show blank line then LLM response
-                            typer.echo("")  # Blank line
-                            secho_color("🤖 ", fg=get_llm_color(), nl=False)
-                            self.wrapped_llm_print(display_response, fg=get_llm_color())
+                            # Non-streaming response
+                            response, cost_info = query_with_context(
+                                user_node_id, 
+                                model=model,
+                                system_message=system_message,
+                                context_depth=context_depth,
+                                stream=False
+                            )
+                            display_response = response
+                            
+                            # Calculate and display semantic drift if enabled
+                            if config.get("show_drift"):
+                                self.display_semantic_drift(user_node_id)
+                            
+                            # Display debug topic info if it was stored
+                            if debug_topic_info:
+                                new_topic_name, topic_cost_info = debug_topic_info
+                                typer.echo("")
+                                debug_print("Topic change detected")
+                                debug_print(f"New topic: {new_topic_name}", indent=True)
+                                if topic_cost_info:
+                                    debug_print(f"Detection cost: ${topic_cost_info.get('cost_usd', 0.0):.{COST_PRECISION}f}", indent=True)
+                            
+                            # Collect all status messages to display in one block
+                            status_messages = []
+                            
+
+                            # Add cost information if enabled
+                            if config.get("show_cost", False) and cost_info:
+                                # Calculate context usage
+                                current_tokens = cost_info.get('input_tokens', 0)  # Use input tokens for context calculation
+                                context_limit = get_model_context_limit(model)
+                                context_percentage = (current_tokens / context_limit) * 100
+                                
+                                # Format context percentage with appropriate precision
+                                if context_percentage < 1.0:
+                                    context_display = f"{context_percentage:.1f}%"
+                                else:
+                                    context_display = f"{int(context_percentage)}%"
+                                
+                                status_messages.append(f"Tokens: {cost_info.get('total_tokens', 0)} | Cost: {format_cost(cost_info.get('cost_usd', 0.0))} USD | Context: {context_display} full")
+
+                            # Display the response block with proper spacing
+                            if status_messages:
+                                # Show blank line, then status messages, then LLM response
+                                typer.echo("")
+                                for msg in status_messages:
+                                    secho_color(msg, fg=get_system_color())
+                                secho_color("🤖 ", fg=get_llm_color(), nl=False)
+                                self.wrapped_llm_print(display_response, fg=get_llm_color())
+                            else:
+                                # No status messages, just show blank line then LLM response
+                                typer.echo("")  # Blank line
+                                secho_color("🤖 ", fg=get_llm_color(), nl=False)
+                                self.wrapped_llm_print(display_response, fg=get_llm_color())
 
                 # Cost tracking now handled centrally in llm_manager
 

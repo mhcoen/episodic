@@ -1,0 +1,45 @@
+# Test script for fast topic detection without LLM responses
+# First enable skip_llm_response mode and show debug info
+/set skip_llm_response true
+/set debug true
+/set show_drift true
+/set show_topics true
+
+# Topic 1: Machine Learning (messages 1-8)
+What are neural networks?
+How do neural networks learn?
+What is backpropagation?
+What are convolutional neural networks?
+How does gradient descent work?
+What is overfitting in machine learning?
+What are activation functions?
+What is the difference between supervised and unsupervised learning?
+
+# Topic 2: Cooking Italian Food (messages 9-16)
+What's the best pasta recipe?
+How do you make authentic carbonara?
+What ingredients do I need for risotto?
+How long should I cook fresh pasta?
+What's the difference between marinara and pomodoro sauce?
+How do you make homemade pizza dough?
+What cheese is best for lasagna?
+Should I use salted or unsalted butter in Italian cooking?
+
+# Topic 3: Space Exploration (messages 17-24)
+What's the latest news about Mars exploration?
+How long does it take to get to Mars?
+What are the challenges of living on Mars?
+How does SpaceX's Starship work?
+What's the difference between the ISS and a Mars habitat?
+How do astronauts train for Mars missions?
+What would we need to terraform Mars?
+When will humans land on Mars?
+
+# Reset settings
+/set skip_llm_response false
+/set debug false
+/set show_drift false
+/set show_topics false
+
+# Show the topics that were detected
+/topics

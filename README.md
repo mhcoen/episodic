@@ -62,13 +62,13 @@ python -m episodic
 ### Essential Commands
 
 ```bash
-/topics         # See how your conversation is organized
-/search query   # Search your indexed documents  
+/topics          # See how your conversation is organized
+/search query    # Search your indexed documents  
 /websearch query # Search the web
-/muse           # Enable Perplexity-like web search mode
-/model list     # View available AI models
-/help           # See all commands
-/help <query>   # Search documentation (e.g., /help muse mode)
+/muse            # Enable Perplexity-like web search mode
+/model list      # View available AI models
+/help            # See all commands
+/help <query>    # Search documentation (e.g., /help How do I use muse mode?)
 ```
 
 ## 📖 Documentation

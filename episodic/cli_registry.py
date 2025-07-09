@@ -128,7 +128,7 @@ def show_help_with_categories():
     typer.secho("\n🚀 Getting Started:", fg=get_heading_color(), bold=True)
     basic_commands = [
         ("/init", "Initialize the database"),
-        ("/model", "Show/change current chat model"),
+        ("/model", "Show current models for all contexts"),
         ("/web", "Manage web search providers"),
     ]
     

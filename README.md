@@ -12,7 +12,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
 - **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info
-- **🌐 Web Search**: Search the web for current information without leaving the conversation
+- **🌐 Web Search**: Search the web and get AI-synthesized summaries of results
 - **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
 - **🤖 Multi-Model Support**: Works with OpenAI, Anthropic, Google, Ollama, and more
 - **🎨 Rich CLI**: Streaming responses, colored output, text wrapping

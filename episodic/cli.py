@@ -266,24 +266,51 @@ def handle_command(command_str: str) -> bool:
         
         # Topic commands
         elif cmd == "/topics":
-            from episodic.commands import topics
-            limit = 10
-            all_topics = False
-            verbose = False
+            # Handle unified topics command with subcommands
+            from episodic.commands.unified_topics import topics_command
             
-            if "all" in args or "-a" in args:
-                all_topics = True
-            if "--verbose" in args or "-v" in args:
-                verbose = True
-            
-            limit_str = _parse_flag_value(args, ["--limit", "-l"])
-            if limit_str:
-                try:
-                    limit = int(limit_str)
-                except ValueError:
-                    pass
-            
-            topics(limit=limit, all=all_topics, verbose=verbose)
+            # Check if there's a subcommand
+            if args and args[0] in ["list", "rename", "compress", "index", "scores", "stats"]:
+                action = args[0]
+                remaining_args = args[1:]
+                
+                # Parse options based on action
+                verbose = "--verbose" in remaining_args or "-v" in remaining_args
+                
+                if action == "stats":
+                    topics_command("stats", verbose=verbose)
+                elif action == "list":
+                    limit = None
+                    limit_str = _parse_flag_value(remaining_args, ["--limit", "-l"])
+                    if limit_str:
+                        try:
+                            limit = int(limit_str)
+                        except ValueError:
+                            pass
+                    topics_command("list", limit=limit, verbose=verbose)
+                else:
+                    # For other actions, just pass through
+                    topics_command(action, verbose=verbose)
+            else:
+                # Default to list action for backward compatibility
+                from episodic.commands import topics
+                limit = 10
+                all_topics = False
+                verbose = False
+                
+                if "all" in args or "-a" in args:
+                    all_topics = True
+                if "--verbose" in args or "-v" in args:
+                    verbose = True
+                
+                limit_str = _parse_flag_value(args, ["--limit", "-l"])
+                if limit_str:
+                    try:
+                        limit = int(limit_str)
+                    except ValueError:
+                        pass
+                
+                topics(limit=limit, all=all_topics, verbose=verbose)
         
         elif cmd == "/compress-current-topic":
             from episodic.commands import compress_current_topic

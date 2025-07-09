@@ -1,0 +1,19 @@
+# Test topics stats command
+/init --erase
+/set skip_llm_response true
+/set debug false
+
+# Create a few topics
+How do I use Python?
+What are Python lists?
+How do I debug Python?
+What is Python pip?
+What's a good pasta recipe?
+How do I make pizza?
+What oil is best for cooking?
+How do I bake bread?
+
+# Test the commands
+/topics
+/topics stats
+/topics stats --verbose

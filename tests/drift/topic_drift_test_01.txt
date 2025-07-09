@@ -4,7 +4,8 @@
 # Configuration for testing
 /init --erase
 /set skip_llm_response true
-/set debug true
+/set debug false
+/set comp-auto false
 /set show_drift true
 /set show_topics true
 /set topic-auto true

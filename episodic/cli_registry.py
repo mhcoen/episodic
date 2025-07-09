@@ -151,7 +151,7 @@ def show_help_with_categories():
         typer.secho(desc, fg=get_text_color())
     
     #   typer.secho("\n" + "─" * 60, fg=get_heading_color())
-    typer.secho("\n📖 Type '/help --all' to see all available commands", 
+    typer.secho("\n📖 Type '/help all' to see all available commands", 
                fg=get_text_color(), bold=True)
     typer.secho("🚪 Type '/exit' or '/quit' to leave", fg=get_text_color(), dim=True)
 

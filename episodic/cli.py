@@ -271,7 +271,7 @@ def handle_command(command_str: str) -> bool:
             all_topics = False
             verbose = False
             
-            if "--all" in args or "-a" in args:
+            if "all" in args or "-a" in args:
                 all_topics = True
             if "--verbose" in args or "-v" in args:
                 verbose = True

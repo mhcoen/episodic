@@ -147,7 +147,7 @@ Access configuration docs through settings command:
 Unified topic management
 ```bash
 /topics                     # List topics (default)
-/topics list --all          # Show all topics
+/topics list all            # Show all topics
 /topics rename              # Rename ongoing topics
 /topics compress            # Compress current topic
 /topics index 5             # Manual detection on last 5

@@ -15,7 +15,7 @@ from episodic.benchmark import benchmark_operation
 
 def topics(
     limit: int = typer.Option(10, "--limit", "-l", help="Number of topics to show"),
-    all: bool = typer.Option(False, "--all", "-a", help="Show all topics"),
+    all: bool = typer.Option(False, "-a", help="Show all topics"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information")
 ):
     """List conversation topics."""
@@ -114,7 +114,7 @@ def topics(
         
         # Show tips
         if not all and len(topic_list) == limit:
-            typer.secho(f"💡 Showing {limit} most recent topics. Use --all to see all topics.", 
+            typer.secho(f"💡 Showing {limit} most recent topics. Use 'all' to see all topics.", 
                        fg=get_text_color(), dim=True)
 
 

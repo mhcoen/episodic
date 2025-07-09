@@ -1731,9 +1731,6 @@ class ConversationManager:
                             if config.get('debug', False):
                                 typer.echo(f"   DEBUG: No topics exist, checking if we should create first topic...")
                                 typer.echo(f"   DEBUG: user_node_id = {user_node_id}")
-                                user_node = get_node(user_node_id)
-                                if user_node:
-                                    typer.echo(f"   DEBUG: user_node content = '{user_node.get('content', '')[:50]}...'")
                             if should_create_first_topic(user_node_id):
                                 # Look back to find the first user node and create topic from conversation start
                                 from episodic.db import get_connection

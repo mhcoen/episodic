@@ -202,26 +202,26 @@ def _handle_models():
 
 def _handle_mset(args: List[str]):
     """Handle /mset command."""
-    from episodic.commands.mset import mset
+    from episodic.commands.mset import mset_command
     
     if not args:
-        mset()
+        mset_command(None, None)
     elif len(args) == 1:
-        # Show parameters for a specific context
-        mset(context=args[0])
-    elif args[0] == "embedding" and len(args) > 1:
-        # Special handling for embedding configuration
-        if args[1] == "list":
-            from episodic.commands.mset import list_embedding_models
-            list_embedding_models()
+        # Could be just context or embedding.list
+        if args[0] == "embedding":
+            mset_command(args[0], None)
         else:
-            # Parse as parameter.value
-            param_str = " ".join(args)
-            mset(param_str=param_str)
+            mset_command(args[0], None)
+    elif args[0] == "embedding" and args[1] == "list" and len(args) == 2:
+        # Special handling for embedding list
+        from episodic.commands.mset import list_embedding_models
+        list_embedding_models()
+    elif len(args) == 2:
+        # parameter value format
+        mset_command(args[0], args[1])
     else:
-        # Parse as parameter.value or context.parameter.value
-        param_str = " ".join(args)
-        mset(param_str=param_str)
+        # Join remaining args as value
+        mset_command(args[0], " ".join(args[1:]))
 
 
 def _handle_set(args: List[str]):

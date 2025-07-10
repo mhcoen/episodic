@@ -226,14 +226,14 @@ def _handle_mset(args: List[str]):
 
 def _handle_set(args: List[str]):
     """Handle /set command."""
-    from episodic.commands import set_config
+    from episodic.commands import set
     
     if len(args) < 2:
         typer.secho("Usage: /set <parameter> <value>", fg="red")
     else:
         param = args[0]
         value = " ".join(args[1:])
-        set_config(param, value)
+        set(param, value)
 
 
 def _handle_reset():
@@ -455,12 +455,12 @@ def _handle_verify():
 
 def _handle_help(args: List[str]):
     """Handle /help command."""
-    from episodic.commands import help_cmd
+    from episodic.commands import help
     
     if args:
-        help_cmd(topic=args[0])
+        help(topic=args[0])
     else:
-        help_cmd()
+        help()
 
 
 def _handle_deprecated_commands(cmd: str, args: List[str]):

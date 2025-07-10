@@ -285,14 +285,16 @@ Built with:
 - [NetworkX](https://networkx.org/) - Graph data structures for conversation DAG
 - [LiteLLM](https://github.com/BerriAI/litellm) - Unified LLM interface
 - [OpenAI Python](https://github.com/openai/openai-python) - OpenAI API client
-- [ChromaDB](https://www.trychroma.com/) - Vector database
+- [Anthropic Python](https://github.com/anthropics/anthropic-sdk-python) - Anthropic API client (via LiteLLM)
+- [Google Generative AI](https://github.com/google/generative-ai-python) - Google AI client (via LiteLLM)
+- [ChromaDB](https://www.trychroma.com/) - Vector database for RAG
 - [Sentence Transformers](https://www.sbert.net/) - Text embeddings
+- [LangChain](https://github.com/langchain-ai/langchain) - LLM application framework (in experimental features)
 - [Plotly](https://plotly.com/python/) - Interactive visualization
 - [Flask](https://flask.palletsprojects.com/) - Web framework for visualization server
 - [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) - Web scraping
 - [aiohttp](https://docs.aiohttp.org/) - Asynchronous HTTP client
 - [PyWebView](https://pywebview.flowrl.com/) - Native GUI for web content
-- [NumPy](https://numpy.org/) - Numerical computing
 
 ## 📸 Screenshots
 

@@ -476,6 +476,10 @@ class ConversationManager:
                         # Display the response
                         if response:
                             typer.echo("")
+                            # Debug: Check if response is duplicated
+                            if config.get("debug", False):
+                                typer.echo(f"[DEBUG] Response length: {len(response)} chars", err=True)
+                                typer.echo(f"[DEBUG] First 100 chars: {response[:100]}", err=True)
                             wrapped_llm_print(response, fg=get_llm_color())
                             display_response = response
                         else:

@@ -23,6 +23,12 @@ def get_wrap_width() -> int:
 
 def wrapped_text_print(text: str, **typer_kwargs) -> None:
     """Print text with automatic wrapping while preserving formatting."""
+    # Debug logging
+    if config.get("debug", False):
+        import sys
+        print(f"[DEBUG wrapped_text_print] Called with text: '{text[:50]}...' (length: {len(text)})", file=sys.stderr)
+        print(f"[DEBUG wrapped_text_print] typer_kwargs: {typer_kwargs}", file=sys.stderr)
+    
     # Check if wrapping is enabled (default to True)
     if config.get("text_wrap", True) == False:
         secho_color(str(text), **typer_kwargs)
@@ -71,13 +77,14 @@ def wrapped_llm_print(text: str, **typer_kwargs) -> None:
     parts = re.split(r'(\*\*[^*]+\*\*)', text)
     
     for part in parts:
-        if part.startswith('**') and part.endswith('**'):
-            # This is bold text
-            bold_text = part[2:-2]
-            wrapped_text_print(bold_text, bold=True, **typer_kwargs)
-        else:
-            # Regular text
-            wrapped_text_print(part, **typer_kwargs)
+        if part:  # Only process non-empty parts
+            if part.startswith('**') and part.endswith('**'):
+                # This is bold text
+                bold_text = part[2:-2]
+                wrapped_text_print(bold_text, bold=True, **typer_kwargs)
+            else:
+                # Regular text
+                wrapped_text_print(part, **typer_kwargs)
 
 
 # Import debug_print from common utilities

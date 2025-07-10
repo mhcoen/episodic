@@ -17,7 +17,7 @@ from episodic.llm import enable_cache, disable_cache
 def handle_boolean_param(param: str, value: str) -> bool:
     """Handle boolean parameter setting."""
     bool_val = value.lower() in ['true', '1', 'yes', 'on']
-    config[param] = bool_val
+    config.set(param, bool_val)
     
     # Special handling for certain params
     if param == 'use_context_cache':
@@ -45,7 +45,7 @@ def handle_integer_param(param: str, value: str, min_val: Optional[int] = None,
             typer.secho(f"Value must be at most {max_val}", fg="red")
             return False
             
-        config[param] = int_val
+        config.set(param, int_val)
         typer.secho(f"✅ Set {param} = {int_val}", fg=get_system_color())
         return True
     except ValueError:
@@ -65,7 +65,7 @@ def handle_float_param(param: str, value: str, min_val: Optional[float] = None,
             typer.secho(f"Value must be at most {max_val}", fg="red")
             return False
             
-        config[param] = float_val
+        config.set(param, float_val)
         typer.secho(f"✅ Set {param} = {float_val}", fg=get_system_color())
         return True
     except ValueError:
@@ -79,7 +79,7 @@ def handle_string_param(param: str, value: str, valid_values: Optional[list] = N
         typer.secho(f"Invalid value. Must be one of: {', '.join(valid_values)}", fg="red")
         return False
         
-    config[param] = value
+    config.set(param, value)
     typer.secho(f"✅ Set {param} = {value}", fg=get_system_color())
     return True
 
@@ -119,7 +119,7 @@ def handle_special_params(param: str, value: str, context_depth: int, semdepth: 
     if param == "depth":
         new_depth = handle_depth_param(value)
         if new_depth is not None:
-            config['context_depth'] = new_depth
+            config.set('context_depth', new_depth)
             typer.secho(f"✅ Set context depth = {new_depth}", fg=get_system_color())
             return True, new_depth, semdepth
         return True, context_depth, semdepth
@@ -127,7 +127,7 @@ def handle_special_params(param: str, value: str, context_depth: int, semdepth: 
     elif param == "semdepth":
         new_semdepth = handle_semdepth_param(value)
         if new_semdepth is not None:
-            config['semantic_depth'] = new_semdepth
+            config.set('semantic_depth', new_semdepth)
             typer.secho(f"✅ Set semantic depth = {new_semdepth}", fg=get_system_color())
             return True, context_depth, new_semdepth
         return True, context_depth, semdepth

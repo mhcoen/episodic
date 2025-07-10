@@ -81,7 +81,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         PARAM_HANDLERS[param](value)
     else:
         # Generic string parameter
-        config[param] = value
+        config.set(param, value)
         typer.secho(f"✅ Set {param} = {value}", fg=get_system_color())
 
 

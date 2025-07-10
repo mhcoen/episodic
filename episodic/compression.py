@@ -14,9 +14,7 @@ from datetime import datetime
 from episodic.db import (
     get_ancestry
 )
-from episodic.db_compression import (
-    create_compression_tables, store_compression_v2
-)
+from episodic.db import store_compression
 from episodic.llm import query_llm
 from episodic.config import config
 import typer
@@ -292,7 +290,7 @@ compression_manager = AsyncCompressionManager()
 def start_auto_compression():
     """Start the automatic compression system."""
     # Ensure compression tables exist
-    create_compression_tables()
+    # Tables are created during database initialization now
     compression_manager.start()
 
 

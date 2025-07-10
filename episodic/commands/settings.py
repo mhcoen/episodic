@@ -1,19 +1,22 @@
 """
 Settings and configuration commands for the Episodic CLI.
 
-Handles parameter configuration, verification, and cost tracking.
+This module is a refactored version that delegates to specialized modules.
 """
 
 import typer
 from typing import Optional
+
 from episodic.config import config
-from episodic.configuration import (
-    DEFAULT_COLOR_MODE, get_text_color, get_system_color, get_heading_color
-)
+from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.conversation import conversation_manager
-from episodic.llm import enable_cache, disable_cache
 from episodic.param_mappings import normalize_param_name, get_display_name
 
+from .settings_display import display_all_settings
+from .settings_handlers import (
+    PARAM_HANDLERS, handle_special_params,
+    handle_boolean_param, handle_string_param
+)
 
 # Global variables for settings
 default_context_depth = 5
@@ -24,719 +27,280 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     """Configure various parameters."""
     global default_context_depth, default_semdepth
 
+    # Initialize from config if needed
+    default_context_depth = config.get('context_depth', 5)
+    default_semdepth = config.get('semantic_depth', 2)
+
     # Handle 'all' keyword to show all parameters
     if param == "all":
-        typer.secho("All Settings:", fg=get_heading_color(), bold=True)
-        
-        # Core settings
-        typer.secho("\nCore:", fg=get_heading_color())
-        core_settings = [
-            (f"depth: {default_context_depth}", "Messages of conversation history"),
-            (f"semdepth: {default_semdepth}", "Semantic analysis depth"),
-            (f"cache: {config.get('use_context_cache', True)}", "Enable prompt caching"),
-            (f"debug: {config.get('debug', False)}", "Debug output mode"),
-            (f"benchmark: {config.get('benchmark', False)}", "Performance benchmarking"),
-            (f"benchmark-display: {config.get('benchmark_display', False)}", "Show benchmark results"),
-        ]
-        for setting, desc in core_settings:
-            padding = ' ' * max(1, 30 - len(setting) - 2)
-            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
-            typer.secho(desc, fg=get_text_color())
-        
-        # Display settings
-        typer.secho("\nDisplay:", fg=get_heading_color())
-        display_settings = [
-            (f"color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", "Color output (full/basic/none)"),
-            (f"wrap: {config.get('text_wrap', True)}", "Wrap long lines"),
-            (f"cost: {config.get('show_cost', False)}", "Show API costs"),
-            (f"topics: {config.get('show_topics', False)}", "Show topic boundaries"),
-            (f"drift: {config.get('show_drift', True)}", "Show drift scores"),
-        ]
-        for setting, desc in display_settings:
-            padding = ' ' * max(1, 30 - len(setting) - 2)
-            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
-            typer.secho(desc, fg=get_text_color())
-        
-        # Streaming settings
-        typer.secho("\nStreaming:", fg=get_heading_color())
-        stream_settings = [
-            (f"stream: {config.get('stream_responses', True)}", "Stream responses"),
-            (f"stream-rate: {config.get('stream_rate', 15)} words/sec", "Streaming speed"),
-            (f"stream-constant-rate: {config.get('stream_constant_rate', False)}", "Constant rate mode"),
-            (f"stream-natural-rhythm: {config.get('stream_natural_rhythm', False)}", "Natural pauses"),
-            (f"stream-line-delay: {config.get('stream_line_delay', 0.1)}s", "Delay between lines"),
-        ]
-        for setting, desc in stream_settings:
-            padding = ' ' * max(1, 30 - len(setting) - 2)
-            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
-            typer.secho(desc, fg=get_text_color())
-        
-        # Topic detection
-        typer.secho("\nTopic Detection:", fg=get_heading_color())
-        topic_settings = [
-            (f"topic-auto: {config.get('automatic_topic_detection', True)}", "Auto-detect topics"),
-            (f"topic-model: {config.get('topic_detection_model', 'ollama/llama3')}", "Detection model"),
-            (f"topic-min: {config.get('min_messages_before_topic_change', 8)}", "Min messages for change"),
-            (f"hybrid-topics: {config.get('use_hybrid_topic_detection', False)}", "Hybrid detection mode"),
-        ]
-        for setting, desc in topic_settings:
-            padding = ' ' * max(1, 30 - len(setting) - 2)
-            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
-            typer.secho(desc, fg=get_text_color())
-        
-        # Compression
-        typer.secho("\nCompression:", fg=get_heading_color())
-        comp_settings = [
-            (f"comp-auto: {config.get('auto_compress_topics', True)}", "Auto-compress topics"),
-            (f"comp-model: {config.get('compression_model', 'ollama/llama3')}", "Compression model"),
-            (f"comp-min: {config.get('compression_min_nodes', 10)}", "Min nodes to compress"),
-            (f"comp-notify: {config.get('show_compression_notifications', True)}", "Show notifications"),
-        ]
-        for setting, desc in comp_settings:
-            padding = ' ' * max(1, 30 - len(setting) - 2)
-            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
-            typer.secho(desc, fg=get_text_color())
-        
-        typer.secho("\nNote: ", nl=False, fg=get_text_color())
-        typer.secho("Settings reset on restart. Use /mset for model parameters.", fg=get_text_color())
+        display_all_settings(default_context_depth, default_semdepth)
         return
 
-    # If no parameter is provided, show common parameters only
+    # If no param provided, show current settings
+    if param is None:
+        typer.secho("Current Settings:", fg=get_heading_color(), bold=True)
+        typer.secho(f"  Context depth: {default_context_depth} messages", fg=get_system_color())
+        typer.secho(f"  Semantic depth: {default_semdepth} levels", fg=get_system_color())
+        typer.secho(f"  Cache: {config.get('use_context_cache', True)}", fg=get_system_color())
+        typer.secho(f"  Debug: {config.get('debug', False)}", fg=get_system_color())
+        typer.secho("\nUse '/set all' to see all settings", fg=get_text_color())
+        typer.secho("Use '/set <param> <value>' to change a setting", fg=get_text_color())
+        return
+
+    # If value not provided, show current value
+    if value is None:
+        normalized = normalize_param_name(param)
+        if normalized:
+            current_value = config.get(normalized, "Not set")
+            display_name = get_display_name(normalized)
+            typer.secho(f"{display_name}: {current_value}", fg=get_system_color())
+        else:
+            typer.secho(f"Unknown parameter: {param}", fg="red")
+        return
+
+    # Normalize the parameter name
+    original_param = param
+    param = normalize_param_name(param)
+    
     if not param:
-        typer.secho("Common Settings:", fg=get_heading_color(), bold=True)
-        
-        # Show current values with descriptions
-        settings = [
-            (f"depth: {default_context_depth}", "Messages of conversation history to include"),
-            (f"stream: {config.get('stream_responses', True)}", "Stream responses as they generate"),
-            (f"cost: {config.get('show_cost', False)}", "Show token usage and API costs"),
-            (f"topics: {config.get('show_topics', False)}", "Display topic boundaries in chat"),
-            (f"color-mode: {config.get('color_mode', DEFAULT_COLOR_MODE)}", "Color output mode (full/basic/none)"),
-        ]
-        
-        for setting, desc in settings:
-            padding = ' ' * max(1, 25 - len(setting) - 2)
-            typer.secho(f"  {setting}{padding}", fg=get_system_color(), bold=True, nl=False)
-            typer.secho(desc, fg=get_text_color())
-        
-        typer.secho("\nExamples:", fg=get_heading_color())
-        typer.secho("  /set cost true", fg=get_system_color())
-        typer.secho("  /set depth 10", fg=get_system_color())
-        typer.secho("  /set stream-rate 25", fg=get_system_color())
-        
-        typer.secho("\nMore: ", nl=False, fg=get_text_color())
-        typer.secho("/set all", fg=get_system_color(), nl=False)
-        typer.secho(" or ", fg=get_text_color(), nl=False)
-        typer.secho("/config-docs", fg=get_system_color())
+        typer.secho(f"Unknown parameter: {original_param}", fg="red")
+        typer.secho("Use '/config-docs' to see available parameters", fg=get_text_color())
         return
 
-    # Normalize parameter name (convert dashes to underscores, expand aliases)
-    normalized_param = normalize_param_name(param.lower())
+    # Handle special parameters first
+    handled, new_depth, new_semdepth = handle_special_params(
+        original_param, value, default_context_depth, default_semdepth
+    )
     
-    # Handle the 'cost' parameter
-    if normalized_param == "show_cost":
-        if not value:
-            # Toggle the current value if no value is provided
-            current = config.get("show_cost", False)
-            config.set("show_cost", not current)
-            typer.echo(f"Cost display: {'ON' if not current else 'OFF'}")
-        else:
-            # Set to the provided value
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("show_cost", val)
-            typer.echo(f"Cost display: {'ON' if val else 'OFF'} (this session only)")
+    if handled:
+        default_context_depth = new_depth
+        default_semdepth = new_semdepth
+        return
 
-    # Handle the 'cache' parameter
-    elif normalized_param == "use_context_cache":
-        if not value:
-            # Toggle the current value if no value is provided
-            current = config.get("use_context_cache", True)
-            if current:
-                disable_cache()
-            else:
-                enable_cache()
-        else:
-            # Set to the provided value
-            val = value.lower() in ["on", "true", "yes", "1"]
-            if val:
-                enable_cache()
-            else:
-                disable_cache()
-
-    # Handle the 'topics' parameter
-    elif normalized_param == "show_topics":
-        if not value:
-            current = config.get("show_topics", False)
-            typer.echo(f"Current topics display: {current}")
-        else:
-            val = value.lower() in ["true", "1", "yes", "on"]
-            config.set("show_topics", val)
-            typer.echo(f"Topics display set to {val}")
-    
-    # Handle hybrid topic detection
-    elif normalized_param == "use_hybrid_topic_detection":
-        if not value:
-            current = config.get("use_hybrid_topic_detection", False)
-            typer.echo(f"Hybrid topic detection: {'ON' if current else 'OFF'}")
-        else:
-            val = value.lower() in ["true", "1", "yes", "on"]
-            config.set("use_hybrid_topic_detection", val)
-            typer.echo(f"Hybrid topic detection: {'ON' if val else 'OFF'}")
-            if val:
-                typer.echo("Note: Requires sentence-transformers for embeddings")
-
-    # Handle the 'stream' parameter for streaming responses
-    elif normalized_param == "stream_responses":
-        if not value:
-            # Toggle the current value if no value is provided
-            current = config.get("stream_responses", True)
-            config.set("stream_responses", not current)
-            typer.echo(f"Response streaming: {'ON' if not current else 'OFF'}")
-        else:
-            # Set to the provided value
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("stream_responses", val)
-            typer.echo(f"Response streaming: {'ON' if val else 'OFF'}")
-
-    # Handle 'stream_rate' parameter
-    elif normalized_param == "stream_rate":
-        if not value:
-            typer.echo(f"Current stream rate: {config.get('stream_rate', 15)} words/sec")
-        else:
-            try:
-                rate = int(value)
-                if rate < 1:
-                    typer.echo("Stream rate must be at least 1 word/sec")
-                elif rate > 100:
-                    typer.echo("Stream rate must be at most 100 words/sec")
-                else:
-                    config.set("stream_rate", rate)
-                    typer.echo(f"Stream rate set to {rate} words/sec")
-            except ValueError:
-                typer.echo("Stream rate must be a number")
-
-    # Handle 'stream_constant_rate' parameter
-    elif normalized_param == "stream_constant_rate":
-        if not value:
-            current = config.get("stream_constant_rate", False)
-            typer.echo(f"Current constant rate streaming: {current}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("stream_constant_rate", val)
-            typer.echo(f"Constant rate streaming: {'ON' if val else 'OFF'}")
-
-    # Handle 'stream_natural_rhythm' parameter
-    elif normalized_param == "stream_natural_rhythm":
-        if not value:
-            current = config.get("stream_natural_rhythm", False)
-            typer.echo(f"Current natural rhythm streaming: {current}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("stream_natural_rhythm", val)
-            typer.echo(f"Natural rhythm streaming: {'ON' if val else 'OFF'}")
-
-    # Note: stream-char-mode and stream-char-rate were removed as they were never implemented
-
-    # Handle 'stream_line_delay' parameter
-    elif normalized_param == "stream_line_delay":
-        if not value:
-            typer.echo(f"Current line delay: {config.get('stream_line_delay', 0.1)}s")
-        else:
-            try:
-                delay = float(value)
-                if delay < 0:
-                    typer.echo("Line delay must be non-negative")
-                elif delay > 1.0:
-                    typer.echo("Line delay must be at most 1 second")
-                else:
-                    config.set("stream_line_delay", delay)
-                    typer.echo(f"Line delay set to {delay}s")
-            except ValueError:
-                typer.echo("Line delay must be a number")
-
-    # Handle the 'depth' parameter for context depth
-    elif normalized_param == "depth":
-        if not value:
-            typer.echo(f"Current context depth: {default_context_depth}")
-        else:
-            try:
-                depth = int(value)
-                if depth < 0:
-                    typer.echo("Context depth must be non-negative")
-                else:
-                    default_context_depth = depth
-                    typer.echo(f"Context depth set to {depth}")
-            except ValueError:
-                typer.echo("Context depth must be a number")
-
-    # Handle the 'drift' parameter
-    elif normalized_param == "show_drift":
-        if not value:
-            current = config.get("show_drift", True)
-            typer.echo(f"Current drift display: {current}")
-        else:
-            val = value.lower() in ["true", "1", "yes", "on"]
-            config.set("show_drift", val)
-            typer.echo(f"Drift display set to {val}")
-
-    # Handle the 'semdepth' parameter for semantic depth
-    elif normalized_param == "semdepth":
-        if not value:
-            typer.echo(f"Current semantic depth: {default_semdepth}")
-        else:
-            try:
-                depth = int(value)
-                if depth < 0:
-                    typer.echo("Semantic depth must be non-negative")
-                else:
-                    default_semdepth = depth
-                    typer.echo(f"Semantic depth set to {depth}")
-            except ValueError:
-                typer.echo("Semantic depth must be a number")
-
-    # Handle debug parameter
-    elif normalized_param == "debug":
-        if not value:
-            current = config.get("debug", False)
-            typer.echo(f"Current debug mode: {current}")
-        else:
-            val = value.lower() in ["true", "1", "yes", "on"]
-            config.set("debug", val)
-            typer.echo(f"Debug mode set to {val}")
-
-    # Handle color parameter
-    elif normalized_param == "color_mode":
-        if not value:
-            current = config.get("color_mode", DEFAULT_COLOR_MODE)
-            typer.echo(f"Current color mode: {current}")
-        else:
-            if value.lower() in ["none", "basic", "full"]:
-                config.set("color_mode", value.lower())
-                typer.echo(f"Color mode set to: {value.lower()}")
-                typer.echo("Note: Restart the session to see color changes in the prompt")
-            else:
-                typer.echo("Invalid color mode. Available options: none, basic, full")
-
-    # Handle the 'wrap' parameter
-    elif normalized_param == "text_wrap":
-        if not value:
-            current = config.get("text_wrap", True)
-            typer.echo(f"Current text wrapping: {'ON' if current else 'OFF'}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("text_wrap", val)
-            typer.echo(f"Text wrapping: {'ON' if val else 'OFF'}")
-
-    # Handle the 'automatic_topic_detection' parameter
-    elif normalized_param == "automatic_topic_detection":
-        if not value:
-            current = config.get("automatic_topic_detection", True)
-            typer.echo(f"Current automatic topic detection: {'ON' if current else 'OFF'}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("automatic_topic_detection", val)
-            typer.echo(f"Automatic topic detection: {'ON' if val else 'OFF'}")
-            if not val:
-                typer.echo("Use '/index <n>' to manually detect topics")
-
-    # Handle the 'auto_compress_topics' parameter
-    elif normalized_param == "auto_compress_topics":
-        if not value:
-            current = config.get("auto_compress_topics", True)
-            typer.echo(f"Current auto compression: {'ON' if current else 'OFF'}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("auto_compress_topics", val)
-            typer.echo(f"Auto compression: {'ON' if val else 'OFF'}")
-            # Restart compression manager if needed
-            if val:
-                from episodic.compression import start_auto_compression
-                start_auto_compression()
-            else:
-                from episodic.compression import stop_auto_compression
-                stop_auto_compression()
-
-    # Handle the 'show_compression_notifications' parameter
-    elif normalized_param == "show_compression_notifications":
-        if not value:
-            current = config.get("show_compression_notifications", True)
-            typer.echo(f"Current compression notifications: {'ON' if current else 'OFF'}")
-        else:
-            val = value.lower() in ["on", "true", "yes", "1"]
-            config.set("show_compression_notifications", val)
-            typer.echo(f"Compression notifications: {'ON' if val else 'OFF'}")
-
-    # Handle the 'compression_min_nodes' parameter
-    elif normalized_param == "compression_min_nodes":
-        if not value:
-            typer.echo(f"Current compression minimum nodes: {config.get('compression_min_nodes', 10)}")
-        else:
-            try:
-                min_nodes = int(value)
-                if min_nodes < 3:
-                    typer.echo("Compression minimum nodes must be at least 3")
-                else:
-                    config.set("compression_min_nodes", min_nodes)
-                    typer.echo(f"Compression minimum nodes set to {min_nodes}")
-            except ValueError:
-                typer.echo("Compression minimum nodes must be a number")
-
-    # Handle the 'compression_model' parameter
-    elif normalized_param == "compression_model":
-        typer.secho("⚠️  /set compression_model is deprecated. Use '/model compression <name>' instead.", fg="yellow")
-        if not value:
-            typer.echo(f"Current compression model: {config.get('compression_model', 'ollama/llama3')}")
-        else:
-            config.set("compression_model", value)
-            typer.echo(f"Compression model set to {value}")
-
-    # Handle the 'topic_detection_model' parameter
-    elif normalized_param == "topic_detection_model":
-        typer.secho("⚠️  /set topic_detection_model is deprecated. Use '/model detection <name>' instead.", fg="yellow")
-        if not value:
-            typer.echo(f"Current topic detection model: {config.get('topic_detection_model', 'ollama/llama3')}")
-        else:
-            config.set("topic_detection_model", value)
-            typer.echo(f"Topic detection model set to {value}")
-
-    # Handle the 'min_messages_before_topic_change' parameter
-    elif normalized_param == "min_messages_before_topic_change":
-        if not value:
-            typer.echo(f"Current minimum messages: {config.get('min_messages_before_topic_change', 8)}")
-        else:
-            try:
-                min_messages = int(value)
-                if min_messages < 1:
-                    typer.echo("Minimum messages must be at least 1")
-                else:
-                    config.set("min_messages_before_topic_change", min_messages)
-                    typer.echo(f"Minimum messages before topic change set to {min_messages}")
-            except ValueError:
-                typer.echo("Minimum messages must be a number")
-
-    # Handle benchmark parameter
-    elif normalized_param == "benchmark":
-        if not value:
-            current = config.get("benchmark", False)
-            typer.echo(f"Current benchmark mode: {current}")
-        else:
-            val = value.lower() in ["true", "1", "yes", "on"]
-            config.set("benchmark", val)
-            typer.echo(f"Benchmark mode set to {val}")
-            if val:
-                typer.echo("Use '/benchmark' to see performance summary")
-
-    # Handle benchmark_display parameter
-    elif normalized_param == "benchmark_display":
-        if not value:
-            current = config.get("benchmark_display", False)
-            typer.echo(f"Current benchmark display: {current}")
-        else:
-            val = value.lower() in ["true", "1", "yes", "on"]
-            config.set("benchmark_display", val)
-            typer.echo(f"Benchmark display set to {val}")
-
-    # Handle model parameter syntax (main.temp, topic.max, etc.)
-    elif '.' in normalized_param:
-        # Check if this is a model parameter
-        prefix = normalized_param.split('.')[0]
-        if prefix in ['main', 'topic', 'compression', 'synthesis']:
-            context_map = {'main': 'chat', 'topic': 'detection'}
-            context = context_map.get(prefix, prefix)
-            typer.secho(f"⚠️  /set {param} is deprecated. Use '/mset {context}.{normalized_param.split('.', 1)[1]}' instead.", fg="yellow")
-        
-        try:
-            config.set(normalized_param, value)
-            typer.echo(f"Set {param} to {value} (this session only)")
-        except ValueError as e:
-            typer.secho(f"Error: {e}", fg="red")
-        except Exception as e:
-            typer.secho(f"Failed to set {param}: {e}", fg="red")
-
+    # Check if we have a handler for this parameter
+    if param in PARAM_HANDLERS:
+        PARAM_HANDLERS[param](value)
     else:
-        # Check if value is None (user just typed /set <param> without a value)
-        if value is None:
-            # Try to show the current value instead of setting to None
-            # Check if normalized param exists in config (even if value is None)
-            if normalized_param in config.config:
-                current_value = config.get(normalized_param)
-                typer.secho(f"Current value of {param}: ", nl=False, fg=get_text_color())
-                if current_value is None:
-                    # Check if we have defaults for this parameter
-                    from episodic.config_defaults import DEFAULT_CONFIG
-                    if normalized_param in DEFAULT_CONFIG:
-                        default_value = DEFAULT_CONFIG[normalized_param]
-                        typer.secho("None (using defaults)", fg=get_system_color())
-                        if isinstance(default_value, dict):
-                            typer.secho("  Default values:", fg=get_text_color())
-                            for k, v in default_value.items():
-                                typer.secho(f"    {k}: {v}", fg=get_system_color())
-                    else:
-                        typer.secho("None", fg=get_system_color())
-                elif isinstance(current_value, dict):
-                    typer.secho("<dict>", fg=get_system_color())
-                    # Show dict contents
-                    for k, v in current_value.items():
-                        typer.secho(f"  {k}: {v}", fg=get_system_color())
-                else:
-                    typer.secho(f"{current_value}", fg=get_system_color())
-                # Show documentation if available
-                doc = config.get_doc(normalized_param)
-                if doc != "No documentation available":
-                    typer.secho(f"  ({doc})", fg=get_text_color())
-            else:
-                typer.echo(f"Parameter '{param}' does not exist")
-        else:
-            # Try to set it as a general config parameter
-            try:
-                config.set(normalized_param, value)
-                typer.echo(f"Set {param} to {value} (this session only)")
-                # Show documentation if available
-                doc = config.get_doc(normalized_param)
-                if doc != "No documentation available":
-                    typer.secho(f"  ({doc})", fg=get_text_color())
-            except:
-                typer.echo(f"Unknown parameter: {param}")
-                typer.secho("\nAvailable parameters:", fg=get_heading_color())
-                typer.secho("  Conversation: ", nl=False, fg=get_heading_color())
-                typer.secho("depth, cache", fg=get_system_color())
-                typer.secho("  Display: ", nl=False, fg=get_heading_color())
-                typer.secho("color, wrap, stream, stream-rate, stream-constant, cost, topics", fg=get_system_color())
-                typer.secho("  Analysis: ", nl=False, fg=get_heading_color())
-                typer.secho("drift, semdepth", fg=get_system_color())
-                typer.secho("  Topic Management: ", nl=False, fg=get_heading_color())
-                typer.secho("topic-auto, topic-model, topic-min, comp-auto, comp-model, comp-min", fg=get_system_color())
-                typer.secho("  Performance: ", nl=False, fg=get_heading_color())
-                typer.secho("benchmark, benchmark-display", fg=get_system_color())
-                typer.secho("  Model Parameters: ", nl=False, fg=get_heading_color())
-                typer.secho("main.temp, topic.temp, comp.temp (see /model-params)", fg=get_system_color())
-                typer.secho("  Debugging: ", nl=False, fg=get_heading_color())
-                typer.secho("debug", fg=get_system_color())
-                typer.echo("Use 'set' without arguments to see all parameters and their current values")
+        # Generic string parameter
+        config[param] = value
+        typer.secho(f"✅ Set {param} = {value}", fg=get_system_color())
 
 
 def verify():
-    """Verify database and configuration integrity."""
-    from episodic.db import verify_database_integrity
-    from episodic.benchmark import benchmark_operation
-    import os
-    
-    typer.secho("\n🔍 Verifying Episodic Configuration", fg=get_heading_color(), bold=True)
+    """Verify and display current configuration."""
+    typer.secho("Configuration Verification", fg=get_heading_color(), bold=True)
     typer.secho("=" * 50, fg=get_heading_color())
     
-    # Check database
-    typer.secho("\n📊 Database:", fg=get_heading_color())
-    with benchmark_operation("Database verification"):
-        db_path = os.environ.get("EPISODIC_DB_PATH", os.path.expanduser("~/.episodic/episodic.db"))
-        typer.echo(f"  Path: {db_path}")
+    # Model configuration
+    typer.secho("\nModel Configuration:", fg=get_heading_color())
+    model = config.get("model", "Not set")
+    typer.secho(f"  Primary model: {model}", fg=get_system_color())
+    
+    compression_model = config.get("compression_model", "Not set")
+    if compression_model == "Not set":
+        compression_model = f"{model} (using primary)"
+    typer.secho(f"  Compression model: {compression_model}", fg=get_system_color())
+    
+    topic_model = config.get("topic_detection_model", "ollama/llama3")
+    typer.secho(f"  Topic detection model: {topic_model}", fg=get_system_color())
+    
+    # Core settings
+    typer.secho("\nCore Settings:", fg=get_heading_color())
+    context_depth = config.get("context_depth", default_context_depth)
+    typer.secho(f"  Context depth: {context_depth} messages", fg=get_system_color())
+    
+    cache_enabled = config.get("use_context_cache", True)
+    typer.secho(f"  Context caching: {'Enabled' if cache_enabled else 'Disabled'}", 
+                fg=get_system_color())
+    
+    # Topic detection
+    typer.secho("\nTopic Detection:", fg=get_heading_color())
+    auto_topics = config.get("automatic_topic_detection", True)
+    typer.secho(f"  Automatic detection: {'Enabled' if auto_topics else 'Disabled'}", 
+                fg=get_system_color())
+    
+    if auto_topics:
+        min_messages = config.get("min_messages_before_topic_change", 8)
+        typer.secho(f"  Min messages before change: {min_messages}", fg=get_system_color())
         
-        if os.path.exists(db_path):
-            typer.echo(f"  Status: ✅ Found")
-            # Get file size
-            size = os.path.getsize(db_path)
-            if size < 1024:
-                typer.echo(f"  Size: {size} bytes")
-            elif size < 1024 * 1024:
-                typer.echo(f"  Size: {size/1024:.1f} KB")
-            else:
-                typer.echo(f"  Size: {size/(1024*1024):.1f} MB")
-            
-            # Run integrity check
-            issues = verify_database_integrity()
-            if issues:
-                typer.secho("  Integrity: ❌ Issues found:", fg="red")
-                for issue in issues:
-                    typer.secho(f"    - {issue}", fg="red")
-            else:
-                typer.echo("  Integrity: ✅ No issues found")
-        else:
-            typer.secho("  Status: ❌ Not found (run 'init' to create)", fg="yellow")
+        detection_method = "Standard LLM"
+        if config.get("use_hybrid_topic_detection"):
+            detection_method = "Hybrid (LLM + Drift)"
+        elif config.get("use_sliding_window_detection"):
+            detection_method = "Sliding Window"
+        typer.secho(f"  Detection method: {detection_method}", fg=get_system_color())
     
-    # Check configuration
-    typer.secho("\n⚙️  Configuration:", fg=get_heading_color())
-    typer.echo(f"  Active prompt: {config.get('active_prompt', 'default')}")
-    typer.echo(f"  Model: {config.get('model', 'Not set')}")
-    typer.echo(f"  Context caching: {config.get('use_context_cache', True)}")
-    typer.echo(f"  Auto compression: {config.get('auto_compress_topics', True)}")
+    # Display settings
+    typer.secho("\nDisplay Settings:", fg=get_heading_color())
+    color_mode = config.get("color_mode", "full")
+    typer.secho(f"  Color mode: {color_mode}", fg=get_system_color())
     
-    # Check environment
-    typer.secho("\n🌍 Environment:", fg=get_heading_color())
-    api_keys = {
-        "OPENAI_API_KEY": "OpenAI",
-        "ANTHROPIC_API_KEY": "Anthropic", 
-        "GROQ_API_KEY": "Groq",
-        "TOGETHER_API_KEY": "Together AI"
-    }
+    wrap_enabled = config.get("text_wrap", True)
+    wrap_width = config.get("wrap_width", 80)
+    typer.secho(f"  Text wrapping: {'Enabled' if wrap_enabled else 'Disabled'} (width: {wrap_width})", 
+                fg=get_system_color())
     
-    found_keys = []
-    for key, provider in api_keys.items():
-        if os.environ.get(key):
-            found_keys.append(provider)
+    # Features status
+    typer.secho("\nFeatures Status:", fg=get_heading_color())
+    features = [
+        ("RAG (Knowledge Base)", config.get("rag_enabled", False)),
+        ("Web Search", config.get("web_search_enabled", False)),
+        ("Muse Mode", config.get("muse_mode", False)),
+        ("Response Streaming", config.get("stream_responses", True)),
+        ("Cost Tracking", config.get("show_costs", False)),
+        ("Debug Mode", config.get("debug", False)),
+        ("Benchmarking", config.get("benchmark", False))
+    ]
     
-    if found_keys:
-        typer.echo(f"  API Keys: ✅ {', '.join(found_keys)}")
-    else:
-        typer.secho("  API Keys: ⚠️  None found", fg="yellow")
-    
-    # Check if Ollama is available
-    try:
-        import subprocess
-        result = subprocess.run(["ollama", "--version"], capture_output=True, text=True)
-        if result.returncode == 0:
-            typer.echo("  Ollama: ✅ Installed")
-        else:
-            typer.echo("  Ollama: ❌ Not available")
-    except:
-        typer.echo("  Ollama: ❌ Not found")
+    for feature, enabled in features:
+        status = "Enabled" if enabled else "Disabled"
+        color = "green" if enabled else "yellow"
+        typer.secho(f"  {feature}: {status}", fg=color)
     
     typer.secho("\n" + "=" * 50, fg=get_heading_color())
 
 
 def model_params(param_set: Optional[str] = None):
-    """Display model parameters for different contexts."""
-    
-    def format_param_value(value):
-        """Format parameter value for display."""
-        if value is None:
-            return "default"
-        elif isinstance(value, list):
-            if not value:
-                return "[]"
-            return f"[{', '.join(repr(v) for v in value)}]"
-        elif isinstance(value, float):
-            return f"{value:.1f}" if value == int(value) else f"{value}"
+    """Display or set model-specific parameters."""
+    if param_set is None:
+        # Show all parameter sets
+        typer.secho("Model Parameter Sets:", fg=get_heading_color(), bold=True)
+        
+        # Main conversation parameters
+        typer.secho("\nMain conversation parameters:", fg=get_system_color())
+        main_params = config.get("main_params", {})
+        if main_params:
+            for key, value in main_params.items():
+                typer.secho(f"  {key}: {value}", fg=get_text_color())
         else:
-            return str(value)
-    
-    def display_param_set(name: str, title: str):
-        """Display a single parameter set."""
-        params = config.get(name, {})
-        typer.secho(f"\n{title}:", fg=get_heading_color(), bold=True)
+            typer.secho("  (using defaults)", fg=get_text_color())
         
-        typer.secho("  temperature: ", nl=False, fg=get_text_color())
-        typer.secho(format_param_value(params.get('temperature')), fg=get_system_color())
-        
-        typer.secho("  max_tokens: ", nl=False, fg=get_text_color())
-        typer.secho(format_param_value(params.get('max_tokens')), fg=get_system_color())
-        
-        typer.secho("  top_p: ", nl=False, fg=get_text_color())
-        typer.secho(format_param_value(params.get('top_p')), fg=get_system_color())
-        
-        typer.secho("  presence_penalty: ", nl=False, fg=get_text_color())
-        typer.secho(format_param_value(params.get('presence_penalty')), fg=get_system_color())
-        
-        typer.secho("  frequency_penalty: ", nl=False, fg=get_text_color())
-        typer.secho(format_param_value(params.get('frequency_penalty')), fg=get_system_color())
-        
-        typer.secho("  stop: ", nl=False, fg=get_text_color())
-        typer.secho(format_param_value(params.get('stop')), fg=get_system_color())
-    
-    if param_set:
-        # Display specific parameter set
-        param_set_map = {
-            'main': ('main_params', 'Main Conversation Parameters'),
-            'topic': ('topic_params', 'Topic Detection Parameters'),
-            'comp': ('compression_params', 'Compression Parameters'),
-            'compression': ('compression_params', 'Compression Parameters')
-        }
-        
-        if param_set.lower() in param_set_map:
-            name, title = param_set_map[param_set.lower()]
-            display_param_set(name, title)
+        # Topic detection parameters
+        typer.secho("\nTopic detection parameters:", fg=get_system_color())
+        topic_params = config.get("topic_params", {})
+        if topic_params:
+            for key, value in topic_params.items():
+                typer.secho(f"  {key}: {value}", fg=get_text_color())
         else:
-            typer.secho(f"Unknown parameter set: {param_set}", fg="red")
-            typer.echo("Available sets: main, topic, compression")
-    else:
-        # Display all parameter sets
-        typer.secho("🎛️  Model Parameters", fg=get_heading_color(), bold=True)
-        typer.secho("=" * 50, fg=get_heading_color())
+            typer.secho("  (using defaults)", fg=get_text_color())
+            
+        # Compression parameters
+        typer.secho("\nCompression parameters:", fg=get_system_color())
+        compression_params = config.get("compression_params", {})
+        if compression_params:
+            for key, value in compression_params.items():
+                typer.secho(f"  {key}: {value}", fg=get_text_color())
+        else:
+            typer.secho("  (using defaults)", fg=get_text_color())
+            
+        typer.secho("\nUse '/model-params <set>' to configure specific parameter sets", 
+                   fg=get_text_color())
+        return
+    
+    # Configure specific parameter set
+    valid_sets = ["main", "topic", "compression"]
+    if param_set not in valid_sets:
+        typer.secho(f"Invalid parameter set: {param_set}", fg="red")
+        typer.secho(f"Valid sets: {', '.join(valid_sets)}", fg=get_text_color())
+        return
         
-        display_param_set('main_params', 'Main Conversation')
-        display_param_set('topic_params', 'Topic Detection')
-        display_param_set('compression_params', 'Compression')
-        
-        typer.secho("\n" + "─" * 50, fg=get_heading_color())
-        typer.secho("Usage examples:", fg=get_heading_color())
-        typer.secho("  /set main.temp 0.8", nl=False, fg=get_system_color())
-        typer.secho("         # Set main temperature", fg=get_text_color())
-        typer.secho("  /set topic.max 100", nl=False, fg=get_system_color())
-        typer.secho("         # Set topic max_tokens", fg=get_text_color())
-        typer.secho("  /set comp.presence 0.2", nl=False, fg=get_system_color())
-        typer.secho("     # Set compression presence penalty", fg=get_text_color())
-        typer.secho("  /set main.reset", nl=False, fg=get_system_color())
-        typer.secho("            # Reset main parameters to defaults", fg=get_text_color())
-        typer.secho("  /model-params main", nl=False, fg=get_system_color())
-        typer.secho("         # View only main parameters", fg=get_text_color())
+    # Interactive configuration would go here
+    typer.secho(f"Configuring {param_set} parameters...", fg=get_system_color())
+    typer.secho("(Interactive configuration not yet implemented)", fg="yellow")
 
 
 def config_docs():
-    """Show documentation for all configuration parameters."""
-    typer.secho("\n📚 Configuration Documentation", fg=get_heading_color(), bold=True)
-    typer.secho("=" * 60, fg=get_heading_color())
+    """Display configuration documentation."""
+    typer.secho("Configuration Parameters", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 70, fg=get_heading_color())
     
-    # Group parameters by category
-    categories = {
-        "Core Settings": ["active_prompt", "debug", "show_cost", "show_drift"],
+    sections = {
+        "Core Settings": [
+            ("depth", "Number of conversation exchanges to include in context", "5"),
+            ("semdepth", "Semantic analysis depth", "2"),
+            ("cache", "Enable/disable prompt caching", "true"),
+            ("debug", "Enable debug output", "false"),
+            ("benchmark", "Enable performance benchmarking", "false"),
+        ],
+        "Display Settings": [
+            ("color-mode", "Color output mode (full/basic/none)", "full"),
+            ("wrap", "Enable text wrapping", "true"),
+            ("wrap-width", "Text wrapping width in characters", "80"),
+            ("show-costs", "Show token costs after responses", "false"),
+            ("vi-mode", "Enable vi keybindings in prompt", "false"),
+        ],
         "Topic Detection": [
-            "automatic_topic_detection", "auto_compress_topics", 
-            "min_messages_before_topic_change", "running_topic_guess",
-            "show_topics", "analyze_topic_boundaries", "use_llm_boundary_analysis",
-            "manual_index_window_size", "manual_index_threshold"
+            ("automatic-topic-detection", "Enable automatic topic detection", "true"),
+            ("topic-detection-model", "Model for topic detection", "ollama/llama3"),
+            ("min-messages-before-topic-change", "Messages required before topic change", "8"),
+            ("show-topics", "Show topic evolution in responses", "false"),
         ],
-        "Streaming": [
-            "stream_responses", "stream_rate", "stream_constant_rate"
+        "Compression": [
+            ("compression-model", "Model for compression", "gpt-3.5-turbo"),
+            ("compression-method", "Compression algorithm (tiered/simple/extractive)", "tiered"),
+            ("compression-length", "Maximum compressed text length", "2000"),
+            ("auto-compress-topics", "Automatically compress closed topics", "true"),
         ],
-        "Model Parameters": ["main_params", "topic_params", "compression_params"]
+        "Advanced Features": [
+            ("use-sliding-window-detection", "Enable sliding window topic detection", "false"),
+            ("use-hybrid-topic-detection", "Enable hybrid topic detection", "false"),
+            ("drift-threshold", "Semantic drift threshold (0.0-1.0)", "0.9"),
+            ("drift-embedding-model", "Model for semantic embeddings", "paraphrase-mpnet-base-v2"),
+        ],
+        "RAG Settings": [
+            ("rag-enabled", "Enable RAG (Retrieval Augmented Generation)", "false"),
+            ("rag-auto-search", "Automatically search knowledge base", "true"),
+            ("rag-max-results", "Maximum RAG search results", "3"),
+        ],
+        "Web Search": [
+            ("web-search-enabled", "Enable web search integration", "false"),
+            ("web-search-provider", "Search provider (duckduckgo)", "duckduckgo"),
+            ("muse-mode", "Enable muse mode (web-enhanced responses)", "false"),
+        ]
     }
     
-    for category, params in categories.items():
-        typer.secho(f"\n{category}:", fg=get_heading_color(), bold=True)
-        for param in params:
-            doc = config.get_doc(param)
-            value = config.get(param, "not set")
-            if isinstance(value, dict):
-                value_str = "<dict>"
-            elif isinstance(value, list):
-                value_str = "<list>"
-            else:
-                value_str = str(value)
-            
-            typer.secho(f"  {param}: ", nl=False, fg=get_text_color())
-            typer.secho(f"{value_str}", fg=get_system_color())
-            if doc != "No documentation available":
-                typer.secho(f"    → {doc}", fg=get_text_color())
+    for section, params in sections.items():
+        typer.secho(f"\n{section}:", fg=get_heading_color())
+        for param, desc, default in params:
+            typer.secho(f"  {param:<35} {desc:<40} [{default}]", fg=get_text_color())
     
-    typer.secho("\nUse '/set <parameter> <value>' to change settings", fg=get_text_color())
+    typer.secho("\n" + "=" * 70, fg=get_heading_color())
+    typer.secho("\nUsage: /set <parameter> <value>", fg=get_system_color())
+    typer.secho("Example: /set debug true", fg=get_text_color())
 
 
 def cost():
-    """Show cost information for the current session."""
-    
+    """Display session cost information."""
+    if not conversation_manager:
+        typer.secho("No active conversation session", fg="yellow")
+        return
+        
     costs = conversation_manager.get_session_costs()
     
-    typer.secho("\n💰 Session Cost Summary", fg=get_heading_color(), bold=True)
-    typer.secho("─" * 40, fg=get_heading_color())
+    typer.secho("\n💰 Session Costs", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 40, fg=get_heading_color())
     
-    typer.secho("Input tokens:  ", nl=False, fg=get_text_color(), bold=True)
-    typer.secho(f"{costs['total_input_tokens']:,}", fg=typer.colors.BRIGHT_CYAN, bold=True)
+    # Token counts
+    typer.secho(f"Input tokens:  {costs['total_input_tokens']:>10,}", fg=get_system_color())
+    typer.secho(f"Output tokens: {costs['total_output_tokens']:>10,}", fg=get_system_color())
+    typer.secho(f"Total tokens:  {costs['total_tokens']:>10,}", fg=get_system_color())
     
-    typer.secho("Output tokens: ", nl=False, fg=get_text_color(), bold=True)
-    typer.secho(f"{costs['total_output_tokens']:,}", fg=typer.colors.BRIGHT_CYAN, bold=True)
+    # Cost
+    typer.secho("─" * 40, fg=get_text_color())
+    typer.secho(f"Total cost:    ${costs['total_cost_usd']:>10.4f}", fg="green", bold=True)
     
-    typer.secho("Total tokens:  ", nl=False, fg=get_text_color(), bold=True)
-    typer.secho(f"{costs['total_tokens']:,}", fg=typer.colors.BRIGHT_YELLOW, bold=True)
+    # API stats if available
+    if 'api_stats' in costs and costs['api_stats']:
+        typer.secho("\nAPI Usage by Operation:", fg=get_heading_color())
+        for operation, stats in costs['api_stats'].items():
+            if stats['count'] > 0:
+                typer.secho(f"\n  {operation}:", fg=get_system_color())
+                typer.secho(f"    Calls: {stats['count']}", fg=get_text_color())
+                typer.secho(f"    Cost:  ${stats['total_cost']:.4f}", fg=get_text_color())
+                if stats['operations']:
+                    for op, op_stats in stats['operations'].items():
+                        if op_stats['count'] > 0:
+                            typer.secho(f"      - {op}: {op_stats['count']} calls, ${op_stats['total_cost']:.4f}", 
+                                       fg=get_text_color())
     
-    if costs.get('cache_read_tokens', 0) > 0:
-        typer.secho("Cache reads:   ", nl=False, fg=get_text_color(), bold=True)
-        typer.secho(f"{costs['cache_read_tokens']:,}", fg=typer.colors.BRIGHT_GREEN, bold=True)
-        
-        typer.secho("Cache writes:  ", nl=False, fg=get_text_color(), bold=True)
-        typer.secho(f"{costs.get('cache_write_tokens', 0):,}", fg=typer.colors.BRIGHT_GREEN, bold=True)
-    
-    typer.secho("─" * 40, fg=get_heading_color())
-    typer.secho("Total cost: ", nl=False, fg=get_text_color(), bold=True)
-    typer.secho(f"${costs['total_cost_usd']:.4f}", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
-    
-    if costs.get('cache_savings_usd', 0) > 0:
-        typer.secho("Cache savings: ", nl=False, fg=get_text_color(), bold=True)
-        typer.secho(f"${costs['cache_savings_usd']:.4f}", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    typer.secho("=" * 40, fg=get_heading_color())

@@ -45,9 +45,20 @@ Last Updated: 2025-01-09 (continued)
 
 ## Current Focus
 - **URGENT**: Enforce 500 line cap per file (absolute max 600) - refactor/modularize longer files
+  - **In Progress**: Refactoring conversation.py (1,872 lines → multiple modules)
 - Next priority: Add previous history to /muse mode for follow-up questions (see TODO.md)
 - Fix compression command structure (confusing /compression unified command)
 - Add support for other web search providers beyond DuckDuckGo
+
+### Conversation.py Refactoring Plan
+- **Current**: 1,872 lines (handle_chat_message alone is 1,395 lines!)
+- **Target modules**:
+  1. `topic_management.py` (~400 lines) - Topic detection, creation, updating
+  2. `response_streaming.py` (~300 lines) - Streaming implementations
+  3. `text_formatting.py` (~100 lines) - Text wrapping utilities
+  4. `context_builder.py` (~200 lines) - Context prep, RAG, web search
+  5. `web_synthesis.py` (extend existing) - Muse mode handling
+  6. `conversation.py` (~350 lines) - Core flow only
 
 ## User Preferences
 - 80x24 terminal, needs proper word wrapping

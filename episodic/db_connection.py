@@ -15,8 +15,8 @@ from .configuration import DATABASE_FILENAME
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Default database path
-DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", DATABASE_FILENAME))
+# Default database path - use user's home directory
+DEFAULT_DB_PATH = os.path.expanduser(os.path.join("~/.episodic", DATABASE_FILENAME))
 # Alias for backward compatibility with test scripts
 DB_PATH = DEFAULT_DB_PATH
 
@@ -26,7 +26,15 @@ _local = threading.local()
 
 def get_db_path():
     """Get the database path from the environment variable or use the default."""
-    return os.environ.get("EPISODIC_DB_PATH", DEFAULT_DB_PATH)
+    db_path = os.environ.get("EPISODIC_DB_PATH", DEFAULT_DB_PATH)
+    
+    # Ensure the directory exists
+    db_dir = os.path.dirname(db_path)
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        logger.info(f"Created database directory: {db_dir}")
+    
+    return db_path
 
 
 @contextlib.contextmanager

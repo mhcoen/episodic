@@ -280,10 +280,19 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 Built with:
 - [Typer](https://typer.tiangolo.com/) - CLI framework
 - [Rich](https://github.com/Textualize/rich) - Beautiful terminal formatting and colors
+- [Click](https://click.palletsprojects.com/) - Command line interface utilities
+- [Prompt Toolkit](https://python-prompt-toolkit.readthedocs.io/) - Interactive command line interfaces
 - [NetworkX](https://networkx.org/) - Graph data structures for conversation DAG
 - [LiteLLM](https://github.com/BerriAI/litellm) - Unified LLM interface
+- [OpenAI Python](https://github.com/openai/openai-python) - OpenAI API client
 - [ChromaDB](https://www.trychroma.com/) - Vector database
 - [Sentence Transformers](https://www.sbert.net/) - Text embeddings
+- [Plotly](https://plotly.com/python/) - Interactive visualization
+- [Flask](https://flask.palletsprojects.com/) - Web framework for visualization server
+- [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) - Web scraping
+- [aiohttp](https://docs.aiohttp.org/) - Asynchronous HTTP client
+- [PyWebView](https://pywebview.flowrl.com/) - Native GUI for web content
+- [NumPy](https://numpy.org/) - Numerical computing
 
 ## 📸 Screenshots
 

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**IMPORTANT**: Always read `PROJECT_MEMORY.md` at the start of each session for current context, recent decisions, and user preferences. Also check `TODO.md` for project todos and upcoming work.
+**IMPORTANT**: Always read `PROJECT_MEMORY.md` and `private/PROJECT_MEMORY.md` at the start of each session for current context, recent decisions, and user preferences. Also check `TODO.md` for project todos and upcoming work.
 
 ## Project Overview
 
@@ -23,7 +23,7 @@ The codebase underwent significant cleanup and reorganization through 8 pull req
 
 ## Current Architecture
 
-### Project Structure (Updated 2025-01-10)
+### Project Structure (Updated 2025-07-10)
 ```
 episodic/
 ├── __main__.py              # Entry point
@@ -138,7 +138,7 @@ tests/
 
 ## Current Session Context
 
-### Working Session (2025-01-10)
+### Working Session (2025-07-10)
 - **Major conversation.py refactoring completed** (1,872 lines → 545 lines)
   - Split into specialized modules: topic_management.py, response_streaming.py, text_formatter.py, context_builder.py
   - Successfully enforced 500-600 line limit across all active files
@@ -314,7 +314,7 @@ This means if you change the detection model, it affects both detection accuracy
 - `get_recent_topics()` - Retrieves topic list
 - `migrate_topics_nullable_end()` - Migration to allow NULL end_node_id
 
-#### Important Code Locations (Updated 2025-01-10)
+#### Important Code Locations (Updated 2025-07-10)
 - **Conversation flow**: `episodic/conversation.py` - Core conversation management (545 lines)
 - **Topic management**: `episodic/topic_management.py` - Topic detection and handling (508 lines)
 - **Response streaming**: `episodic/response_streaming.py` - Streaming implementations (410 lines)

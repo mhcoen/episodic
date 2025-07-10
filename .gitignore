@@ -24,7 +24,7 @@ defunct/
 # Usage tracking and uploads
 usage_tracking*.json
 uploads/
-p/
+private/
 
 # Working directory for temporary notes and documentation
 working/

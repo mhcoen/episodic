@@ -23,24 +23,60 @@ The codebase underwent significant cleanup and reorganization through 8 pull req
 
 ## Current Architecture
 
-### Project Structure
+### Project Structure (Updated 2025-01-10)
 ```
 episodic/
 ├── __main__.py              # Entry point
-├── cli.py                   # Main CLI interface
+├── cli.py                   # Main CLI interface (delegated functionality)
+├── cli_main.py              # Main loop and entry point
+├── cli_command_router.py    # Command routing logic
+├── cli_display.py           # Display and UI functions
 ├── cli_helpers.py           # CLI utility functions
 ├── cli_registry.py          # Enhanced command handling with registry
+├── cli_session.py           # Session management
 ├── config.py                # Configuration management
 ├── config_defaults.py       # Centralized default values
-├── conversation.py          # ConversationManager for chat flow
+├── configuration.py         # Configuration constants
+├── conversation.py          # Core conversation flow (545 lines)
+├── context_builder.py       # Context preparation with RAG/web (226 lines)
 ├── core.py                  # Core data structures (Node, ConversationDAG)
-├── db.py                    # Database operations
+├── db.py                    # Database interface (imports from specialized modules)
+├── db_*.py                  # Specialized database modules:
+│   ├── db_connection.py     # Connection management (now defaults to ~/.episodic/)
+│   ├── db_nodes.py          # Node operations
+│   ├── db_topics.py         # Topic operations
+│   ├── db_scoring.py        # Topic detection scoring
+│   ├── db_compression.py    # Compression operations
+│   ├── db_ids.py            # ID generation
+│   ├── db_migrations.py     # Migration functions
+│   └── db_rag.py            # RAG database operations
+├── debug_utils.py           # Consolidated debug utilities
 ├── llm.py                   # LLM integration via LiteLLM
 ├── llm_manager.py           # Centralized API call tracking
+├── rag.py                   # RAG system with ChromaDB (519 lines)
+├── rag_utils.py             # RAG utilities and decorators
+├── rag_chunker.py           # Document chunking for RAG
+├── rag_document_manager.py  # Document management for RAG
+├── response_streaming.py    # Streaming implementations (410 lines)
+├── text_formatter.py        # Text formatting and wrapping (385 lines)
+├── text_formatting.py       # Additional text utilities
+├── topic_management.py      # Topic detection and management (508 lines)
+├── topic_boundary_analyzer.py # Topic boundary analysis
+├── unified_streaming.py     # Unified streaming logic (411 lines)
+├── unified_streaming_format.py # Streaming format utilities
+├── web_search.py            # Web search functionality (536 lines)
+├── web_synthesis.py         # Web synthesis for muse mode
+├── web_extract.py           # Web content extraction
 ├── commands/                # All CLI commands
 │   ├── registry.py          # Command registry system
 │   ├── unified_topics.py    # Unified topic management
 │   ├── unified_compression.py # Unified compression management
+│   ├── unified_model.py     # Model management commands
+│   ├── mset.py              # Model parameter setting
+│   ├── help.py              # Help system (515 lines)
+│   ├── settings.py          # Settings commands
+│   ├── rag.py               # RAG commands
+│   ├── web_search.py        # Web search commands (524 lines)
 │   └── ...                  # Other command modules
 ├── topics/                  # Topic detection module
 │   ├── __init__.py          # Public API
@@ -55,6 +91,8 @@ episodic/
 │   └── m00X_*.py            # Individual migrations
 └── prompts/                 # System prompts
 ```
+
+**Note**: All Python files are now under 600 lines (target: 500 lines) after major refactoring
 
 ### Recent Changes From Refactoring
 
@@ -101,20 +139,26 @@ tests/
 ## Current Session Context
 
 ### Working Session (2025-01-10)
-- Major code cleanup and refactoring
+- **Major conversation.py refactoring completed** (1,872 lines → 545 lines)
+  - Split into specialized modules: topic_management.py, response_streaming.py, text_formatter.py, context_builder.py
+  - Successfully enforced 500-600 line limit across all active files
+  - Fixed compression command structure (removed confusing unified command)
+- **Comprehensive code cleanup**
   - Removed 56+ unused imports across 41 files using autoflake
   - Deleted deprecated files: `conversation_original.py`, `settings_old.py`
   - Removed deprecated no-op `close_connection()` function
   - Fixed empty exception blocks with proper error logging
-  - Created `debug_utils.py` to consolidate duplicate `debug_print()` implementations
-  - All Python files now compile without syntax errors
-- Completed conversation.py refactoring (1,872 lines → 545 lines)
-  - Successfully enforced 500-600 line limit across all active files
-  - Fixed compression command structure issues
+  - Created `debug_utils.py` to consolidate 3 duplicate `debug_print()` implementations
   - Created CLEANUP_SUMMARY.md documenting all changes
-- Remaining tasks:
-  - Add previous query history to muse mode
-  - Add support for additional web search providers
+- **Database path fix**
+  - Changed default database location from project directory to `~/.episodic/episodic.db`
+  - Automatically creates ~/.episodic directory if needed
+  - Prevents mixing user data with code
+- **Updated memory files**
+  - Updated PROJECT_MEMORY.md and CLAUDE.md to reflect all changes
+- **Remaining tasks**:
+  - Add previous query history to muse mode for context-aware follow-ups
+  - Add support for additional web search providers beyond DuckDuckGo
 
 ### Working Session (2025-01-07 continued)
 - Fixed unified streaming output formatting issues
@@ -270,17 +314,20 @@ This means if you change the detection model, it affects both detection accuracy
 - `get_recent_topics()` - Retrieves topic list
 - `migrate_topics_nullable_end()` - Migration to allow NULL end_node_id
 
-#### Important Code Locations (Updated)
-- Topic detection: `episodic/topics/detector.py` - Main TopicManager class
-- Topic boundaries: `episodic/topics/boundaries.py` - Boundary analysis
-- Sliding windows: `episodic/topics/windows.py` - Window-based detection
-- Command registry: `episodic/commands/registry.py` - Command management
-- Unified commands: `episodic/commands/unified_*.py` - New command structure
-- Configuration: `episodic/config_defaults.py` - All default values
-- Migrations: `episodic/migrations/` - Database schema changes
-- Test fixtures: `tests/fixtures/` - Reusable test data
-- LLM Manager: `episodic/llm_manager.py` - API call tracking
-- Command handling: `episodic/cli_registry.py` - Enhanced CLI with registry
+#### Important Code Locations (Updated 2025-01-10)
+- **Conversation flow**: `episodic/conversation.py` - Core conversation management (545 lines)
+- **Topic management**: `episodic/topic_management.py` - Topic detection and handling (508 lines)
+- **Response streaming**: `episodic/response_streaming.py` - Streaming implementations (410 lines)
+- **Context building**: `episodic/context_builder.py` - Context preparation with RAG/web (226 lines)
+- **Text formatting**: `episodic/text_formatter.py` - Text wrapping and formatting (385 lines)
+- **Topic detection**: `episodic/topics/detector.py` - Main TopicManager class
+- **Database operations**: `episodic/db_*.py` - Modularized database functions
+- **Debug utilities**: `episodic/debug_utils.py` - Consolidated debug functions
+- **Command registry**: `episodic/commands/registry.py` - Command management
+- **Unified commands**: `episodic/commands/unified_*.py` - New command structure
+- **Configuration**: `episodic/config_defaults.py` - All default values
+- **LLM Manager**: `episodic/llm_manager.py` - API call tracking
+- **Command routing**: `episodic/cli_command_router.py` - Command routing logic
 
 ### Configuration Options
 - `topic_detection_model` - Default: ollama/llama3
@@ -440,6 +487,7 @@ pytest tests/unit -m "not slow"
 - **Real-time visualization**: HTTP polling for live graph updates
 
 #### Database Schema
+- **Default location**: `~/.episodic/episodic.db` (changed from project directory)
 - **nodes**: Conversation nodes with id, short_id, message, response, etc.
 - **topics**: Topic tracking with nullable end_node_id for ongoing topics
 - **topic_detection_scores**: Detection scores and metadata (renamed from manual_index_scores)
@@ -471,22 +519,30 @@ pytest tests/unit -m "not slow"
 ### Development Guidelines
 
 #### Code Organization
-- Keep imports organized and remove unused ones (use `scripts/cleanup/remove_unused_imports.py`)
+- **File size limit**: Maximum 500 lines per file (absolute cap at 600)
+- Keep imports organized and remove unused ones (use `scripts/cleanup_unused_imports.py`)
 - Follow the module structure established in the refactoring
 - Use the command registry for new commands
 - Add new defaults to `config_defaults.py`, not hardcoded
+- Use `debug_utils.py` for debug output instead of creating new debug functions
 
 #### Adding New Features
 1. For new commands: Add to appropriate unified command or create new one
 2. For topic detection: Add to `episodic/topics/` module
 3. For database changes: Create a migration in `episodic/migrations/`
 4. For tests: Add to appropriate directory in `tests/`
+5. Check file size after additions - refactor if approaching 500 lines
 
 #### Deprecation Process
 1. Mark old code as deprecated in command registry
 2. Add to `DEPRECATED.md` with removal timeline
 3. Show warning when deprecated feature is used
 4. Remove in specified future version
+
+#### Database Location
+- Default: `~/.episodic/episodic.db` (NOT in project directory)
+- Override with `EPISODIC_DB_PATH` environment variable
+- Directory is created automatically if it doesn't exist
 
 ### Future Development Plans
 

@@ -16,6 +16,7 @@ from episodic.commands.utility import help as show_commands_help
 import os
 import re
 import sys
+import uuid
 import warnings
 from contextlib import contextmanager, redirect_stdout, redirect_stderr
 from io import StringIO
@@ -24,9 +25,15 @@ from io import StringIO
 @contextmanager
 def suppress_all_output():
     """Context manager to suppress all stdout and stderr output."""
-    with redirect_stdout(StringIO()):
-        with redirect_stderr(StringIO()):
-            yield
+    # Try to suppress output, but if it fails (e.g., no file descriptor), 
+    # just continue without suppression
+    try:
+        with redirect_stdout(StringIO()):
+            with redirect_stderr(StringIO()):
+                yield
+    except Exception:
+        # If redirect fails, just yield without suppression
+        yield
 
 
 
@@ -202,6 +209,11 @@ def help(advanced: bool = False, query: Optional[str] = None):
         /help topic detection       # Get help on topic detection
         /help configuration         # Find configuration options
     """
+    # Handle special case of "/help all" to show all commands
+    if query and query.lower() == "all":
+        show_commands_help(advanced=True)
+        return
+        
     # If no query, show command list
     if not query and not advanced:
         # First show regular commands
@@ -232,6 +244,12 @@ def help(advanced: bool = False, query: Optional[str] = None):
             typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())
         else:
             raise
+    except Exception as e:
+        # Catch all other errors and provide fallback
+        typer.secho(f"\n⚠️  Error with documentation search: {str(e)}", fg="yellow")
+        typer.secho("Showing all commands instead:", fg=get_text_color())
+        typer.echo()
+        show_commands_help(advanced=True)
 
 
 def help_command(query: str):
@@ -315,8 +333,15 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
         typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
         
         # Enhance the prompt with RAG context
-        with suppress_all_output():
-            enhanced_prompt, sources_used = rag_system.enhance_with_context(help_prompt)
+        try:
+            with suppress_all_output():
+                enhanced_prompt = rag_system.enhance_with_context(help_prompt)
+        except Exception:
+            # If suppression fails, just run without it
+            enhanced_prompt = rag_system.enhance_with_context(help_prompt)
+        
+        # sources_used is not returned by enhance_with_context
+        sources_used = None
         
         if sources_used and config.get('debug', False):
             typer.secho(f"📚 Found relevant documentation from: {', '.join(sources_used)}", 

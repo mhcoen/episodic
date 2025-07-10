@@ -228,9 +228,14 @@ def _handle_set(args: List[str]):
     """Handle /set command."""
     from episodic.commands import set
     
-    if len(args) < 2:
-        typer.secho("Usage: /set <parameter> <value>", fg="red")
+    if not args:
+        # No arguments - show current settings
+        set(None, None)
+    elif len(args) == 1:
+        # Only parameter provided - show current value or handle 'all'
+        set(args[0], None)
     else:
+        # Parameter and value provided
         param = args[0]
         value = " ".join(args[1:])
         set(param, value)
@@ -458,7 +463,9 @@ def _handle_help(args: List[str]):
     from episodic.commands import help
     
     if args:
-        help(topic=args[0])
+        # Pass the argument as query
+        query = " ".join(args)
+        help(query=query)
     else:
         help()
 

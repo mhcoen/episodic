@@ -5,6 +5,7 @@ This module consolidates common patterns and utilities used across RAG component
 """
 
 import sys
+import io
 from contextlib import contextmanager
 from functools import wraps
 from io import StringIO
@@ -34,15 +35,29 @@ def suppress_chromadb_telemetry():
     # Save original settings
     original_filters = warnings.filters[:]
     
+    # Initialize variables that need to be cleaned up
+    null_fd = None
+    stderr_backup = None
+    stderr_fd = None
+    
     try:
         # Create a proper file descriptor for stderr redirect
         # This handles C-level stderr writes from ChromaDB
         null_fd = os.open(os.devnull, os.O_WRONLY)
-        stderr_fd = sys.stderr.fileno()
-        stderr_backup = os.dup(stderr_fd)
+        
+        # Try to get stderr file descriptor
+        try:
+            stderr_fd = sys.stderr.fileno()
+            stderr_backup = os.dup(stderr_fd)
+        except (AttributeError, OSError, io.UnsupportedOperation):
+            # stderr doesn't have a file descriptor (e.g., StringIO or special environment)
+            # Just skip file descriptor manipulation
+            stderr_fd = None
+            stderr_backup = None
         
         # Redirect both Python and C-level stderr
-        os.dup2(null_fd, stderr_fd)
+        if stderr_fd is not None:
+            os.dup2(null_fd, stderr_fd)
         sys.stderr = captured_stderr
         
         # Add warning filters
@@ -54,16 +69,29 @@ def suppress_chromadb_telemetry():
         
     finally:
         # Restore original stderr
-        os.dup2(stderr_backup, stderr_fd)
-        os.close(stderr_backup)
-        os.close(null_fd)
+        if stderr_backup is not None:
+            try:
+                # stderr_fd should be set if stderr_backup exists
+                if stderr_fd is not None:
+                    os.dup2(stderr_backup, stderr_fd)
+                os.close(stderr_backup)
+            except:
+                pass  # Ignore errors during cleanup
+        if null_fd is not None:
+            try:
+                os.close(null_fd)
+            except:
+                pass  # Ignore errors during cleanup
         sys.stderr = old_stderr
         warnings.filters[:] = original_filters
         
         # Only show non-telemetry errors
-        error_output = captured_stderr.getvalue()
-        if error_output and "telemetry" not in error_output.lower():
-            sys.stderr.write(error_output)
+        try:
+            error_output = captured_stderr.getvalue()
+            if error_output and "telemetry" not in error_output.lower():
+                sys.stderr.write(error_output)
+        except:
+            pass  # Ignore errors when writing error output
 
 
 def requires_rag(func: Callable) -> Callable:

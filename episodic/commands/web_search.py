@@ -184,8 +184,8 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                     continue
                 
                 try:
-                    from episodic.rag_utils import suppress_chromadb_telemetry
-                    with suppress_chromadb_telemetry():
+                    from episodic.rag_utils_simple import suppress_chromadb_telemetry_simple
+                    with suppress_chromadb_telemetry_simple():
                         doc_ids = rag.add_document(
                             content=content,
                             source=f"web:{result.url}",

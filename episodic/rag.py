@@ -37,7 +37,6 @@ from episodic.configuration import get_text_color, get_system_color
 from episodic.db import get_connection
 
 # Import from modular files
-from episodic.rag_chunker_simple import chunk_document as _chunk_document
 from episodic.rag_document_manager import (
     calculate_content_hash,
     check_duplicate,
@@ -150,7 +149,44 @@ class EpisodicRAG:
         Returns:
             List of tuples (chunk_text, metadata) where metadata contains start/end positions
         """
-        return _chunk_document(content, chunk_size, overlap)
+        if chunk_size is None:
+            chunk_size = config.get("rag_chunk_size", 1000)
+        if overlap is None:
+            overlap = config.get("rag_chunk_overlap", 200)
+        
+        # Simple character-based chunking
+        chunks = []
+        
+        # If content is smaller than chunk size, return as single chunk
+        if len(content) <= chunk_size:
+            chunks.append((content, {"start": 0, "end": len(content)}))
+            return chunks
+        
+        # Create overlapping chunks
+        start = 0
+        while start < len(content):
+            # Calculate end position
+            end = start + chunk_size
+            
+            # Adjust end to not break in the middle of a word if possible
+            if end < len(content):
+                # Look for the last space before the end
+                last_space = content.rfind(' ', start, end)
+                if last_space > start:
+                    end = last_space
+            
+            # Extract chunk
+            chunk_text = content[start:end].strip()
+            if chunk_text:
+                chunks.append((chunk_text, {"start": start, "end": end}))
+            
+            # Move start position with overlap
+            start = end - overlap
+            if start <= chunks[-1][1]["start"]:
+                # Avoid infinite loop
+                start = chunks[-1][1]["end"]
+                
+        return chunks
     
     def add_document(self, 
                     content: str, 

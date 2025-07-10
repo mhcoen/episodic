@@ -5,7 +5,6 @@ This module provides functionality to fetch and extract meaningful content
 from web pages, going beyond just search result snippets.
 """
 
-import asyncio
 from typing import Optional, Dict, Any
 from datetime import datetime
 import re

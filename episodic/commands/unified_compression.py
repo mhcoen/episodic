@@ -6,17 +6,14 @@ cohesive interface with subcommands.
 """
 
 import typer
-from typing import Optional
 
 # Import existing compression commands
 from .compression import (
-    compress as compress_impl,
     compression_stats as stats_impl,
     compression_queue as queue_impl,
     api_call_stats as api_stats_impl,
     reset_api_stats as reset_api_impl
 )
-from .topics import compress_current_topic as compress_topic_impl
 
 
 def compression_command(

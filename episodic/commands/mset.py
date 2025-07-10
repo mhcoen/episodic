@@ -5,8 +5,7 @@ This module provides a streamlined way to set model parameters for different con
 """
 
 import typer
-import json
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from episodic.config import config
 from episodic.configuration import get_heading_color, get_system_color, get_text_color
 

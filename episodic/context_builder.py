@@ -11,8 +11,8 @@ import typer
 from episodic.config import config
 from episodic.configuration import get_system_color
 from episodic.color_utils import secho_color
-from episodic.db import get_ancestry, get_node
-from episodic.text_formatting import debug_print
+from episodic.db import get_ancestry
+from episodic.debug_utils import debug_print
 from episodic.benchmark import benchmark_resource
 
 
@@ -197,7 +197,6 @@ class ContextBuilder:
         """Add web search context for muse mode."""
         try:
             from episodic.web_search import search_manager
-            from episodic.web_synthesis import synthesize_web_response
             
             if search_manager.is_available() and search_manager.is_enabled():
                 # Perform web search

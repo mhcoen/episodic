@@ -8,8 +8,8 @@ import uuid
 import logging
 
 from .configuration import (
-    MAX_DATABASE_RETRIES, FALLBACK_ID_LENGTH,
-    MIN_SHORT_ID_LENGTH, SHORT_ID_MAX_LENGTH, ID_CHARSET
+    FALLBACK_ID_LENGTH, SHORT_ID_MAX_LENGTH,
+    ID_CHARSET
 )
 from .db_connection import get_connection
 

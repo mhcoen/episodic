@@ -6,14 +6,12 @@ into coherent, comprehensive answers similar to Perplexity.
 """
 
 from typing import List, Dict, Any, Optional
-from datetime import datetime
 from pathlib import Path
 
 import typer
 from episodic.config import config
 from episodic.llm import query_llm
 from episodic.web_search import SearchResult
-from episodic.web_extract import fetch_page_content_sync
 
 
 class WebSynthesizer:
@@ -108,7 +106,6 @@ class WebSynthesizer:
             results = results[:3]
         
         # Build context from search results and extracted content
-        context_parts = []
         search_results_text = []
         extracted_content_text = []
         
@@ -243,8 +240,8 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
         answer: The synthesized answer (string or dict with streaming info)
         sources: List of source search results
     """
-    from episodic.configuration import get_heading_color, get_text_color, get_system_color, get_llm_color
-    from episodic.text_formatter import format_and_display_text, stream_with_word_wrap
+    from episodic.configuration import get_text_color, get_system_color, get_llm_color
+    from episodic.text_formatter import format_and_display_text
     from episodic.llm import _execute_llm_query
     
     # Just add a blank line before the answer
@@ -258,7 +255,7 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
     if isinstance(answer, dict) and answer.get('streaming'):
         # Instead of using our own streaming, let's use the conversation manager's
         # streaming to ensure consistent formatting including numbered list bolding
-        from episodic.conversation import conversation_manager
+        pass
         
         # The conversation manager expects the response to come from an LLM query,
         # so we need to make this synthesis look like a regular LLM response

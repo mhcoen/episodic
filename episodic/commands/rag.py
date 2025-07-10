@@ -1,15 +1,13 @@
 """RAG-related commands for Episodic."""
 
 import typer
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional
 
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.rag import get_rag_system, ensure_rag_initialized
 from episodic.rag_utils import (
-    requires_rag, find_document_by_partial_id, validate_file_for_indexing,
-    suppress_chromadb_telemetry
+    requires_rag, find_document_by_partial_id, validate_file_for_indexing
 )
 
 

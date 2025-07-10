@@ -14,8 +14,7 @@ from episodic.param_mappings import normalize_param_name, get_display_name
 
 from .settings_display import display_all_settings
 from .settings_handlers import (
-    PARAM_HANDLERS, handle_special_params,
-    handle_boolean_param, handle_string_param
+    PARAM_HANDLERS, handle_special_params
 )
 
 # Global variables for settings

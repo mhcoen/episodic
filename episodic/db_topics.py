@@ -6,7 +6,7 @@ storing, retrieving, and updating conversation topics.
 """
 
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional
 
 from .db_connection import get_connection
 

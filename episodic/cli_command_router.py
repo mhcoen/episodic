@@ -6,11 +6,11 @@ This module handles parsing and routing of commands to their respective handlers
 
 import shlex
 import typer
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from episodic.config import config
 from episodic.configuration import EXIT_COMMANDS, get_text_color
-from episodic.cli_helpers import _parse_flag_value, _has_flag
+from episodic.cli_helpers import _has_flag
 from episodic.benchmark import display_pending_benchmark
 
 
@@ -23,7 +23,7 @@ def parse_command(command_str: str) -> Tuple[str, List[str]]:
     """
     try:
         parts = shlex.split(command_str)
-    except ValueError as e:
+    except ValueError:
         # If shlex fails (e.g., unmatched quotes), fall back to simple split
         # This handles contractions like "what's" better
         parts = command_str.split()

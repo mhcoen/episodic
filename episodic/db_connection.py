@@ -61,19 +61,10 @@ def get_connection():
             try:
                 connection.rollback()
             except Exception:
-                pass
+                # Rollback failed, connection is likely already closed
+                logger.debug("Failed to rollback transaction during cleanup")
         finally:
             connection.close()
-
-
-def close_connection():
-    """
-    Close the database connection for the current thread.
-
-    This function is maintained for backward compatibility but is no longer needed
-    since connections are now closed automatically when the context manager exits.
-    """
-    # This function is now a no-op since connections are closed automatically
 
 
 def database_exists():

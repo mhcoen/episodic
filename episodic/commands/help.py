@@ -9,15 +9,9 @@ import typer
 from typing import Optional
 from episodic.config import config
 from episodic.configuration import get_heading_color, get_text_color, get_system_color
-from functools import wraps
 # Import EpisodicRAG only when needed to avoid import errors
-from episodic.unified_streaming import unified_stream_response
 from episodic.commands.utility import help as show_commands_help
 import os
-import re
-import sys
-import uuid
-import warnings
 from contextlib import contextmanager, redirect_stdout, redirect_stderr
 from io import StringIO
 
@@ -40,7 +34,6 @@ def suppress_all_output():
 def _display_help_output(text: str, color: str):
     """Display help output with proper formatting."""
     # For non-streaming output, we need to handle bold markers
-    import re
     lines = text.split('\n')
     for line in lines:
         if '**' not in line:
@@ -139,7 +132,7 @@ class HelpRAG:
                             metadata=doc_metadata
                         )
                         success = doc_ids is not None and len(doc_ids) > 0
-                        message = f"Indexed {len(doc_ids)} chunks" if success else "Failed to index"
+                        # message = f"Indexed {len(doc_ids)} chunks" if success else "Failed to index"
                         if success:
                             self._indexed_docs.add(doc)
                     else:
@@ -289,8 +282,8 @@ def help_command(query: str):
     
     # Check if ChromaDB is available
     try:
-        import chromadb
-        import sentence_transformers
+        import chromadb  # noqa: F401
+        import sentence_transformers  # noqa: F401
     except ImportError:
         typer.secho("\n⚠️  Documentation search requires ChromaDB and sentence-transformers.", fg="yellow")
         typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())
@@ -395,7 +388,7 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
     finally:
         # Restore original RAG state
         config.set('rag_enabled', original_rag_enabled)
-        if 'original_show_citations' in locals():
+        if 'original_show_citations' in locals() and 'original_show_citations' in dir():
             config.set('rag_show_citations', original_show_citations)
         if rag_system and original_collection:
             rag_system.collection = original_collection
@@ -413,8 +406,8 @@ def help_reindex():
     
     # Check if ChromaDB is available
     try:
-        import chromadb
-        import sentence_transformers
+        import chromadb  # noqa: F401
+        import sentence_transformers  # noqa: F401
     except ImportError:
         typer.secho("\n⚠️  Documentation indexing requires ChromaDB and sentence-transformers.", fg="yellow")
         typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())

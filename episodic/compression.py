@@ -14,7 +14,6 @@ from datetime import datetime
 from episodic.db import (
     get_ancestry
 )
-from episodic.db import store_compression
 from episodic.llm import query_llm
 from episodic.config import config
 import typer

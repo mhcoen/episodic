@@ -6,12 +6,11 @@ This module handles welcome messages, prompts, and other display functions.
 
 import os
 import typer
-from datetime import datetime
 from prompt_toolkit.formatted_text import HTML
 
 from episodic.config import config
 from episodic.configuration import (
-    get_system_color, get_text_color, get_heading_color, get_llm_color
+    get_system_color, get_text_color, get_llm_color
 )
 from episodic.db import get_head, get_recent_topics
 

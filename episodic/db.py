@@ -11,7 +11,6 @@ this module.
 from .db_connection import (
     get_db_path,
     get_connection,
-    close_connection,
     database_exists,
     # Re-export constants for backward compatibility
     DEFAULT_DB_PATH,
@@ -82,7 +81,6 @@ __all__ = [
     # Connection management
     'get_db_path',
     'get_connection',
-    'close_connection',
     'database_exists',
     'DEFAULT_DB_PATH',
     'DB_PATH',

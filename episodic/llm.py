@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Union
 import litellm
 from litellm.utils import supports_prompt_caching
 from episodic.config import config
-from episodic.llm_config import get_current_provider, get_provider_models, get_provider_config
+from episodic.llm_config import get_current_provider, get_provider_config
 from episodic.llm_manager import llm_manager
 
 # Set up logging

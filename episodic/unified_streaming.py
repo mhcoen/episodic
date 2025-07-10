@@ -6,7 +6,7 @@ to be used by all streaming outputs (LLM, Muse, Summary, etc.)
 import time
 import math
 import random
-from typing import Optional, List, Generator
+from typing import Optional, Generator
 
 import typer
 from episodic.config import config
@@ -15,11 +15,8 @@ from episodic.color_utils import secho_color
 from episodic.llm import process_stream_response
 
 
-def debug_print(message: str, indent: bool = False) -> None:
-    """Print debug messages if debug mode is enabled."""
-    if config.get("debug", False):
-        prefix = "  " if indent else ""
-        typer.secho(f"{prefix}[DEBUG] {message}", fg="yellow", err=True)
+# Import debug_print from common utilities
+from episodic.debug_utils import debug_print
 
 
 def unified_stream_response(
@@ -293,11 +290,9 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         return 0, True, in_bold, False, False, False
     
     # Check if starting a numbered list item
-    is_numbered_list_start = False
     if line_start and len(word) > 0:
         word_without_period = word.rstrip('.')
         if word_without_period.isdigit() and len(word_without_period) <= 2:
-            is_numbered_list_start = True
             in_numbered_list = True
     
     # Check if this is a markdown header and remove the ### prefix
@@ -317,7 +312,7 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         in_list_item = True
     
     # Strip bold markers to check for colon
-    word_without_bold = word.replace('**', '')
+    word.replace('**', '')
     
     # Determine if word should be bold
     word_is_bold = in_bold or in_list_item or in_numbered_list or in_header

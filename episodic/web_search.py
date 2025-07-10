@@ -6,7 +6,6 @@ the RAG system with current information from the internet.
 """
 
 import asyncio
-import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -16,7 +15,6 @@ from urllib.parse import quote_plus
 
 import typer
 from episodic.config import config
-from episodic.configuration import get_text_color, get_system_color
 
 
 @dataclass
@@ -38,12 +36,10 @@ class WebSearchProvider(ABC):
     @abstractmethod
     async def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
         """Perform a web search and return results."""
-        pass
     
     @abstractmethod
     def is_available(self) -> bool:
         """Check if this provider is available for use."""
-        pass
 
 
 class DuckDuckGoProvider(WebSearchProvider):

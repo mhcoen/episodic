@@ -64,7 +64,6 @@ class TopicManager:
             
             # REMOVED - Let topic detection run based on drift alone
             # Topics change when drift exceeds threshold, not based on message counts
-            pass
             
         # Let detection proceed - topics change based on drift
         return _detect_topic_change(recent_messages, new_message, current_topic, self.prompt_manager)

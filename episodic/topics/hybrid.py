@@ -128,7 +128,7 @@ class HybridTopicDetector:
         
         try:
             # Extract messages for analysis
-            recent_texts = [msg.get("content", "") for msg in recent_messages if msg.get("content")]
+            [msg.get("content", "") for msg in recent_messages if msg.get("content")]
             
             # 1. Calculate semantic drift
             try:

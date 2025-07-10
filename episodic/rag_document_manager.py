@@ -2,17 +2,11 @@
 Document management functionality for RAG system.
 """
 
-import os
-import uuid
 import hashlib
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-from contextlib import contextmanager
 
-import typer
 
-from episodic.config import config
-from episodic.configuration import get_text_color, get_system_color
 from episodic.db import get_connection
 
 

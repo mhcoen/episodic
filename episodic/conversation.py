@@ -5,8 +5,7 @@ This module handles core conversation flow and delegates specialized
 functionality to dedicated modules.
 """
 
-import time
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple
 
 import typer
 from episodic.color_utils import secho_color, force_color_output
@@ -15,15 +14,13 @@ from episodic.color_utils import secho_color, force_color_output
 force_color_output()
 
 from episodic.db import (
-    insert_node, get_ancestry, get_head, set_head, get_recent_nodes,
-    get_recent_topics, update_topic_end_node, store_topic,
-    update_topic_name, get_node
+    insert_node, get_ancestry, get_head, get_recent_nodes,
+    get_recent_topics, update_topic_name
 )
 from episodic.llm import query_with_context
-from episodic.llm_config import get_current_provider
 from episodic.configuration import (
-    get_model_context_limit, get_llm_color, get_system_color,
-    DEFAULT_CONTEXT_DEPTH, COST_PRECISION, format_cost
+    get_llm_color, get_system_color,
+    DEFAULT_CONTEXT_DEPTH
 )
 from episodic.config import config
 from episodic.ml import ConversationalDrift
@@ -35,8 +32,9 @@ from episodic.benchmark import benchmark_operation, benchmark_resource
 
 # Import specialized modules
 from episodic.text_formatting import (
-    debug_print, wrapped_text_print, wrapped_llm_print, get_wrap_width
+    wrapped_text_print, wrapped_llm_print
 )
+from episodic.debug_utils import debug_print
 from episodic.topic_management import TopicHandler
 from episodic.context_builder import ContextBuilder
 from episodic.response_streaming import ResponseStreamer
@@ -351,7 +349,6 @@ class ConversationManager:
             Tuple of (assistant_node_id, display_response)
         """
         # Import db functions locally to avoid Python scoping issues
-        from episodic.db import get_node, get_ancestry
         
         with benchmark_operation("Message Processing"):
             # Get recent messages for context BEFORE adding the new message

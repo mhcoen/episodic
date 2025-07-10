@@ -14,16 +14,15 @@ from episodic.config import config
 from episodic.configuration import get_system_color
 from episodic.db import (
     get_recent_topics, update_topic_end_node, store_topic,
-    update_topic_name, get_node, get_ancestry, get_head,
-    store_topic_detection_scores, get_connection
+    update_topic_name, get_ancestry, store_topic_detection_scores, get_connection
 )
 from episodic.topics import (
-    detect_topic_change_separately, extract_topic_ollama,
-    should_create_first_topic, build_conversation_segment
+    extract_topic_ollama, should_create_first_topic,
+    build_conversation_segment
 )
 from episodic.topic_boundary_analyzer import analyze_topic_boundary
-from episodic.text_formatting import debug_print
-from episodic.benchmark import benchmark_operation, benchmark_resource
+from episodic.debug_utils import debug_print
+from episodic.benchmark import benchmark_operation
 
 
 class TopicHandler:

@@ -4,7 +4,7 @@ Mode switching commands for Episodic (muse vs chat mode).
 
 import typer
 from episodic.config import config
-from episodic.configuration import get_system_color, get_text_color, get_heading_color
+from episodic.configuration import get_system_color, get_text_color
 
 
 def muse_command(enable: bool = True):

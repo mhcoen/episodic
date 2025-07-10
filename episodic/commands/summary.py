@@ -89,7 +89,7 @@ Please structure the summary clearly with sections if there are multiple distinc
                 typer.secho("\n🤖 Summary: ", fg=get_llm_color(), bold=True, nl=False)
                 
                 # Use the LLM with streaming
-                from episodic.llm import _execute_llm_query, process_stream_response
+                from episodic.llm import _execute_llm_query
                 model = config.get("model", "gpt-3.5-turbo")
                 
                 messages = [

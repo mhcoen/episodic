@@ -21,7 +21,7 @@ def force_color_output():
     # Force click to think we support color
     if hasattr(click, '_compat'):
         # Monkey patch isatty to always return True for color support
-        original_isatty = click._compat.isatty
+        click._compat.isatty
         click._compat.isatty = lambda stream: True
 
 

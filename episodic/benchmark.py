@@ -12,7 +12,6 @@ from functools import wraps
 import typer
 
 from episodic.config import config
-from episodic.configuration import get_system_color, get_text_color, get_heading_color
 
 
 class BenchmarkStats:

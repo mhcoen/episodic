@@ -12,11 +12,8 @@ from episodic.color_utils import secho_color
 from episodic.llm import process_stream_response
 
 
-def debug_print(message: str, indent: bool = False) -> None:
-    """Print debug messages if debug mode is enabled."""
-    if config.get("debug", False):
-        prefix = "  " if indent else ""
-        typer.secho(f"{prefix}[DEBUG] {message}", fg="yellow", err=True)
+# Import debug_print from common utilities
+from episodic.debug_utils import debug_print
 
 
 def stream_with_format_preservation(
@@ -170,7 +167,6 @@ def _print_formatted_line(line: str, color: str, newline: bool = True):
         return
     
     # Process line with bold markers - handle ** that might be split across words
-    import re
     
     # First, let's handle the case where ** might not have content between them
     # or might be malformed (e.g., "**bold** text **more**")

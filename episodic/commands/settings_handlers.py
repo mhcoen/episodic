@@ -5,15 +5,13 @@ This module contains logic for handling different parameter types.
 """
 
 import typer
-from typing import Optional, Any
+from typing import Optional
 
 from episodic.config import config
 from episodic.configuration import (
-    DEFAULT_COLOR_MODE,
-    get_text_color, get_system_color
+    get_system_color
 )
 from episodic.llm import enable_cache, disable_cache
-from episodic.param_mappings import normalize_param_name
 
 
 def handle_boolean_param(param: str, value: str) -> bool:

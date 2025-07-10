@@ -5,9 +5,8 @@ This module handles session scripts, history, and session state.
 """
 
 import os
-import json
 import typer
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
 from episodic.config import config

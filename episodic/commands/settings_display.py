@@ -5,7 +5,7 @@ This module handles displaying various configuration settings.
 """
 
 import typer
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from episodic.config import config
 from episodic.configuration import (

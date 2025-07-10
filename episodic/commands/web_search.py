@@ -5,7 +5,7 @@ from typing import Optional
 
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
-from episodic.web_search import get_web_search_manager, SearchResult
+from episodic.web_search import get_web_search_manager
 
 
 def websearch(query: str, limit: Optional[int] = None, index: bool = None, extract: bool = None, synthesize: bool = None):
@@ -335,7 +335,6 @@ def websearch_cache_clear():
 
 def websearch_synthesis():
     """Show unified web synthesis settings with current values and options."""
-    from episodic.text_formatter import format_and_display_text
     
     typer.secho("\n🎨 Web Search Synthesis Settings", fg=get_heading_color(), bold=True)
     typer.secho("═" * 50, fg=get_heading_color())

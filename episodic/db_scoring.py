@@ -5,7 +5,6 @@ This module handles storing and retrieving topic detection scores
 and manual indexing scores.
 """
 
-import json
 import logging
 from typing import Optional, List, Dict, Any
 

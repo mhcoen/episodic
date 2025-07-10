@@ -8,7 +8,6 @@ for terminal output.
 import shutil
 import textwrap
 import re
-import typer
 from episodic.color_utils import secho_color
 from episodic.config import config
 
@@ -81,9 +80,5 @@ def wrapped_llm_print(text: str, **typer_kwargs) -> None:
             wrapped_text_print(part, **typer_kwargs)
 
 
-def debug_print(message: str, indent: bool = False) -> None:
-    """Print debug message with consistent formatting."""
-    if indent:
-        secho_color(f"   {message}", fg='bright_cyan')
-    else:
-        secho_color(f"🔍 DEBUG: {message}", fg='yellow', bold=True)
+# Import debug_print from common utilities
+from episodic.debug_utils import debug_print

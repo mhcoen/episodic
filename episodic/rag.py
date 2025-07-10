@@ -4,13 +4,11 @@ Retrieval Augmented Generation functionality for Episodic.
 
 import os
 import uuid
-import json
 import warnings
 import logging
 import sys
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
-from contextlib import contextmanager
 from io import StringIO
 
 # Disable ChromaDB telemetry to avoid warnings
@@ -34,8 +32,6 @@ import typer
 
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color
-from episodic.db import get_connection
-
 # Import from modular files
 from episodic.rag_document_manager import (
     calculate_content_hash,
@@ -420,7 +416,7 @@ class EpisodicRAG:
             web_results = searcher.search(message, max_results=3)
             
             if web_results and web_results.get('results'):
-                typer.echo(f"\n🌐 Augmenting with web search results...", 
+                typer.echo("\n🌐 Augmenting with web search results...", 
                           fg=get_system_color())
                 
                 # Add web results to context

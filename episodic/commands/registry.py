@@ -119,7 +119,7 @@ def register_all_commands():
     # Import RAG commands
     try:
         from episodic.commands.rag import (
-            search, index_text, index_file, rag_toggle, rag_stats, docs_command
+            search, index_file, rag_toggle, docs_command
         )
         rag_available = True
     except ImportError:
@@ -128,8 +128,7 @@ def register_all_commands():
     # Import web search commands
     try:
         from episodic.commands.web_search import (
-            websearch, websearch_command, websearch_toggle, 
-            websearch_config, websearch_stats, websearch_cache_clear
+            websearch_command
         )
         from episodic.commands.web_provider import web_command
         websearch_available = True

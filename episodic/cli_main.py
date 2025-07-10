@@ -4,7 +4,6 @@ Main loop and entry point for Episodic CLI.
 This module contains the main talk loop and application entry point.
 """
 
-import os
 import time
 import typer
 from typing import Optional
@@ -22,8 +21,8 @@ from episodic.conversation import ConversationManager
 from episodic.benchmark import display_pending_benchmark, reset_benchmarks
 from episodic.cli_command_router import handle_command
 from episodic.cli_session import (
-    add_to_session_commands, clear_session_commands,
-    save_to_history, execute_script
+    add_to_session_commands, save_to_history,
+    execute_script
 )
 from episodic.cli_display import (
     setup_environment, display_welcome, display_model_info,

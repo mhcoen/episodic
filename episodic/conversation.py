@@ -17,7 +17,7 @@ from episodic.db import (
     insert_node, get_ancestry, get_head, get_recent_nodes,
     get_recent_topics, update_topic_name
 )
-from episodic.llm import query_with_context
+from episodic.llm import _execute_llm_query
 from episodic.configuration import (
     get_llm_color, get_system_color,
     DEFAULT_CONTEXT_DEPTH
@@ -448,9 +448,8 @@ class ConversationManager:
                         
                         # Get the stream generator
                         with benchmark_resource("LLM", f"query stream - {model}"):
-                            stream_generator = query_with_context(
+                            stream_generator, _ = _execute_llm_query(
                                 messages=messages,
-                                system_message=system_message,
                                 model=model,
                                 stream=True
                             )
@@ -468,9 +467,8 @@ class ConversationManager:
                     else:
                         # Non-streaming response
                         with benchmark_resource("LLM", f"query - {model}"):
-                            response, cost_info = query_with_context(
+                            response, cost_info = _execute_llm_query(
                                 messages=messages,
-                                system_message=system_message,
                                 model=model,
                                 stream=False
                             )

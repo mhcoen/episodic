@@ -28,11 +28,9 @@ def setup_environment():
 
 
 def display_welcome():
-    """Display the welcome message."""
-    typer.secho("=" * 50, fg=get_heading_color(), bold=True)
-    typer.secho("Welcome to Episodic CLI", fg=get_heading_color(), bold=True)
-    typer.secho("Type /help for available commands", fg=get_text_color())
-    typer.secho("=" * 50, fg=get_heading_color(), bold=True)
+    """Display welcome message immediately."""
+    typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
+    typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
 
 
 def display_model_info():

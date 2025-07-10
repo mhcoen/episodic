@@ -232,6 +232,45 @@ Answer:"""
         return "\n".join(requirements) if requirements else "No additional requirements."
 
 
+def synthesize_web_response(query: str, search_results: Dict[str, Any], 
+                           conversation_history: List[Dict[str, str]], 
+                           model: str) -> str:
+    """
+    Synthesize a response from web search results.
+    
+    This is a compatibility wrapper for the refactored WebSynthesizer class.
+    
+    Args:
+        query: The user's query
+        search_results: Web search results dictionary
+        conversation_history: Previous conversation messages
+        model: Model to use for synthesis
+        
+    Returns:
+        The synthesized response text
+    """
+    synthesizer = WebSynthesizer()
+    
+    # Extract search results from the dictionary
+    results = []
+    if 'results' in search_results:
+        for r in search_results['results']:
+            results.append(SearchResult(
+                title=r.get('title', ''),
+                url=r.get('url', ''),
+                snippet=r.get('content', ''),
+                relevance_score=r.get('relevance_score', 0.0)
+            ))
+    
+    # Extract any extracted content
+    extracted_content = search_results.get('extracted_content', {})
+    
+    # Synthesize the response
+    response = synthesizer.synthesize_results(query, results, extracted_content)
+    
+    return response or "I couldn't find relevant information to answer your question."
+
+
 def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
     """
     Format and display a synthesized answer with sources.

@@ -34,23 +34,47 @@ def display_welcome():
 
 
 def display_model_info():
-    """Display current model information."""
-    # Try to get the model from config
-    model = config.get("model")
+    """Display model and pricing information."""
+    # Display current model and pricing information
+    from episodic.llm_config import get_default_model, get_current_provider
+    from litellm import cost_per_token
     
-    if model:
-        typer.secho(f"Using model: {model}", fg=get_system_color())
-        
-        # Check if we're in muse mode
-        if config.get("muse_mode", False):
-            typer.secho("🔮 Muse mode active - type queries for web-enhanced responses", 
-                       fg=get_system_color())
-            # Also show web search status
-            if config.get("web_search_enabled", False):
-                typer.secho("🌐 Web search enabled", fg=get_system_color())
-            else:
-                typer.secho("⚠️  Web search disabled - enable with '/websearch on'", 
-                           fg="yellow")
+    current_model = get_default_model()
+    provider = get_current_provider()
+    
+    # Check if it's a local provider
+    LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
+    
+    # Display model info
+    typer.secho("Using model: ", nl=False, fg=get_text_color())
+    typer.secho(f"{current_model}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+    typer.secho(" (Provider: ", nl=False, fg=get_text_color())
+    typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+    typer.secho(")", fg=get_text_color())
+    
+    # Display pricing info
+    if provider in LOCAL_PROVIDERS:
+        typer.secho("Pricing: ", nl=False, fg=get_text_color())
+        typer.secho("Local model", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    else:
+        try:
+            input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
+            typer.secho("Pricing: ", nl=False, fg=get_text_color())
+            typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+        except Exception:
+            typer.secho("Pricing: ", nl=False, fg=get_text_color())
+            typer.secho("Not available", fg=typer.colors.YELLOW)
+    
+    # Check if we're in muse mode
+    if config.get("muse_mode", False):
+        typer.secho("🔮 Muse mode active - type queries for web-enhanced responses", 
+                   fg=get_system_color())
+        # Also show web search status
+        if config.get("web_search_enabled", False):
+            typer.secho("🌐 Web search enabled", fg=get_system_color())
+        else:
+            typer.secho("⚠️  Web search disabled - enable with '/websearch on'", 
+                       fg="yellow")
     
     # Display current head if it exists
     head_id = get_head()

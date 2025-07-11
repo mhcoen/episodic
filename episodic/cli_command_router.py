@@ -9,7 +9,7 @@ import typer
 from typing import List, Tuple
 
 from episodic.config import config
-from episodic.configuration import EXIT_COMMANDS, get_text_color
+from episodic.configuration import EXIT_COMMANDS, get_text_color, get_heading_color, get_system_color
 from episodic.cli_helpers import _has_flag
 from episodic.benchmark import display_pending_benchmark
 
@@ -108,8 +108,22 @@ def handle_command(command_str: str) -> bool:
             _handle_config_docs()
         elif cmd == "/verify":
             _handle_verify()
-        elif cmd == "/help":
+        elif cmd in ["/help", "/h"]:
             _handle_help(args)
+        elif cmd == "/about":
+            _handle_about()
+        elif cmd == "/welcome":
+            _handle_welcome()
+        elif cmd == "/config":
+            _handle_config()
+        elif cmd == "/history":
+            _handle_history(args)
+        elif cmd == "/tree":
+            _handle_tree(args)
+        elif cmd == "/graph":
+            _handle_graph(args)
+        elif cmd == "/summary":
+            _handle_summary(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -176,28 +190,42 @@ def _handle_cost():
 
 def _handle_model(args: List[str]):
     """Handle /model command."""
-    from episodic.commands import model
-    
-    if not args:
-        model()
-    elif args[0] == "list":
-        model(action="list")
-    else:
-        # Check if it's a context-specific model setting
-        if len(args) >= 2 and args[0] in ["chat", "detection", "compression", "synthesis"]:
+    # Use unified model command if it exists, otherwise fall back to simple model command
+    try:
+        from episodic.commands.unified_model import model_command
+        
+        if not args:
+            model_command(None, None)
+        elif len(args) == 1:
+            # Either "list" or a context name without model
+            model_command(args[0], None)
+        else:
+            # Context and model name
             context = args[0]
             model_name = " ".join(args[1:])
-            model(model_name=model_name, context=context)
+            model_command(context, model_name)
+    except ImportError:
+        # Fall back to simple model command
+        from episodic.commands import handle_model
+        
+        if not args:
+            handle_model()
         else:
-            # Default to chat context for backward compatibility
+            # Just pass the model name for backward compatibility
             model_name = " ".join(args)
-            model(model_name=model_name)
+            handle_model(model_name)
 
 
 def _handle_models():
     """Handle /models command."""
-    from episodic.commands import model
-    model(action="list")
+    # Use unified model command if it exists
+    try:
+        from episodic.commands.unified_model import model_command
+        model_command("list", None)
+    except ImportError:
+        # Fall back to simple model command showing available models
+        from episodic.commands import handle_model
+        handle_model()
 
 
 def _handle_mset(args: List[str]):
@@ -278,26 +306,29 @@ def _handle_topics(args: List[str]):
 
 def _handle_compression(args: List[str]):
     """Handle /compression command."""
-    from episodic.commands.unified_compression import compression
+    from episodic.commands.unified_compression import compression_command
     
     if not args:
-        compression()
+        compression_command()
     else:
         action = args[0]
         if action in ["stats", "queue", "compress", "api-stats", "reset-api"]:
-            compression(action=action)
+            compression_command(action=action)
         else:
             typer.secho(f"Unknown compression action: {action}", fg="red")
 
 
 def _handle_rag(args: List[str]):
     """Handle /rag command."""
-    from episodic.commands.rag import rag
+    from episodic.commands.rag import rag_toggle, rag_stats
     
     if not args:
-        rag()
-    elif args[0] in ["on", "off"]:
-        rag(action=args[0])
+        # Show RAG stats by default
+        rag_stats()
+    elif args[0] == "on":
+        rag_toggle(enable=True)
+    elif args[0] == "off":
+        rag_toggle(enable=False)
     else:
         typer.secho(f"Unknown rag action: {args[0]}", fg="red")
 
@@ -314,7 +345,7 @@ def _handle_search(args: List[str]):
 
 def _handle_index(args: List[str]):
     """Handle /index or /i command."""
-    from episodic.commands.rag import index
+    from episodic.commands.rag import index_text, index_file
     
     if not args:
         typer.secho("Usage: /index <file_path> or /index --text \"<content>\"", fg="red")
@@ -322,53 +353,33 @@ def _handle_index(args: List[str]):
         if args[0] == "--text" and len(args) > 1:
             # Index raw text
             text = " ".join(args[1:])
-            index(content=text)
+            index_text(content=text)
         else:
             # Index file
             file_path = " ".join(args)
-            index(file_path=file_path)
+            index_file(filepath=file_path)
 
 
 def _handle_docs(args: List[str]):
     """Handle /docs command."""
-    from episodic.commands.rag import docs
+    from episodic.commands.rag import docs_command
     
-    if not args:
-        docs()
-    else:
-        action = args[0]
-        if action == "list":
-            docs(action="list")
-        elif action == "show" and len(args) > 1:
-            docs(action="show", doc_id=args[1])
-        elif action == "remove" and len(args) > 1:
-            docs(action="remove", doc_id=args[1])
-        elif action == "clear":
-            source = args[1] if len(args) > 1 else None
-            docs(action="clear", source=source)
-        else:
-            typer.secho(f"Unknown docs action: {action}", fg="red")
+    # Pass all args to docs_command which handles the parsing
+    docs_command(*args)
 
 
 def _handle_websearch(args: List[str]):
     """Handle /websearch or /ws command."""
-    from episodic.commands.web_search import websearch
+    from episodic.commands.web_search import websearch_command
     
     if not args:
-        typer.secho("Usage: /websearch <query> or /websearch [on|off|config|stats|cache]", fg="red")
+        # No args - show config by default
+        websearch_command(None)
     else:
-        if args[0] in ["on", "off"]:
-            websearch(action=args[0])
-        elif args[0] == "config":
-            websearch(action="config")
-        elif args[0] == "stats":
-            websearch(action="stats")
-        elif args[0] == "cache" and len(args) > 1 and args[1] == "clear":
-            websearch(action="cache_clear")
-        else:
-            # It's a search query
-            query = " ".join(args)
-            websearch(query)
+        # Pass action and remaining args to websearch_command
+        action = args[0]
+        remaining_args = args[1:] if len(args) > 1 else []
+        websearch_command(action, *remaining_args)
 
 
 def _handle_muse(args: List[str]):
@@ -499,3 +510,99 @@ def _handle_deprecated_commands(cmd: str, args: List[str]):
     else:
         typer.secho(f"Unknown command: {cmd}. Type /help for available commands.", 
                    fg=get_text_color())
+
+
+def _handle_about():
+    """Handle /about command."""
+    typer.secho("\n📚 About Episodic", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 60, fg=get_heading_color())
+    typer.secho("\nEpisodic is a conversational DAG-based memory agent that creates", fg=get_text_color())
+    typer.secho("persistent, navigable conversations with language models.", fg=get_text_color())
+    typer.secho("\nKey Features:", fg=get_heading_color(), bold=True)
+    typer.secho("  • Conversation history stored as a directed acyclic graph (DAG)", fg=get_text_color())
+    typer.secho("  • Automatic topic detection and organization", fg=get_text_color())
+    typer.secho("  • Support for multiple LLM providers", fg=get_text_color())
+    typer.secho("  • RAG (Retrieval Augmented Generation) capabilities", fg=get_text_color())
+    typer.secho("  • Web search integration", fg=get_text_color())
+    typer.secho("  • Conversation compression and summarization", fg=get_text_color())
+    typer.secho("\nVersion: 0.1.0", fg=get_system_color())
+    typer.secho("Repository: https://github.com/yourusername/episodic", fg=get_system_color())
+
+
+def _handle_welcome():
+    """Handle /welcome command."""
+    from episodic.cli_display import display_welcome, display_model_info
+    display_welcome()
+    display_model_info()
+
+
+def _handle_config():
+    """Handle /config command - show current configuration."""
+    from episodic.commands.settings_display import display_all_settings
+    from episodic.config import config
+    
+    # Get values for context depth and semdepth
+    context_depth = config.get("depth", 10)
+    semdepth = config.get("semdepth", 0)
+    
+    typer.secho("\n⚙️  Current Configuration", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 60, fg=get_heading_color())
+    display_all_settings(context_depth, semdepth)
+
+
+def _handle_history(args: List[str]):
+    """Handle /history command - show conversation history."""
+    # This is essentially the same as /list command
+    limit = int(args[0]) if args else 20
+    
+    from episodic.commands.navigation import list as list_command
+    list_command(count=limit)
+
+
+def _handle_tree(args: List[str]):
+    """Handle /tree command - show conversation tree structure."""
+    # For now, show ancestry of current node or specified node
+    if args:
+        from episodic.commands.navigation import ancestry
+        ancestry(args[0])
+    else:
+        # Show ancestry of current node
+        from episodic.conversation import conversation_manager
+        from episodic.commands.navigation import ancestry
+        
+        current_id = conversation_manager.get_current_node_id()
+        if current_id:
+            from episodic.db import get_node
+            node = get_node(current_id)
+            if node:
+                ancestry(node['short_id'])
+        else:
+            typer.secho("No current node. Use '/tree <node_id>' to show a specific node's tree.", 
+                       fg=get_system_color())
+
+
+def _handle_graph(args: List[str]):
+    """Handle /graph command - show conversation graph visualization."""
+    # This is the same as /visualize
+    _handle_visualize(args)
+
+
+def _handle_summary(args: List[str]):
+    """Handle /summary command."""
+    from episodic.commands.summary import summary
+    
+    if not args:
+        summary()
+    elif len(args) == 1:
+        # Could be a number or "all"
+        arg = args[0]
+        if arg.lower() == "all":
+            summary("all")
+        else:
+            try:
+                count = int(arg)
+                summary(count)
+            except ValueError:
+                typer.secho("Invalid argument. Use a number or 'all'", fg="red")
+    else:
+        typer.secho("Usage: /summary [count|all]", fg="red")

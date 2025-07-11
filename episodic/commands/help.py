@@ -6,6 +6,7 @@ documentation when given a query. RAG search works regardless of global RAG sett
 """
 
 import typer
+import re
 from typing import Optional
 from episodic.config import config
 from episodic.configuration import get_heading_color, get_text_color, get_system_color

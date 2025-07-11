@@ -94,8 +94,71 @@ def handle_topics_action(action: str = "list", **kwargs):
         verbose = kwargs.get('verbose', False)
         index_topics_impl(window_size=window_size, apply=apply, verbose=verbose)
     elif action == "scores":
+        # Import the actual function without Typer decorators
+        from episodic.db import get_topic_detection_scores, get_node
+        from episodic.configuration import get_text_color, get_system_color, get_heading_color
+        import json
+        
         node_id = kwargs.get('node_id', None)
-        topic_scores_impl(node_id=node_id)
+        limit = kwargs.get('limit', 20)
+        verbose = kwargs.get('verbose', False)
+        
+        scores = get_topic_detection_scores(user_node_id=node_id, limit=limit)
+        
+        if not scores:
+            typer.secho("No topic detection scores found.", fg=get_system_color())
+            return
+        
+        typer.secho(f"\n📊 Topic Detection Scores ({len(scores)} records)", 
+                   fg=get_heading_color(), bold=True)
+        typer.secho("=" * 80, fg=get_heading_color())
+        
+        for score in scores:
+            # Get node info
+            short_id = score.get('user_node_short_id', '??')
+            node = get_node(short_id)
+            if node:
+                content = node.get('content', '')[:60] + '...'
+            else:
+                content = 'Node not found'
+            
+            # Basic info
+            changed = "✓ CHANGED" if score['topic_changed'] else "✗ Same topic"
+            color = "green" if score['topic_changed'] else "yellow"
+            
+            typer.secho(f"\n[{short_id}] {changed}", fg=color, bold=True)
+            typer.secho(f"Message: {content}", fg=get_text_color())
+            typer.secho(f"Method: {score['detection_method']}", fg=get_text_color())
+            
+            # Context info - use available fields
+            if score.get('messages_in_topic') is not None:
+                typer.secho(f"Messages in topic: {score['messages_in_topic']}", 
+                           fg=get_text_color(), dim=True)
+            if score.get('effective_threshold') is not None:
+                typer.secho(f"Threshold: {score['effective_threshold']}", 
+                           fg=get_text_color(), dim=True)
+            
+            # Show scores based on available fields
+            if score.get('drift_score') is not None:
+                typer.secho(f"Drift Score: {score['drift_score']:.3f}", fg=get_text_color())
+            if score.get('keyword_score') is not None:
+                typer.secho(f"Keyword Score: {score['keyword_score']:.3f}", fg=get_text_color())
+            if score.get('combined_score') is not None:
+                typer.secho(f"Combined Score: {score['combined_score']:.3f}", fg=get_text_color())
+            
+            # Show transition info if available
+            if score.get('transition_phrase'):
+                typer.secho(f"Transition Phrase: \"{score['transition_phrase']}\"", fg=get_text_color())
+            
+            # Show detection response if available and verbose
+            if verbose and score.get('detection_response'):
+                typer.secho(f"\n  Detection Response: {score['detection_response'][:100]}...", fg=get_text_color(), dim=True)
+        
+        typer.secho("\n" + "=" * 80, fg=get_heading_color())
+        
+        if not verbose:
+            typer.secho("💡 Use --verbose to see detailed scores and domain analysis", 
+                       fg=get_text_color(), dim=True)
     elif action == "stats":
         verbose = kwargs.get('verbose', False)
         show_topic_stats(verbose=verbose)
@@ -159,8 +222,8 @@ def topics_command(
         index_topics_impl(window_size=window_size, apply=apply, verbose=verbose)
         
     elif action == "scores":
-        # Use existing implementation
-        topic_scores_impl(node_id=node_id)
+        # Call the function from handle_topics_action to avoid Typer decorator issues
+        handle_topics_action(action="scores", node_id=node_id, verbose=verbose)
         
     elif action == "stats":
         # New implementation for statistics

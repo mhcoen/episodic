@@ -111,7 +111,8 @@ def rag_toggle(enable: Optional[bool] = None):
     
     if enable:
         # Initialize RAG system with telemetry suppression
-        with suppress_chromadb_telemetry_simple():
+        from episodic.rag_utils import suppress_chromadb_telemetry
+        with suppress_chromadb_telemetry():
             if ensure_rag_initialized():
                 rag = get_rag_system()
                 if rag:

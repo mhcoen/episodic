@@ -25,10 +25,68 @@ def handle_topics_action(action: str = "list", **kwargs):
     This is for direct function calls from the CLI router.
     """
     if action == "list":
-        list_topics_impl()
+        # Call with default values since we can't use Typer decorators
+        limit = kwargs.get('limit', 10)
+        all_topics = kwargs.get('all', False)
+        verbose = kwargs.get('verbose', False)
+        # Call the actual implementation directly
+        from episodic.db import get_recent_topics
+        from episodic.configuration import get_heading_color, get_system_color, get_text_color
+        
+        if all_topics:
+            topic_list = get_recent_topics(limit=None)
+        else:
+            topic_list = get_recent_topics(limit=limit)
+        
+        if not topic_list:
+            typer.secho("No topics found yet. Topics are created as conversations progress.", 
+                       fg=get_system_color())
+            return
+        
+        typer.secho(f"\n📑 Conversation Topics ({len(topic_list)} total)", 
+                   fg=get_heading_color(), bold=True)
+        typer.secho("=" * 70, fg=get_heading_color())
+        
+        for i, topic in enumerate(topic_list):
+            # Topic header
+            status = "✓" if topic['end_node_id'] else "○"
+            typer.secho(f"\n[{i+1}] {status} ", fg=get_heading_color(), bold=True, nl=False)
+            typer.secho(topic['name'], fg=get_text_color(), bold=True)
+            
+            # Time range
+            from datetime import datetime
+            if topic.get('created_at'):
+                try:
+                    created = datetime.fromisoformat(topic['created_at'].replace('Z', '+00:00'))
+                    time_str = created.strftime("%Y-%m-%d %H:%M")
+                    typer.secho(f"    Created: {time_str}", fg=get_text_color(), dim=True)
+                except:
+                    pass
+            
+            # Node range
+            from episodic.db import get_node
+            typer.secho(f"    Range: ", fg=get_text_color(), nl=False)
+            start_node = get_node(topic['start_node_id'])
+            end_node = get_node(topic['end_node_id']) if topic['end_node_id'] else None
+            
+            if start_node:
+                typer.secho(f"{start_node['short_id']}", fg=get_system_color(), nl=False)
+            else:
+                typer.secho(f"{topic['start_node_id'][:8]}...", fg=get_system_color(), nl=False)
+            
+            typer.secho(" → ", fg=get_text_color(), nl=False)
+            
+            if end_node:
+                typer.secho(f"{end_node['short_id']}", fg=get_system_color())
+            else:
+                typer.secho("ongoing", fg="yellow")
+                
+        typer.echo()
     elif action == "rename":
+        # Call without arguments since it doesn't take any
         rename_topics_impl()
     elif action == "compress":
+        # Call without arguments since it doesn't take any
         compress_topic_impl()
     elif action == "index":
         window_size = kwargs.get('window_size', 5)

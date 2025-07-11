@@ -1,145 +1,162 @@
-# Organized Test Suite
+# Episodic Test Organization and Running Guide
 
-All test files have been organized into a structured directory for better maintainability.
+## Overview
 
-## Directory Structure
+The Episodic test suite is organized into different categories to support various testing needs:
+- **Unit tests**: Test individual functions and classes in isolation
+- **Integration tests**: Test complete command execution paths
+- **CLI tests**: Test the interactive command-line interface
+
+## Test Directory Structure
 
 ```
 tests/
-├── __init__.py                    # Test package
-├── ORGANIZED_TESTS.md            # This file
-├── README.md                     # Comprehensive test documentation
-├── run_tests.py                  # Enhanced test runner
-├── cleanup_tests.py              # Test organization script
-│
-├── Core Unit Tests:
-├── test_cli.py                   # CLI interface tests (some failing)
-├── test_config.py                # Configuration management tests ✅
-├── test_core.py                  # Core data structures tests
-├── test_db.py                    # Database operations tests
-├── test_integration.py           # System integration tests
-├── test_llm_integration.py       # LLM provider tests ✅
-├── test_prompt_manager.py        # Prompt management tests ✅
-├── test_caching.py               # Prompt caching tests ✅
-├── test_server.py                # HTTP server tests
-├── test_websocket.py             # WebSocket functionality tests
-│
-├── interactive/                  # Manual/Interactive Tests
-│   ├── test_interactive_features.py    # Interactive visualization tests
-│   ├── test_websocket_browser.py       # Browser WebSocket tests
-│   ├── test_websocket_integration.py   # WebSocket integration tests
-│   └── test_native_visualization.py    # Native visualization tests
-│
-└── legacy/                       # Legacy/One-off Tests
-    ├── test_cache_comprehensive.py     # Comprehensive cache tests
-    ├── test_prompt_caching_final.py    # Final prompt caching test
-    ├── test_episodic.py                # General episodic tests
-    ├── test_head_reference.py          # Head reference tests
-    ├── test_roles.py                   # Role system tests
-    ├── test_short_ids.py               # Short ID tests
-    └── ... (20+ legacy test files)
+├── run_all_tests.py         # Main test runner with category support
+├── unit/                    # Unit tests (mocked dependencies)
+│   ├── commands/            # Command function tests
+│   └── topics/              # Topic detection tests
+├── integration/             # Integration tests
+│   └── cli/                 # CLI command tests
+│       ├── test_all_commands.py    # Comprehensive CLI testing
+│       └── test_cli_commands.py    # unittest-based CLI tests
+└── fixtures/                # Shared test data and utilities
 ```
-
-## Test Status
-
-### ✅ Passing Tests
-- `test_config.py` - Configuration management
-- `test_prompt_manager.py` - Prompt loading and management
-- `test_llm_integration.py` - LLM provider integration
-- `test_caching.py` - Prompt caching functionality
-
-### ⚠️ Failing Tests (Need Fixes)
-- `test_cli.py` - 7 failures, 6 errors
-  - Issues with CLI function behavior vs expected test behavior
-  - Mock setup issues
-  - Function signature mismatches
-
-### 🧪 Integration Tests
-- `test_core.py` - Core data structures
-- `test_db.py` - Database operations  
-- `test_integration.py` - System integration
-- `test_server.py` - HTTP server functionality
-- `test_websocket.py` - WebSocket functionality
-
-### 🎮 Interactive Tests (Manual)
-- `test_interactive_features.py` - Requires human verification
-- `test_websocket_browser.py` - Browser-based testing
-- `test_websocket_integration.py` - Real-time WebSocket tests
-- `test_native_visualization.py` - Visualization components
 
 ## Running Tests
 
-### Quick Tests (Stable Only)
+### Using the Main Test Runner
+
+The primary way to run tests is using `run_all_tests.py`:
+
 ```bash
-cd tests
-python run_tests.py quick
+# Run all tests
+python tests/run_all_tests.py all
+
+# Run specific test categories
+python tests/run_all_tests.py unit        # Unit tests only
+python tests/run_all_tests.py integration # Integration tests only
+python tests/run_all_tests.py quick       # Quick, stable tests
+python tests/run_all_tests.py topics      # Topic-related tests
+python tests/run_all_tests.py commands    # Command tests
+python tests/run_all_tests.py coverage    # With coverage report
+
+# Additional options
+python tests/run_all_tests.py all -v      # Verbose output
+python tests/run_all_tests.py all --failfast  # Stop on first failure
 ```
 
-### All Tests
+### Running Comprehensive CLI Tests
+
+For the most thorough testing of all CLI commands:
+
 ```bash
-python run_tests.py
+# Run comprehensive CLI test (recommended)
+python tests/integration/cli/test_all_commands.py
+
+# Analyze results
+python tests/integration/cli/analyze_test_results.py
 ```
 
-### Specific Test Files
+This tests ~60 CLI commands and generates a detailed report of any failures.
+
+### Running Specific Test Files
+
 ```bash
-python -m unittest test_config -v
-python -m unittest test_prompt_manager -v
+# Using unittest directly
+python -m unittest tests.unit.commands.test_unified_commands -v
+python -m unittest tests.integration.cli.test_cli_commands -v
+
+# Using pytest (if installed)
+pytest tests/unit -v
+pytest tests/integration -v
+pytest -k "test_topics" -v  # Run tests matching pattern
 ```
 
-### With Coverage
-```bash
-pip install coverage
-python run_tests.py coverage
-```
+## Test Categories Explained
 
-### Individual Categories
+### Unit Tests (`tests/unit/`)
+- Mock external dependencies (database, LLM calls)
+- Test individual functions and classes
+- Fast execution
+- Good for TDD and quick feedback
 
-**Core functionality only:**
-```bash
-python -m unittest test_config test_prompt_manager test_llm_integration test_caching
-```
+### Integration Tests (`tests/integration/`)
+- Test complete workflows
+- Use real database and configurations
+- May use some mocks for external services
+- Good for verifying feature behavior
 
-**Database and integration:**
-```bash
-python -m unittest test_db test_core test_integration
-```
+### CLI Integration Tests (`tests/integration/cli/`)
+- **test_all_commands.py**: Most comprehensive
+  - Runs actual CLI with subprocess
+  - Tests interactive commands with echo piping
+  - Handles timeout issues properly
+  - Best for finding real-world issues
+  
+- **test_cli_commands.py**: unittest framework integration
+  - Attempts to work within test framework
+  - Has timeout challenges with interactive CLI
+  - Good for CI/CD integration
 
-**Legacy tests:**
-```bash
-python -m unittest discover legacy/ "test_*.py"
-```
+## Why CLI Testing Is Challenging
 
-## Benefits of Organization
+1. **Interactive Nature**: The Episodic CLI is designed for interactive use, expecting continuous input
+2. **Database State**: Commands depend on conversation history and configuration
+3. **Streaming Output**: Real-time response streaming complicates output capture
+4. **External Services**: Some commands (RAG, web search) require external dependencies
 
-1. **Clear Structure**: Tests are logically organized by functionality
-2. **Easy Maintenance**: Related tests are grouped together
-3. **Selective Testing**: Run only the tests you need
-4. **Stability**: Separate failing tests from stable ones
-5. **Documentation**: Clear categorization of test types
+## Recommended Testing Workflow
 
-## Test Development
+1. **During Development**: Run unit tests for the module you're working on
+   ```bash
+   python tests/run_all_tests.py unit
+   ```
 
-### Adding New Tests
-1. Create tests in the main `tests/` directory for core functionality
-2. Use `interactive/` for tests requiring human verification
-3. Use `legacy/` for experimental or one-off tests
+2. **Before Committing**: Run quick tests to catch obvious issues
+   ```bash
+   python tests/run_all_tests.py quick
+   ```
 
-### Fixing Failing Tests
-1. Focus on `test_cli.py` first - it has the most failures
-2. Update mocks to match actual function signatures
-3. Verify expected vs actual behavior
-4. Update test assertions as needed
+3. **After Major Changes**: Run comprehensive CLI tests
+   ```bash
+   python tests/integration/cli/test_all_commands.py
+   ```
 
-### Before Major Changes
-```bash
-# Run stable tests first
-python run_tests.py quick
+4. **For Full Validation**: Run all tests with coverage
+   ```bash
+   python tests/run_all_tests.py coverage
+   ```
 
-# If those pass, run full suite
-python run_tests.py
+## Test Fixtures and Utilities
 
-# Generate coverage report
-python run_tests.py coverage
-```
+The `tests/fixtures/` directory contains:
+- `conversations.py`: Sample conversation data
+- `test_utils.py`: Shared testing utilities
+- Mock objects for database and LLM interactions
 
-This organized structure provides a solid foundation for maintaining test quality while you make significant modifications to the CLI application.
+## Adding New Tests
+
+1. **For new commands**: Add unit tests in `tests/unit/commands/`
+2. **For new features**: Add integration tests in appropriate subdirectory
+3. **For CLI behavior**: Update `test_all_commands.py` with new command tests
+
+## Continuous Integration
+
+The test suite is designed to work with CI systems:
+- Exit code 0 on success, 1 on failure
+- Detailed output for debugging
+- Coverage reports for tracking test completeness
+
+## Known Issues
+
+1. **Interactive CLI Timeouts**: Some unittest-based CLI tests may timeout due to the interactive nature
+2. **Database Isolation**: Tests may interfere if run in parallel
+3. **External Dependencies**: RAG and web search tests require additional setup
+
+## Best Practices
+
+1. Use `test_all_commands.py` for comprehensive CLI validation
+2. Write unit tests for new functions before implementation
+3. Use mocks to avoid external dependencies in unit tests
+4. Keep integration tests focused on specific workflows
+5. Run full test suite before major commits

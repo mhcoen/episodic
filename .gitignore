@@ -25,7 +25,9 @@ defunct/
 usage_tracking*.json
 uploads/
 private/
+archive/
 
 # Working directory for temporary notes and documentation
 working/
 .idea/
+archive/

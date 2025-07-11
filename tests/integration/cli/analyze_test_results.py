@@ -2,10 +2,19 @@
 """Analyze test results and create a detailed error report."""
 
 import re
+import os
 from collections import defaultdict
 
+# Get the directory where this script is located
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 # Read the log file
-with open("full_test_output.log", "r") as f:
+log_path = os.path.join(script_dir, "full_test_output.log")
+if not os.path.exists(log_path):
+    print(f"Error: {log_path} not found. Run test_all_commands.py first.")
+    exit(1)
+
+with open(log_path, "r") as f:
     content = f.read()
 
 # Split by test sections
@@ -121,7 +130,8 @@ for cmd in sorted(set(results["passed"])):
     print(f"  ✓ {cmd}")
 
 # Save to file
-with open("error_summary.md", "w") as f:
+output_path = os.path.join(script_dir, "error_summary.md")
+with open(output_path, "w") as f:
     f.write("# Episodic CLI Error Summary\n\n")
     f.write("## Statistics\n")
     f.write(f"- Total commands tested: ~{total_tests}\n")

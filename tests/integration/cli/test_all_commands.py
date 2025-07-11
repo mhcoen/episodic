@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
-Comprehensive CLI command testing script.
-Tests every command in Episodic and documents all errors.
+Comprehensive CLI command integration testing.
+Tests every command in Episodic by actually running the CLI.
+
+This is different from unit tests - it runs the full application
+and verifies end-to-end functionality.
 """
 
 import subprocess
 import sys
 import os
 from datetime import datetime
+
+# Get the project root directory (3 levels up from this script)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 
 # Test results storage
 test_results = {
@@ -27,9 +33,9 @@ def run_command(command, description=""):
     try:
         # Use echo to pipe input for interactive commands
         if command.startswith("/"):
-            full_command = f'echo "{command}" | python -m episodic'
+            full_command = f'echo "{command}" | cd "{project_root}" && python -m episodic'
         else:
-            full_command = f'python -m episodic {command}'
+            full_command = f'cd "{project_root}" && python -m episodic {command}'
             
         result = subprocess.run(
             full_command,
@@ -227,7 +233,8 @@ if test_results['errors']:
             print(f"Error in stderr: {error['stderr']}")
 
 # Save detailed results
-with open("test_results.txt", "w") as f:
+output_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(output_dir, "test_results.txt"), "w") as f:
     f.write(f"Episodic CLI Test Results - {datetime.now()}\n")
     f.write("="*60 + "\n\n")
     

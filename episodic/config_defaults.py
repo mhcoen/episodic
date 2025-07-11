@@ -111,6 +111,9 @@ RAG_DEFAULTS = {
 WEB_SEARCH_DEFAULTS = {
     "web_search_enabled": False,  # Enable web search functionality
     "web_search_provider": "duckduckgo",  # Search provider: duckduckgo, searx, google, bing
+    "web_search_providers": ["duckduckgo"],  # Ordered list of providers for fallback
+    "web_search_fallback_enabled": True,  # Enable automatic fallback to next provider
+    "web_search_fallback_cache_minutes": 5,  # Cache working provider for N minutes
     "web_search_auto_enhance": False,  # Auto-search when no good local results
     "web_search_cache_duration": 3600,  # Cache search results for 1 hour
     "web_search_max_results": 5,  # Maximum results per search
@@ -253,6 +256,9 @@ CONFIG_DOCS = {
     # Web search settings
     "web_search_enabled": "Enable web search functionality for current information",
     "web_search_provider": "Search provider to use (duckduckgo, searx, google, bing)",
+    "web_search_providers": "Ordered list of providers for fallback (e.g., ['google', 'duckduckgo'])",
+    "web_search_fallback_enabled": "Enable automatic fallback to next provider on errors",
+    "web_search_fallback_cache_minutes": "Cache working provider for N minutes after successful search",
     "web_search_auto_enhance": "Automatically search web when local results insufficient",
     "web_search_cache_duration": "How long to cache search results (seconds)",
     "web_search_max_results": "Maximum number of web results to retrieve",

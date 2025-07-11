@@ -7,7 +7,33 @@ Last Updated: 2025-07-11
 - **Location**: tests/ directory  
 - **Types**: Unit and integration tests
 - **Command**: `python tests/run_all_tests.py`
-- **CLI Testing**: `python test_all_commands.py` - Comprehensive CLI command test suite
+- **CLI Testing**: `python tests/integration/cli/test_all_commands.py` - Comprehensive CLI command test suite
+- **Documentation**: tests/ORGANIZED_TESTS.md - Complete guide to running tests
+
+## Recent Session (2025-07-11 continued)
+### Web Search Provider Fallback Implementation
+- **Implemented automatic fallback** between search providers when errors occur
+- **Shorter parameter names**: All web search params accessible via `web.` prefix
+  - `/set web.providers google,bing,duckduckgo` - Set provider order
+  - `/set web.fallback true` - Enable/disable fallback
+  - `/set web.cache 3600` - Cache duration
+- **Provider precedence**: Users specify ordered list, system tries each until one works
+- **Performance**: Caches working provider for N minutes (default: 5)
+- **Graceful degradation**: Always falls back to DuckDuckGo as last resort
+- Created `WEB_SEARCH_FALLBACK_IMPLEMENTATION.md` documenting changes
+
+### Web Search Provider Discovery
+- All providers available: DuckDuckGo (default/free), Google, Bing, Searx
+- Google requires: `GOOGLE_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` environment variables
+- Configuration: `/set web.provider google` or `/set web.providers google,bing,duckduckgo`
+- Rate limits: 100 queries/day on Google free tier
+- Automatic fallback between providers on quota/auth errors
+
+### Test Documentation
+- Created `tests/ORGANIZED_TESTS.md` with comprehensive test running guide
+- Documents all test categories: unit, integration, CLI, coverage
+- Explains why CLI testing is challenging (interactive nature)
+- Recommends `test_all_commands.py` for comprehensive CLI validation
 
 ## Recent Session (2025-07-11)
 ### Comprehensive CLI Bug Fixes
@@ -96,9 +122,10 @@ Last Updated: 2025-07-11
 - ✅ **COMPLETED**: Enforced 500 line cap per file (all files now under 600 lines)
 - ✅ **COMPLETED**: Fixed compression command structure
 - ✅ **COMPLETED**: Major code cleanup (unused imports, deprecated code, duplicate functions)
+- ✅ **COMPLETED**: Web search provider fallback system with configurable precedence
 - **Next priorities**:
   - Add previous history to /muse mode for follow-up questions
-  - Add support for other web search providers beyond DuckDuckGo
+  - Improve web search synthesis with better source attribution
 
 ## User Preferences
 - 80x24 terminal, needs proper word wrapping

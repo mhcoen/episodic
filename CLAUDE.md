@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**IMPORTANT**: Always read `PROJECT_MEMORY.md` and `private/PROJECT_MEMORY.md` at the start of each session for current context, recent decisions, and user preferences. Also check `TODO.md` for project todos and upcoming work.
+**IMPORTANT**: Always read `PROJECT_MEMORY.md` at the start of each session for current context, recent decisions, and user preferences. Also check `TODO.md` for project todos and upcoming work.
 
 ## Project Overview
 

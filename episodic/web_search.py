@@ -409,52 +409,79 @@ class WebSearchManager:
     """Manages web search with caching and rate limiting."""
     
     def __init__(self):
-        self.provider = self._get_configured_provider()
+        self.providers = self._get_configured_providers()
         self.cache = SearchCache()
         self.rate_limiter = RateLimiter(
             max_per_hour=config.get('web_search_rate_limit', 60)
         )
+        self._working_provider_cache = None
+        self._working_provider_timestamp = None
     
-    def _get_configured_provider(self) -> WebSearchProvider:
-        """Get the configured search provider."""
-        provider_name = config.get('web_search_provider', 'duckduckgo').lower()
+    def _get_configured_providers(self) -> List[WebSearchProvider]:
+        """Get the configured search providers in order of preference."""
+        # Check for new providers list first
+        providers_list = config.get('web_search_providers')
         
-        # Initialize all available providers
-        providers = {
+        if not providers_list:
+            # Fall back to single provider for backward compatibility
+            provider_name = config.get('web_search_provider', 'duckduckgo')
+            providers_list = [provider_name]
+        elif isinstance(providers_list, str):
+            # Handle comma-separated string
+            providers_list = [p.strip() for p in providers_list.split(',')]
+        
+        # Initialize all available provider classes
+        provider_classes = {
             'duckduckgo': DuckDuckGoProvider,
             'searx': SearxProvider,
             'google': GoogleProvider,
             'bing': BingProvider
         }
         
-        # Get the requested provider class
-        provider_class = providers.get(provider_name)
-        if not provider_class:
-            typer.secho(
-                f"Unknown provider '{provider_name}'. Using DuckDuckGo.",
-                fg="yellow"
-            )
-            provider_class = DuckDuckGoProvider
+        # Create provider instances
+        providers = []
+        for provider_name in providers_list:
+            provider_name = provider_name.lower()
+            provider_class = provider_classes.get(provider_name)
+            
+            if not provider_class:
+                if config.get('debug'):
+                    typer.secho(
+                        f"Unknown provider '{provider_name}', skipping.",
+                        fg="yellow"
+                    )
+                continue
+            
+            provider = provider_class()
+            providers.append(provider)
         
-        # Create provider instance
-        provider = provider_class()
+        # Always ensure DuckDuckGo is available as last resort
+        if not any(isinstance(p, DuckDuckGoProvider) for p in providers):
+            providers.append(DuckDuckGoProvider())
         
-        # Check if provider is available
-        if not provider.is_available():
-            if provider_name != 'duckduckgo':
-                typer.secho(
-                    f"⚠️  {provider_name.title()} provider not configured. "
-                    f"Falling back to DuckDuckGo.",
-                    fg="yellow"
-                )
-                provider = DuckDuckGoProvider()
+        return providers
+    
+    def _get_working_provider(self) -> Optional[WebSearchProvider]:
+        """Get the cached working provider if still valid."""
+        if not config.get('web_search_fallback_enabled', True):
+            return None
+            
+        if self._working_provider_cache and self._working_provider_timestamp:
+            cache_minutes = config.get('web_search_fallback_cache_minutes', 5)
+            age = datetime.now() - self._working_provider_timestamp
+            if age.total_seconds() < cache_minutes * 60:
+                return self._working_provider_cache
         
-        return provider
+        return None
+    
+    def _is_quota_or_auth_error(self, response_status: int) -> bool:
+        """Check if error is due to quota/auth issues."""
+        return response_status in [401, 403, 429]
     
     def search(self, query: str, num_results: int = None, 
                use_cache: bool = True) -> List[SearchResult]:
         """
-        Perform a web search with caching and rate limiting.
+        Perform a web search with caching, rate limiting, and provider fallback.
         
         Args:
             query: Search query
@@ -485,27 +512,73 @@ class WebSearchManager:
             )
             return []
         
-        # Perform search
-        try:
-            # Run async search in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            results = loop.run_until_complete(
-                self.provider.search(query, num_results)
-            )
-            loop.close()
+        # Check for cached working provider
+        working_provider = self._get_working_provider()
+        if working_provider:
+            providers_to_try = [working_provider]
+        else:
+            providers_to_try = self.providers
+        
+        # Try each provider in order
+        for i, provider in enumerate(providers_to_try):
+            provider_name = provider.__class__.__name__.replace('Provider', '')
             
-            # Record search and cache results
-            self.rate_limiter.record_search()
-            if results:
-                self.cache.set(query, results)
+            # Skip providers that aren't available (missing credentials)
+            if not provider.is_available():
+                if config.get('debug'):
+                    typer.secho(
+                        f"Skipping {provider_name} (not configured)",
+                        fg="yellow"
+                    )
+                continue
             
-            return results
-            
-        except Exception as e:
-            if config.get('debug'):
-                typer.secho(f"Web search error: {e}", fg="red")
-            return []
+            try:
+                if config.get('debug') or (i > 0 and config.get('web_search_fallback_enabled', True)):
+                    typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
+                
+                # Run async search in sync context
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                results = loop.run_until_complete(
+                    provider.search(query, num_results)
+                )
+                loop.close()
+                
+                # If we got results, cache the provider and return
+                if results:
+                    self.rate_limiter.record_search()
+                    self.cache.set(query, results)
+                    
+                    # Cache this working provider
+                    if config.get('web_search_fallback_enabled', True):
+                        self._working_provider_cache = provider
+                        self._working_provider_timestamp = datetime.now()
+                    
+                    if i > 0:  # We used a fallback
+                        typer.secho(f"✅ {provider_name} search successful", fg="green")
+                    
+                    return results
+                
+                # Empty results might be valid, but try next provider
+                if config.get('debug'):
+                    typer.secho(f"{provider_name} returned no results", fg="yellow")
+                    
+            except Exception as e:
+                if config.get('debug'):
+                    typer.secho(f"{provider_name} error: {e}", fg="red")
+                
+                # For quota/auth errors, immediately try next provider
+                if i < len(providers_to_try) - 1:
+                    if config.get('web_search_fallback_enabled', True):
+                        typer.secho(
+                            f"⚠️  {provider_name} failed, trying next provider...",
+                            fg="yellow"
+                        )
+                    continue
+        
+        # All providers failed
+        typer.secho("❌ All search providers failed", fg="red")
+        return []
     
     def clear_cache(self):
         """Clear the search cache."""
@@ -513,8 +586,16 @@ class WebSearchManager:
     
     def get_stats(self) -> Dict[str, Any]:
         """Get search statistics."""
+        provider_names = [p.__class__.__name__.replace('Provider', '') 
+                         for p in self.providers]
+        
+        current_provider = None
+        if self._working_provider_cache:
+            current_provider = self._working_provider_cache.__class__.__name__.replace('Provider', '')
+        
         return {
-            'provider': self.provider.__class__.__name__,
+            'providers': provider_names,
+            'current_provider': current_provider,
             'cache': self.cache.stats(),
             'rate_limit_remaining': self.rate_limiter.remaining(),
             'rate_limit_max': self.rate_limiter.max_per_hour

@@ -221,7 +221,7 @@ def websearch_toggle(enable: Optional[bool] = None):
     if enable:
         manager = get_web_search_manager()
         stats = manager.get_stats()
-        typer.secho(f"Provider: {stats['provider']}", fg=get_text_color())
+        typer.secho(f"Providers: {', '.join(stats['providers'])}", fg=get_text_color())
         typer.secho(f"Rate limit: {stats['rate_limit_remaining']}/{stats['rate_limit_max']} searches/hour", 
                    fg=get_text_color())
 
@@ -234,6 +234,9 @@ def websearch_config():
     settings = [
         ('Enabled', 'web_search_enabled'),
         ('Provider', 'web_search_provider'),
+        ('Providers list', 'web_search_providers'),
+        ('Fallback enabled', 'web_search_fallback_enabled'),
+        ('Fallback cache (min)', 'web_search_fallback_cache_minutes'),
         ('Auto-enhance', 'web_search_auto_enhance'),
         ('Max results', 'web_search_max_results'),
         ('Rate limit', 'web_search_rate_limit'),
@@ -307,8 +310,12 @@ def websearch_stats():
     typer.secho("\n📊 Web Search Statistics", fg=get_heading_color(), bold=True)
     typer.secho("─" * 40, fg=get_heading_color())
     
-    typer.secho("Provider: ", nl=False, fg=get_text_color())
-    typer.secho(f"{stats['provider']}", fg=get_system_color())
+    typer.secho("Providers: ", nl=False, fg=get_text_color())
+    typer.secho(f"{', '.join(stats['providers'])}", fg=get_system_color())
+    
+    if stats['current_provider']:
+        typer.secho("Current provider: ", nl=False, fg=get_text_color())
+        typer.secho(f"{stats['current_provider']} (cached)", fg="green")
     
     typer.secho("Rate limit: ", nl=False, fg=get_text_color())
     typer.secho(f"{stats['rate_limit_remaining']}/{stats['rate_limit_max']} searches remaining", 

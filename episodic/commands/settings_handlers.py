@@ -84,6 +84,28 @@ def handle_string_param(param: str, value: str, valid_values: Optional[list] = N
     return True
 
 
+def handle_list_param(param: str, value: str, valid_values: Optional[list] = None) -> bool:
+    """Handle list parameter setting (comma-separated values)."""
+    # Parse comma-separated values
+    if ',' in value:
+        values = [v.strip() for v in value.split(',')]
+    else:
+        # Single value becomes a list
+        values = [value.strip()]
+    
+    # Validate if allowed values specified
+    if valid_values:
+        invalid = [v for v in values if v not in valid_values]
+        if invalid:
+            typer.secho(f"Invalid values: {', '.join(invalid)}", fg="red")
+            typer.secho(f"Allowed: {', '.join(valid_values)}", fg="red")
+            return False
+    
+    config.set(param, values)
+    typer.secho(f"✅ Set {param} = {values}", fg=get_system_color())
+    return True
+
+
 def handle_depth_param(value: str) -> int:
     """Handle depth parameter specifically."""
     try:
@@ -163,6 +185,7 @@ PARAM_HANDLERS = {
     'rag_auto_search': lambda v: handle_boolean_param('rag_auto_search', v),
     'rag_show_citations': lambda v: handle_boolean_param('rag_show_citations', v),
     'web_search_enabled': lambda v: handle_boolean_param('web_search_enabled', v),
+    'web_search_fallback_enabled': lambda v: handle_boolean_param('web_search_fallback_enabled', v),
     'muse_mode': lambda v: handle_boolean_param('muse_mode', v),
     
     # Integer parameters
@@ -172,6 +195,7 @@ PARAM_HANDLERS = {
     'min_messages_before_topic_change': lambda v: handle_integer_param('min_messages_before_topic_change', v, 2, 50),
     'rag_max_results': lambda v: handle_integer_param('rag_max_results', v, 1, 10),
     'web_search_max_results': lambda v: handle_integer_param('web_search_max_results', v, 1, 20),
+    'web_search_fallback_cache_minutes': lambda v: handle_integer_param('web_search_fallback_cache_minutes', v, 0, 60),
     
     # Float parameters
     'stream_rate': lambda v: handle_float_param('stream_rate', v, 1.0, 100.0),
@@ -183,7 +207,8 @@ PARAM_HANDLERS = {
                                                       ['tiered', 'simple', 'extractive']),
     'drift_embedding_provider': lambda v: handle_string_param('drift_embedding_provider', v),
     'drift_embedding_model': lambda v: handle_string_param('drift_embedding_model', v),
-    'web_search_provider': lambda v: handle_string_param('web_search_provider', v, ['duckduckgo']),
+    'web_search_provider': lambda v: handle_string_param('web_search_provider', v, ['duckduckgo', 'google', 'bing', 'searx']),
+    'web_search_providers': lambda v: handle_list_param('web_search_providers', v, ['duckduckgo', 'google', 'bing', 'searx']),
     
     # Model parameters (special handling needed)
     'compression_model': lambda v: handle_string_param('compression_model', v),

@@ -69,15 +69,31 @@ PARAM_MAPPING = {
 
 # Short aliases for common parameters
 SHORT_ALIASES = {
-    # Web search
+    # Web search - dot notation
+    'web.provider': 'web_search_provider',
+    'web.providers': 'web_search_providers',
+    'web.enabled': 'web_search_enabled',
+    'web.fallback': 'web_search_fallback_enabled',
+    'web.cache': 'web_search_cache_duration',
+    'web.max_results': 'web_search_max_results',
+    'web.rate_limit': 'web_search_rate_limit',
+    'web.timeout': 'web_search_timeout',
+    'web.synthesize': 'web_search_synthesize',
+    'web.extract': 'web_search_extract_content',
+    'web.show_urls': 'web_search_show_urls',
+    'web.show_sources': 'web_show_sources',
+    'web.show_raw': 'web_show_raw',
+    
+    # Web search - dash notation (backward compatibility)
     'web-provider': 'web_search_provider',
+    'web-providers': 'web_search_providers',
     'web-enabled': 'web_search_enabled',
     'web-auto': 'web_search_auto_enhance',
     'web-results': 'web_search_max_results',
     'web-synthesize': 'web_search_synthesize',
     'web-extract': 'web_search_extract_content',
     'web-rate-limit': 'web_search_rate_limit',
-    'web-cache-ttl': 'web_search_cache_ttl',
+    'web-cache-ttl': 'web_search_cache_duration',
     
     # RAG
     'rag': 'rag_enabled',

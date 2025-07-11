@@ -249,29 +249,29 @@ def _handle_reset():
 
 def _handle_topics(args: List[str]):
     """Handle /topics command."""
-    from episodic.commands.unified_topics import topics_command
+    from episodic.commands.unified_topics import handle_topics_action
     
     if not args:
-        topics_command()
+        handle_topics_action()
     else:
         action = args[0]
         action_args = args[1:]
         
         if action == "rename":
-            topics_command(action="rename")
+            handle_topics_action(action="rename")
         elif action == "compress":
-            topics_command(action="compress")
+            handle_topics_action(action="compress")
         elif action == "index":
             if action_args:
-                topics_command(action="index", window_size=int(action_args[0]))
+                handle_topics_action(action="index", window_size=int(action_args[0]))
             else:
                 typer.secho("Usage: /topics index <number>", fg="red")
         elif action == "scores":
-            topics_command(action="scores")
+            handle_topics_action(action="scores")
         elif action == "stats":
-            topics_command(action="stats")
+            handle_topics_action(action="stats")
         elif action == "list":
-            topics_command(action="list")
+            handle_topics_action(action="list")
         else:
             typer.secho(f"Unknown topics action: {action}", fg="red")
 

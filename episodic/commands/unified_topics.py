@@ -19,6 +19,33 @@ from .index_topics import index_topics as index_topics_impl
 from .debug_topics import topic_scores as topic_scores_impl
 
 
+def handle_topics_action(action: str = "list", **kwargs):
+    """
+    Handle topics actions without Typer decorators.
+    This is for direct function calls from the CLI router.
+    """
+    if action == "list":
+        list_topics_impl()
+    elif action == "rename":
+        rename_topics_impl()
+    elif action == "compress":
+        compress_topic_impl()
+    elif action == "index":
+        window_size = kwargs.get('window_size', 5)
+        apply = kwargs.get('apply', False)
+        verbose = kwargs.get('verbose', False)
+        index_topics_impl(window_size=window_size, apply=apply, verbose=verbose)
+    elif action == "scores":
+        node_id = kwargs.get('node_id', None)
+        topic_scores_impl(node_id=node_id)
+    elif action == "stats":
+        verbose = kwargs.get('verbose', False)
+        show_topic_stats(verbose=verbose)
+    else:
+        typer.secho(f"Unknown action: {action}", fg="red")
+        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats", fg="yellow")
+
+
 def topics_command(
     action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats"),
     # Common options

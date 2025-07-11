@@ -183,7 +183,7 @@ tests/
   - Add previous query history to muse mode for context-aware follow-ups
   - Add support for additional web search providers beyond DuckDuckGo
 
-### Working Session (2025-01-07 continued)
+### Working Session (2025-07-07 continued)
 - Fixed unified streaming output formatting issues
   - Headers (###) now display without markdown markers while keeping text bold
   - Fixed typer/click ANSI code conflicts preventing bold+color combinations
@@ -198,7 +198,7 @@ tests/
   - Incorporate previous query history into muse mode for context-aware responses
   - Add support for additional web search providers beyond DuckDuckGo
 
-### Working Session (2025-01-07)
+### Working Session (2025-07-07)
 - Implemented RAG (Retrieval Augmented Generation) functionality
   - Core RAG module (`episodic/rag.py`) with ChromaDB vector database integration
   - Document chunking with configurable size and overlap for better retrieval
@@ -229,7 +229,7 @@ tests/
   - Removed complex reset parameter logic that was added during debugging
   - Colors now work correctly in both standard Terminal.app and Warp with proper themes
 
-### Previous Session (2025-01-01)
+### Previous Session (2025-07-01)
 - Fixed topic message count showing 0 for ongoing topics
   - Modified count_nodes_in_topic() to use get_head() for ongoing topics
 - Fixed excessive topic creation due to min_messages_before_topic_change=2
@@ -258,7 +258,7 @@ tests/
 - Added GOOGLE_API_KEY to provider API keys mapping
 - Filter out unsupported parameters (presence_penalty, frequency_penalty) for Google Gemini models
 
-### Previous Session (2025-06-28)
+### Previous Session (2025-07-08)
 - Fixed JSON parsing errors in topic detection for Ollama models
 - Added robust fallback parsing for various response formats (Yes/No/JSON)
 - Created simplified topic_detection_ollama.md prompt for better compatibility
@@ -283,7 +283,7 @@ Topic detection sensitivity varies drastically by model:
 | ML deep dive | 1 | 4 ❌ | 1 ✅ |
 | Natural flow | 3 | 4 ❌ | 1 ❌ |
 
-### Previous Session (2025-06-27)
+### Previous Session (2025-07-07)
 - Created centralized LLM manager for accurate API call tracking
 - Fixed initial topic extraction to require minimum 3 user messages
 - Added /api-stats and /reset-api-stats commands
@@ -293,7 +293,7 @@ Topic detection sensitivity varies drastically by model:
 - Added validation to prevent premature topic creation
 - Fixed multiple indentation errors in conversation.py
 
-### Previous Session (2025-06-25)
+### Previous Session (2025-07-05)
 - Fixed streaming output duplication in constant-rate mode
 - Improved word wrapping and list indentation
 - Added markdown bold (**text**) support

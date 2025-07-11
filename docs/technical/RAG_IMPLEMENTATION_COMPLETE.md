@@ -4,7 +4,7 @@
 
 The RAG (Retrieval Augmented Generation) functionality has been successfully implemented for Episodic. This adds the ability to index documents and use them to enhance LLM responses with relevant context.
 
-## Update (2025-01-07): Code Quality Improvements
+## Update (2025-07-07): Code Quality Improvements
 
 ### Refactoring Completed
 1. **Created `rag_utils.py`** to consolidate common patterns:

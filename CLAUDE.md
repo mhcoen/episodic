@@ -94,6 +94,9 @@ episodic/
 
 **Note**: All Python files are now under 600 lines (target: 500 lines) after major refactoring
 
+**Important**:
+Use the system date and Central Time for all date-related tasks. Always format dates as M/D/YYYY.
+
 ### Recent Changes From Refactoring
 
 #### File Organization (PR #1)

@@ -1,4 +1,12 @@
 /episodic.db
+*.db
+*.sqlite
+*.sqlite3
+
+# ChromaDB directories
+chroma/
+.chroma/
+chromadb/
 
 # Python package files
 *.egg-info/

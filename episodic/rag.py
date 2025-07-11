@@ -95,6 +95,11 @@ class EpisodicRAG:
         """Initialize the RAG system."""
         # Set up ChromaDB client
         db_path = os.path.expanduser("~/.episodic/rag/chroma")
+        
+        # Validate the path to ensure it's not in the project directory
+        from .db_safeguards import validate_db_path
+        db_path = validate_db_path(db_path)
+        
         os.makedirs(db_path, exist_ok=True)
         
         # Configure ChromaDB client with telemetry disabled

@@ -28,6 +28,10 @@ def get_db_path():
     """Get the database path from the environment variable or use the default."""
     db_path = os.environ.get("EPISODIC_DB_PATH", DEFAULT_DB_PATH)
     
+    # Validate the path to ensure it's not in the project directory
+    from .db_safeguards import validate_db_path
+    db_path = validate_db_path(db_path)
+    
     # Ensure the directory exists
     db_dir = os.path.dirname(db_path)
     if not os.path.exists(db_dir):

@@ -120,12 +120,34 @@ def topics(
 
 def compress_current_topic():
     """Compress the current active topic if it meets requirements."""
-    from episodic.topics import TopicManager
+    from episodic.conversation import conversation_manager
     from episodic.compression import queue_topic_for_compression
     from episodic.config import config
+    from episodic.db import get_recent_topics
     
-    tm = TopicManager()
-    current_topic = tm.get_current_topic()
+    # Get the current topic from conversation manager
+    current_topic_info = conversation_manager.get_current_topic()
+    
+    if not current_topic_info:
+        # If no current topic is tracked, try to get the most recent topic
+        topics = get_recent_topics(limit=1)
+        if not topics:
+            typer.secho("No topics found.", fg=get_system_color())
+            return
+        current_topic = topics[0]
+    else:
+        # Find the actual topic data from the database
+        topic_name, start_node_id = current_topic_info
+        topics = get_recent_topics(limit=100)
+        current_topic = None
+        for topic in topics:
+            if topic['start_node_id'] == start_node_id:
+                current_topic = topic
+                break
+        
+        if not current_topic:
+            typer.secho("Could not find current topic in database.", fg=get_system_color())
+            return
     
     if not current_topic:
         typer.secho("No active topic found.", fg=get_system_color())
@@ -137,8 +159,15 @@ def compress_current_topic():
         return
     
     # Check if topic is large enough
-    ancestry = get_ancestry(current_topic['end_node_id'])
-    node_count = count_nodes_in_topic(current_topic, ancestry)
+    if current_topic['end_node_id']:
+        ancestry = get_ancestry(current_topic['end_node_id'])
+    else:
+        # For ongoing topics, use the head
+        from episodic.db import get_head
+        head = get_head()
+        ancestry = get_ancestry(head) if head else []
+    
+    node_count = count_nodes_in_topic(current_topic['start_node_id'], current_topic['end_node_id'])
     min_nodes = config.get('compression_min_nodes', 10)
     
     if node_count < min_nodes:

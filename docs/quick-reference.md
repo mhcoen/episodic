@@ -48,6 +48,16 @@ Just type to chat! No prefix needed.
 /set color-mode basic         # Switch color mode
 ```
 
+### Web Search Settings (New)
+```bash
+# Provider configuration
+/set web.provider google              # Single provider
+/set web.providers google,duckduckgo  # Fallback order
+/set web.fallback true                # Enable fallback
+/set web.cache 3600                   # Cache 1 hour
+/set web.max_results 5                # Results to fetch
+```
+
 ### Navigation
 | Command | Description |
 |---------|-------------|

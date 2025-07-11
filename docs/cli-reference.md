@@ -196,7 +196,7 @@ Manage documents
 ## Web Search
 
 ### /websearch, /ws
-Search the web
+Search the web with automatic provider fallback
 ```bash
 /websearch latest AI news   # Search the web
 /ws latest AI news          # Short form
@@ -206,6 +206,31 @@ Search the web
 /websearch stats            # Show search statistics
 /websearch cache clear      # Clear search cache
 ```
+
+**Provider Configuration (shorter syntax):**
+```bash
+# Set single provider
+/set web.provider google
+
+# Set provider order for automatic fallback
+/set web.providers google,bing,duckduckgo
+
+# Configure fallback behavior
+/set web.fallback true              # Enable automatic fallback
+/set web.fallback_cache_minutes 5   # Cache working provider for 5 minutes
+
+# Other web search settings
+/set web.enabled true               # Enable web search
+/set web.max_results 5              # Number of results to retrieve
+/set web.cache 3600                 # Cache results for 1 hour
+/set web.rate_limit 60              # Max searches per hour
+```
+
+**Available Providers:**
+- `duckduckgo` - Free, no API key required (default)
+- `google` - Requires GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID
+- `bing` - Requires BING_API_KEY
+- `searx` - Requires searx_instance_url configuration
 
 ## Compression
 

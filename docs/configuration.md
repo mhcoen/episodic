@@ -129,6 +129,39 @@ Set with: `/set color-mode full`, `/set color-mode basic`, or `/set color-mode n
 | `compression_strategy` | "simple" | Strategy: simple, keymoments |
 | `show_compression_notifications` | true | Notify about compressions |
 
+### Web Search Settings
+
+Web search parameters can be set using the shorter `web.` prefix:
+
+| Parameter | Short Form | Default | Description |
+|-----------|------------|---------|-------------|
+| `web_search_enabled` | `web.enabled` | false | Enable web search |
+| `web_search_provider` | `web.provider` | "duckduckgo" | Single provider |
+| `web_search_providers` | `web.providers` | ["duckduckgo"] | Provider order for fallback |
+| `web_search_fallback_enabled` | `web.fallback` | true | Enable automatic fallback |
+| `web_search_fallback_cache_minutes` | `web.fallback_cache_minutes` | 5 | Cache working provider (minutes) |
+| `web_search_max_results` | `web.max_results` | 5 | Number of results to retrieve |
+| `web_search_cache_duration` | `web.cache` | 3600 | Cache search results (seconds) |
+| `web_search_rate_limit` | `web.rate_limit` | 60 | Max searches per hour |
+| `web_search_timeout` | `web.timeout` | 10 | Search timeout (seconds) |
+| `web_search_synthesize` | `web.synthesize` | true | Synthesize results with LLM |
+| `web_search_show_urls` | `web.show_urls` | true | Display URLs in results |
+
+**Example Usage:**
+```bash
+# Configure provider fallback order
+/set web.providers google,bing,duckduckgo
+
+# Use only free providers
+/set web.providers duckduckgo,searx
+
+# Disable fallback (use only first provider)
+/set web.fallback false
+
+# Adjust cache duration
+/set web.cache 7200  # Cache for 2 hours
+```
+
 ### Model Parameters
 
 Model parameters are organized by context:

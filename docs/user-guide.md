@@ -197,20 +197,68 @@ When topics end, they can be automatically compressed:
 - **Auto-Enhancement**: Automatically search when local knowledge insufficient
 - **Result Indexing**: Web results can be indexed into RAG
 - **Synthesis**: Combine multiple results into comprehensive answer
+- **Automatic Fallback**: Try multiple providers if one fails
 
-### Configuration
+### Provider Configuration (New Shorter Syntax)
 ```bash
-/set web-auto true      # Auto-search when needed
-/set web-results 5      # Number of results
-/set web-synthesize true        # Synthesize results
-/set web-extract true   # Extract page content
+# Set single provider
+/set web.provider google
+
+# Set provider order for automatic fallback
+/set web.providers google,bing,duckduckgo
+
+# Use only free providers
+/set web.providers duckduckgo,searx
+
+# Configure fallback behavior
+/set web.fallback true              # Enable automatic fallback
+/set web.fallback_cache_minutes 5   # Cache working provider
+```
+
+### Other Configuration Options
+```bash
+# Shorter syntax with web. prefix
+/set web.enabled true           # Enable web search
+/set web.max_results 5          # Number of results
+/set web.synthesize true        # Synthesize results
+/set web.extract true           # Extract page content
+/set web.cache 3600             # Cache duration (seconds)
+/set web.rate_limit 60          # Max searches per hour
+
+# Legacy syntax still works
+/set web-auto true              # Auto-search when needed
+/set web-results 5              # Number of results
 ```
 
 ### Search Providers
 1. **DuckDuckGo** (Default, no API key needed)
-2. **Searx** (Privacy-focused, can self-host)
-3. **Google** (Requires API key and search engine ID)
-4. **Bing** (Requires Azure API key)
+   - Always available as fallback
+   - No configuration required
+   
+2. **Google** (Requires credentials)
+   - Set `GOOGLE_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID`
+   - 100 queries/day on free tier
+   
+3. **Bing** (Requires Azure API key)
+   - Set `BING_API_KEY`
+   - Better for certain types of queries
+   
+4. **Searx** (Privacy-focused, can self-host)
+   - Configure with `/set searx_instance_url`
+   - No API key needed
+
+### How Fallback Works
+When you search, Episodic will:
+1. Try providers in your configured order
+2. Skip providers without proper credentials
+3. Automatically fallback on quota/auth errors
+4. Cache the working provider for faster subsequent searches
+5. Always ensure DuckDuckGo is available as last resort
+
+Example flow with `/set web.providers google,bing,duckduckgo`:
+- First tries Google → If quota exceeded
+- Falls back to Bing → If not configured
+- Falls back to DuckDuckGo → Always works
 
 ## Muse Mode
 

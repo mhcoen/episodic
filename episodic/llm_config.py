@@ -39,7 +39,7 @@ def get_default_config() -> Dict[str, Any]:
                 "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "gpt-4", "gpt-4.5"]
             },
             "anthropic": {
-                "models": ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+                "models": ["claude-opus-4-20250514", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
             },
             "groq": {
                 "models": ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"]
@@ -58,6 +58,7 @@ def get_default_config() -> Dict[str, Any]:
             "openrouter": {
                 "api_base": "https://openrouter.ai/api/v1",
                 "models": [
+                    "openrouter/anthropic/claude-opus-4-20250514",
                     "openrouter/anthropic/claude-3-opus",
                     "openrouter/anthropic/claude-3-sonnet",
                     "openrouter/anthropic/claude-3-haiku",

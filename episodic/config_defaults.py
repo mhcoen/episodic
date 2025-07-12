@@ -208,6 +208,7 @@ LLM_DEFAULTS = {
     "openrouter_site_url": None,  # Optional: your app's URL for OpenRouter tracking
     "openrouter_app_name": "Episodic",  # Optional: your app name for OpenRouter tracking
     "openrouter_default_models": [
+        "anthropic/claude-opus-4-20250514",
         "anthropic/claude-3-opus",
         "anthropic/claude-3-sonnet",
         "anthropic/claude-3-haiku",

@@ -83,7 +83,7 @@ def unified_stream_response(
         ]
         preserve_formatting = any(indicator in first_chunk for indicator in formatting_indicators)
         
-        if config.get("debug"):
+        if config.get("debug_streaming_verbose", False):
             debug_print(f"Format preservation auto-detected: {preserve_formatting}")
     
     # Route to appropriate streaming function
@@ -104,7 +104,7 @@ def unified_stream_response(
     use_natural_rhythm = config.get("stream_natural_rhythm", False)
     use_char_streaming = config.get("stream_char_mode", False)
     
-    if config.get("debug"):
+    if config.get("debug_streaming_verbose", False):
         debug_print(f"Streaming modes - char: {use_char_streaming}, natural: {use_natural_rhythm}, constant: {use_constant_rate}")
     
     # Get wrap width if not provided
@@ -114,7 +114,7 @@ def unified_stream_response(
         margin = 4
         max_width = 100
         wrap_width = min(terminal_width - margin, max_width)
-        if config.get("debug"):
+        if config.get("debug_streaming_verbose", False):
             debug_print(f"Terminal width: {terminal_width}, wrap width: {wrap_width}")
     
     # Determine delay calculation method
@@ -253,6 +253,10 @@ def unified_stream_response(
     if current_position > 0:
         typer.echo("")
     
+    # Add extra blank line after muse responses
+    if config.get("muse_mode", False):
+        typer.echo("")
+    
     # Join the full response
     full_response = ''.join(full_response_parts)
     
@@ -280,8 +284,8 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     Returns:
         tuple: (new_position, new_line_start, new_in_bold, new_in_numbered_list, new_in_list_item, new_in_header)
     """
-    # Debug output
-    if config.get("debug", False) and word != '\n' and not word.isspace():
+    # Debug output - only if verbose streaming debug is enabled
+    if config.get("debug_streaming_verbose", False) and word != '\n' and not word.isspace():
         debug_print(f"Word: '{word}', line_start={line_start}, in_header={in_header}, in_numbered={in_numbered_list}, in_list={in_list_item}", indent=True)
     
     # Handle newline-only words specially
@@ -294,6 +298,11 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         word_without_period = word.rstrip('.')
         if word_without_period.isdigit() and len(word_without_period) <= 2:
             in_numbered_list = True
+        # Also check for patterns like "1. Advanced" where number and text come together
+        elif '.' in word and len(word) > 2:
+            prefix = word.split('.')[0]
+            if prefix.isdigit() and len(prefix) <= 2:
+                in_numbered_list = True
     
     # Check if this is a markdown header and remove the ### prefix
     is_header_start = line_start and word.startswith('#')
@@ -311,15 +320,37 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     if is_bullet:
         in_list_item = True
     
-    # Strip bold markers to check for colon
-    word.replace('**', '')
+    # Strip bold markers to check for colon  
+    display_word = word.replace('**', '')
+    
+    # Check if word ends with colon to stop list bolding BEFORE determining boldness
+    word_ends_with_colon = display_word.endswith(':')
+    if word_ends_with_colon:
+        if in_list_item:
+            in_list_item = False
+        if in_numbered_list:
+            in_numbered_list = False
     
     # Determine if word should be bold
     word_is_bold = in_bold or in_list_item or in_numbered_list or in_header
     
+    # Debug: Show why a word is bold when debug is enabled
+    if config.get("debug", False) and word_is_bold:
+        debug_reasons = []
+        if in_bold: debug_reasons.append("in_bold")
+        if in_list_item: debug_reasons.append("in_list_item") 
+        if in_numbered_list: debug_reasons.append("in_numbered_list")
+        if in_header: debug_reasons.append("in_header")
+        debug_print(f"'{word}' is bold because: {', '.join(debug_reasons)}", indent=True)
+    
     # Debug: Print headers and lists with a marker when debug is enabled
-    if config.get("debug", False) and line_start and (word.startswith('#') or word.rstrip('.').isdigit() or word == '-'):
-        typer.echo(f"\n[DEBUG] Word '{word}' at line_start, states: header={in_header}, num={in_numbered_list}, list={in_list_item}, bold={word_is_bold}", err=True)
+    is_numbered_pattern = word.rstrip('.').isdigit() or ('.' in word and len(word) > 2 and word.split('.')[0].isdigit())
+    has_italic_markers = '*' in word and not word.startswith('**')
+    debug_enabled = config.get("debug", False)
+    
+    # Always show debug for formatting patterns when debug is on
+    if debug_enabled and (line_start and (word.startswith('#') or is_numbered_pattern or word == '-') or has_italic_markers):
+        print(f"\n[DEBUG FORMATTING] Word '{word}' line_start={line_start} header={in_header} num={in_numbered_list} list={in_list_item} bold={word_is_bold} italic={has_italic_markers}", flush=True)
     
     # Check if we need to wrap
     if wrap_width and current_position > 0 and current_position + len(word) + 1 > wrap_width:
@@ -334,15 +365,14 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         secho_color(' ', fg=color, nl=False)
         current_position += 1
     
-    # Handle bold markers
+    # Handle bold markers (**) and italic markers (*) - render both as bold
     display_word = word
     has_inline_bold = False
+    
+    # Handle ** bold markers
     if '**' in word:
-        # Check if this word should be bold due to inline markers
-        # Count ** markers to determine if we're in bold
         marker_count = word.count('**')
         if marker_count > 0:
-            # Simple heuristic: if word starts with ** or we were in bold and no closing **
             if word.startswith('**'):
                 has_inline_bold = True
                 in_bold = True
@@ -352,37 +382,35 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
             elif in_bold:
                 has_inline_bold = True
         display_word = word.replace('**', '')
+    # Handle * italic markers (render as bold in terminal)
+    elif '*' in word and not word.startswith('**'):
+        # Handle single * markers like ** markers but for italics
+        marker_count = word.count('*')
+        if marker_count > 0:
+            if word.startswith('*'):
+                has_inline_bold = True
+                in_bold = True
+            elif in_bold and (word.endswith('*') or (word_ends_with_colon and word.rstrip(':').endswith('*'))):
+                has_inline_bold = True
+                in_bold = False
+            elif in_bold:
+                has_inline_bold = True
+        display_word = word.replace('*', '')
     elif in_bold:
         # We're in the middle of bold text
         has_inline_bold = True
     
     # Determine if word should be bold (from any source)
+    original_word_is_bold = word_is_bold
     word_is_bold = word_is_bold or has_inline_bold
+    
     
     # Print the word
     if config.get("debug", False) and word_is_bold:
         debug_print(f"Printing '{display_word}' with bold=True", indent=True)
     
-    # Print with proper ANSI codes
-    if word_is_bold:
-        # Use raw ANSI codes to ensure bold works with color
-        import sys
-        color_codes = {
-            'cyan': '\033[36m',
-            'green': '\033[32m',
-            'yellow': '\033[33m',
-            'blue': '\033[34m',
-            'magenta': '\033[35m',
-            'red': '\033[31m',
-            'white': '\033[37m',
-        }
-        color_code = color_codes.get(color, '\033[37m')  # Default to white
-        # Print with color + bold using raw output
-        sys.stdout.write(f"{color_code}\033[1m{display_word}\033[0m")
-        sys.stdout.flush()
-    else:
-        # Use normal secho for non-bold text
-        secho_color(display_word, fg=color, nl=False, bold=False)
+    # Use secho_color for proper terminal output with bold support
+    secho_color(display_word, fg=color, nl=False, bold=word_is_bold)
     
     current_position += len(display_word)
     line_start = False
@@ -396,11 +424,5 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         in_numbered_list = False
         in_header = False
     
-    # Check if word ends with colon to stop list bolding
-    if display_word.endswith(':'):
-        if in_list_item:
-            in_list_item = False
-        if in_numbered_list:
-            in_numbered_list = False
     
     return current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header

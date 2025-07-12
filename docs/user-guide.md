@@ -182,15 +182,16 @@ When topics end, they can be automatically compressed:
 
 ## Web Search
 
-### Enabling Web Search
+### Enabling Muse Mode (Web Search Synthesis)
 ```bash
-/websearch on  # Enable web search
+/muse on  # Enable muse mode - all input becomes web searches
 ```
 
-### Searching the Web
+### Using Muse Mode
 ```bash
-/websearch latest AI developments  # Search the web
-/ws latest AI developments        # Short form
+# Simply type your questions - they become web searches automatically
+latest AI developments
+what's new in quantum computing
 ```
 
 ### Web Search Features
@@ -437,7 +438,7 @@ Planned feature to show topic predictions in real-time.
 /index paper2.pdf
 
 # Enable web search for current info
-/websearch on
+/muse on
 /set web_search_auto_enhance true  # or: /set web-auto true
 
 # Ask questions - will search both local docs and web
@@ -526,7 +527,7 @@ Automate your common setup:
 ```bash
 # My daily research setup
 /rag on
-/websearch on
+/muse on
 /set web-auto true
 /set topics true
 /model chat gpt-4

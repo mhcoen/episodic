@@ -64,10 +64,10 @@ class WebSynthesizer:
     def _get_format_instructions(self) -> str:
         """Get instructions based on format preference."""
         format_map = {
-            'paragraph': 'Use flowing prose in paragraph form.',
-            'bullet-points': 'Use bullet points and lists for all information.',
-            'mixed': 'Use a mix of paragraphs and bullet points as appropriate.',
-            'academic': 'Use formal academic style with proper citations [Source N].'
+            'paragraph': 'Use flowing prose in paragraph form with markdown headers (### Header Name) for sections.',
+            'bullet-points': 'Use bullet points and lists for all information with markdown headers (### Header Name) for sections.',
+            'mixed': 'Use a mix of paragraphs and bullet points as appropriate with markdown headers (### Header Name) for sections.',
+            'academic': 'Use formal academic style with proper citations [Source N] and markdown headers (### Header Name) for sections.'
         }
         return format_map.get(self.format, format_map['mixed'])
     
@@ -324,9 +324,6 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
             base_color=get_llm_color(),
             value_color=get_system_color()  # Use system color for values after colons
         )
-    
-    # Add blank line after response
-    typer.echo()
     
     # Display sources only if configured to show them
     if config.get('web_show_sources', False):

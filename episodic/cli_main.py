@@ -57,8 +57,6 @@ def handle_chat_message(user_input: str) -> None:
             
             # Perform web search with synthesis
             websearch(user_input, synthesize=True)
-            # Add blank line before next prompt
-            typer.echo()
             return
         
         # Normal chat mode - continue with LLM
@@ -87,6 +85,9 @@ def handle_chat_message(user_input: str) -> None:
         if config.get("show_costs"):
             from episodic.commands import cost
             cost()
+        
+        # Add blank line after LLM output before next prompt
+        typer.echo()
             
     except Exception as e:
         typer.secho(f"Error: {e}", fg="red")

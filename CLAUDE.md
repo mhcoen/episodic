@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **IMPORTANT**: Always read `PROJECT_MEMORY.md` at the start of each session for current context, recent decisions, and user preferences. Also check `TODO.md` for project todos and upcoming work.
 
+**DEBUGGING**: See `DEBUG.md` for comprehensive debugging guide, including debug flags, troubleshooting steps, and development utilities.
+
 ## Project Overview
 
 Episodic is a conversational DAG-based memory agent that creates persistent, navigable conversations with language models. It stores conversation history as a directed acyclic graph where each node represents a conversational exchange.
@@ -148,7 +150,7 @@ tests/
     - Model commands: Fixed 'module' object is not callable error
     - RAG system: Fixed import errors (rag_toggle, index_file, docs_command)
     - Compression: Fixed import to use compression_command
-    - Web search: Fixed function signature mismatch with websearch_command
+    - Web search: Simplified command structure - removed /websearch, kept /muse and /web
     - Muse mode: Created missing muse.py module
     - Topic commands: Fixed get_current_topic AttributeError and Typer decorator issues
   - Added 9 missing command implementations (/h, /about, /welcome, /config, /history, /tree, /graph, /summary)
@@ -221,7 +223,7 @@ tests/
   - DuckDuckGo provider for free web search (no API key required)
   - SearchCache for result caching (1 hour default)
   - RateLimiter to prevent API abuse (60 searches/hour default)
-  - Commands: `/websearch <query>` (alias `/ws`), `/websearch on/off`, `/websearch config/stats/cache clear`
+  - Commands: `/muse on/off` for synthesis mode, `/web provider <name>` for configuration
   - Integration with RAG: automatic web search when local results insufficient
   - Web results can be indexed into RAG for future use
   - Configuration in `config_defaults.py` under `WEB_SEARCH_DEFAULTS`
@@ -430,11 +432,11 @@ This means if you change the detection model, it affects both detection accuracy
   - `clear [source]` - Clear documents
 
 #### Web Search Commands
-- `/websearch <query>` or `/ws <query>` - Search the web
-- `/websearch on/off` - Enable/disable web search
-- `/websearch config` - Show web search configuration
-- `/websearch stats` - Show search statistics
-- `/websearch cache clear` - Clear search cache
+- `/muse on/off` - Enable/disable web search synthesis mode (like Perplexity)
+- `/web` - Show current web search provider and configuration
+- `/web provider <name>` - Set web search provider (google, duckduckgo, etc.)
+- `/web list` - List all available providers
+- `/web reset` - Reset to default configuration
 
 #### Deprecated Commands (still work with warnings)
 - `/rename-topics` → `/topics rename`

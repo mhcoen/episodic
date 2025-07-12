@@ -8,10 +8,19 @@ the centralized command registry.
 import shlex
 import typer
 from typing import List
-from episodic.commands.registry import command_registry
+from episodic.commands.registry import command_registry, register_all_commands
 from episodic.configuration import (
     EXIT_COMMANDS, get_system_color, get_heading_color, get_text_color
 )
+
+# Ensure commands are registered
+_registry_initialized = False
+
+def _ensure_registry_initialized():
+    global _registry_initialized
+    if not _registry_initialized:
+        register_all_commands()
+        _registry_initialized = True
 
 
 def handle_command_with_registry(command_str: str) -> bool:
@@ -21,6 +30,8 @@ def handle_command_with_registry(command_str: str) -> bool:
     Returns:
         bool: True if should exit, False otherwise
     """
+    _ensure_registry_initialized()
+    
     # Parse the command
     try:
         parts = shlex.split(command_str)
@@ -109,6 +120,8 @@ def handle_legacy_command(cmd: str, args: List[str]) -> bool:
 
 def show_help_with_categories():
     """Show basic help information with common commands."""
+    _ensure_registry_initialized()
+    
     typer.secho("\n⌨️  Type messages directly to chat.", fg=get_heading_color(), bold=True)
 
     # Mode switching - most prominent
@@ -158,6 +171,8 @@ def show_help_with_categories():
 
 def show_advanced_help():
     """Show all available commands organized by categories."""
+    _ensure_registry_initialized()
+    
     typer.secho("\n📚 Episodic Commands (Advanced)", fg=get_heading_color(), bold=True)
     typer.secho("=" * 60, fg=get_heading_color())
     

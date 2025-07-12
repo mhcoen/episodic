@@ -17,7 +17,8 @@ from episodic.db import (
     insert_node, get_ancestry, get_head, get_recent_nodes,
     get_recent_topics, update_topic_name
 )
-from episodic.llm import _execute_llm_query
+# Lazy import _execute_llm_query to avoid loading litellm at startup
+# from episodic.llm import _execute_llm_query
 from episodic.configuration import (
     get_llm_color, get_system_color,
     DEFAULT_CONTEXT_DEPTH
@@ -37,7 +38,7 @@ from episodic.text_formatting import (
 from episodic.debug_utils import debug_print
 from episodic.topic_management import TopicHandler
 from episodic.context_builder import ContextBuilder
-from episodic.response_streaming import ResponseStreamer
+from episodic.unified_streaming import unified_stream_response
 
 
 class ConversationManager:
@@ -58,7 +59,6 @@ class ConversationManager:
         # Initialize handlers
         self.topic_handler = TopicHandler(self)
         self.context_builder = ContextBuilder()
-        self.response_streamer = ResponseStreamer()
     
     def get_session_costs(self) -> Dict[str, Any]:
         """Get the current session costs from the centralized LLM manager."""
@@ -448,6 +448,7 @@ class ConversationManager:
                         
                         # Get the stream generator
                         with benchmark_resource("LLM", f"query stream - {model}"):
+                            from episodic.llm import _execute_llm_query
                             stream_generator, _ = _execute_llm_query(
                                 messages=messages,
                                 model=model,
@@ -456,17 +457,15 @@ class ConversationManager:
                         
                         # Stream the response
                         typer.echo("")  # Newline before streaming
-                        full_response = self.response_streamer.stream_response(
+                        full_response = unified_stream_response(
                             stream_generator=stream_generator,
-                            model=model,
-                            stream_rate=stream_rate,
-                            use_constant_rate=use_constant_rate,
-                            use_natural_rhythm=use_natural_rhythm
+                            model=model
                         )
                         display_response = full_response
                     else:
                         # Non-streaming response
                         with benchmark_resource("LLM", f"query - {model}"):
+                            from episodic.llm import _execute_llm_query
                             response, cost_info = _execute_llm_query(
                                 messages=messages,
                                 model=model,

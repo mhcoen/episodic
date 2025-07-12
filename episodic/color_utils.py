@@ -21,7 +21,6 @@ def force_color_output():
     # Force click to think we support color
     if hasattr(click, '_compat'):
         # Monkey patch isatty to always return True for color support
-        click._compat.isatty
         click._compat.isatty = lambda stream: True
 
 
@@ -56,10 +55,48 @@ def secho_color(text: str, fg: Optional[str] = None, bg: Optional[str] = None,
     This is a drop-in replacement for typer.secho that ensures colors work
     even in non-TTY environments.
     """
-    # Use click's style and echo with color=True to force colors
-    styled = click.style(text, fg=fg, bg=bg, bold=bold, dim=dim,
-                       underline=underline, blink=blink, reverse=reverse)
-    click.echo(styled, nl=nl, color=True)
+    # Build ANSI codes manually to ensure proper bold formatting
+    codes = []
+    
+    # Bold must come first for proper rendering
+    if bold:
+        codes.append('\033[1m')
+    if dim:
+        codes.append('\033[2m')
+    if underline:
+        codes.append('\033[4m')
+    if blink:
+        codes.append('\033[5m')
+    if reverse:
+        codes.append('\033[7m')
+    
+    # Color codes
+    if fg:
+        color_map = {
+            'black': 30, 'red': 31, 'green': 32, 'yellow': 33,
+            'blue': 34, 'magenta': 35, 'cyan': 36, 'white': 37,
+            'bright_black': 90, 'bright_red': 91, 'bright_green': 92,
+            'bright_yellow': 93, 'bright_blue': 94, 'bright_magenta': 95,
+            'bright_cyan': 96, 'bright_white': 97
+        }
+        if fg in color_map:
+            codes.append(f'\033[{color_map[fg]}m')
+    
+    if bg:
+        bg_color_map = {
+            'black': 40, 'red': 41, 'green': 42, 'yellow': 43,
+            'blue': 44, 'magenta': 45, 'cyan': 46, 'white': 47
+        }
+        if bg in bg_color_map:
+            codes.append(f'\033[{bg_color_map[bg]}m')
+    
+    # Output the formatted text
+    prefix = ''.join(codes)
+    suffix = '\033[0m' if codes else ''
+    newline = '\n' if nl else ''
+    
+    sys.stdout.write(f"{prefix}{text}{suffix}{newline}")
+    sys.stdout.flush()
 
 
 # Initialize color forcing on import if needed

@@ -76,13 +76,13 @@ Configure model parameters:
 ### Configuration & Usage
 
 ```bash
-# Enable/disable web search
-/websearch on
-/websearch off
+# Enable/disable muse mode (web search synthesis)
+/muse on
+/muse off
 
-# Search the web
-/websearch latest AI developments
-/ws quantum computing news  # Short form
+# In muse mode, all input becomes web searches
+latest AI developments
+quantum computing news
 
 # Configure automatic enhancement
 /set web-auto true         # Auto-enhance responses
@@ -234,7 +234,7 @@ When RAG doesn't find relevant results, it automatically searches the web (if en
 
 # Features
 /rag on/off              # Knowledge base
-/websearch on/off        # Web search
+/muse on/off            # Web search synthesis
 /muse                    # Synthesis mode
 
 # Settings
@@ -249,7 +249,7 @@ When RAG doesn't find relevant results, it automatically searches the web (if en
 **Research Mode:**
 ```bash
 /rag on
-/websearch on
+/muse on
 /set rag-auto true
 /set web-auto true
 ```
@@ -258,7 +258,7 @@ When RAG doesn't find relevant results, it automatically searches the web (if en
 ```bash
 /model chat ollama/llama3
 /rag off
-/websearch off
+/muse off
 ```
 
 **Cost-Conscious Mode:**

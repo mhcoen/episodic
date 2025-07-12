@@ -90,8 +90,8 @@ def handle_command(command_str: str) -> bool:
             _handle_index(args)
         elif cmd == "/docs":
             _handle_docs(args)
-        elif cmd in ["/websearch", "/ws"]:
-            _handle_websearch(args)
+        elif cmd == "/web":
+            _handle_web(args)
         elif cmd == "/muse":
             _handle_muse(args)
         elif cmd == "/prompt":
@@ -368,18 +368,22 @@ def _handle_docs(args: List[str]):
     docs_command(*args)
 
 
-def _handle_websearch(args: List[str]):
-    """Handle /websearch or /ws command."""
-    from episodic.commands.web_search import websearch_command
+
+def _handle_web(args: List[str]):
+    """Handle /web command."""
+    from episodic.commands.web_provider import web_command
     
     if not args:
-        # No args - show config by default
-        websearch_command(None)
+        # No args - show current provider
+        web_command()
     else:
-        # Pass action and remaining args to websearch_command
-        action = args[0]
+        # Pass subcommand and remaining args
+        subcommand = args[0]
         remaining_args = args[1:] if len(args) > 1 else []
-        websearch_command(action, *remaining_args)
+        if remaining_args:
+            web_command(subcommand, ' '.join(remaining_args))
+        else:
+            web_command(subcommand, None)
 
 
 def _handle_muse(args: List[str]):

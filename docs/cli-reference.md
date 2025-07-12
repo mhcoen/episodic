@@ -195,19 +195,25 @@ Manage documents
 
 ## Web Search
 
-### /websearch, /ws
-Search the web with automatic provider fallback
+### /muse
+Enable muse mode for synthesized web search answers (like Perplexity)
 ```bash
-/websearch latest AI news   # Search the web
-/ws latest AI news          # Short form
-/websearch on               # Enable web search
-/websearch off              # Disable web search
-/websearch config           # Show configuration
-/websearch stats            # Show search statistics
-/websearch cache clear      # Clear search cache
+/muse on                    # Enable muse mode - all input becomes web searches
+/muse off                   # Disable muse mode - return to chat mode
+/muse                       # Show current mode status
 ```
 
-**Provider Configuration (shorter syntax):**
+### /web
+Configure web search providers
+```bash
+/web                        # Show current provider and status
+/web list                   # List all available providers
+/web provider google        # Set primary provider
+/web provider duckduckgo    # Set primary provider
+/web reset                  # Reset to default configuration
+```
+
+**Configuration via settings (alternative syntax):**
 ```bash
 # Set single provider
 /set web.provider google
@@ -399,7 +405,7 @@ Use /mset command to manage model-specific parameters:
 ### Research Mode
 ```bash
 /rag on
-/websearch on
+/muse on
 /set web_search_auto_enhance true  # or: /set web-auto true
 /set rag_auto_search true          # or: /set rag-auto true
 ```
@@ -419,7 +425,7 @@ Use /mset command to manage model-specific parameters:
 /model compression ollama/llama3
 /model synthesis ollama/llama3
 /rag off
-/websearch off
+/muse off
 ```
 
 ### Debug Mode
@@ -466,7 +472,7 @@ a1: Hello world
 
 1. **Tab Completion**: Use Tab for command completion
 2. **History**: Use Up/Down arrows for command history
-3. **Shortcuts**: Many commands have short forms (/s for /search, /ws for /websearch)
+3. **Shortcuts**: Many commands have short forms (/s for /search, /i for /index)
 4. **Help**: Type /help for quick command reference
 5. **Settings**: Settings persist in the database automatically
 

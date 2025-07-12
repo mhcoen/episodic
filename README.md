@@ -65,8 +65,8 @@ python -m episodic
 ```bash
 /topics          # See how your conversation is organized
 /search query    # Search your indexed documents  
-/websearch query # Search the web
-/muse            # Enable Perplexity-like web search mode
+/muse on         # Enable Perplexity-like web search mode
+/web provider    # Configure web search providers
 /model list      # View available AI models
 /help            # See all commands
 /help <query>    # Search documentation (e.g., /help How do I use muse mode?)
@@ -189,7 +189,7 @@ Run completely offline with local models:
 
 # Disable online features
 > /rag off
-> /websearch off
+> /muse off
 
 > Explain how neural networks learn
 # Works completely offline with local models

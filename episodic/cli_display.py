@@ -98,7 +98,7 @@ def get_prompt() -> str:
     """Get the current prompt string."""
     # Check if we're in muse mode
     if config.get("muse_mode", False):
-        prompt_text = "muse> "
+        prompt_text = "» "
         # Return as HTML for color support
         return HTML(f'<ansibrightmagenta><b>{prompt_text}</b></ansibrightmagenta>')
     

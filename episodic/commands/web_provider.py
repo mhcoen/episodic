@@ -11,8 +11,8 @@ from episodic.configuration import get_heading_color, get_system_color, get_text
 
 
 def web_command(
-    subcommand: Optional[str] = typer.Argument(None, help="Subcommand (provider/list)"),
-    provider_name: Optional[str] = typer.Argument(None, help="Provider name to set")
+    subcommand: Optional[str] = None,
+    provider_name: Optional[str] = None
 ):
     """
     Manage web search providers and settings.
@@ -37,34 +37,39 @@ def web_command(
             set_provider(provider_name)
         else:
             show_provider_details()
+    elif subcommand == "reset" or subcommand == "default":
+        reset_to_defaults()
     else:
         typer.secho(f"Unknown subcommand: {subcommand}", fg="red")
-        typer.secho("Valid subcommands: list, provider", fg=get_text_color())
+        typer.secho("Valid subcommands: list, provider, reset", fg=get_text_color())
 
 
 def show_current_provider():
-    """Show the current web search provider."""
+    """Show the current web search provider and available commands."""
     current = config.get("web_search_provider", "duckduckgo")
-    typer.secho("Current web search provider: ", fg=get_text_color(), nl=False)
-    typer.secho(current.title(), fg=get_heading_color(), bold=True)
-    typer.secho("Use '/web list' to see all providers", fg=get_text_color(), dim=True)
-
-
-def list_providers():
-    """List all available web search providers."""
-    typer.secho("\n🌐 Available Web Search Providers:", fg=get_heading_color(), bold=True)
+    
+    typer.secho("\n🌐 Web Search Provider Management", fg=get_heading_color(), bold=True)
     typer.secho("─" * 50, fg=get_heading_color())
     
+    typer.secho("Current provider: ", fg=get_text_color(), nl=False)
+    typer.secho(current.title(), fg=get_system_color(), bold=True)
+    
+    # Show provider list if multiple providers configured
+    providers_list = config.get("web_search_providers")
+    if providers_list and isinstance(providers_list, list) and len(providers_list) > 1:
+        typer.secho("Fallback order: ", fg=get_text_color(), nl=False)
+        typer.secho(" → ".join(providers_list), fg=get_system_color())
+    
+    # Show available providers
+    typer.secho("\nAvailable providers:", fg=get_heading_color())
     providers = [
-        ("duckduckgo", "DuckDuckGo", "Free, no API key required", True),
-        ("google", "Google", "Requires API key and CSE ID", False),
-        ("bing", "Bing", "Requires API key", False),
-        ("searx", "Searx", "Requires instance URL", False),
+        ("duckduckgo", "DuckDuckGo", "Free, no API key required"),
+        ("google", "Google", "Requires API key and CSE ID"),
+        ("bing", "Bing", "Requires API key"),
+        ("searx", "Searx", "Requires instance URL"),
     ]
     
-    current = config.get("web_search_provider", "duckduckgo").lower()
-    
-    for key, name, description, implemented in providers:
+    for key, name, description in providers:
         # Show current provider
         if key == current:
             typer.secho("  ► ", fg="green", nl=False, bold=True)
@@ -75,13 +80,53 @@ def list_providers():
         typer.secho(f"{name:<15} ", fg=get_system_color(), bold=True, nl=False)
         
         # Description
-        typer.secho(description, fg=get_text_color(), nl=False)
-        
-        # Implementation status
-        if not implemented:
-            typer.secho(" (not yet implemented)", fg="yellow")
+        typer.secho(description, fg=get_text_color())
+    
+    typer.secho("\nCommands:", fg=get_heading_color())
+    commands = [
+        ("/web list", "Show detailed provider information"),
+        ("/web provider", "Show current provider details"),
+        ("/web provider <name>", "Set primary web search provider"),
+        ("/web reset", "Reset to default providers"),
+        ("/set web.providers", "Set fallback order (comma-separated)"),
+    ]
+    
+    for cmd, desc in commands:
+        typer.secho(f"  {cmd:<28}", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
+    # Show example for setting provider order
+    typer.secho("\nExample:", fg=get_heading_color())
+    typer.secho("  /set web.providers google,bing,duckduckgo", fg=get_system_color(), dim=True)
+    typer.secho("  Sets Google as primary, falls back to Bing, then DuckDuckGo", fg=get_text_color(), dim=True)
+
+
+def list_providers():
+    """List all available web search providers."""
+    typer.secho("\n🌐 Available Web Search Providers:", fg=get_heading_color(), bold=True)
+    typer.secho("─" * 50, fg=get_heading_color())
+    
+    providers = [
+        ("duckduckgo", "DuckDuckGo", "Free, no API key required"),
+        ("google", "Google", "Requires API key and CSE ID"),
+        ("bing", "Bing", "Requires API key"),
+        ("searx", "Searx", "Requires instance URL"),
+    ]
+    
+    current = config.get("web_search_provider", "duckduckgo").lower()
+    
+    for key, name, description in providers:
+        # Show current provider
+        if key == current:
+            typer.secho("  ► ", fg="green", nl=False, bold=True)
         else:
-            typer.echo()
+            typer.secho("    ", nl=False)
+        
+        # Provider name
+        typer.secho(f"{name:<15} ", fg=get_system_color(), bold=True, nl=False)
+        
+        # Description
+        typer.secho(description, fg=get_text_color())
 
 
 def show_provider_details():
@@ -154,13 +199,6 @@ def set_provider(provider_name: str):
         typer.secho(f"Valid providers: {', '.join(valid_providers)}", fg=get_text_color())
         return
     
-    # Check if provider is implemented
-    implemented_providers = ["duckduckgo"]
-    
-    if provider_name not in implemented_providers:
-        typer.secho(f"⚠️  {provider_name.title()} provider is not yet implemented", fg="yellow")
-        typer.secho("Only DuckDuckGo is currently available", fg=get_text_color())
-        return
     
     # Check if provider requires configuration
     if provider_name == "google":
@@ -193,8 +231,45 @@ def set_provider(provider_name: str):
     
     # Set the provider
     config.set("web_search_provider", provider_name)
+    
+    # Also update the providers list to include this provider
+    current_providers = config.get("web_search_providers", ["duckduckgo"])
+    if isinstance(current_providers, str):
+        current_providers = [p.strip() for p in current_providers.split(',')]
+    
+    # Add the new provider to the front of the list if not already there
+    if provider_name not in current_providers:
+        current_providers.insert(0, provider_name)
+    else:
+        # Move it to the front
+        current_providers.remove(provider_name)
+        current_providers.insert(0, provider_name)
+    
+    config.set("web_search_providers", current_providers)
+    
+    # Reset the global web search manager to pick up the new configuration
+    import episodic.web_search
+    episodic.web_search._web_search_manager = None
+    
     typer.secho(f"✓ Web search provider set to: {provider_name.title()}", fg="green")
+    typer.secho(f"  Provider order: {' → '.join(current_providers)}", fg=get_text_color(), dim=True)
     
     # Show any additional info
     if provider_name == "duckduckgo":
         typer.secho("  No API key required - ready to use!", fg=get_text_color(), dim=True)
+
+
+def reset_to_defaults():
+    """Reset web search configuration to defaults."""
+    from episodic.config_defaults import DEFAULT_CONFIG
+    
+    # Reset to default values
+    default_provider = DEFAULT_CONFIG.get("web_search_provider", "duckduckgo")
+    default_providers = DEFAULT_CONFIG.get("web_search_providers", ["duckduckgo"])
+    
+    config.set("web_search_provider", default_provider)
+    config.set("web_search_providers", default_providers)
+    
+    typer.secho("✓ Reset to default web search configuration", fg="green")
+    typer.secho(f"  Provider: {default_provider}", fg=get_text_color(), dim=True)
+    typer.secho(f"  Provider order: {' → '.join(default_providers)}", fg=get_text_color(), dim=True)

@@ -115,7 +115,7 @@ class LLMManager:
         start_time = time.time()
         thread_id = threading.get_ident()
         
-        if config.get('debug', False):
+        if config.get('debug_llm_api', False):
             import traceback
             # Get the calling function name
             caller = traceback.extract_stack()[-3]
@@ -182,7 +182,7 @@ class LLMManager:
                             # Update metrics with the cost info
                             self.metrics.record_call(0, cost_info)  # 0 duration since we already recorded time
                             
-                            if config.get('debug', False):
+                            if config.get('debug_llm_api', False):
                                 print(f"[LLM API] Stream completed. Cost: ${cost:.6f}")
                         else:
                             # No usage info available, just record the call
@@ -198,11 +198,11 @@ class LLMManager:
                 try:
                     from litellm import completion_cost
                     cost = completion_cost(completion_response=response)
-                    if config.get('debug', False):
+                    if config.get('debug_llm_api', False):
                         print(f"[LLM API] Cost calculated: ${cost:.6f}")
                 except Exception as e:
                     cost = 0.0
-                    if config.get('debug', False):
+                    if config.get('debug_llm_api', False):
                         print(f"[LLM API] Cost calculation failed: {e}")
                         print(f"[LLM API] Model: {model}")
                         print(f"[LLM API] Response has usage: {hasattr(response, 'usage')}")
@@ -219,7 +219,7 @@ class LLMManager:
                 # Record the call with cost info
                 self.metrics.record_call(duration, cost_info)
                 
-                if config.get('debug', False):
+                if config.get('debug_llm_api', False):
                     print(f"[LLM API] Thread {thread_id}: Call #{self.metrics._total_calls} completed in {duration:.2f}s")
                     print(f"[LLM API] Response length: {len(response_text)} chars")
                     print("---")
@@ -230,7 +230,7 @@ class LLMManager:
             duration = time.time() - start_time
             self.metrics.record_call(duration)
             
-            if config.get('debug', False):
+            if config.get('debug_llm_api', False):
                 print(f"[LLM API] Thread {thread_id}: Failed after {duration:.2f}s - {e}")
             
             raise

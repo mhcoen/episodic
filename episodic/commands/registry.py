@@ -122,24 +122,15 @@ def register_all_commands():
     from episodic.commands.unified_model import model_command
     from episodic.commands.mset import mset_command
     
-    # Import RAG commands
-    try:
-        from episodic.commands.rag import (
-            search, index_file, rag_toggle, docs_command
-        )
-        rag_available = True
-    except ImportError:
-        rag_available = False
+    # RAG commands will be imported lazily when needed
+    rag_available = True  # We'll check availability when actually used
     
-    # Import web search commands
+    # Import web provider commands
     try:
-        from episodic.commands.web_search import (
-            websearch_command
-        )
         from episodic.commands.web_provider import web_command
-        websearch_available = True
+        web_available = True
     except ImportError:
-        websearch_available = False
+        web_available = False
     
     # Register navigation commands
     command_registry.register("init", init, "Initialize the database", "Navigation")
@@ -192,18 +183,33 @@ def register_all_commands():
     command_registry.register("save", save_session_script, "Save session commands to a script file", "Utility")
     command_registry.register("compress", compress, "Compress a topic or branch", "Compression")
     
-    # Register RAG commands if available
-    if rag_available:
-        command_registry.register("rag", rag_toggle, "Enable/disable RAG or show stats", "Knowledge Base")
-        command_registry.register("search", search, "Search the knowledge base", "Knowledge Base", aliases=["s"])
-        command_registry.register("index", index_file, "Index a file or text into knowledge base", "Knowledge Base", aliases=["i"])
-        command_registry.register("docs", docs_command, "Manage documents (list/show/remove/clear)", "Knowledge Base")
+    # Register RAG commands with lazy loading wrappers
+    def lazy_rag_toggle(*args, **kwargs):
+        from episodic.commands.rag import rag_toggle
+        return rag_toggle(*args, **kwargs)
     
-    # Register web search commands if available
-    if websearch_available:
+    def lazy_search(*args, **kwargs):
+        from episodic.commands.rag import search
+        return search(*args, **kwargs)
+    
+    def lazy_index_file(*args, **kwargs):
+        from episodic.commands.rag import index_file
+        return index_file(*args, **kwargs)
+    
+    def lazy_docs_command(*args, **kwargs):
+        from episodic.commands.rag import docs_command
+        return docs_command(*args, **kwargs)
+    
+    if rag_available:
+        command_registry.register("rag", lazy_rag_toggle, "Enable/disable RAG or show stats", "Knowledge Base")
+        command_registry.register("search", lazy_search, "Search the knowledge base", "Knowledge Base", aliases=["s"])
+        command_registry.register("index", lazy_index_file, "Index a file or text into knowledge base", "Knowledge Base", aliases=["i"])
+        command_registry.register("docs", lazy_docs_command, "Manage documents (list/show/remove/clear)", "Knowledge Base")
+    
+    # Register web provider commands if available
+    if web_available:
         command_registry.register("web", web_command, "Manage web search providers", "Configuration")
-        command_registry.register("websearch", websearch_command, "Search the web (config/synthesis/stats/cache)", "Knowledge Base", aliases=["ws"])
 
 
-# Initialize registry on import
-register_all_commands()
+# Don't initialize on import - will be called when needed
+# register_all_commands()

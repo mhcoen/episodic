@@ -237,9 +237,22 @@ class GoogleProvider(WebSearchProvider):
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params) as response:
                     if response.status != 200:
+                        error_data = await response.text()
                         if config.get('debug'):
-                            error_data = await response.text()
                             typer.secho(f"Google API error: {error_data}", fg="red")
+                        # Parse common Google API errors
+                        if response.status == 403:
+                            if "custom search api has not been used" in error_data.lower():
+                                raise Exception("Google Custom Search API not enabled. Enable it at: https://console.cloud.google.com/apis/library/customsearch.googleapis.com")
+                            else:
+                                raise Exception("Invalid API key or insufficient permissions")
+                        elif response.status == 400:
+                            if "cx" in error_data.lower() or "invalid value" in error_data.lower():
+                                raise Exception("Invalid search engine ID")
+                            else:
+                                raise Exception(f"Bad request: {error_data[:100]}")
+                        else:
+                            raise Exception(f"API error (status {response.status})")
                         return []
                     
                     data = await response.json()
@@ -422,6 +435,9 @@ class WebSearchManager:
         # Check for new providers list first
         providers_list = config.get('web_search_providers')
         
+        if config.get('debug'):
+            typer.secho(f"[DEBUG] web_search_providers from config: {providers_list}", fg="yellow")
+        
         if not providers_list:
             # Fall back to single provider for backward compatibility
             provider_name = config.get('web_search_provider', 'duckduckgo')
@@ -429,6 +445,9 @@ class WebSearchManager:
         elif isinstance(providers_list, str):
             # Handle comma-separated string
             providers_list = [p.strip() for p in providers_list.split(',')]
+        
+        if config.get('debug'):
+            typer.secho(f"[DEBUG] Final providers list: {providers_list}", fg="yellow")
         
         # Initialize all available provider classes
         provider_classes = {
@@ -452,8 +471,18 @@ class WebSearchManager:
                     )
                 continue
             
-            provider = provider_class()
-            providers.append(provider)
+            try:
+                provider = provider_class()
+                if provider is None:
+                    if config.get('debug'):
+                        typer.secho(f"⚠️  {provider_name} class returned None instance", fg="yellow")
+                    continue
+                providers.append(provider)
+                if config.get('debug'):
+                    typer.secho(f"✓ Successfully created {provider_name} provider", fg="cyan")
+            except Exception as e:
+                if config.get('debug'):
+                    typer.secho(f"⚠️  Failed to create {provider_name} provider: {e}", fg="red")
         
         # Always ensure DuckDuckGo is available as last resort
         if not any(isinstance(p, DuckDuckGoProvider) for p in providers):
@@ -514,6 +543,14 @@ class WebSearchManager:
         
         # Check for cached working provider
         working_provider = self._get_working_provider()
+        
+        # If we have a cached provider, but it's not the first in our list,
+        # clear the cache to respect the user's configuration
+        if working_provider and self.providers and working_provider != self.providers[0]:
+            self._working_provider_cache = None
+            self._working_provider_timestamp = None
+            working_provider = None
+        
         if working_provider:
             providers_to_try = [working_provider]
         else:
@@ -521,20 +558,37 @@ class WebSearchManager:
         
         # Try each provider in order
         for i, provider in enumerate(providers_to_try):
+            if provider is None or provider.__class__ is None:
+                if config.get('debug'):
+                    typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg="yellow")
+                continue
             provider_name = provider.__class__.__name__.replace('Provider', '')
             
             # Skip providers that aren't available (missing credentials)
             if not provider.is_available():
-                if config.get('debug'):
-                    typer.secho(
-                        f"Skipping {provider_name} (not configured)",
-                        fg="yellow"
-                    )
+                # Always show when skipping a provider that was explicitly configured
+                if i == 0 or config.get('debug'):
+                    # More specific message for different providers
+                    if provider_name == 'Google':
+                        typer.secho(
+                            f"⚠️  Skipping Google (requires GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID)",
+                            fg="yellow"
+                        )
+                    elif provider_name == 'Bing':
+                        typer.secho(
+                            f"⚠️  Skipping Bing (requires BING_API_KEY)",
+                            fg="yellow"
+                        )
+                    else:
+                        typer.secho(
+                            f"⚠️  Skipping {provider_name} (not configured)",
+                            fg="yellow"
+                        )
                 continue
             
             try:
-                if config.get('debug') or (i > 0 and config.get('web_search_fallback_enabled', True)):
-                    typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
+                # Always show which provider we're using
+                typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
                 
                 # Run async search in sync context
                 loop = asyncio.new_event_loop()
@@ -564,14 +618,41 @@ class WebSearchManager:
                     typer.secho(f"{provider_name} returned no results", fg="yellow")
                     
             except Exception as e:
-                if config.get('debug'):
-                    typer.secho(f"{provider_name} error: {e}", fg="red")
+                # Always show errors for the primary provider
+                if i == 0 or config.get('debug'):
+                    error_msg = str(e)
+                    # Check for specific Google API errors
+                    if provider_name == 'Google' and 'API_KEY_SERVICE_BLOCKED' in error_msg:
+                        typer.secho(
+                            f"⚠️  Google Search API is not enabled for your project",
+                            fg="yellow"
+                        )
+                        typer.secho(
+                            f"    Enable it at: https://console.cloud.google.com/apis/library/customsearch.googleapis.com",
+                            fg="cyan"
+                        )
+                    elif 'permission' in error_msg.lower() or '403' in error_msg:
+                        typer.secho(
+                            f"⚠️  {provider_name} access denied: {error_msg[:100]}",
+                            fg="yellow"
+                        )
+                    elif 'api' in error_msg.lower() or 'key' in error_msg.lower():
+                        typer.secho(
+                            f"⚠️  {provider_name} configuration error: {error_msg[:100]}",
+                            fg="yellow"
+                        )
+                    else:
+                        typer.secho(
+                            f"⚠️  {provider_name} failed: {error_msg[:100]}",
+                            fg="yellow"
+                        )
                 
                 # For quota/auth errors, immediately try next provider
                 if i < len(providers_to_try) - 1:
                     if config.get('web_search_fallback_enabled', True):
+                        pass  # Just continue to next provider
                         typer.secho(
-                            f"⚠️  {provider_name} failed, trying next provider...",
+                            f"    Trying next provider...",
                             fg="yellow"
                         )
                     continue
@@ -587,10 +668,10 @@ class WebSearchManager:
     def get_stats(self) -> Dict[str, Any]:
         """Get search statistics."""
         provider_names = [p.__class__.__name__.replace('Provider', '') 
-                         for p in self.providers]
+                         for p in self.providers if p is not None and p.__class__ is not None]
         
         current_provider = None
-        if self._working_provider_cache:
+        if self._working_provider_cache and self._working_provider_cache.__class__ is not None:
             current_provider = self._working_provider_cache.__class__.__name__.replace('Provider', '')
         
         return {

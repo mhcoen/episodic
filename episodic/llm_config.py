@@ -36,13 +36,29 @@ def get_default_config() -> Dict[str, Any]:
         "default_model": "gpt-4o-mini",
         "providers": {
             "openai": {
-                "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "gpt-4", "gpt-4.5"]
+                "models": [
+                    {"name": "gpt-4o-mini", "display_name": "GPT-4o Mini"},
+                    {"name": "gpt-4o", "display_name": "GPT-4o"},
+                    {"name": "gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo"},
+                    {"name": "gpt-4", "display_name": "GPT-4"},
+                    {"name": "gpt-4.5", "display_name": "GPT-4.5"}
+                ]
             },
             "anthropic": {
-                "models": ["claude-opus-4-20250514", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+                "models": [
+                    {"name": "claude-opus-4-20250514", "display_name": "Claude 4 Opus"},
+                    {"name": "claude-3-opus-20240229", "display_name": "Claude 3 Opus"},
+                    {"name": "claude-3-sonnet-20240229", "display_name": "Claude 3 Sonnet"},
+                    {"name": "claude-3-haiku-20240307", "display_name": "Claude 3 Haiku"}
+                ]
             },
             "groq": {
-                "models": ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"]
+                "models": [
+                    {"name": "llama3-8b-8192", "display_name": "Llama 3 8B"},
+                    {"name": "llama3-70b-8192", "display_name": "Llama 3 70B"},
+                    {"name": "mixtral-8x7b-32768", "display_name": "Mixtral 8x7B"},
+                    {"name": "gemma-7b-it", "display_name": "Gemma 7B"}
+                ]
             },
             "ollama": {
                 "api_base": "http://localhost:11434",
@@ -58,17 +74,17 @@ def get_default_config() -> Dict[str, Any]:
             "openrouter": {
                 "api_base": "https://openrouter.ai/api/v1",
                 "models": [
-                    "openrouter/anthropic/claude-opus-4-20250514",
-                    "openrouter/anthropic/claude-3-opus",
-                    "openrouter/anthropic/claude-3-sonnet",
-                    "openrouter/anthropic/claude-3-haiku",
-                    "openrouter/openai/gpt-4-turbo-preview",
-                    "openrouter/openai/gpt-4",
-                    "openrouter/openai/gpt-3.5-turbo",
-                    "openrouter/google/gemini-pro",
-                    "openrouter/meta-llama/llama-2-70b-chat",
-                    "openrouter/mistralai/mixtral-8x7b-instruct",
-                    "openrouter/cohere/command-r-plus"
+                    {"name": "openrouter/anthropic/claude-opus-4-20250514", "display_name": "Claude 4 Opus (OR)"},
+                    {"name": "openrouter/anthropic/claude-3-opus", "display_name": "Claude 3 Opus (OR)"},
+                    {"name": "openrouter/anthropic/claude-3-sonnet", "display_name": "Claude 3 Sonnet (OR)"},
+                    {"name": "openrouter/anthropic/claude-3-haiku", "display_name": "Claude 3 Haiku (OR)"},
+                    {"name": "openrouter/openai/gpt-4-turbo-preview", "display_name": "GPT-4 Turbo (OR)"},
+                    {"name": "openrouter/openai/gpt-4", "display_name": "GPT-4 (OR)"},
+                    {"name": "openrouter/openai/gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo (OR)"},
+                    {"name": "openrouter/google/gemini-pro", "display_name": "Gemini Pro (OR)"},
+                    {"name": "openrouter/meta-llama/llama-2-70b-chat", "display_name": "Llama 2 70B (OR)"},
+                    {"name": "openrouter/mistralai/mixtral-8x7b-instruct", "display_name": "Mixtral 8x7B (OR)"},
+                    {"name": "openrouter/cohere/command-r-plus", "display_name": "Command R+ (OR)"}
                 ]
             }
         }

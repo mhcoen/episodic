@@ -115,8 +115,10 @@ def show_available_models():
                 for model in models:
                     if isinstance(model, dict):
                         model_name = model.get("name", "unknown")
+                        display_name = model.get("display_name", model_name)
                     else:
                         model_name = model
+                        display_name = model
 
                     # Store for number selection
                     all_models.append(model_name)
@@ -161,7 +163,7 @@ def show_available_models():
                     typer.secho(f"  ", nl=False)
                     typer.secho(f"{current_idx:2d}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
                     typer.secho(f". ", nl=False, fg=get_text_color())
-                    typer.secho(f"{model_name:30s}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+                    typer.secho(f"{display_name:30s}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
                     typer.secho(f"\t(", nl=False, fg=get_text_color())
                     if pricing == "Local model":
                         typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)

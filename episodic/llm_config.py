@@ -17,7 +17,8 @@ PROVIDER_API_KEYS = {
     "mistral": "MISTRAL_API_KEY",
     "cohere": "COHERE_API_KEY",
     "azure": "AZURE_API_KEY",
-    "groq": "GROQ_API_KEY"
+    "groq": "GROQ_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY"
 }
 
 # Local providers that don't require API keys
@@ -53,6 +54,21 @@ def get_default_config() -> Dict[str, Any]:
             },
             "local": {
                 "models": []
+            },
+            "openrouter": {
+                "api_base": "https://openrouter.ai/api/v1",
+                "models": [
+                    "openrouter/anthropic/claude-3-opus",
+                    "openrouter/anthropic/claude-3-sonnet",
+                    "openrouter/anthropic/claude-3-haiku",
+                    "openrouter/openai/gpt-4-turbo-preview",
+                    "openrouter/openai/gpt-4",
+                    "openrouter/openai/gpt-3.5-turbo",
+                    "openrouter/google/gemini-pro",
+                    "openrouter/meta-llama/llama-2-70b-chat",
+                    "openrouter/mistralai/mixtral-8x7b-instruct",
+                    "openrouter/cohere/command-r-plus"
+                ]
             }
         }
     }

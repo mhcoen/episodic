@@ -101,23 +101,23 @@ class Config:
             key: The configuration key to set
             value: The value to set
         """
-        # Validate synthesis configuration values
-        if key == 'web_synthesis_style' and value not in ['concise', 'standard', 'comprehensive', 'exhaustive']:
+        # Validate synthesis configuration values (now muse_*)
+        if key == 'muse_style' and value not in ['concise', 'standard', 'comprehensive', 'exhaustive']:
             raise ValueError(f"Invalid synthesis style: {value}. Must be one of: concise, standard, comprehensive, exhaustive")
-        elif key == 'web_synthesis_detail' and value not in ['minimal', 'moderate', 'detailed', 'maximum']:
+        elif key == 'muse_detail' and value not in ['minimal', 'moderate', 'detailed', 'maximum']:
             raise ValueError(f"Invalid synthesis detail: {value}. Must be one of: minimal, moderate, detailed, maximum")
-        elif key == 'web_synthesis_format' and value not in ['paragraph', 'bullet-points', 'mixed', 'academic']:
+        elif key == 'muse_format' and value not in ['paragraph', 'bullet-points', 'mixed', 'academic']:
             raise ValueError(f"Invalid synthesis format: {value}. Must be one of: paragraph, bullet-points, mixed, academic")
-        elif key == 'web_synthesis_sources' and value not in ['first-only', 'top-three', 'all-relevant', 'selective']:
+        elif key == 'muse_sources' and value not in ['first-only', 'top-three', 'all-relevant', 'selective']:
             raise ValueError(f"Invalid synthesis sources: {value}. Must be one of: first-only, top-three, all-relevant, selective")
-        elif key == 'web_synthesis_max_tokens' and value is not None:
+        elif key == 'muse_max_tokens' and value is not None:
             try:
                 tokens = int(value)
                 if tokens < 50 or tokens > 4000:
-                    raise ValueError("web_synthesis_max_tokens must be between 50 and 4000")
+                    raise ValueError("muse_max_tokens must be between 50 and 4000")
                 value = tokens
             except (ValueError, TypeError):
-                raise ValueError("web_synthesis_max_tokens must be a number or None")
+                raise ValueError("muse_max_tokens must be a number or None")
         
         # Handle model parameter syntax like "main.temp" or "topic.temperature"
         if '.' in key:
@@ -190,6 +190,14 @@ class Config:
             # Standard configuration setting - runtime only
             self.config[key] = value
             # Don't save - runtime only
+            
+            # If an API key was set, reload API keys into environment
+            if key.endswith('_api_key') or key in ['azure_api_base', 'azure_api_version',
+                                                     'bedrock_access_key_id', 'bedrock_secret_access_key',
+                                                     'bedrock_region', 'vertex_project', 'vertex_location']:
+                # Import here to avoid circular dependency
+                from episodic.llm import load_api_keys_from_config
+                load_api_keys_from_config()
 
     def get_model_params(self, param_set: str, model: str = None) -> Dict[str, Any]:
         """Get model parameters for a specific context.

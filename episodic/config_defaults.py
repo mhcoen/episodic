@@ -168,6 +168,59 @@ MODEL_SELECTION_DEFAULTS = {
     "model": None,  # Current conversation model (set via /model command)
 }
 
+# LLM Provider API Keys
+LLM_DEFAULTS = {
+    # API Keys for various LLM providers
+    "openai_api_key": None,
+    "anthropic_api_key": None,
+    "google_api_key": None,
+    "groq_api_key": None,
+    "together_api_key": None,
+    "mistral_api_key": None,
+    "cohere_api_key": None,
+    "deepseek_api_key": None,
+    "deepinfra_api_key": None,
+    "perplexity_api_key": None,
+    "fireworks_api_key": None,
+    "anyscale_api_key": None,
+    "replicate_api_key": None,
+    "huggingface_api_key": None,
+    "ai21_api_key": None,
+    "voyage_api_key": None,
+    "openrouter_api_key": None,
+    
+    # Azure configuration
+    "azure_api_key": None,
+    "azure_api_base": None,
+    "azure_api_version": None,
+    
+    # AWS Bedrock configuration
+    "bedrock_access_key_id": None,
+    "bedrock_secret_access_key": None,
+    "bedrock_region": "us-east-1",
+    
+    # Google Vertex configuration
+    "vertex_project": None,
+    "vertex_location": "us-central1",
+    
+    # OpenRouter configuration
+    "openrouter_api_base": "https://openrouter.ai/api/v1",
+    "openrouter_site_url": None,  # Optional: your app's URL for OpenRouter tracking
+    "openrouter_app_name": "Episodic",  # Optional: your app name for OpenRouter tracking
+    "openrouter_default_models": [
+        "anthropic/claude-3-opus",
+        "anthropic/claude-3-sonnet",
+        "anthropic/claude-3-haiku",
+        "openai/gpt-4-turbo-preview",
+        "openai/gpt-4",
+        "openai/gpt-3.5-turbo",
+        "google/gemini-pro",
+        "meta-llama/llama-2-70b-chat",
+        "mistralai/mixtral-8x7b-instruct",
+        "cohere/command-r-plus"
+    ],
+}
+
 # Display settings
 DISPLAY_DEFAULTS = {
     "color_mode": "full",  # Color mode: none, basic, or full
@@ -190,6 +243,7 @@ DEFAULT_CONFIG = {
     **CACHE_DEFAULTS,
     **COMPRESSION_DEFAULTS,
     **MODEL_SELECTION_DEFAULTS,
+    **LLM_DEFAULTS,
     **DISPLAY_DEFAULTS,
     **RAG_DEFAULTS,
     **WEB_SEARCH_DEFAULTS,
@@ -237,6 +291,37 @@ CONFIG_DOCS = {
     "main_params": "Model parameters for main conversation",
     "topic_params": "Model parameters for topic detection",
     "compression_params": "Model parameters for topic compression",
+    
+    # LLM Provider API Keys
+    "openai_api_key": "OpenAI API key for GPT models",
+    "anthropic_api_key": "Anthropic API key for Claude models",
+    "google_api_key": "Google API key for Gemini models",
+    "groq_api_key": "Groq API key for fast inference",
+    "together_api_key": "Together AI API key for open source models",
+    "mistral_api_key": "Mistral AI API key for Mistral models",
+    "cohere_api_key": "Cohere API key for Command models",
+    "deepseek_api_key": "DeepSeek API key for Chinese language models",
+    "deepinfra_api_key": "DeepInfra API key for various open models",
+    "perplexity_api_key": "Perplexity API key for online models",
+    "fireworks_api_key": "Fireworks AI API key for fast inference",
+    "anyscale_api_key": "Anyscale API key for scalable models",
+    "replicate_api_key": "Replicate API key for various models",
+    "huggingface_api_key": "HuggingFace API key for open models",
+    "ai21_api_key": "AI21 Labs API key for Jurassic models",
+    "voyage_api_key": "Voyage AI API key for embeddings",
+    "openrouter_api_key": "OpenRouter API key for access to multiple providers through one API",
+    "azure_api_key": "Azure OpenAI API key",
+    "azure_api_base": "Azure OpenAI API base URL",
+    "azure_api_version": "Azure OpenAI API version",
+    "bedrock_access_key_id": "AWS Bedrock access key ID",
+    "bedrock_secret_access_key": "AWS Bedrock secret access key",
+    "bedrock_region": "AWS Bedrock region",
+    "vertex_project": "Google Vertex AI project ID",
+    "vertex_location": "Google Vertex AI location",
+    "openrouter_api_base": "OpenRouter API base URL (default: https://openrouter.ai/api/v1)",
+    "openrouter_site_url": "Your app's URL for OpenRouter tracking (optional)",
+    "openrouter_app_name": "Your app name for OpenRouter tracking (optional)",
+    "openrouter_default_models": "List of popular OpenRouter models to show when API key is set",
     
     # RAG settings
     "rag_enabled": "Enable RAG for enhanced responses with external knowledge",

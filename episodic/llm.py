@@ -48,8 +48,67 @@ def initialize_cache():
         logger.info("All caching disabled")
         return False
 
+def load_api_keys_from_config():
+    """
+    Load API keys from config into environment variables for LiteLLM.
+    
+    This function checks the config for API keys and sets them as environment
+    variables if they're not already set. This allows users to store API keys
+    in the Episodic config instead of requiring environment variables.
+    """
+    # Map of config keys to environment variable names
+    api_key_mapping = {
+        'openai_api_key': 'OPENAI_API_KEY',
+        'anthropic_api_key': 'ANTHROPIC_API_KEY', 
+        'google_api_key': 'GOOGLE_API_KEY',
+        'groq_api_key': 'GROQ_API_KEY',
+        'together_api_key': 'TOGETHER_API_KEY',
+        'mistral_api_key': 'MISTRAL_API_KEY',
+        'cohere_api_key': 'COHERE_API_KEY',
+        'deepseek_api_key': 'DEEPSEEK_API_KEY',
+        'deepinfra_api_key': 'DEEPINFRA_API_KEY',
+        'perplexity_api_key': 'PERPLEXITY_API_KEY',
+        'fireworks_api_key': 'FIREWORKS_API_KEY',
+        'anyscale_api_key': 'ANYSCALE_API_KEY',
+        'replicate_api_key': 'REPLICATE_API_KEY',
+        'huggingface_api_key': 'HUGGINGFACE_API_KEY',
+        'ai21_api_key': 'AI21_API_KEY',
+        'voyage_api_key': 'VOYAGE_API_KEY',
+        'openrouter_api_key': 'OPENROUTER_API_KEY',
+        'azure_api_key': 'AZURE_API_KEY',
+        'azure_api_base': 'AZURE_API_BASE',
+        'azure_api_version': 'AZURE_API_VERSION',
+        'bedrock_access_key_id': 'AWS_ACCESS_KEY_ID',
+        'bedrock_secret_access_key': 'AWS_SECRET_ACCESS_KEY',
+        'bedrock_region': 'AWS_DEFAULT_REGION',
+        'vertex_project': 'VERTEX_PROJECT',
+        'vertex_location': 'VERTEX_LOCATION'
+    }
+    
+    # Load each API key from config if not already in environment
+    for config_key, env_var in api_key_mapping.items():
+        if not os.environ.get(env_var):
+            api_key = config.get(config_key)
+            if api_key:
+                os.environ[env_var] = api_key
+                logger.debug(f"Loaded {env_var} from config")
+    
+    # Special handling for OpenRouter - set custom headers if configured
+    if config.get('openrouter_api_key'):
+        site_url = config.get('openrouter_site_url')
+        app_name = config.get('openrouter_app_name', 'Episodic')
+        if site_url or app_name:
+            # These will be picked up by LiteLLM for OpenRouter requests
+            if site_url:
+                os.environ['OPENROUTER_SITE_URL'] = site_url
+            if app_name:
+                os.environ['OPENROUTER_APP_NAME'] = app_name
+
 # Initialize cache on module load
 initialize_cache()
+
+# Load API keys from config
+load_api_keys_from_config()
 
 def disable_cache():
     """

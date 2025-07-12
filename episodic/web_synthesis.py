@@ -18,12 +18,12 @@ class WebSynthesizer:
     """Synthesize web search results into coherent answers."""
     
     def __init__(self):
-        self.synthesis_model = config.get('web_synthesis_model') or config.get('model', 'gpt-3.5-turbo')
-        self.style = config.get('web_synthesis_style', 'standard')
-        self.detail = config.get('web_synthesis_detail', 'moderate')
-        self.format = config.get('web_synthesis_format', 'mixed')
-        self.max_tokens = config.get('web_synthesis_max_tokens')
-        self.sources_config = config.get('web_synthesis_sources', 'top-three')
+        self.synthesis_model = config.get('muse_model') or config.get('model', 'gpt-3.5-turbo')
+        self.style = config.get('muse_style', 'standard')
+        self.detail = config.get('muse_detail', 'moderate')
+        self.format = config.get('muse_format', 'mixed')
+        self.max_tokens = config.get('muse_max_tokens')
+        self.sources_config = config.get('muse_sources', 'top-three')
         
     def _get_style_instructions(self) -> Dict[str, Any]:
         """Get instructions based on synthesis style."""

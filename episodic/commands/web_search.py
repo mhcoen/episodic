@@ -359,7 +359,7 @@ def websearch_synthesis():
     # Style settings with visual examples
     typer.secho("\n📏 ", nl=False)
     typer.secho("Length Style", fg=get_system_color(), bold=True)
-    current_style = config.get('web_synthesis_style', 'standard')
+    current_style = config.get('muse_style', 'standard')
     
     styles = [
         ('concise', '~150 words', 'Brief summary with key points', current_style == 'concise'),
@@ -380,7 +380,7 @@ def websearch_synthesis():
     # Detail level settings
     typer.secho("\n🔍 ", nl=False)
     typer.secho("Detail Level", fg=get_system_color(), bold=True)
-    current_detail = config.get('web_synthesis_detail', 'moderate')
+    current_detail = config.get('muse_detail', 'moderate')
     
     details = [
         ('minimal', 'Just essential facts', current_detail == 'minimal'),
@@ -400,7 +400,7 @@ def websearch_synthesis():
     # Format settings
     typer.secho("\n📝 ", nl=False)
     typer.secho("Output Format", fg=get_system_color(), bold=True)
-    current_format = config.get('web_synthesis_format', 'mixed')
+    current_format = config.get('muse_format', 'mixed')
     
     formats = [
         ('paragraph', 'Flowing prose in paragraphs', current_format == 'paragraph'),
@@ -420,7 +420,7 @@ def websearch_synthesis():
     # Source selection
     typer.secho("\n📚 ", nl=False)
     typer.secho("Source Usage", fg=get_system_color(), bold=True)
-    current_sources = config.get('web_synthesis_sources', 'top-three')
+    current_sources = config.get('muse_sources', 'top-three')
     
     sources = [
         ('first-only', 'Use only the top result', current_sources == 'first-only'),
@@ -442,7 +442,7 @@ def websearch_synthesis():
     typer.secho("Advanced Settings", fg=get_system_color(), bold=True)
     
     # Max tokens
-    max_tokens = config.get('web_synthesis_max_tokens')
+    max_tokens = config.get('muse_max_tokens')
     typer.secho("  Max tokens: ", nl=False, fg=get_text_color())
     if max_tokens:
         typer.secho(f"{max_tokens}", fg="bright_yellow")
@@ -450,7 +450,7 @@ def websearch_synthesis():
         typer.secho("Auto (based on style)", fg=typer.colors.WHITE, dim=True)
     
     # Synthesis model
-    synthesis_model = config.get('web_synthesis_model')
+    synthesis_model = config.get('muse_model')
     typer.secho("  Model: ", nl=False, fg=get_text_color())
     if synthesis_model:
         typer.secho(f"{synthesis_model}", fg="bright_yellow")
@@ -476,11 +476,11 @@ def websearch_synthesis():
     typer.secho("\n💡 ", nl=False)
     typer.secho("Quick Settings", fg=get_heading_color(), bold=True)
     typer.secho("  Brief news:  ", nl=False, fg=typer.colors.WHITE, dim=True)
-    typer.secho("/set web-synthesis-style concise", fg="bright_cyan")
+    typer.secho("/set muse-style concise", fg="bright_cyan")
     typer.secho("  Research:    ", nl=False, fg=typer.colors.WHITE, dim=True)
-    typer.secho("/set web-synthesis-style comprehensive", fg="bright_cyan")
+    typer.secho("/set muse-style comprehensive", fg="bright_cyan")
     typer.secho("  Academic:    ", nl=False, fg=typer.colors.WHITE, dim=True)
-    typer.secho("/set web-synthesis-format academic", fg="bright_cyan")
+    typer.secho("/set muse-format academic", fg="bright_cyan")
     
     typer.secho("\n" + "─" * 50, fg=typer.colors.WHITE, dim=True)
     typer.secho("Customize prompt: ", nl=False, fg=typer.colors.WHITE, dim=True)

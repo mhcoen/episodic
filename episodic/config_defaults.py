@@ -128,13 +128,13 @@ WEB_SEARCH_DEFAULTS = {
     "web_show_sources": False,  # Show sources when synthesizing
     "web_show_raw": False,  # Show raw search results instead of synthesizing
     
-    # Web synthesis configuration
-    "web_synthesis_style": "standard",  # concise, standard, comprehensive, exhaustive
-    "web_synthesis_detail": "moderate",  # minimal, moderate, detailed, maximum
-    "web_synthesis_format": "mixed",  # paragraph, bullet-points, mixed, academic
-    "web_synthesis_max_tokens": None,  # Direct token control (overrides style if set)
-    "web_synthesis_sources": "top-three",  # first-only, top-three, all-relevant, selective
-    "web_synthesis_model": None,  # Model for synthesis (None = use main model)
+    # Muse mode synthesis configuration
+    "muse_style": "standard",  # concise, standard, comprehensive, exhaustive
+    "muse_detail": "moderate",  # minimal, moderate, detailed, maximum
+    "muse_format": "mixed",  # paragraph, bullet-points, mixed, academic
+    "muse_max_tokens": None,  # Direct token control (overrides style if set)
+    "muse_sources": "top-three",  # first-only, top-three, all-relevant, selective
+    "muse_model": None,  # Model for synthesis (None = use main model)
     
     # Provider-specific settings
     "searx_instance_url": "https://searx.be",  # Searx instance URL (can be self-hosted)
@@ -273,13 +273,13 @@ CONFIG_DOCS = {
     "web_show_sources": "Show source URLs when displaying synthesized answers",
     "web_show_raw": "Show raw search results instead of synthesizing (overrides synthesis)",
     
-    # Web synthesis configuration
-    "web_synthesis_style": "Length of synthesis: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)",
-    "web_synthesis_detail": "Detail level: minimal (facts only), moderate (with context), detailed (explanations), maximum (all nuances)",
-    "web_synthesis_format": "Output format: paragraph (prose), bullet-points (lists), mixed (auto), academic (formal citations)",
-    "web_synthesis_max_tokens": "Direct token limit for synthesis (overrides style setting if specified)",
-    "web_synthesis_sources": "Source selection: first-only, top-three (default), all-relevant, selective",
-    "web_synthesis_model": "Specific model for synthesis (None = use main conversation model)",
+    # Muse mode synthesis configuration
+    "muse_style": "Length of synthesis: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)",
+    "muse_detail": "Detail level: minimal (facts only), moderate (with context), detailed (explanations), maximum (all nuances)",
+    "muse_format": "Output format: paragraph (prose), bullet-points (lists), mixed (auto), academic (formal citations)",
+    "muse_max_tokens": "Direct token limit for synthesis (overrides style setting if specified)",
+    "muse_sources": "Source selection: first-only, top-three (default), all-relevant, selective",
+    "muse_model": "Specific model for synthesis (None = use main conversation model)",
     
     # Provider-specific settings
     "searx_instance_url": "URL of Searx/SearxNG instance to use (default: https://searx.be)",

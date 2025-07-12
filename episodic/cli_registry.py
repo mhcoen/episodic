@@ -226,9 +226,38 @@ def show_advanced_help():
             typer.secho(f"  /{cmd_info.name:<25} → Use /{cmd_info.replacement}",
                        fg="yellow")
     
+    # Show muse configuration details in advanced view only
+    try:
+        # Check if this is being called from show_advanced_help
+        import inspect
+        frame = inspect.currentframe()
+        caller_name = frame.f_back.f_code.co_name
+        show_muse_config = caller_name == 'show_advanced_help'
+    except:
+        show_muse_config = False
+    
+    if show_muse_config:
+        typer.secho("\n🎭 Muse Mode Configuration:", fg=get_heading_color(), bold=True)
+        muse_settings = [
+            ("muse-style", "Response length: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)"),
+            ("muse-detail", "Detail level: minimal, moderate, detailed, maximum"),
+            ("muse-format", "Output format: paragraph, bullet-points, mixed, academic"),
+            ("muse-max-tokens", "Direct token limit (overrides style if set)"),
+            ("muse-sources", "Source selection: first-only, top-three, all-relevant"),
+            ("muse-model", "Model for synthesis (None = use main model)")
+        ]
+        
+        for setting, description in muse_settings:
+            padding = ' ' * max(1, 30 - len(f"/set {setting}") - 2)
+            typer.secho(f"  /set {setting}{padding}", 
+                       fg=get_system_color(), bold=True, nl=False)
+            typer.secho(description, fg=get_text_color())
+    
     typer.secho("\n" + "─" * 60, fg=get_heading_color())
     typer.secho("💡 Type messages directly to chat", fg=get_text_color(), dim=True)
     typer.secho("📝 Common settings: /set debug off, /set cost on, /set topics on", 
+               fg=get_text_color(), dim=True)
+    typer.secho("🎭 Muse mode length: /set muse-style concise|standard|comprehensive", 
                fg=get_text_color(), dim=True)
     typer.secho("🚪 Type '/exit' or '/quit' to leave", fg=get_text_color(), dim=True)
 

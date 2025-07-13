@@ -9,6 +9,7 @@ import time
 import typer
 from typing import Optional
 from prompt_toolkit import PromptSession
+from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
 from episodic.config import config
@@ -108,8 +109,10 @@ def talk_loop() -> None:
     # Display model info
     display_model_info()
     
-    # Create prompt session without file history
+    # Create prompt session with history file in ~/.episodic directory
+    history_file = os.path.expanduser("~/.episodic/command_history")
     session = PromptSession(
+        history=FileHistory(history_file),
         auto_suggest=AutoSuggestFromHistory(),
         message=get_prompt,
         vi_mode=config.get("vi_mode", False),  # Enable vi mode if configured

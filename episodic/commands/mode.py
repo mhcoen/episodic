@@ -48,42 +48,12 @@ def chat_command(enable: bool = True):
 
 
 def handle_muse(args: list):
-    """Handle /muse command with on/off argument."""
-    if not args:
-        # Show current status
-        muse_enabled = config.get("muse_mode", False)
-        if muse_enabled:
-            typer.secho("🎭 Muse mode is ", nl=False, fg=get_system_color())
-            typer.secho("ENABLED", fg="bright_green", bold=True)
-            typer.secho("All input is being treated as web searches", fg=get_text_color())
-        else:
-            typer.secho("💬 Chat mode is ", nl=False, fg=get_system_color())
-            typer.secho("ENABLED", fg="bright_green", bold=True)
-            typer.secho("Input is being sent to the LLM", fg=get_text_color())
-    elif args[0].lower() == "on":
-        muse_command(True)
-    elif args[0].lower() == "off":
-        muse_command(False)
-    else:
-        typer.secho("Usage: /muse [on|off]", fg="red")
+    """Handle /muse command - now directly enables muse mode."""
+    # Always enable muse mode when /muse is called
+    muse_command(True)
 
 
 def handle_chat(args: list):
-    """Handle /chat command with on/off argument."""
-    if not args:
-        # Show current status
-        muse_enabled = config.get("muse_mode", False)
-        if muse_enabled:
-            typer.secho("💬 Chat mode is ", nl=False, fg=get_system_color())
-            typer.secho("DISABLED", fg="bright_red", bold=True)
-            typer.secho("Muse mode is active - all input is treated as web searches", fg=get_text_color())
-        else:
-            typer.secho("💬 Chat mode is ", nl=False, fg=get_system_color())
-            typer.secho("ENABLED", fg="bright_green", bold=True)
-            typer.secho("Input is being sent to the LLM", fg=get_text_color())
-    elif args[0].lower() == "on":
-        chat_command(True)
-    elif args[0].lower() == "off":
-        chat_command(False)
-    else:
-        typer.secho("Usage: /chat [on|off]", fg="red")
+    """Handle /chat command - now directly enables chat mode."""
+    # Always enable chat mode when /chat is called
+    chat_command(True)

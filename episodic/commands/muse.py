@@ -13,28 +13,13 @@ from episodic.configuration import get_system_color, get_text_color
 
 def muse(action: Optional[str] = None):
     """
-    Handle muse mode toggling - treat all input as web search queries.
+    Enable muse mode - treat all input as web search queries.
     
     Args:
-        action: Optional action - "on", "off", or None to show status
+        action: Optional action for backwards compatibility, but /muse now directly enables
     """
-    if action is None:
-        # Show current status
-        muse_enabled = config.get("muse_mode", False)
-        if muse_enabled:
-            typer.secho("🎭 Muse mode is ", nl=False, fg=get_system_color())
-            typer.secho("ENABLED", fg="bright_green", bold=True)
-            typer.secho("All input is being treated as web searches", fg=get_text_color())
-        else:
-            typer.secho("🎭 Muse mode is ", nl=False, fg=get_system_color())
-            typer.secho("DISABLED", fg="red", bold=True)
-            typer.secho("Input is being sent to the LLM", fg=get_text_color())
-    elif action == "on":
-        muse_on()
-    elif action == "off":
-        muse_off()
-    else:
-        typer.secho("Usage: /muse [on|off]", fg="red")
+    # Always enable muse mode when /muse is called
+    muse_on()
 
 
 def muse_on():

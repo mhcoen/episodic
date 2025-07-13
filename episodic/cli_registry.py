@@ -127,10 +127,9 @@ def show_help_with_categories():
     # Mode switching - most prominent
     typer.secho("\n🎭 Mode Selection:", fg=get_heading_color(), bold=True)
     mode_commands = [
-        ("/muse on", "Enable Muse mode (Perplexity-like web search)"),
-        ("/muse off", "Disable Muse mode (return to normal chat)"),
-        ("/muse", "Show current mode status"),
-        ("/chat on", "Enable Chat mode (normal LLM conversation)"),
+        ("/muse", "Enable Muse mode (web search synthesis)"),
+        ("/chat", "Enable Chat mode (normal LLM conversation)"),
+        ("/set muse-style concise", "Set muse response length (concise/standard/comprehensive)"),
     ]
     
     for cmd, desc in mode_commands:
@@ -139,24 +138,13 @@ def show_help_with_categories():
         typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
-    # Basic commands for new users
-    typer.secho("\n🚀 Getting Started:", fg=get_heading_color(), bold=True)
-    basic_commands = [
-        ("/init", "Initialize the database"),
-        ("/model", "Show current models for all contexts"),
-        ("/web", "Manage web search providers"),
-    ]
-    
-    for cmd, desc in basic_commands:
-        padding = ' ' * max(1, 30 - len(cmd) - 2)
-        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
-        typer.secho(desc, fg=get_text_color())
-    
-    # Common conversation commands
+    # Most useful commands
     typer.secho("\n💬 Common Commands:", fg=get_heading_color(), bold=True)
     conversation_commands = [
         ("/topics", "List conversation topics"),
+        ("/list", "Show recent conversation nodes"),
         ("/summary", "Summarize recent conversation"),
+        ("/model", "Show/change current models"),
         ("/cost", "Show session cost"),
     ]
     
@@ -228,32 +216,22 @@ def show_advanced_help():
             typer.secho(f"  /{cmd_info.name:<25} → Use /{cmd_info.replacement}",
                        fg="yellow")
     
-    # Show muse configuration details in advanced view only
-    try:
-        # Check if this is being called from show_advanced_help
-        import inspect
-        frame = inspect.currentframe()
-        caller_name = frame.f_back.f_code.co_name
-        show_muse_config = caller_name == 'show_advanced_help'
-    except:
-        show_muse_config = False
+    # Show muse configuration details in advanced view
+    typer.secho("\n🎭 Muse Mode Configuration:", fg=get_heading_color(), bold=True)
+    muse_settings = [
+        ("muse-style", "Response length: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)"),
+        ("muse-detail", "Detail level: minimal, moderate, detailed, maximum"),
+        ("muse-format", "Output format: paragraph, bullet-points, mixed, academic"),
+        ("muse-max-tokens", "Direct token limit (overrides style if set)"),
+        ("muse-sources", "Source selection: first-only, top-three, all-relevant"),
+        ("muse-model", "Model for synthesis (None = use main model)")
+    ]
     
-    if show_muse_config:
-        typer.secho("\n🎭 Muse Mode Configuration:", fg=get_heading_color(), bold=True)
-        muse_settings = [
-            ("muse-style", "Response length: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)"),
-            ("muse-detail", "Detail level: minimal, moderate, detailed, maximum"),
-            ("muse-format", "Output format: paragraph, bullet-points, mixed, academic"),
-            ("muse-max-tokens", "Direct token limit (overrides style if set)"),
-            ("muse-sources", "Source selection: first-only, top-three, all-relevant"),
-            ("muse-model", "Model for synthesis (None = use main model)")
-        ]
-        
-        for setting, description in muse_settings:
-            padding = ' ' * max(1, 30 - len(f"/set {setting}") - 2)
-            typer.secho(f"  /set {setting}{padding}", 
-                       fg=get_system_color(), bold=True, nl=False)
-            typer.secho(description, fg=get_text_color())
+    for setting, description in muse_settings:
+        padding = ' ' * max(1, 30 - len(f"/set {setting}") - 2)
+        typer.secho(f"  /set {setting}{padding}", 
+                   fg=get_system_color(), bold=True, nl=False)
+        typer.secho(description, fg=get_text_color())
     
     typer.secho("\n" + "─" * 60, fg=get_heading_color())
     typer.secho("💡 Type messages directly to chat", fg=get_text_color(), dim=True)

@@ -169,7 +169,7 @@ def register_all_commands():
     command_registry.register("mset", mset_command, "Set model parameters (e.g., mset chat.temperature 0.7)", "Configuration")
     command_registry.register("prompt", prompts, "Manage system prompts", "Conversation", aliases=["prompts"])
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
-    command_registry.register("muse", handle_muse, "Enable muse mode (web search for all input)", "Conversation")
+    command_registry.register("muse", handle_muse, "Enable muse mode (web search synthesis)", "Conversation")
     command_registry.register("chat", handle_chat, "Enable chat mode (normal LLM conversation)", "Conversation")
     command_registry.register("visualize", visualize, "Visualize conversation graph", "Utility")
     command_registry.register("benchmark", benchmark, "Show performance statistics", "Utility")

@@ -147,7 +147,10 @@ def execute_script(filename: str):
 
 def save_to_history(message: str):
     """Save a message to the history file."""
-    history_file = config.get("history_file", ".episodic_history")
+    from episodic.configuration import DEFAULT_HISTORY_FILE
+    history_file = config.get("history_file", DEFAULT_HISTORY_FILE)
+    # Expand tilde to home directory
+    history_file = os.path.expanduser(history_file)
     
     try:
         # Ensure the directory exists

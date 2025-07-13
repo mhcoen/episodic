@@ -39,3 +39,6 @@ archive/
 working/
 .idea/
 archive/
+
+# Episodic history files
+.episodic_history

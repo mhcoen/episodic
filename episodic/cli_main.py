@@ -4,16 +4,16 @@ Main loop and entry point for Episodic CLI.
 This module contains the main talk loop and application entry point.
 """
 
+import os
 import time
 import typer
 from typing import Optional
 from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
 from episodic.config import config
 from episodic.configuration import (
-    DEFAULT_HISTORY_FILE, MAIN_LOOP_SLEEP_INTERVAL,
+    MAIN_LOOP_SLEEP_INTERVAL,
     get_system_color
 )
 from episodic.db import initialize_db as init_db
@@ -21,7 +21,7 @@ from episodic.conversation import ConversationManager
 from episodic.benchmark import display_pending_benchmark, reset_benchmarks
 from episodic.cli_command_router import handle_command
 from episodic.cli_session import (
-    add_to_session_commands, save_to_history,
+    add_to_session_commands,
     execute_script
 )
 from episodic.cli_display import (
@@ -33,7 +33,6 @@ from episodic.cli_display import (
 app = typer.Typer()
 
 # Global variables
-chat_history_file = DEFAULT_HISTORY_FILE
 conversation_manager = None
 
 
@@ -109,9 +108,8 @@ def talk_loop() -> None:
     # Display model info
     display_model_info()
     
-    # Create prompt session with history
+    # Create prompt session without file history
     session = PromptSession(
-        history=FileHistory(chat_history_file),
         auto_suggest=AutoSuggestFromHistory(),
         message=get_prompt,
         vi_mode=config.get("vi_mode", False),  # Enable vi mode if configured
@@ -127,9 +125,8 @@ def talk_loop() -> None:
             if not user_input.strip():
                 continue
             
-            # Save to history (both internal and file)
+            # Save to session commands (internal only, no file history)
             add_to_session_commands(user_input)
-            save_to_history(user_input)
             
             # Check if it's a command
             if user_input.startswith('/'):

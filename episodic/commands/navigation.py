@@ -223,7 +223,7 @@ def head(node_id: Optional[str] = None):
                    fg=get_system_color())
 
 
-def list(count: int = typer.Option(DEFAULT_LIST_COUNT, "--count", "-c", help="Number of recent nodes to list")):
+def list(count: int = DEFAULT_LIST_COUNT):
     """List recent nodes from the conversation graph."""
     
     nodes = get_recent_nodes(count)

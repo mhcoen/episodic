@@ -35,13 +35,31 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         display_all_settings(default_context_depth, default_semdepth)
         return
 
-    # If no param provided, show current settings
+    # If no param provided, show commonly changed settings
     if param is None:
-        typer.secho("Current Settings:", fg=get_heading_color(), bold=True)
-        typer.secho(f"  Context depth: {default_context_depth} messages", fg=get_system_color())
-        typer.secho(f"  Semantic depth: {default_semdepth} levels", fg=get_system_color())
-        typer.secho(f"  Cache: {config.get('use_context_cache', True)}", fg=get_system_color())
-        typer.secho(f"  Debug: {config.get('debug', False)}", fg=get_system_color())
+        typer.secho("Commonly Changed Settings:", fg=get_heading_color(), bold=True)
+        
+        # Core settings
+        typer.secho(f"  debug: {config.get('debug', False)}", fg=get_system_color())
+        typer.secho(f"  cost: {config.get('show_costs', False)}", fg=get_system_color())
+        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
+        typer.secho(f"  stream-responses: {config.get('stream_responses', True)}", fg=get_system_color())
+        
+        # Mode settings
+        muse_mode = config.get('muse_mode', False)
+        typer.secho(f"  muse-mode: {muse_mode}", fg=get_system_color())
+        if muse_mode:
+            typer.secho(f"  muse-style: {config.get('muse_style', 'standard')}", fg=get_system_color())
+            typer.secho(f"  muse-detail: {config.get('muse_detail', 'moderate')}", fg=get_system_color())
+        
+        # Context settings
+        typer.secho(f"  depth: {default_context_depth} messages", fg=get_system_color())
+        typer.secho(f"  wrap: {config.get('text_wrap', True)}", fg=get_system_color())
+        
+        # Feature toggles
+        typer.secho(f"  rag-enabled: {config.get('rag_enabled', False)}", fg=get_system_color())
+        typer.secho(f"  web-search-enabled: {config.get('web_search_enabled', False)}", fg=get_system_color())
+        
         typer.secho("\nUse '/set all' to see all settings", fg=get_text_color())
         typer.secho("Use '/set <param> <value>' to change a setting", fg=get_text_color())
         return

@@ -325,3 +325,9 @@ def ancestry(node_id: str):
             typer.secho(f"{indent}  ↓", fg=get_text_color(), dim=True)
     
     typer.secho("─" * 60, fg=get_heading_color())
+
+
+def last_exchange():
+    """Show the last conversation exchange."""
+    # Show just the last exchange (count=1)
+    list(count=1)

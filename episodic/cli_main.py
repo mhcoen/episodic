@@ -267,7 +267,16 @@ def main(
         typer.echo()
         from episodic.commands import cost as show_cost
         show_cost()
+    
+    # Clean up database connections on exit
+    from episodic.db_connection import close_pool
+    close_pool()
 
 
 if __name__ == "__main__":
-    app()
+    try:
+        app()
+    finally:
+        # Ensure cleanup happens even on unexpected exit
+        from episodic.db_connection import close_pool
+        close_pool()

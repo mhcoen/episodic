@@ -93,7 +93,7 @@ def register_all_commands():
     # Import commands
     from episodic.commands import (
         # Navigation
-        init, add, show, print_node, head, ancestry, list_nodes,
+        init, add, show, print_node, head, ancestry, list_nodes, last_exchange,
         # Settings  
         set, verify, cost, model_params, config_docs, reset,
         # Topics
@@ -140,6 +140,7 @@ def register_all_commands():
     command_registry.register("head", head, "Set or show the current head node", "Navigation")
     command_registry.register("ancestry", ancestry, "Show the ancestry chain of a node", "Navigation")
     command_registry.register("list", list_nodes, "List recent nodes", "Navigation")
+    command_registry.register("last", last_exchange, "Show the last conversation exchange", "Navigation")
     
     # Register unified commands (new style)
     command_registry.register(

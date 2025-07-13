@@ -128,6 +128,8 @@ def show_help_with_categories():
     typer.secho("\n🎭 Mode Selection:", fg=get_heading_color(), bold=True)
     mode_commands = [
         ("/muse on", "Enable Muse mode (Perplexity-like web search)"),
+        ("/muse off", "Disable Muse mode (return to normal chat)"),
+        ("/muse", "Show current mode status"),
         ("/chat on", "Enable Chat mode (normal LLM conversation)"),
     ]
     

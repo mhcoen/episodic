@@ -197,7 +197,12 @@ Run completely offline with local models:
 
 ## 🔧 Configuration
 
-Episodic is highly configurable. Common settings:
+Episodic is highly configurable. While many settings can be changed interactively with the `/set` command, you can set your defaults by creating a personal configuration file.
+
+1. Copy `episodic/config.default.json` to `episodic/config.json`.
+2. Edit `episodic/config.json` to set your preferences, such as API keys or default models.
+
+Common settings that can be changed via the CLI:
 
 ```bash
 /set stream_responses true    # Enable response streaming
@@ -207,7 +212,7 @@ Episodic is highly configurable. Common settings:
 /set debug true               # Enable debug output
 ```
 
-See the [Configuration Reference](CONFIG_REFERENCE.md) for all configuration options.
+See the [Configuration Documentation](docs/configuration.md) for all configuration options.
 
 ### Model Parameters
 
@@ -250,7 +255,15 @@ Episodic uses a modular architecture:
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Searx)
 
-## 🧪 Experimental Features
+## 🧪 Testing
+
+This project uses `pytest` for testing. To run the full test suite, navigate to the root directory and run:
+
+```bash
+pytest
+```
+
+## 🔬 Experimental Features
 
 Episodic includes several experimental features for exploration:
 
@@ -258,18 +271,25 @@ Episodic includes several experimental features for exploration:
 - **Boundary Analysis**: LLM-powered detection of exact topic transition points
 - **Alternative Embeddings**: Pluggable embedding providers for different use cases
 
-See [Experimental Features](USER_GUIDE.md#experimental-features) for details.
+See the [User Guide's section on Experimental Features](docs/user-guide.md#experimental-features) for details.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Areas of interest:
+Contributions are welcome! We follow a standard fork-and-pull-request workflow.
+
+1.  **Fork** the repository on GitHub.
+2.  **Clone** your fork locally (`git clone <your-fork-url>`).
+3.  Create a new **branch** for your feature or bug fix (`git checkout -b my-new-feature`).
+4.  Make your changes and **commit** them with clear messages.
+5.  **Push** your changes to your fork (`git push origin my-new-feature`).
+6.  Submit a **pull request** to the main `episodic` repository.
+
+Areas of interest:
 
 - **Non-linear Conversations**: Implement branching conversation trees
 - **Running Topic Prediction**: Real-time topic detection
 - **Additional Providers**: More LLM, embedding, and search providers
 - **UI/UX Improvements**: Better visualization and interaction
-
-See [ADAPTIVE_TOPIC_DETECTION_PLAN.md](ADAPTIVE_TOPIC_DETECTION_PLAN.md) for planned improvements.
 
 ## 📄 License
 

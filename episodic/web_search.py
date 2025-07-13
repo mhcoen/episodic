@@ -507,6 +507,137 @@ class WebSearchManager:
         """Check if error is due to quota/auth issues."""
         return response_status in [401, 403, 429]
     
+    async def _search_provider_async(self, query: str, num_results: int,
+                                   provider: WebSearchProvider, provider_name: str) -> Optional[List[SearchResult]]:
+        """Execute async search for a single provider."""
+        try:
+            # Always show which provider we're using
+            typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
+            
+            results = await provider.search(query, num_results)
+            
+            if results:
+                return results
+            
+            # Empty results might be valid
+            if config.get('debug'):
+                typer.secho(f"{provider_name} returned no results", fg="yellow")
+                
+        except Exception as e:
+            # Show errors for debugging
+            if config.get('debug'):
+                error_msg = str(e)
+                if provider_name == 'Google' and 'API_KEY_SERVICE_BLOCKED' in error_msg:
+                    typer.secho(
+                        f"⚠️  Google Search API is not enabled for your project",
+                        fg="yellow"
+                    )
+                else:
+                    typer.secho(f"⚠️  {provider_name} search failed: {error_msg}", fg="red")
+                    
+        return None
+    
+    async def search_async(self, query: str, num_results: int = None, 
+                          use_cache: bool = True) -> List[SearchResult]:
+        """
+        Perform a web search asynchronously with caching, rate limiting, and provider fallback.
+        
+        Args:
+            query: Search query
+            num_results: Number of results to return
+            use_cache: Whether to use cached results
+            
+        Returns:
+            List of search results
+        """
+        if num_results is None:
+            num_results = config.get('web_search_max_results', 5)
+        
+        # Check cache first
+        if use_cache:
+            cache_duration = config.get('web_search_cache_duration', 3600)
+            cached = self.cache.get(query, cache_duration)
+            if cached:
+                if config.get('debug'):
+                    typer.secho(f"Using cached results for: {query}", fg="cyan")
+                return cached[:num_results]
+        
+        # Check rate limit
+        if not self.rate_limiter.can_search():
+            remaining = self.rate_limiter.remaining()
+            typer.secho(
+                f"⚠️  Rate limit reached. {remaining} searches remaining this hour.",
+                fg="yellow"
+            )
+            return []
+        
+        # Check for cached working provider
+        working_provider = self._get_working_provider()
+        
+        # If we have a cached provider, but it's not the first in our list,
+        # clear the cache to respect the user's configuration
+        if working_provider and self.providers and working_provider != self.providers[0]:
+            self._working_provider_cache = None
+            self._working_provider_timestamp = None
+            working_provider = None
+        
+        if working_provider:
+            providers_to_try = [working_provider]
+        else:
+            providers_to_try = self.providers
+        
+        # Try each provider in order
+        for i, provider in enumerate(providers_to_try):
+            if provider is None or provider.__class__ is None:
+                if config.get('debug'):
+                    typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg="yellow")
+                continue
+            provider_name = provider.__class__.__name__.replace('Provider', '')
+            
+            # Skip providers that aren't available (missing credentials)
+            if not provider.is_available():
+                # Always show when skipping a provider that was explicitly configured
+                if i == 0 or config.get('debug'):
+                    # More specific message for different providers
+                    if provider_name == 'Google':
+                        typer.secho(
+                            f"⚠️  Skipping Google (requires GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID)",
+                            fg="yellow"
+                        )
+                    elif provider_name == 'Bing':
+                        typer.secho(
+                            f"⚠️  Skipping Bing (requires BING_API_KEY)",
+                            fg="yellow"
+                        )
+                    else:
+                        typer.secho(
+                            f"⚠️  Skipping {provider_name} (not configured)",
+                            fg="yellow"
+                        )
+                continue
+            
+            # Try async search
+            results = await self._search_provider_async(query, num_results, provider, provider_name)
+            
+            if results:
+                # Success - cache and return
+                self.rate_limiter.record_search()
+                self.cache.set(query, results)
+                
+                # Cache this working provider
+                if config.get('web_search_fallback_enabled', True):
+                    self._working_provider_cache = provider
+                    self._working_provider_timestamp = datetime.now()
+                
+                if i > 0:  # We used a fallback
+                    typer.secho(f"✅ {provider_name} search successful", fg="green")
+                
+                return results
+        
+        # No provider succeeded
+        typer.secho("⚠️  All search providers failed", fg="red")
+        return []
+    
     def search(self, query: str, num_results: int = None, 
                use_cache: bool = True) -> List[SearchResult]:
         """

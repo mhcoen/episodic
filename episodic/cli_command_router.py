@@ -124,6 +124,10 @@ def handle_command(command_str: str) -> bool:
             _handle_graph(args)
         elif cmd == "/summary":
             _handle_summary(args)
+        elif cmd == "/list":
+            _handle_list(args)
+        elif cmd == "/last":
+            _handle_last(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -171,9 +175,13 @@ def _handle_show(args: List[str]):
 
 def _handle_print(args: List[str]):
     """Handle /print command."""
-    from episodic.commands import print_conversation
-    limit = int(args[0]) if args else 10
-    print_conversation(limit)
+    from episodic.commands import print_node
+    
+    if args:
+        node_id = args[0]
+        print_node(node_id)
+    else:
+        print_node()
 
 
 def _handle_visualize(args: List[str]):
@@ -610,3 +618,26 @@ def _handle_summary(args: List[str]):
                 typer.secho("Invalid argument. Use a number or 'all'", fg="red")
     else:
         typer.secho("Usage: /summary [count|all]", fg="red")
+
+
+def _handle_list(args: List[str]):
+    """Handle /list command."""
+    from episodic.commands.navigation import list as list_command
+    from episodic.configuration import DEFAULT_LIST_COUNT
+    
+    if not args:
+        list_command()
+    else:
+        try:
+            count = int(args[0])
+            list_command(count=count)
+        except ValueError:
+            typer.secho("Usage: /list [count]", fg="red")
+
+
+def _handle_last(args: List[str]):
+    """Handle /last command - show the last conversation exchange."""
+    from episodic.commands.navigation import list as list_command
+    
+    # Show just the last exchange (count=1)
+    list_command(count=1)

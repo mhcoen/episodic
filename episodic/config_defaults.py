@@ -165,7 +165,7 @@ COMPRESSION_DEFAULTS = {
 # Model selection settings
 MODEL_SELECTION_DEFAULTS = {
     "topic_detection_model": "ollama/llama3",  # Model to use for topic detection
-    "model": None,  # Current conversation model (set via /model command)
+    "model": "gpt-3.5-turbo",  # Current conversation model (default: gpt-3.5-turbo)
 }
 
 # LLM Provider API Keys
@@ -386,7 +386,7 @@ CONFIG_DOCS = {
     
     # Model selection
     "topic_detection_model": "Specific model to use for topic detection (can differ from main model)",
-    "model": "Current conversation model (set via /model command)",
+    "model": "Current conversation model (default: gpt-3.5-turbo, change via /model command)",
     
     # Display settings
     "color_mode": "Terminal color mode: 'none' (no colors), 'basic' (8 colors), or 'full' (256 colors)",

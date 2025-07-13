@@ -37,12 +37,16 @@ def model_command(
     Manage language models for different contexts.
     
     Usage:
-        /model                          # Show all four models in use
-        /model list                     # Show available models with pricing
-        /model chat [name|number]       # Set chat model
-        /model detection [name|number]  # Set detection model
-        /model compression [name|number] # Set compression model
-        /model synthesis [name|number]   # Set synthesis model
+        /model                              # Show all four models in use
+        /model list                         # Show available models with pricing
+        /model chat <number|full-name>      # Set chat model
+        /model detection <number|full-name> # Set detection model
+        /model compression <number|full-name> # Set compression model
+        /model synthesis <number|full-name>  # Set synthesis model
+    
+    Examples:
+        /model chat 3                       # Select by number from list
+        /model chat gpt-4o-mini             # Select by full model name
     """
     # No arguments - show all models in use
     if not context:
@@ -70,7 +74,7 @@ def model_command(
         typer.secho(f"Valid contexts: {', '.join(valid_contexts)}", fg=get_text_color())
         return
     
-    # If no model specified, show error
+    # If no model specified, show usage
     if not model_name:
         typer.secho(f"Please specify a model name or number.", fg="red")
         typer.secho(f"Use '/model list' to see available models.", fg=get_text_color())
@@ -178,10 +182,13 @@ def show_available_models():
         typer.echo(f"Error getting model list: {str(e)}")
     
     typer.secho("\nTo change a model:", fg=get_text_color())
-    typer.secho("  /model chat <name|number>", fg=get_system_color())
-    typer.secho("  /model detection <name|number>", fg=get_system_color())
-    typer.secho("  /model compression <name|number>", fg=get_system_color())
-    typer.secho("  /model synthesis <name|number>", fg=get_system_color())
+    typer.secho("  /model chat <number|full-model-name>", fg=get_system_color())
+    typer.secho("  /model detection <number|full-model-name>", fg=get_system_color())
+    typer.secho("  /model compression <number|full-model-name>", fg=get_system_color())
+    typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
+    typer.secho("\nExamples:", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat 8                       # Select by number from list", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat claude-opus-4-20250514  # Select by full model name", fg=get_text_color(), dim=True)
 
 
 def show_model_for_context(context: str):

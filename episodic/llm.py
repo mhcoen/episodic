@@ -330,6 +330,13 @@ def _execute_llm_query(
         for param in unsupported_params:
             api_params.pop(param, None)
     
+    # Filter out unsupported parameters for Anthropic models
+    if provider == "anthropic" or "claude" in full_model.lower() or "anthropic" in full_model.lower():
+        # Anthropic doesn't support presence_penalty or frequency_penalty
+        unsupported_params = ['presence_penalty', 'frequency_penalty']
+        for param in unsupported_params:
+            api_params.pop(param, None)
+    
     # Provider-specific handling
     if provider == "lmstudio":
         provider_config = get_provider_config("lmstudio")

@@ -35,10 +35,11 @@ def display_welcome():
 def display_model_info():
     """Display model and pricing information."""
     # Display current model and pricing information
-    from episodic.llm_config import get_default_model, get_current_provider
+    from episodic.llm_config import get_current_provider
     from litellm import cost_per_token
     
-    current_model = get_default_model()
+    # Use the same config key as /model command uses
+    current_model = config.get("model", "gpt-3.5-turbo")
     provider = get_current_provider()
     
     # Check if it's a local provider

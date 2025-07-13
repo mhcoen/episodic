@@ -11,7 +11,7 @@ from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color, get_heading_color
 from episodic.llm_config import (
     get_available_providers, get_provider_models, get_current_provider,
-    set_default_model, get_default_model
+    validate_model_selection
 )
 
 # Constants
@@ -29,7 +29,7 @@ def handle_model(name: Optional[str] = None):
     """Switch to a different language model or show current model."""
     if name is None:
         # Show current model
-        current_model = config.get("model", get_default_model())
+        current_model = config.get("model", "gpt-3.5-turbo")
         
         # Find the actual provider for this model
         actual_provider = None
@@ -166,9 +166,13 @@ def handle_model(name: Optional[str] = None):
     
     # Now handle model change with the resolved model name
     try:
-        set_default_model(name)
+        # Validate that the model exists and has API key
+        validate_model_selection(name)
+        
+        # Set the model in our config (single source of truth)
         config.set("model", name)
-        # Get the provider AFTER set_default_model has updated it
+        
+        # Get the provider based on the model
         provider = get_current_provider()
         
         # Display model with pricing

@@ -1,0 +1,60 @@
+# Core CLI and interface dependencies
+typer==0.16.0
+click==8.2.1
+colorama==0.4.6
+
+# LLM integration
+litellm==1.74.0.post1
+openai==1.93.2
+tiktoken==0.9.0
+
+# Web framework and real-time communication
+flask==3.1.1
+flask-socketio==5.5.1
+python-socketio==5.13.0
+python-engineio==4.12.2
+
+# Async and HTTP clients
+aiohttp==3.12.13
+httpx==0.28.1
+requests==2.32.4
+beautifulsoup4==4.13.4
+websocket-client==1.8.0
+
+# Data visualization
+networkx==3.5
+plotly==6.2.0
+
+# Database (if using ChromaDB features)
+chromadb==1.0.15
+
+# ML/Embeddings (if using RAG features)
+sentence-transformers==5.0.0
+transformers==4.53.1
+torch==2.7.1
+numpy==2.3.1
+scipy==1.16.0
+scikit-learn==1.7.0
+
+# Configuration
+python-dotenv==1.1.1
+
+# JSON and serialization
+orjson==3.10.18
+
+# Utilities
+tqdm==4.67.1
+tabulate==0.9.0
+humanfriendly==10.0
+tenacity==9.1.2
+backoff==2.2.1
+
+# Testing
+pytest==8.4.1
+pytest-asyncio==1.0.0
+
+# Development tools (optional)
+black==25.1.0
+flake8==7.3.0
+mypy==1.16.1
+autoflake==2.3.1

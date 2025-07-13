@@ -26,8 +26,8 @@ def muse(action: Optional[str] = None):
             typer.secho("ENABLED", fg="bright_green", bold=True)
             typer.secho("All input is being treated as web searches", fg=get_text_color())
         else:
-            typer.secho("💬 Chat mode is ", nl=False, fg=get_system_color())
-            typer.secho("ENABLED", fg="bright_green", bold=True)
+            typer.secho("🎭 Muse mode is ", nl=False, fg=get_system_color())
+            typer.secho("DISABLED", fg="red", bold=True)
             typer.secho("Input is being sent to the LLM", fg=get_text_color())
     elif action == "on":
         muse_on()

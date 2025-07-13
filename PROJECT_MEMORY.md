@@ -1,6 +1,27 @@
 # Episodic Project Memory
 
-Last Updated: 2025-07-11
+Last Updated: 2025-07-13
+
+## Recent Session (2025-07-13)
+### Comprehensive Code Review and Improvements
+- **Performed thorough code review** of entire Episodic project
+- **Dependency Audit Completed**:
+  - Reduced from 383 to ~120 dependencies (69% reduction)
+  - Created `requirements_cleaned.txt` with organized dependencies
+  - Created `requirements_minimal.txt` with core dependencies only
+  - Removed 150+ unnecessary PyObjC packages
+  - Full analysis in `requirements_cleanup_summary.md`
+- **Basic Test Suite Created**:
+  - `tests/basic/test_conversation_flow.py` - Tests conversation lifecycle
+  - `tests/basic/test_topic_detection_comprehensive.py` - Tests topic detection
+  - `tests/basic/test_configuration_comprehensive.py` - Tests configuration
+  - `tests/basic/run_basic_tests.py` - Test runner script
+  - ~60 test methods with mocked LLM calls
+- **Performance Improvements**:
+  - Connection pooling already implemented in `db_connection.py`
+  - Fixed async web search bug (await in non-async function)
+  - Created `web_search_async.py` and `web_search_fix.patch`
+- **Key Findings**: Visualization server being replaced (eliminates critical auth issue)
 
 ## Testing
 - **Framework**: pytest (not unittest)
@@ -9,6 +30,7 @@ Last Updated: 2025-07-11
 - **Command**: `python tests/run_all_tests.py`
 - **CLI Testing**: `python tests/integration/cli/test_all_commands.py` - Comprehensive CLI command test suite
 - **Documentation**: tests/ORGANIZED_TESTS.md - Complete guide to running tests
+- **New Basic Tests**: `python tests/basic/run_basic_tests.py` - Core functionality tests
 
 ## Recent Session (2025-07-11 continued - Final)
 ### Repository Cleanup for Public Release

@@ -6,7 +6,7 @@ class Node:
     def __init__(self, message: str, parent_id: Optional[str] = None):
         self.id = str(uuid.uuid4())
         self.message = message
-        self.timestamp = datetime.datetime.utcnow().isoformat()
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.parent_id = parent_id
 
     def to_dict(self):

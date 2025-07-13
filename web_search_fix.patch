@@ -1,0 +1,52 @@
+--- a/episodic/web_search.py
++++ b/episodic/web_search.py
+@@ -585,12 +585,12 @@ class WebSearchManager:
+             providers_to_try = [working_provider]
+         else:
+             providers_to_try = self.providers
+         
+         # Try each provider in order
+         for i, provider in enumerate(providers_to_try):
+             if provider is None or provider.__class__ is None:
+                 if config.get('debug'):
+                     typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg="yellow")
+                 continue
+             provider_name = provider.__class__.__name__.replace('Provider', '')
+             
+             # Skip providers that aren't available (missing credentials)
+             if not provider.is_available():
+@@ -615,11 +615,20 @@ class WebSearchManager:
+                         )
+                 continue
+             
+             try:
+                 # Always show which provider we're using
+                 typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
+                 
+-                # Run async search in sync context
+-                loop = asyncio.new_event_loop()
+-                asyncio.set_event_loop(loop)
+-                results = loop.run_until_complete(
+-                    provider.search(query, num_results)
+-                )
+-                loop.close()
++                # Run async search in sync context with proper event loop handling
++                try:
++                    # Check if there's already an event loop running
++                    loop = asyncio.get_running_loop()
++                    # If we get here, we're in an async context - shouldn't happen
++                    raise RuntimeError("WebSearchManager.search() called from async context")
++                except RuntimeError:
++                    # No event loop running, create a new one
++                    loop = asyncio.new_event_loop()
++                    asyncio.set_event_loop(loop)
++                    try:
++                        results = loop.run_until_complete(
++                            provider.search(query, num_results)
++                        )
++                    finally:
++                        loop.close()
++                        asyncio.set_event_loop(None)
+                 
+                 # If we got results, cache the provider and return
+                 if results:

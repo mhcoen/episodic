@@ -153,6 +153,18 @@ def show_help_with_categories():
         typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho(desc, fg=get_text_color())
     
+    # System commands
+    typer.secho("\n⚙️ System Commands:", fg=get_heading_color(), bold=True)
+    system_commands = [
+        ("/set", "Show/change common settings"),
+        ("/script", "Execute commands from a file"),
+    ]
+    
+    for cmd, desc in system_commands:
+        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
+        typer.secho(desc, fg=get_text_color())
+    
     #   typer.secho("\n" + "─" * 60, fg=get_heading_color())
     typer.secho("\n📖 Type '/help all' to see all available commands", 
                fg=get_text_color(), bold=True)

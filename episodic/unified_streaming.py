@@ -322,16 +322,9 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
     
     # Strip bold markers to check for colon  
     display_word = word.replace('**', '')
-    
-    # Check if word ends with colon to stop list bolding BEFORE determining boldness
     word_ends_with_colon = display_word.endswith(':')
-    if word_ends_with_colon:
-        if in_list_item:
-            in_list_item = False
-        if in_numbered_list:
-            in_numbered_list = False
     
-    # Determine if word should be bold
+    # Determine if word should be bold (including the colon word itself)
     word_is_bold = in_bold or in_list_item or in_numbered_list or in_header
     
     # Debug: Show why a word is bold when debug is enabled
@@ -424,5 +417,11 @@ def _print_word(word: str, color: str, wrap_width: Optional[int],
         in_numbered_list = False
         in_header = False
     
+    # Reset bold states AFTER printing a word that ends with colon in a list
+    if word_ends_with_colon and (in_list_item or in_numbered_list):
+        in_list_item = False
+        in_numbered_list = False
+        in_bold = False  # Reset markdown bold state too
+        in_header = False
     
     return current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header

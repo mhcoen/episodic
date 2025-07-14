@@ -20,14 +20,12 @@ def create_rag_tables():
         # Table for tracking indexed documents
         c.execute('''
             CREATE TABLE IF NOT EXISTS rag_documents (
-                id TEXT PRIMARY KEY,
-                content TEXT NOT NULL,
+                doc_id TEXT PRIMARY KEY,
                 source TEXT NOT NULL,
-                indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 metadata JSON,
+                indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 content_hash TEXT UNIQUE,
-                parent_doc_id TEXT,
-                chunk_index INTEGER DEFAULT 0
+                chunk_count INTEGER DEFAULT 1
             )
         ''')
         

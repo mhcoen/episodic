@@ -136,6 +136,10 @@ class EpisodicRAG:
                     embedding_function=self.embedding_function,
                     metadata={"description": "Episodic conversation knowledge base"}
                 )
+        
+        # Ensure SQL database tables exist for RAG functionality
+        from .db_rag import create_rag_tables
+        create_rag_tables()
     
     def chunk_document(self, content: str, chunk_size: int = None, 
                       overlap: int = None) -> List[Tuple[str, Dict[str, int]]]:

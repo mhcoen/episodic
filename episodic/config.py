@@ -1,8 +1,9 @@
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Dict
-from .config_defaults import DEFAULT_CONFIG, CONFIG_DOCS
+from .config_defaults import CONFIG_DOCS
 from .param_mappings import ENV_VAR_MAPPING
 
 class Config:
@@ -23,12 +24,39 @@ class Config:
             self.config_file = Path(config_file)
             self.default_config_file = self.config_file.parent / "config.default.json"
 
+        # Get the template defaults first
+        self._template_defaults = self._load_template_defaults()
+        
         # Initialize or load the configuration
         self.config: Dict[str, Any] = {}
         self._load()
         
         # Ensure config.default.json exists
         self._ensure_default_config()
+
+    def _load_template_defaults(self) -> Dict[str, Any]:
+        """Load the default configuration from the template file."""
+        # Get the path to the template file (in the same directory as this module)
+        template_path = Path(__file__).parent / "config_template.json"
+        
+        try:
+            with open(template_path, 'r') as f:
+                template_data = json.load(f)
+                # Filter out comment keys that start with "_comment"
+                return {k: v for k, v in template_data.items() if not k.startswith('_comment')}
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Warning: Could not load config template: {e}")
+            # Fallback to basic defaults if template is missing
+            return {
+                "debug": False,
+                "show_cost": False,
+                "stream_responses": True,
+                "model": "gpt-4o-mini",
+                "topic_detection_model": "ollama/llama3",
+                "context_depth": 5,
+                "text_wrap": True,
+                "color_mode": "full"
+            }
 
     def _load(self) -> None:
         """Load the configuration from disk."""
@@ -38,18 +66,18 @@ class Config:
                     self.config = json.load(f)
 
                 # Check for any missing defaults and add them in memory only
-                for key, value in DEFAULT_CONFIG.items():
+                for key, value in self._template_defaults.items():
                     if key not in self.config:
                         self.config[key] = value
                         # Don't save - just use defaults in memory to preserve comments
             except json.JSONDecodeError:
                 # If the file is corrupted, use defaults but don't overwrite
                 print("Warning: Config file is corrupted, using defaults")
-                self.config = DEFAULT_CONFIG.copy()
+                self.config = self._template_defaults.copy()
                 # Don't save - let user fix their config file
         else:
             # If the file doesn't exist, create it with default values
-            self.config = DEFAULT_CONFIG.copy()
+            self.config = self._template_defaults.copy()
             self._save()
 
     def _save(self) -> None:
@@ -58,10 +86,16 @@ class Config:
             json.dump(self.config, f, indent=2)
     
     def _ensure_default_config(self) -> None:
-        """Ensure config.default.json exists with current defaults."""
+        """Ensure config.default.json exists by copying from template."""
         if not self.default_config_file.exists():
-            with open(self.default_config_file, 'w') as f:
-                json.dump(DEFAULT_CONFIG, f, indent=2)
+            # Copy the template file to the user's directory
+            template_path = Path(__file__).parent / "config_template.json"
+            if template_path.exists():
+                shutil.copy2(template_path, self.default_config_file)
+            else:
+                # Fallback: create from template defaults
+                with open(self.default_config_file, 'w') as f:
+                    json.dump(self._template_defaults, f, indent=2)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value, checking environment variables first.
@@ -147,8 +181,8 @@ class Config:
             
             # Handle reset command
             if param_name == 'reset' or param_name == '*':
-                if actual_param_set in DEFAULT_CONFIG:
-                    self.config[actual_param_set] = DEFAULT_CONFIG[actual_param_set].copy()
+                if actual_param_set in self._template_defaults:
+                    self.config[actual_param_set] = self._template_defaults[actual_param_set].copy()
                     # Don't save - runtime only
                 return
             
@@ -263,6 +297,14 @@ class Config:
             doc = self.get_doc(key)
             result[key] = (value, doc)
         return result
+    
+    def get_template_defaults(self) -> Dict[str, Any]:
+        """Get the template default values.
+        
+        Returns:
+            Dictionary of template default values
+        """
+        return self._template_defaults.copy()
 
 # Create a global instance for easy access
 config = Config()

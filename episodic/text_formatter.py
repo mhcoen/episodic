@@ -3,6 +3,7 @@ Unified text formatting and display module for Episodic.
 
 This module provides consistent text formatting across the application,
 including word wrapping, bold formatting, and colored values in lists.
+Supports both instant display (for system outputs) and streaming (for LLM responses).
 """
 
 import re
@@ -99,47 +100,87 @@ def format_and_display_text(text: str, base_color: Optional[str] = None,
             content = bullet_match.group(3)
             
             # Check if there's a bold section ending with colon
-            # Pattern: **Key**: Value
-            colon_match = re.match(r'^\*\*([^*]+)\*\*:\s*(.*)$', content)
+            # Pattern: **Key**: Value or **Key**:\tValue (with tab for alignment)
+            colon_match = re.match(r'^\*\*([^*]+)\*\*:(\s*)(.*)$', content)
             
             if colon_match:
                 # Bulleted list with key:value format
                 key = colon_match.group(1)
-                value = colon_match.group(2)
+                spacing = colon_match.group(2)  # Preserve original spacing (including tabs)
+                value = colon_match.group(3)
                 
-                # Format the line
-                formatted_line = f"{indent}{bullet} {key}: {value}"
+                # Format the line, preserving the original spacing
+                formatted_line = f"{indent}{bullet} {key}:{spacing}{value}"
                 
                 if wrap_width and len(formatted_line) > wrap_width:
                     # Wrap the line preserving structure
-                    first_line = f"{indent}{bullet} {key}: "
+                    first_line = f"{indent}{bullet} {key}:{spacing}"
                     
-                    # Calculate indent for wrapped lines (align with text after bullet)
-                    wrap_indent = ' ' * (len(indent) + len(bullet) + 2)
+                    # Calculate indent for wrapped lines (align with where the value starts)
+                    # This should align with the start of the value text, not just after the bullet
+                    wrap_indent = ' ' * len(first_line)
                     
                     # Wrap the value part
                     if value:
+                        # Calculate available width for the first line
+                        first_line_available = wrap_width - len(first_line)
+                        
+                        # If the value is long, we need to wrap it properly
+                        # Use textwrap with the correct widths for first and subsequent lines
                         wrapped_value = textwrap.fill(
                             value,
                             width=wrap_width,
                             initial_indent='',
-                            subsequent_indent=wrap_indent
+                            subsequent_indent=wrap_indent,
+                            break_long_words=False,
+                            break_on_hyphens=True
                         )
+                        
+                        # However, we need to adjust because the first line already has the prefix
+                        # So we need to re-wrap considering the first line's prefix
+                        value_lines = value.split()
+                        current_line = ""
+                        all_lines = []
+                        first_line_done = False
+                        
+                        for word in value_lines:
+                            if not first_line_done:
+                                # First line - check against available space after prefix
+                                if len(current_line) + len(word) + (1 if current_line else 0) <= first_line_available:
+                                    current_line += (" " if current_line else "") + word
+                                else:
+                                    # First line is full
+                                    all_lines.append(current_line)
+                                    current_line = word
+                                    first_line_done = True
+                            else:
+                                # Subsequent lines - check against full wrap width
+                                if len(wrap_indent + current_line + " " + word) <= wrap_width:
+                                    current_line += " " + word
+                                else:
+                                    # Line is full
+                                    all_lines.append(current_line)
+                                    current_line = word
+                        
+                        # Add any remaining text
+                        if current_line:
+                            all_lines.append(current_line)
                         
                         # Print first line with key
                         secho_color(first_line, fg=base_color, bold=True, nl=False)
                         
                         # Print value lines with color
-                        value_lines = wrapped_value.split('\n')
-                        secho_color(value_lines[0], fg=value_color)
-                        for vline in value_lines[1:]:
-                            secho_color(vline, fg=value_color)
+                        if all_lines:
+                            secho_color(all_lines[0], fg=value_color)
+                            for vline in all_lines[1:]:
+                                secho_color(wrap_indent + vline, fg=value_color)
                     else:
                         secho_color(first_line.rstrip(), fg=base_color, bold=True)
                 else:
                     # No wrapping needed
                     secho_color(f"{indent}{bullet} ", fg=base_color, nl=False)
-                    secho_color(f"{key}: ", fg=base_color, bold=True, nl=False)
+                    secho_color(f"{key}:", fg=base_color, bold=True, nl=False)
+                    secho_color(spacing, fg=base_color, nl=False)
                     if value:
                         secho_color(value, fg=value_color)
                     else:
@@ -242,6 +283,45 @@ def display_markdown(text: str, base_color: Optional[str] = None,
     that ensures markdown formatting is properly handled.
     """
     format_and_display_text(text, base_color, value_color)
+
+
+def unified_format_and_display(text: str, base_color: Optional[str] = None, 
+                               value_color: Optional[str] = None,
+                               instant: bool = True) -> None:
+    """
+    Unified formatting function that respects text_wrap config and supports both
+    instant display (for system outputs) and streaming (for LLM responses).
+    
+    Args:
+        text: The text to format and display
+        base_color: Base color for regular text (defaults to text_color)
+        value_color: Color for values after colons (defaults to system_color)
+        instant: If True, displays instantly. If False, could be extended for streaming.
+    """
+    from episodic.config import config
+    
+    # Check if wrapping is enabled in config
+    wrap_enabled = config.get('text_wrap', True)
+    
+    # Use the existing formatting logic
+    format_and_display_text(text, base_color, value_color, wrap=wrap_enabled)
+
+
+def display_help_content(content: str, base_color: Optional[str] = None) -> None:
+    """
+    Display help content with unified formatting and wrapping.
+    
+    This is a convenience function specifically for help displays that
+    automatically uses the correct colors and respects text_wrap settings.
+    
+    Args:
+        content: The help content to display
+        base_color: Override base color (defaults to text_color)
+    """
+    if base_color is None:
+        base_color = get_text_color()
+    
+    unified_format_and_display(content, base_color=base_color, instant=True)
 
 
 

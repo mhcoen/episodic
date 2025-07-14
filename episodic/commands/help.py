@@ -196,19 +196,36 @@ def help(advanced: bool = False, query: Optional[str] = None):
     With a query, searches documentation using RAG.
     
     Usage:
-        /help                        # Show available commands
-        /help all                    # Show all commands (advanced)
-        /help change models          # Search for model-related help
-        /help muse mode             # Learn about muse mode
-        /help topic detection       # Get help on topic detection
-        /help configuration         # Find configuration options
+        /help                         # Show available commands
+        /help all                     # Show all commands (advanced)
+        /help chat                    # Show chat commands
+        /help settings                # Show settings commands  
+        /help search                  # Show search commands
+        /help history                 # Show history commands
+        /help How do I change models? # Search for model-related help
+        /help What is the muse mode?  # Learn about muse mode
     """
-    # Handle special case of "/help all" to show all commands
-    if query and query.lower() == "all":
-        show_commands_help(advanced=True)
+    # Handle special cases
+    if query:
+        query_lower = query.lower()
+        
+        # Check for category help first
+        categories = ["chat", "settings", "search", "history", "topics"]
+        if query_lower in categories:
+            from episodic.cli_registry import show_category_help
+            show_category_help(query_lower)
+            return
+            
+        # Handle "/help all" to show all commands
+        if query_lower == "all":
+            show_commands_help(advanced=True)
+            return
+        
+        # Otherwise, it's a documentation search query
+        help_command(query)
         return
         
-    # If no query, show command list
+    # If no query, show basic command list and categories
     if not query and not advanced:
         # First show regular commands
         show_commands_help(advanced=False)
@@ -220,9 +237,9 @@ def help(advanced: bool = False, query: Optional[str] = None):
         typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho("Search documentation", fg=get_text_color())
         typer.secho("\n  Examples:", fg=get_text_color(), dim=True)
-        typer.secho("    /help change models", fg=get_system_color(), dim=True)
-        typer.secho("    /help muse mode", fg=get_system_color(), dim=True)
-        typer.secho("    /help configuration", fg=get_system_color(), dim=True)
+        typer.secho("    /help How do I change models?", fg=get_system_color(), dim=True)
+        typer.secho("    /help What is the muse mode?", fg=get_system_color(), dim=True)
+        typer.secho("    /help configuration settings", fg=get_system_color(), dim=True)
         return
     
     if not query and advanced:

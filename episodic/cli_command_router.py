@@ -70,8 +70,6 @@ def handle_command(command_str: str) -> bool:
             _handle_cost()
         elif cmd == "/model":
             _handle_model(args)
-        elif cmd == "/models":
-            _handle_models()
         elif cmd == "/mset":
             _handle_mset(args)
         elif cmd == "/set":
@@ -224,18 +222,6 @@ def _handle_model(args: List[str]):
             handle_model(model_name)
 
 
-def _handle_models():
-    """Handle /models command."""
-    # Use unified model command if it exists
-    try:
-        from episodic.commands.unified_model import model_command
-        model_command("list", None)
-    except ImportError:
-        # Fall back to simple model command showing available models
-        from episodic.commands import handle_model
-        handle_model()
-
-
 def _handle_mset(args: List[str]):
     """Handle /mset command."""
     from episodic.commands.mset import mset_command
@@ -310,6 +296,7 @@ def _handle_topics(args: List[str]):
             handle_topics_action(action="list")
         else:
             typer.secho(f"Unknown topics action: {action}", fg="red")
+            typer.secho("Available actions: list, rename, compress, index, scores, stats", fg="yellow")
 
 
 def _handle_compression(args: List[str]):

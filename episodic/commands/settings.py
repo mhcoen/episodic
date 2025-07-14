@@ -11,6 +11,7 @@ from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.conversation import conversation_manager
 from episodic.param_mappings import normalize_param_name, get_display_name
+from episodic.param_display import get_canonical_name, get_display_name as get_short_name, get_param_description
 
 from .settings_display import display_all_settings
 from .settings_handlers import (
@@ -39,45 +40,85 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     if param is None:
         typer.secho("Commonly Changed Settings:", fg=get_heading_color(), bold=True)
         
-        # Core settings
-        typer.secho(f"  debug: {config.get('debug', False)}", fg=get_system_color())
-        typer.secho(f"  cost: {config.get('show_costs', False)}", fg=get_system_color())
-        typer.secho(f"  topics: {config.get('show_topics', False)}", fg=get_system_color())
-        typer.secho(f"  stream-responses: {config.get('stream_responses', True)}", fg=get_system_color())
+        # Core settings with descriptions
+        settings_to_show = [
+            ("debug", config.get('debug', False)),
+            ("cost", config.get('show_costs', False)), 
+            ("topics", config.get('show_topics', False)),
+            ("streaming", config.get('stream_responses', True)),
+            ("depth", f"{default_context_depth} messages"),
+            ("wrap", config.get('text_wrap', True)),
+        ]
+        
+        for setting_name, value in settings_to_show:
+            desc = get_param_description(setting_name)
+            padding = ' ' * max(1, 20 - len(setting_name))
+            typer.secho(f"  {setting_name}:{padding}{value}", fg=get_system_color(), nl=False)
+            if desc:
+                typer.secho(f" - {desc}", fg=get_text_color(), dim=True)
+            else:
+                typer.echo()
         
         # Mode settings
         muse_mode = config.get('muse_mode', False)
-        typer.secho(f"  muse-mode: {muse_mode}", fg=get_system_color())
+        desc = get_param_description("muse-mode")
+        typer.secho(f"  muse-mode:        {muse_mode}", fg=get_system_color(), nl=False)
+        if desc:
+            typer.secho(f" - {desc}", fg=get_text_color(), dim=True)
+        else:
+            typer.echo()
+            
         if muse_mode:
-            typer.secho(f"  muse-style: {config.get('muse_style', 'standard')}", fg=get_system_color())
-            typer.secho(f"  muse-detail: {config.get('muse_detail', 'moderate')}", fg=get_system_color())
-        
-        # Context settings
-        typer.secho(f"  depth: {default_context_depth} messages", fg=get_system_color())
-        typer.secho(f"  wrap: {config.get('text_wrap', True)}", fg=get_system_color())
+            muse_settings = [
+                ("muse-style", config.get('muse_style', 'standard')),
+                ("muse-detail", config.get('muse_detail', 'moderate')),
+            ]
+            for setting_name, value in muse_settings:
+                desc = get_param_description(setting_name)
+                padding = ' ' * max(1, 20 - len(setting_name))
+                typer.secho(f"  {setting_name}:{padding}{value}", fg=get_system_color(), nl=False)
+                if desc:
+                    typer.secho(f" - {desc}", fg=get_text_color(), dim=True)
+                else:
+                    typer.echo()
         
         # Feature toggles
-        typer.secho(f"  rag-enabled: {config.get('rag_enabled', False)}", fg=get_system_color())
-        typer.secho(f"  web-search-enabled: {config.get('web_search_enabled', False)}", fg=get_system_color())
+        feature_settings = [
+            ("rag-enabled", config.get('rag_enabled', False)),
+            ("web-enabled", config.get('web_search_enabled', False)),
+        ]
+        
+        for setting_name, value in feature_settings:
+            desc = get_param_description(setting_name)
+            padding = ' ' * max(1, 20 - len(setting_name))
+            typer.secho(f"  {setting_name}:{padding}{value}", fg=get_system_color(), nl=False)
+            if desc:
+                typer.secho(f" - {desc}", fg=get_text_color(), dim=True)
+            else:
+                typer.echo()
         
         typer.secho("\nUse '/set all' to see all settings", fg=get_text_color())
         typer.secho("Use '/set <param> <value>' to change a setting", fg=get_text_color())
+        typer.secho("Both short names (debug) and long names (show-debug) work", fg=get_text_color(), dim=True)
         return
 
     # If value not provided, show current value
     if value is None:
-        normalized = normalize_param_name(param)
+        # First try alias resolution, then fallback to normal resolution
+        canonical_param = get_canonical_name(param)
+        normalized = normalize_param_name(canonical_param)
         if normalized:
             current_value = config.get(normalized, "Not set")
-            display_name = get_display_name(normalized)
+            display_name = get_short_name(normalized) or get_display_name(normalized)
             typer.secho(f"{display_name}: {current_value}", fg=get_system_color())
         else:
             typer.secho(f"Unknown parameter: {param}", fg="red")
         return
 
-    # Normalize the parameter name
+    # Normalize the parameter name (try alias first)
     original_param = param
-    param = normalize_param_name(param)
+    canonical_param = get_canonical_name(param)
+    param = normalize_param_name(canonical_param)
     
     if not param:
         typer.secho(f"Unknown parameter: {original_param}", fg="red")

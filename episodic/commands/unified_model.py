@@ -187,7 +187,7 @@ def show_available_models():
     typer.secho("  /model compression <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat 8                       # Select by number from list", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat 6                       # Select by number from list", fg=get_text_color(), dim=True)
     typer.secho("  /model chat claude-opus-4-20250514  # Select by full model name", fg=get_text_color(), dim=True)
 
 

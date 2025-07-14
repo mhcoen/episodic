@@ -28,9 +28,8 @@ def setup_environment():
 
 def display_welcome():
     """Display welcome message immediately."""
-    typer.secho("Welcome to Episodic!", nl=False, fg=get_system_color(), bold=True)
-    typer.secho(" Type '/help' for commands or start chatting.", fg=get_text_color())
-
+    typer.secho("Welcome to Episodic!", fg=get_system_color(), bold=True)
+    typer.secho("Just start typing to chat or /help for commands.", fg=get_text_color())
 
 def display_model_info():
     """Display model and pricing information."""

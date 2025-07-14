@@ -145,12 +145,12 @@ def register_all_commands():
     # Register unified commands (new style)
     command_registry.register(
         "topics", topics_command, 
-        "Manage topics (list/rename/compress/index/stats)", 
+        "Manage conversation topics", 
         "Topics"
     )
     command_registry.register(
         "compression", compression_command,
-        "Compression info (stats/queue/api-stats)",
+        "Manage conversation compression",
         "Compression"  
     )
     

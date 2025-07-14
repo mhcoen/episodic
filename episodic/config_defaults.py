@@ -1,241 +1,28 @@
-"""Default configuration values for Episodic.
+"""Configuration documentation and legacy support.
 
-This module centralizes all default configuration values, making it easier to:
-1. See all available settings in one place
-2. Understand what each setting does
-3. Maintain consistency across the codebase
-4. Avoid hardcoded values scattered throughout the code
+This module now contains only documentation strings for configuration values.
+The actual default values are stored in config_template.json and managed by the Config class.
+
+DEPRECATED: The hardcoded default dictionaries in this file are no longer used.
+Use config_template.json for maintaining default values.
 """
 
-# Core application settings
-CORE_DEFAULTS = {
-    "active_prompt": "default",
-    "debug": False,
-    "show_cost": False,
-    "show_drift": True,
-    "muse_mode": False,  # When True, all input is treated as web search queries
-}
+# DEPRECATED - Kept only for backward compatibility during transition
+# Use config_template.json for actual defaults
+CORE_DEFAULTS = {}
+TOPIC_DEFAULTS = {}
+STREAMING_DEFAULTS = {}
+MODEL_PARAMS_DEFAULTS = {}
+RAG_DEFAULTS = {}
+WEB_SEARCH_DEFAULTS = {}
+CACHE_DEFAULTS = {}
+COMPRESSION_DEFAULTS = {}
+MODEL_SELECTION_DEFAULTS = {}
+LLM_DEFAULTS = {}
+DISPLAY_DEFAULTS = {}
+DRIFT_EMBEDDING_DEFAULTS = {}
 
-# Topic detection settings
-TOPIC_DEFAULTS = {
-    # Automatic topic detection
-    "automatic_topic_detection": True,
-    "auto_compress_topics": True,
-    "min_messages_before_topic_change": 8,  # Minimum user messages before allowing topic change
-    "running_topic_guess": True,  # Show topic predictions in responses (not yet implemented)
-    "show_topics": False,  # Show topic evolution in responses
-    
-    # Topic boundary analysis
-    "analyze_topic_boundaries": False,  # Disabled - causes incorrect boundary placement
-    "use_llm_boundary_analysis": False,  # Use LLM for boundary analysis (vs heuristics)
-    
-    # Manual indexing
-    "manual_index_window_size": 3,  # Default window size for /index command
-    "manual_index_threshold": 0.75,  # Drift score threshold for boundary detection
-    
-    # Hybrid topic detection
-    "use_hybrid_topic_detection": False,
-    "use_sliding_window_detection": True,  # Use sliding 3-window detection by default
-    "sliding_window_size": 3,  # 3-3 window size
-    "hybrid_topic_weights": {
-        "semantic_drift": 0.6,
-        "keyword_explicit": 0.25,
-        "keyword_domain": 0.1,
-        "message_gap": 0.025,
-        "conversation_flow": 0.025
-    },
-    "hybrid_topic_threshold": 0.55,
-    "hybrid_llm_threshold": 0.3,
-    "drift_threshold": 0.9,  # Threshold for sliding window detection (0.9+ = topic change)
-    "keyword_threshold": 0.5,
-}
-
-# Streaming settings
-STREAMING_DEFAULTS = {
-    "stream_responses": True,
-    "stream_rate": 15,  # Words per second for constant-rate streaming
-    "stream_constant_rate": False,  # Whether to use constant-rate streaming
-    "stream_natural_rhythm": False,  # Add natural pauses and rhythm to streaming
-    "stream_char_mode": False,  # Stream character by character instead of word by word
-    "stream_char_rate": 1000,  # Characters per second for character-mode streaming
-    "stream_line_delay": 0.1,  # Delay in seconds between lines when streaming
-}
-
-# Model parameter defaults for different contexts
-MODEL_PARAMS_DEFAULTS = {
-    "main_params": {
-        "temperature": 0.7,
-        "max_tokens": None,
-        "top_p": 1.0,
-        "presence_penalty": 0.0,
-        "frequency_penalty": 0.0,
-        "stop": []
-    },
-    "topic_params": {
-        "temperature": 0.3,  # Lower for more consistent topic detection
-        "max_tokens": 50,   # Topic detection needs minimal tokens
-        "top_p": 0.9,
-        "presence_penalty": 0.0,
-        "frequency_penalty": 0.0,
-        "stop": []
-    },
-    "compression_params": {
-        "temperature": 0.5,  # Balanced for accurate summaries
-        "max_tokens": 500,   # Summaries need more tokens
-        "top_p": 1.0,
-        "presence_penalty": 0.1,  # Slight penalty to avoid repetition
-        "frequency_penalty": 0.1,
-        "stop": []
-    }
-}
-
-# RAG (Retrieval Augmented Generation) settings
-RAG_DEFAULTS = {
-    "rag_enabled": False,  # Enable RAG for enhanced responses with external knowledge
-    "rag_auto_search": True,  # Automatically search knowledge base for each user message
-    "rag_search_threshold": 0.7,  # Minimum relevance score for including search results
-    "rag_max_results": 5,  # Maximum number of search results to include
-    "rag_embedding_model": "all-MiniLM-L6-v2",  # Sentence transformer model for embeddings
-    "rag_include_citations": True,  # Include source citations in responses
-    "rag_context_prefix": "\n\n[Relevant context from knowledge base]:\n",  # Prefix for RAG context in prompts
-    "rag_chunk_size": 500,  # Number of words per document chunk
-    "rag_chunk_overlap": 100,  # Number of overlapping words between chunks
-    "rag_max_file_size": 10 * 1024 * 1024,  # Maximum file size for indexing (10MB)
-    "rag_show_citations": True,  # Show which documents were used in responses
-    "rag_citation_style": "inline",  # How to display citations: 'inline' or 'footnote'
-    "rag_allowed_file_types": [".txt", ".md", ".pdf", ".rst"],  # Allowed file extensions for indexing
-    "rag_preserve_formatting": True,  # Use format-preserving chunking (v2)
-}
-
-# Web search settings
-WEB_SEARCH_DEFAULTS = {
-    "web_search_enabled": False,  # Enable web search functionality
-    "web_search_provider": "duckduckgo",  # Search provider: duckduckgo, searx, google, bing
-    "web_search_providers": ["duckduckgo"],  # Ordered list of providers for fallback
-    "web_search_fallback_enabled": True,  # Enable automatic fallback to next provider
-    "web_search_fallback_cache_minutes": 5,  # Cache working provider for N minutes
-    "web_search_auto_enhance": False,  # Auto-search when no good local results
-    "web_search_cache_duration": 3600,  # Cache search results for 1 hour
-    "web_search_max_results": 5,  # Maximum results per search
-    "web_search_rate_limit": 60,  # Maximum searches per hour
-    "web_search_index_results": True,  # Index web results into RAG for future use
-    "web_search_timeout": 10,  # Search timeout in seconds
-    "web_search_require_confirmation": False,  # Ask before performing searches
-    "web_search_excluded_domains": [],  # Domains to exclude from results
-    "web_search_show_urls": True,  # Show URLs in search results
-    "web_search_extract_content": True,  # Extract actual page content from search results
-    "web_search_synthesize": True,  # Synthesize results into comprehensive answer (default)
-    "web_show_sources": False,  # Show sources when synthesizing
-    "web_show_raw": False,  # Show raw search results instead of synthesizing
-    
-    # Muse mode synthesis configuration
-    "muse_style": "standard",  # concise, standard, comprehensive, exhaustive
-    "muse_detail": "moderate",  # minimal, moderate, detailed, maximum
-    "muse_format": "mixed",  # paragraph, bullet-points, mixed, academic
-    "muse_max_tokens": None,  # Direct token control (overrides style if set)
-    "muse_sources": "top-three",  # first-only, top-three, all-relevant, selective
-    "muse_model": None,  # Model for synthesis (None = use main model)
-    
-    # Provider-specific settings
-    "searx_instance_url": "https://searx.be",  # Searx instance URL (can be self-hosted)
-    
-    # Google Custom Search (requires setup at https://developers.google.com/custom-search)
-    "google_api_key": None,  # Or set GOOGLE_API_KEY env var
-    "google_search_engine_id": None,  # Or set GOOGLE_SEARCH_ENGINE_ID env var
-    
-    # Bing Search (requires Azure Cognitive Services)
-    "bing_api_key": None,  # Or set BING_API_KEY env var
-    "bing_endpoint": "https://api.bing.microsoft.com/v7.0/search",
-}
-
-# Caching and performance settings
-CACHE_DEFAULTS = {
-    "use_context_cache": True,  # Use context caching to reduce API costs
-    "benchmark": False,  # Enable performance benchmarking
-    "benchmark_display": False,  # Display benchmark results after commands
-}
-
-# Compression settings
-COMPRESSION_DEFAULTS = {
-    "compression_model": "ollama/llama3",  # Model to use for topic compression
-    "compression_min_nodes": 10,  # Minimum nodes required before allowing compression
-    "show_compression_notifications": True,  # Show notifications when topics are compressed
-}
-
-# Model selection settings
-MODEL_SELECTION_DEFAULTS = {
-    "topic_detection_model": "ollama/llama3",  # Model to use for topic detection
-    "model": "gpt-3.5-turbo",  # Current conversation model (default: gpt-3.5-turbo)
-}
-
-# LLM Provider API Keys
-LLM_DEFAULTS = {
-    # API Keys for various LLM providers
-    "openai_api_key": None,
-    "anthropic_api_key": None,
-    "google_api_key": None,
-    "groq_api_key": None,
-    "together_api_key": None,
-    "mistral_api_key": None,
-    "cohere_api_key": None,
-    "deepseek_api_key": None,
-    "deepinfra_api_key": None,
-    "perplexity_api_key": None,
-    "fireworks_api_key": None,
-    "anyscale_api_key": None,
-    "replicate_api_key": None,
-    "huggingface_api_key": None,
-    "ai21_api_key": None,
-    "voyage_api_key": None,
-    "openrouter_api_key": None,
-    
-    # Azure configuration
-    "azure_api_key": None,
-    "azure_api_base": None,
-    "azure_api_version": None,
-    
-    # AWS Bedrock configuration
-    "bedrock_access_key_id": None,
-    "bedrock_secret_access_key": None,
-    "bedrock_region": "us-east-1",
-    
-    # Google Vertex configuration
-    "vertex_project": None,
-    "vertex_location": "us-central1",
-    
-    # OpenRouter configuration
-    "openrouter_api_base": "https://openrouter.ai/api/v1",
-    "openrouter_site_url": None,  # Optional: your app's URL for OpenRouter tracking
-    "openrouter_app_name": "Episodic",  # Optional: your app name for OpenRouter tracking
-    "openrouter_default_models": [
-        "anthropic/claude-opus-4-20250514",
-        "anthropic/claude-3-opus",
-        "anthropic/claude-3-sonnet",
-        "anthropic/claude-3-haiku",
-        "openai/gpt-4-turbo-preview",
-        "openai/gpt-4",
-        "openai/gpt-3.5-turbo",
-        "google/gemini-pro",
-        "meta-llama/llama-2-70b-chat",
-        "mistralai/mixtral-8x7b-instruct",
-        "cohere/command-r-plus"
-    ],
-}
-
-# Display settings
-DISPLAY_DEFAULTS = {
-    "color_mode": "full",  # Color mode: none, basic, or full
-    "text_wrap": True,  # Enable text wrapping for long lines
-    "context_depth": 5,  # Default context depth for building conversation history
-}
-
-# Drift Detection Embedding settings
-DRIFT_EMBEDDING_DEFAULTS = {
-    "drift_embedding_provider": "sentence-transformers",  # Provider: sentence-transformers, openai, huggingface
-    "drift_embedding_model": "paraphrase-mpnet-base-v2",  # Model name for drift detection embeddings
-}
-
-# Combine all defaults
+# Combine all defaults - now empty since values come from config_template.json
 DEFAULT_CONFIG = {
     **CORE_DEFAULTS,
     **TOPIC_DEFAULTS,
@@ -386,7 +173,7 @@ CONFIG_DOCS = {
     
     # Model selection
     "topic_detection_model": "Specific model to use for topic detection (can differ from main model)",
-    "model": "Current conversation model (default: gpt-3.5-turbo, change via /model command)",
+    "model": "Current conversation model (default: gpt-4o-mini, change via /model command)",
     
     # Display settings
     "color_mode": "Terminal color mode: 'none' (no colors), 'basic' (8 colors), or 'full' (256 colors)",

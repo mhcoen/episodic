@@ -395,6 +395,9 @@ class EpisodicRAG:
         with suppress_chromadb_telemetry():
             stats['collection_count'] = self.collection.count()
         
+        # Add embedding model info
+        stats['embedding_model'] = config.get("rag_embedding_model", "all-MiniLM-L6-v2")
+        
         return stats
     
     def enhance_with_context(self, message: str, n_results: int = None,

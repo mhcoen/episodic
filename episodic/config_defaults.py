@@ -46,6 +46,8 @@ CONFIG_DOCS = {
     "show_cost": "Display token usage and cost information",
     "show_drift": "Show semantic drift scores in topic detection",
     "muse_mode": "Muse mode: treat all input as web search queries (like Perplexity)",
+    "response_style": "Global response style for all modes: concise, standard, comprehensive, custom",
+    "response_format": "Global response format for all modes: paragraph, bullet-points, mixed, academic",
     
     # Topic detection
     "automatic_topic_detection": "Enable automatic topic detection during conversations",
@@ -146,10 +148,8 @@ CONFIG_DOCS = {
     "web_show_sources": "Show source URLs when displaying synthesized answers",
     "web_show_raw": "Show raw search results instead of synthesizing (overrides synthesis)",
     
-    # Muse mode synthesis configuration
-    "muse_style": "Length of synthesis: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)",
+    # Muse mode synthesis configuration  
     "muse_detail": "Detail level: minimal (facts only), moderate (with context), detailed (explanations), maximum (all nuances)",
-    "muse_format": "Output format: paragraph (prose), bullet-points (lists), mixed (auto), academic (formal citations)",
     "muse_max_tokens": "Direct token limit for synthesis (overrides style setting if specified)",
     "muse_sources": "Source selection: first-only, top-three (default), all-relevant, selective",
     "muse_model": "Specific model for synthesis (None = use main conversation model)",

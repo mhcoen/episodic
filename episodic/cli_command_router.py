@@ -72,6 +72,10 @@ def handle_command(command_str: str) -> bool:
             _handle_model(args)
         elif cmd == "/mset":
             _handle_mset(args)
+        elif cmd == "/style":
+            _handle_style(args)
+        elif cmd == "/format":
+            _handle_format(args)
         elif cmd == "/set":
             _handle_set(args)
         elif cmd == "/reset":
@@ -244,6 +248,18 @@ def _handle_mset(args: List[str]):
     else:
         # Join remaining args as value
         mset_command(args[0], " ".join(args[1:]))
+
+
+def _handle_style(args: List[str]):
+    """Handle /style command."""
+    from episodic.commands.style import handle_style
+    handle_style(args)
+
+
+def _handle_format(args: List[str]):
+    """Handle /format command."""
+    from episodic.commands.style import handle_format
+    handle_format(args)
 
 
 def _handle_set(args: List[str]):

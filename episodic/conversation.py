@@ -421,6 +421,23 @@ class ConversationManager:
             if config.get("show_drift"):
                 self.display_semantic_drift(user_node_id)
             
+            # Add global style prompt to messages for non-muse modes
+            if not config.get("muse_mode"):
+                from episodic.commands.style import get_style_prompt
+                style_prompt = get_style_prompt(
+                    has_rag=bool(rag_context), 
+                    rag_length=len(rag_context) if rag_context else 0,
+                    has_web=bool(web_context)
+                )
+                
+                # Add style prompt as a system message before the user's current message
+                if messages and messages[-1]["role"] == "user":
+                    # Insert style instruction before the latest user message
+                    last_user_message = messages.pop()
+                    enhanced_content = f"{style_prompt}\n\nUser: {last_user_message['content']}"
+                    last_user_message["content"] = enhanced_content
+                    messages.append(last_user_message)
+            
             # Prepare for LLM query
             from episodic.web_synthesis import synthesize_web_response
             

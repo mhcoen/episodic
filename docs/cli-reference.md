@@ -198,8 +198,8 @@ Manage documents
 ### /muse
 Enable muse mode for synthesized web search answers (like Perplexity)
 ```bash
-/muse on                    # Enable muse mode - all input becomes web searches
-/muse off                   # Disable muse mode - return to chat mode
+/muse                       # Switch to muse mode - all input becomes web searches
+/chat                       # Switch to chat mode - return to normal conversation
 /muse                       # Show current mode status
 ```
 
@@ -335,16 +335,16 @@ Summarize conversation
 Enable Perplexity-like web search mode
 ```bash
 /muse                       # Enable muse mode (all input → web search)
-/muse on                    # Same as above
-/muse off                   # Disable muse mode
+/muse                       # Switch to muse mode
+/chat                       # Switch to chat mode
 ```
 
 ### /chat
 Return to normal chat mode
 ```bash
 /chat                       # Enable chat mode (normal LLM conversation)
-/chat on                    # Same as above
-/chat off                   # Disable chat mode (enables muse)
+/chat                       # Switch to chat mode
+/muse                       # Switch to muse mode
 ```
 
 ## Utility Commands
@@ -405,9 +405,9 @@ Use /mset command to manage model-specific parameters:
 ### Research Mode
 ```bash
 /rag on
-/muse on
-/set web_search_auto_enhance true  # or: /set web-auto true
-/set rag_auto_search true          # or: /set rag-auto true
+/muse
+/set web-auto true                  # Enable automatic web search fallback
+/set rag-auto true                  # Enable automatic RAG search
 ```
 
 ### Long Conversation Mode
@@ -425,7 +425,7 @@ Use /mset command to manage model-specific parameters:
 /model compression ollama/llama3
 /model synthesis ollama/llama3
 /rag off
-/muse off
+/chat
 ```
 
 ### Debug Mode

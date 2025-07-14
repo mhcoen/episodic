@@ -3,15 +3,16 @@
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Core Concepts](#core-concepts)
-3. [Getting Started](#getting-started)
-4. [Basic Usage](#basic-usage)
-5. [Topic Management](#topic-management)
-6. [Knowledge Base (RAG)](#knowledge-base-rag)
-7. [Web Search](#web-search)
-8. [Muse Mode](#muse-mode)
-9. [Configuration](#configuration)
-10. [Advanced Features](#advanced-features)
-11. [Experimental Features](#experimental-features)
+3. [Mode Switching](#mode-switching)
+4. [Getting Started](#getting-started)
+5. [Basic Usage](#basic-usage)
+6. [Topic Management](#topic-management)
+7. [Knowledge Base (RAG)](#knowledge-base-rag)
+8. [Web Search](#web-search)
+9. [Muse Mode](#muse-mode)
+10. [Configuration](#configuration)
+11. [Advanced Features](#advanced-features)
+12. [Experimental Features](#experimental-features)
 
 ## Introduction
 
@@ -41,6 +42,74 @@ LLMs have limited context windows. Episodic manages this by:
 1. Including recent messages in full
 2. Including compressed summaries of older topics
 3. Showing context usage percentage
+
+## Mode Switching
+
+Episodic operates in two primary modes that you can toggle between:
+
+### Chat Mode (Default)
+**Standard LLM conversation mode** - your messages go directly to the AI model for normal conversation.
+
+```bash
+/chat    # Switch to chat mode
+```
+
+- Normal conversational AI interaction
+- Uses your configured chat model
+- All standard Episodic features (topics, compression, etc.) available
+- Default mode when starting Episodic
+
+### Muse Mode 
+**Web search synthesis mode** - like Perplexity AI, your messages become web search queries that are synthesized into comprehensive answers.
+
+```bash
+/muse    # Switch to muse mode  
+```
+
+- All input becomes web search queries
+- Results are synthesized using AI into comprehensive answers
+- Includes citations and source links
+- Maintains conversational context for follow-up questions
+- Great for research and current information
+
+### Mode Status
+```bash
+# Check current mode (both commands show status when called without arguments)
+/muse    # Shows if muse mode is active
+/chat    # Shows if chat mode is active
+```
+
+### Quick Mode Examples
+
+**Chat Mode Example:**
+```bash
+> /chat
+💬 Chat mode active - conversation with AI
+
+> Explain quantum computing
+🤖 Quantum computing is a revolutionary approach to computation that...
+```
+
+**Muse Mode Example:**
+```bash
+> /muse  
+🎭 Muse mode active - web search synthesis
+
+> Latest developments in quantum computing
+🔍 Searching web for: latest developments quantum computing
+📚 Found 8 relevant sources
+✨ Based on recent developments, here are the latest advances:
+
+1. **IBM's 1000-qubit Condor processor** (December 2023)...
+2. **Google's quantum error correction breakthrough**...
+
+📄 Sources: Nature, IBM Research, Google AI...
+```
+
+### Configuration
+Both modes respect your model and parameter configurations:
+- **Chat mode**: Uses your `/model chat` setting
+- **Muse mode**: Uses your `/model synthesis` setting (or chat model if not set)
 
 ## Getting Started
 
@@ -182,10 +251,15 @@ When topics end, they can be automatically compressed:
 
 ## Web Search
 
-### Enabling Muse Mode (Web Search Synthesis)
+### Mode Switching
 ```bash
-/muse on  # Enable muse mode - all input becomes web searches
+/muse     # Switch to muse mode - all input becomes web searches
+/chat     # Switch to chat mode - normal LLM conversation
 ```
+
+Episodic has two main modes that you can toggle between:
+- **Chat Mode**: Standard LLM conversation (default)
+- **Muse Mode**: Web search synthesis - like Perplexity AI
 
 ### Using Muse Mode
 ```bash
@@ -297,7 +371,7 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 /set <param> <value>  # Set a parameter
 /verify  # Verify configuration integrity
 /cost  # Show session costs
-/model_params  # Show model parameters (deprecated, use /mset)
+/mset  # Show all model parameters for all contexts
 /config-docs  # Show parameter documentation
 ```
 
@@ -438,8 +512,8 @@ Planned feature to show topic predictions in real-time.
 /index paper2.pdf
 
 # Enable web search for current info
-/muse on
-/set web_search_auto_enhance true  # or: /set web-auto true
+/muse
+/set web-auto true                  # Enable automatic web search fallback
 
 # Ask questions - will search both local docs and web
 What are the latest developments in quantum computing?
@@ -527,7 +601,7 @@ Automate your common setup:
 ```bash
 # My daily research setup
 /rag on
-/muse on
+/muse
 /set web-auto true
 /set topics true
 /model chat gpt-4

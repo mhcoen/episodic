@@ -47,7 +47,7 @@ python -m episodic
 🤖 Paris has a rich history dating back over 2,000 years...
 
 # Enable web search mode for current information
-> /muse on
+> /muse
 ✨ Muse mode activated! I'll search the web to answer your questions.
 
 > What major events are happening in Paris this week?
@@ -65,7 +65,7 @@ python -m episodic
 ```bash
 /topics          # See how your conversation is organized
 /search query    # Search your indexed documents  
-/muse on         # Enable Perplexity-like web search mode
+/muse            # Switch to Perplexity-like web search mode
 /web provider    # Configure web search providers
 /model list      # View available AI models
 /help            # See all commands
@@ -124,7 +124,7 @@ Index your papers and documents, then ask questions that search both your knowle
 ```bash
 /set rag-auto true              # Enable automatic RAG search
 /set web-auto true              # Enable automatic web fallback
-/set rag_relevance_threshold 0.7  # Adjust sensitivity (0.0-1.0)
+/set rag-threshold 0.7             # Adjust relevance sensitivity (0.0-1.0)
 ```
 
 ### 🧩 Multi-Model Workflows
@@ -187,9 +187,9 @@ Run completely offline with local models:
 > /model compression ollama/mistral
 > /model synthesis ollama/llama3
 
-# Disable online features
+# Disable online features (stay in chat mode)
 > /rag off
-> /muse off
+> /chat
 
 > Explain how neural networks learn
 # Works completely offline with local models
@@ -316,38 +316,113 @@ Built with:
 - [aiohttp](https://docs.aiohttp.org/) - Asynchronous HTTP client
 - [PyWebView](https://pywebview.flowrl.com/) - Native GUI for web content
 
-## 📸 Screenshots
+## 📸 Examples & Screenshots
 
-### Topic Management
+### Mode Switching
+```bash
+# Start in default chat mode
+> /chat
+💬 Chat mode active - conversation with AI
+
+> Explain machine learning
+🤖 Machine learning is a subset of artificial intelligence...
+
+# Switch to muse mode for web-researched answers
+> /muse
+🎭 Muse mode active - web search synthesis
+
+> Latest breakthroughs in machine learning 2024
+🔍 Searching web for: latest breakthroughs machine learning 2024
+📚 Found 12 relevant sources
+✨ Based on recent developments, here are the major ML breakthroughs in 2024:
+
+1. **OpenAI's GPT-4o with Advanced Reasoning** - Significant improvements in complex problem solving...
+2. **Google's Gemini Ultra 1.5** - Extended context windows up to 2M tokens...
+3. **Meta's Llama 3.1 405B** - Open-source model rivaling proprietary systems...
+
+📄 Sources: Nature AI, OpenAI Blog, Google Research, Meta AI...
 ```
-📚 Recent Topics
-═══════════════════════════════════════════════
-📌 quantum-computing-basics (ongoing)
-   Started: d4 | Messages: 8
 
-📦 machine-learning-fundamentals (compressed)
-   Started: a1 | Ended: d3 | Messages: 12
+### Topic Management & Organization
+```bash
+> /topics
+📚 Conversation Topics
+══════════════════════════════════════════════════════════════
+📌 machine-learning-breakthroughs-2024 (ongoing)
+   Started: d4 | Messages: 6 | Model: gpt-4
+
+📦 quantum-computing-basics (compressed)  
+   Started: a1 | Ended: d3 | Messages: 12 | Model: gpt-4
+   💾 Compressed to 420 tokens (95% reduction)
 
 📑 initial-conversation
-   Started: 9x | Ended: a0 | Messages: 5
+   Started: 9x | Ended: a0 | Messages: 5 | Model: gpt-3.5-turbo
+
+💰 Total cost: $0.12 | Context usage: 28% (2,847/10,000 tokens)
 ```
 
-### Context Usage
-```
-Tokens: 1,847 | Cost: $0.0234 USD | Context: 28% full
+### Research Assistant with RAG
+```bash
+> /rag on
+✅ RAG (knowledge base) enabled
+
+> /index research_papers/quantum_computing_2024.pdf
+📄 Indexed: quantum_computing_2024.pdf (47 chunks)
+
+> /muse
+🎭 Muse mode active
+
+> /set rag-auto true
+> /set web-auto true
+
+> How do the latest quantum error correction methods compare to existing approaches?
+📚 Using knowledge base: quantum_computing_2024.pdf
+🔍 Also searching web for recent developments...
+
+✨ Based on your research paper and current developments:
+
+**Your Paper's Findings:**
+- Surface codes show 99.9% fidelity in simulations...
+- Topological qubits demonstrate improved stability...
+
+**Latest Web Research (2024):**
+- IBM's new error correction protocols achieve 99.95% fidelity...
+- Google's logical qubit demonstrations show promise...
+
+The latest methods build directly on the foundations you documented, with notable improvements in...
+
+📄 Sources: quantum_computing_2024.pdf, IBM Research, Nature Physics
 ```
 
-### Web Search Results
-```
-🔍 Web Search Results for: "latest AI developments"
-══════════════════════════════════════════════════
-1. ⭐ 9.2 | OpenAI Announces GPT-5 Development
-   Recent breakthrough in multimodal AI capabilities...
-   🔗 https://example.com/gpt5-announcement
+### Multi-Model Configuration
+```bash
+> /model list
+🤖 Available Models by Provider
+══════════════════════════════════════════════════════════════
+OpenAI:
+  • gpt-4o                    Most capable model
+  • gpt-4o-mini               Fast and cost-effective  
+  • gpt-3.5-turbo             Legacy but reliable
 
-2. ⭐ 8.7 | Google's Gemini Ultra Performance
-   Comprehensive benchmark results show...
-   🔗 https://example.com/gemini-benchmarks
+Anthropic:  
+  • claude-3-5-sonnet-20241022 Latest Claude model
+  • claude-3-haiku-20240307    Fast and efficient
+
+Local (Ollama):
+  • llama3:8b                 Meta's open model
+  • mistral:7b                Efficient reasoning
+
+> /mset
+⚙️ Model Parameters Across Contexts
+──────────────────────────────────────────────────────────────
+Context      Model               Temperature  Max Tokens  Cost/1K
+──────────────────────────────────────────────────────────────
+Chat         gpt-4o              0.7         2000        $0.015
+Detection    ollama/llama3       0.0         50          $0.000  
+Compression  gpt-3.5-turbo       0.3         500         $0.002
+Synthesis    claude-3-haiku      0.3         1500        $0.001
+
+💡 Tip: Use fast local models for detection to reduce costs
 ```
 
 ## 👤 Author

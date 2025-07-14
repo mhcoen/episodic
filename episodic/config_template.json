@@ -10,6 +10,10 @@
   "show_drift": true,
   "_comment_muse_mode": "Muse mode: treat all input as web search queries (like Perplexity)",
   "muse_mode": false,
+  "_comment_response_style": "Global response style for all modes: concise, standard, comprehensive, custom",
+  "response_style": "standard",
+  "_comment_response_format": "Global response format for all modes: paragraph, bullet-points, mixed, academic",
+  "response_format": "mixed",
   
   "_comment_topic": "// === TOPIC DETECTION SETTINGS ===",
   "_comment_automatic_topic_detection": "Enable automatic topic detection during conversations",
@@ -242,12 +246,8 @@
   "web_show_raw": false,
   
   "_comment_muse": "// === MUSE MODE SYNTHESIS ===",
-  "_comment_muse_style": "Response length: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)",
-  "muse_style": "standard",
   "_comment_muse_detail": "Detail level: minimal, moderate, detailed, maximum",
   "muse_detail": "moderate",
-  "_comment_muse_format": "Output format: paragraph, bullet-points, mixed, academic",
-  "muse_format": "mixed",
   "_comment_muse_max_tokens": "Direct token limit (overrides style if set)",
   "muse_max_tokens": null,
   "_comment_muse_sources": "Source selection: first-only, top-three, all-relevant",

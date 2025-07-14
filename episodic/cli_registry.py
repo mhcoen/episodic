@@ -118,6 +118,49 @@ def handle_legacy_command(cmd: str, args: List[str]) -> bool:
     return handle_command(command_str)
 
 
+def _display_aligned_commands(commands_and_descriptions, max_width=None):
+    """Display a list of (command, description) tuples with perfect alignment and cyan descriptions."""
+    if not commands_and_descriptions:
+        return
+    
+    import shutil
+    import textwrap
+    
+    # Use provided max_width or find the longest command in this list
+    if max_width is None:
+        max_width = max(len(cmd) for cmd, _ in commands_and_descriptions)
+    
+    # Get terminal width for wrapping
+    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    
+    # Display each line with perfect alignment and word wrapping
+    for cmd, desc in commands_and_descriptions:
+        padding = ' ' * max(2, max_width - len(cmd) + 2)  # Minimum 2 spaces between command and description
+        
+        # Calculate available width for description
+        command_part_width = 1 + len(cmd) + len(padding)  # " " + command + padding
+        desc_width = max(40, terminal_width - command_part_width - 4)  # Leave some margin
+        
+        # Wrap the description if needed
+        wrapped_lines = textwrap.wrap(desc, width=desc_width)
+        
+        if not wrapped_lines:
+            wrapped_lines = [""]
+        
+        # Display first line with command
+        typer.secho(f" ", nl=False)
+        typer.secho(f"{cmd}", bold=True, nl=False)
+        typer.echo(padding, nl=False)
+        typer.secho(wrapped_lines[0], fg="cyan")
+        
+        # Display continuation lines if any
+        if len(wrapped_lines) > 1:
+            continuation_padding = ' ' * (command_part_width + 1)  # Add one extra space for readability
+            for line in wrapped_lines[1:]:
+                typer.echo(continuation_padding, nl=False)
+                typer.secho(line, fg="cyan")
+
+
 def _format_aligned_commands(commands_and_descriptions, max_width=None):
     """Format a list of (command, description) tuples with perfect alignment."""
     if not commands_and_descriptions:
@@ -130,8 +173,8 @@ def _format_aligned_commands(commands_and_descriptions, max_width=None):
     # Format each line with perfect alignment
     lines = []
     for cmd, desc in commands_and_descriptions:
-        padding = ' ' * (max_width - len(cmd) + 1)  # +1 for space after colon
-        lines.append(f"- **{cmd}**:{padding}{desc}")
+        padding = ' ' * max(2, max_width - len(cmd) + 2)  # Minimum 2 spaces between command and description
+        lines.append(f"- **{cmd}**{padding}{desc}")
     
     return '\n'.join(lines)
 
@@ -139,12 +182,13 @@ def _format_aligned_commands(commands_and_descriptions, max_width=None):
 def show_help_with_categories():
     """Show basic help information with common commands and categories."""
     _ensure_registry_initialized()
-    from episodic.text_formatter import display_help_content
     
     # Essential commands
     essential_commands = [
         ("/muse", "Enable web search synthesis mode"),
         ("/chat", "Enable normal LLM conversation mode"), 
+        ("/style", "Set global response style (concise/standard/comprehensive/custom)"),
+        ("/format", "Set global response format (paragraph/bullet-points/mixed/academic)"),
         ("/topics", "List conversation topics"),
         ("/list", "Show recent conversation nodes"),
         ("/config", "View current system configuration"),
@@ -171,25 +215,30 @@ def show_help_with_categories():
     all_commands = essential_commands + categories + other_options
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
-    content = f"""⌨️  Just type to chat.
-
-Or interact with : /<command> [options]
-
-## 💬 Essential Commands:
-{_format_aligned_commands(essential_commands, max_width)}
-
-## 📚 Command Categories:
-Use '/help <category>' for detailed commands in each area.
-
-{_format_aligned_commands(categories, max_width)}
-
-## 📖 Other options:
-{_format_aligned_commands(other_options, max_width)}
-
-🚪 Type '/exit' or '/quit' to leave
-"""
+    # Display header
+    typer.secho("⌨️  Just type to chat.", fg=get_text_color())
+    typer.echo()
+    typer.secho("Or interact with : /<command> [options]", fg=get_text_color())
+    typer.echo()
     
-    display_help_content(content)
+    # Display essential commands
+    typer.secho("💬 Essential Commands:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(essential_commands, max_width)
+    typer.echo()
+    
+    # Display command categories
+    typer.secho("📚 Command Categories:", fg=get_heading_color(), bold=True)
+    typer.secho("Use '/help <category>' for detailed commands in each area.", fg=get_text_color())
+    typer.echo()
+    _display_aligned_commands(categories, max_width)
+    typer.echo()
+    
+    # Display other options
+    typer.secho("📖 Other options:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(other_options, max_width)
+    typer.echo()
+    
+    typer.secho("🚪 Type '/exit' or '/quit' to leave", fg=get_text_color())
 
 
 def show_category_help(category: str):
@@ -214,24 +263,25 @@ def show_category_help(category: str):
 
 def show_chat_help():
     """Show chat and conversation management commands."""
-    from episodic.text_formatter import display_help_content
     
     # Commands
     commands = [
         ("/chat", "Enable normal LLM conversation mode"),
         ("/muse", "Enable web search synthesis mode (like Perplexity)"),
+        ("/style <style>", "Set global response style (concise/standard/comprehensive/custom)"),
+        ("/format <format>", "Set global response format (paragraph/bullet-points/mixed/academic)"),
         ("/topics", "List conversation topics"),
         ("/topics list", "List all topics with details"),
         ("/topics rename", "Rename ongoing topics"),
         ("/summary", "Summarize recent conversation"),
-        ("/cost", "Show token usage and costs"),
-        ("/set muse-style <style>", "Set muse response length (concise/standard/comprehensive)")
+        ("/cost", "Show token usage and costs")
     ]
     
     # Examples
     examples = [
         ("/muse", "Switch to web search mode"),
-        ("/set muse-style concise", "Set shorter responses"),
+        ("/style concise", "Set shorter responses for all modes"),
+        ("/format bullet-points", "Use bullet points for all modes"),
         ("/topics", "See conversation topics")
     ]
 
@@ -239,22 +289,21 @@ def show_chat_help():
     all_commands = commands + examples
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
-    content = f"""## 💬 Chat & Conversation Management
-Mode switching and conversation flow control.
-
-Commands:
-{_format_aligned_commands(commands, max_width)}
-
-### Examples:
-{_format_aligned_commands(examples, max_width)}
-"""
+    # Display header
+    typer.secho("💬 Chat & Conversation Management", fg=get_heading_color(), bold=True)
+    typer.secho("Mode switching and conversation flow control.", fg=get_text_color())
+    typer.echo()
     
-    display_help_content(content)
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
 
 
 def show_settings_help():
     """Show configuration and system management commands.""" 
-    from episodic.text_formatter import display_help_content
     
     # Commands
     commands = [
@@ -280,22 +329,21 @@ def show_settings_help():
     all_commands = commands + common_settings
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
-    content = f"""## ⚙️ Settings & System Management
-Configure the system and manage models.
-
-Commands:
-{_format_aligned_commands(commands, max_width)}
-
-### Common Settings:
-{_format_aligned_commands(common_settings, max_width)}
-"""
+    # Display header
+    typer.secho("⚙️ Settings & System Management", fg=get_heading_color(), bold=True)
+    typer.secho("Configure the system and manage models.", fg=get_text_color())
+    typer.echo()
     
-    display_help_content(content)
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Common Settings:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(common_settings, max_width)
 
 
 def show_search_help():
     """Show knowledge base and muse configuration commands."""
-    from episodic.text_formatter import display_help_content
     
     # Commands
     commands = [
@@ -308,36 +356,48 @@ def show_search_help():
         ("/docs show <id>", "Show a specific document"),
         ("/docs remove <id>", "Remove a document"),
         ("/web", "Show muse web search provider configuration"),
-        ("/web provider <name>", "Set web search provider for muse mode")
+        ("/web provider <name>", "Set web search provider for muse mode"),
+        ("/set muse-detail <level>", "Set muse detail level (minimal/moderate/detailed/maximum)"),
+        ("/set web-search-max-results <n>", "Set number of search results for muse mode")
     ]
     
     # Examples
     examples = [
         ("/index ~/documents/notes.md", "Index a file"),
         ("/search python functions", "Search knowledge base"),
-        ("/set rag-enabled true", "Enable RAG integration")
+        ("/set rag-enabled true", "Enable RAG integration"),
+        ("/set muse-detail detailed", "More detailed muse responses"),
+        ("/style concise", "Set response length for all modes (chat, RAG, muse)"),
+        ("/format academic", "Use academic format for all modes (chat, RAG, muse)")
     ]
 
     # Find the longest command across ALL sections for uniform alignment
     all_commands = commands + examples
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
-    content = f"""## 🔍 Knowledge Base & Muse Configuration
-Search your knowledge base and configure muse web search.
-
-Commands:
-{_format_aligned_commands(commands, max_width)}
-
-### Examples:
-{_format_aligned_commands(examples, max_width)}
-"""
+    # Display header
+    typer.secho("🔍 Knowledge Base & Muse Configuration", fg=get_heading_color(), bold=True)
+    typer.secho("Search your knowledge base and configure muse web search.", fg=get_text_color())
+    typer.echo()
     
-    display_help_content(content)
+    typer.secho("Note: Response style and format are now controlled globally with ", fg=get_text_color(), nl=False)
+    typer.secho("/style", fg="cyan", bold=True, nl=False)
+    typer.secho(" and ", fg=get_text_color(), nl=False)
+    typer.secho("/format", fg="cyan", bold=True, nl=False)
+    typer.secho(".", fg=get_text_color())
+    typer.secho("Muse-specific settings control detail level and search behavior.", fg=get_text_color())
+    typer.echo()
+    
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
 
 
 def show_history_help():
     """Show navigation and conversation history commands."""
-    from episodic.text_formatter import display_help_content
     
     # Commands
     commands = [
@@ -364,22 +424,21 @@ def show_history_help():
     all_commands = commands + navigation
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
-    content = f"""## 🧭 Navigation & History
-Navigate through conversation history and nodes.
-
-Commands:
-{_format_aligned_commands(commands, max_width)}
-
-### Navigation:
-{_format_aligned_commands(navigation, max_width)}
-"""
+    # Display header
+    typer.secho("🧭 Navigation & History", fg=get_heading_color(), bold=True)
+    typer.secho("Navigate through conversation history and nodes.", fg=get_text_color())
+    typer.echo()
     
-    display_help_content(content)
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Navigation:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(navigation, max_width)
 
 
 def show_topics_help():
     """Show topic detection and management commands."""
-    from episodic.text_formatter import display_help_content
     
     # Commands
     commands = [
@@ -403,23 +462,22 @@ def show_topics_help():
     all_commands = commands + examples
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
-    content = f"""## 📑 Topic Detection & Management
-Manage conversation topics and analyze topic detection.
-
-Commands:
-{_format_aligned_commands(commands, max_width)}
-
-### Examples:
-{_format_aligned_commands(examples, max_width)}
-"""
+    # Display header
+    typer.secho("📑 Topic Detection & Management", fg=get_heading_color(), bold=True)
+    typer.secho("Manage conversation topics and analyze topic detection.", fg=get_text_color())
+    typer.echo()
     
-    display_help_content(content)
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
 
 
 def show_advanced_help():
     """Show all available commands organized by categories."""
     _ensure_registry_initialized()
-    from episodic.text_formatter import display_help_content
     
     # Get commands by category
     categories = command_registry.get_commands_by_category()
@@ -449,10 +507,8 @@ def show_advanced_help():
     
     # Add muse configuration settings
     muse_settings = [
-        ("muse-style", "Response length: concise (~150 words), standard (~300), comprehensive (~500), exhaustive (800+)"),
         ("muse-detail", "Detail level: minimal, moderate, detailed, maximum"),
-        ("muse-format", "Output format: paragraph, bullet-points, mixed, academic"),
-        ("muse-max-tokens", "Direct token limit (overrides style if set)"),
+        ("muse-max-tokens", "Direct token limit (overrides global style if set)"),
         ("muse-sources", "Source selection: first-only, top-three, all-relevant"),
         ("muse-model", "Model for synthesis (None = use main model)")
     ]
@@ -464,8 +520,9 @@ def show_advanced_help():
     # Find the longest command across ALL sections for uniform alignment
     max_width = max(len(cmd) for cmd, _ in all_command_tuples)
     
-    # Build content
-    content = "# 📚 Episodic Commands (Advanced)\n\n"
+    # Display header
+    typer.secho("📚 Episodic Commands (Advanced)", fg=get_heading_color(), bold=True)
+    typer.echo()
     
     for category in category_order:
         if category not in categories:
@@ -482,7 +539,7 @@ def show_advanced_help():
         
         # Category header
         icon = get_category_icon(category)
-        content += f"## {icon} {category}\n"
+        typer.secho(f"{icon} {category}", fg=get_heading_color(), bold=True)
         
         # Collect commands for this category
         category_commands = []
@@ -492,22 +549,34 @@ def show_advanced_help():
                 cmd_display += f" (/{', /'.join(cmd_info.aliases)})"
             category_commands.append((cmd_display, cmd_info.description))
         
-        # Format with uniform alignment
-        content += _format_aligned_commands(category_commands, max_width) + "\n\n"
+        # Display with uniform alignment
+        _display_aligned_commands(category_commands, max_width)
+        typer.echo()
     
     # Show muse configuration details
-    content += "## 🎭 Muse Mode Configuration\n"
+    typer.secho("🎭 Muse Mode Configuration", fg=get_heading_color(), bold=True)
     muse_command_tuples = [(f"/set {setting}", description) for setting, description in muse_settings]
-    content += _format_aligned_commands(muse_command_tuples, max_width) + "\n"
+    _display_aligned_commands(muse_command_tuples, max_width)
+    typer.echo()
     
-    content += """\n## 💡 Quick Tips
-• Type messages directly to chat
-• Common settings: **/set debug off**, **/set cost on**, **/set topics on**  
-• Muse mode length: **/set muse-style concise|standard|comprehensive**
-• Type **/exit** or **/quit** to leave
-"""
-    
-    display_help_content(content)
+    # Display quick tips
+    typer.secho("💡 Quick Tips", fg=get_heading_color(), bold=True)
+    typer.secho("• Type messages directly to chat", fg=get_text_color())
+    typer.secho("• Common settings: ", fg=get_text_color(), nl=False)
+    typer.secho("/set debug off", fg="cyan", bold=True, nl=False)
+    typer.secho(", ", fg=get_text_color(), nl=False)
+    typer.secho("/set cost on", fg="cyan", bold=True, nl=False)
+    typer.secho(", ", fg=get_text_color(), nl=False)
+    typer.secho("/set topics on", fg="cyan", bold=True)
+    typer.secho("• Global response style: ", fg=get_text_color(), nl=False)
+    typer.secho("/style concise|standard|comprehensive|custom", fg="cyan", bold=True)
+    typer.secho("• Global response format: ", fg=get_text_color(), nl=False)
+    typer.secho("/format paragraph|bullet-points|mixed|academic", fg="cyan", bold=True)
+    typer.secho("• Type ", fg=get_text_color(), nl=False)
+    typer.secho("/exit", fg="cyan", bold=True, nl=False)
+    typer.secho(" or ", fg=get_text_color(), nl=False)
+    typer.secho("/quit", fg="cyan", bold=True, nl=False)
+    typer.secho(" to leave", fg=get_text_color())
 
 
 def get_category_icon(category: str) -> str:

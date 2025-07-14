@@ -27,7 +27,8 @@ Just type to chat! No prefix needed.
 | `/rag on` | | Enable knowledge base |
 | `/index file.txt` | `/i` | Index a document |
 | `/search query` | `/s` | Search knowledge base |
-| `/muse on/off` | | Enable/disable web search mode |
+| `/muse` | | Switch to web search mode |
+| `/chat` | | Switch to chat mode |
 
 ### Configuration
 | Command | Description |
@@ -76,7 +77,7 @@ Just type to chat! No prefix needed.
 ### Research Assistant
 ```bash
 /rag on
-/muse on
+/muse
 /set web-auto true
 ```
 
@@ -85,7 +86,7 @@ Just type to chat! No prefix needed.
 /model chat ollama/llama3
 /model detection ollama/llama3
 /rag off
-/muse off
+/chat
 ```
 
 ### Long Conversations

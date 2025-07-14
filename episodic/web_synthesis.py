@@ -19,37 +19,47 @@ class WebSynthesizer:
     
     def __init__(self):
         self.synthesis_model = config.get('muse_model') or config.get('model', 'gpt-3.5-turbo')
-        self.style = config.get('muse_style', 'standard')
+        # Use global style system instead of muse-specific style
+        self.style = config.get('response_style', 'standard')
         self.detail = config.get('muse_detail', 'moderate')
-        self.format = config.get('muse_format', 'mixed')
+        self.format = config.get('response_format', 'mixed')
         self.max_tokens = config.get('muse_max_tokens')
         self.sources_config = config.get('muse_sources', 'top-three')
         
     def _get_style_instructions(self) -> Dict[str, Any]:
-        """Get instructions based on synthesis style."""
-        style_map = {
+        """Get instructions based on synthesis style using global style system."""
+        # Import style definitions from the style module
+        from episodic.commands.style import STYLE_DEFINITIONS
+        
+        style_info = STYLE_DEFINITIONS.get(self.style)
+        if not style_info:
+            style_info = STYLE_DEFINITIONS['standard']
+        
+        # Convert global style to synthesis-specific instructions
+        synthesis_map = {
             'concise': {
-                'description': 'a brief summary (~150 words)',
-                'instructions': 'Provide a concise summary focusing only on the most essential information. Limit to 2-3 key points.',
-                'tokens': 200
+                'description': 'a brief, direct synthesis',
+                'instructions': style_info['prompt'] + ' Focus on synthesizing web search results into concise answers.',
+                'tokens': style_info['max_tokens'] or 500
             },
             'standard': {
-                'description': 'a balanced response (~300 words)',
-                'instructions': 'Provide a well-balanced answer that covers the main points with appropriate context.',
-                'tokens': 400
+                'description': 'a balanced, well-structured synthesis', 
+                'instructions': style_info['prompt'] + ' Synthesize web search results with appropriate detail.',
+                'tokens': style_info['max_tokens'] or 1000
             },
             'comprehensive': {
-                'description': 'a detailed analysis (~500 words)',
-                'instructions': 'Provide a comprehensive analysis including examples, context, and thorough explanations.',
-                'tokens': 800
+                'description': 'a thorough, detailed synthesis',
+                'instructions': style_info['prompt'] + ' Synthesize web search results into comprehensive, detailed answers.',
+                'tokens': style_info['max_tokens'] or 2000
             },
-            'exhaustive': {
-                'description': 'an exhaustive exploration (~800+ words)',
-                'instructions': 'Provide an exhaustive exploration covering all aspects, nuances, edge cases, and implications.',
-                'tokens': 1500
+            'custom': {
+                'description': 'synthesis with model-specific token limits',
+                'instructions': style_info['prompt'] + ' Synthesize web search results appropriately.',
+                'tokens': None  # Will use model-specific settings
             }
         }
-        return style_map.get(self.style, style_map['standard'])
+        
+        return synthesis_map.get(self.style, synthesis_map['standard'])
     
     def _get_detail_instructions(self) -> str:
         """Get instructions based on detail level."""
@@ -62,14 +72,10 @@ class WebSynthesizer:
         return detail_map.get(self.detail, detail_map['moderate'])
     
     def _get_format_instructions(self) -> str:
-        """Get instructions based on format preference."""
-        format_map = {
-            'paragraph': 'Use flowing prose in paragraph form with markdown headers (### Header Name) for sections.',
-            'bullet-points': 'Use bullet points and lists for all information with markdown headers (### Header Name) for sections.',
-            'mixed': 'Use a mix of paragraphs and bullet points as appropriate with markdown headers (### Header Name) for sections.',
-            'academic': 'Use formal academic style with proper citations [Source N] and markdown headers (### Header Name) for sections.'
-        }
-        return format_map.get(self.format, format_map['mixed'])
+        """Get instructions based on format preference using global format system."""
+        # Use the global format system
+        from episodic.commands.style import get_format_prompt
+        return get_format_prompt()
     
     def _load_prompt_template(self) -> str:
         """Load the customizable prompt template."""
@@ -152,8 +158,11 @@ class WebSynthesizer:
             # Determine max tokens
             if self.max_tokens:
                 max_tokens = self.max_tokens
-            else:
+            elif style_info['tokens']:
                 max_tokens = style_info['tokens']
+            else:
+                # For 'custom' style, use model-specific parameters
+                max_tokens = config.get('main_params', {}).get('max_tokens', 1000)
             
             # Use LLM to synthesize the answer
             # Check if streaming is enabled

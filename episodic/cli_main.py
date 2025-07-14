@@ -52,7 +52,7 @@ def handle_chat_message(user_input: str) -> None:
             from episodic.commands.web_search import websearch
             # Check if web search is enabled
             if not config.get('web_search_enabled', False):
-                typer.secho("⚠️  Web search is not enabled. Use '/websearch on' to enable.", fg="yellow")
+                typer.secho("⚠️  Web search is not enabled. Use '/muse on' to enable.", fg="yellow")
                 return
             
             # Perform web search with synthesis

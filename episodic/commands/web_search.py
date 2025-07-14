@@ -11,7 +11,7 @@ from episodic.web_search import get_web_search_manager
 def websearch(query: str, limit: Optional[int] = None, index: bool = None, extract: bool = None, synthesize: bool = None):
     """Perform a web search."""
     if not config.get('web_search_enabled', False):
-        typer.secho("Web search is not enabled. Use '/websearch on' to enable.", fg="yellow")
+        typer.secho("Web search is not enabled. Use '/muse on' to enable.", fg="yellow")
         return
     
     
@@ -295,7 +295,7 @@ def websearch_config():
     if config.get('web_search_synthesize', True):
         typer.secho("\n💡 ", nl=False)
         typer.secho("For synthesis settings: ", nl=False, fg=typer.colors.WHITE, dim=True)
-        typer.secho("/websearch synthesis", fg="bright_cyan")
+        typer.secho("Enable muse mode for web synthesis", fg="bright_cyan")
 
 
 def websearch_stats():
@@ -510,7 +510,7 @@ def websearch_command(action: Optional[str] = None, *args):
         if args and args[0] == "clear":
             websearch_cache_clear()
         else:
-            typer.secho("Usage: /websearch cache clear", fg="red")
+            typer.secho("Usage: cache clear (legacy command)", fg="red")
     else:
         # Treat as search query
         # Check for flags

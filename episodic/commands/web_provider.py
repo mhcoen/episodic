@@ -1,7 +1,7 @@
 """
 Web provider management command.
 
-This module provides a command for managing web search providers.
+This module provides a command for managing web search providers used by muse mode.
 """
 
 import typer
@@ -15,7 +15,7 @@ def web_command(
     provider_name: Optional[str] = None
 ):
     """
-    Manage web search providers and settings.
+    Manage web search providers for muse mode.
     
     Usage:
         /web                        # Show current web search provider
@@ -48,7 +48,7 @@ def show_current_provider():
     """Show the current web search provider and available commands."""
     current = config.get("web_search_provider", "duckduckgo")
     
-    typer.secho("\n🌐 Web Search Provider Management", fg=get_heading_color(), bold=True)
+    typer.secho("\n🌐 Muse Mode Web Search Provider", fg=get_heading_color(), bold=True)
     typer.secho("─" * 50, fg=get_heading_color())
     
     typer.secho("Current provider: ", fg=get_text_color(), nl=False)

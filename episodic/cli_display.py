@@ -73,7 +73,7 @@ def display_model_info():
         if config.get("web_search_enabled", False):
             typer.secho("🌐 Web search enabled", fg=get_system_color())
         else:
-            typer.secho("⚠️  Web search disabled - enable with '/websearch on'", 
+            typer.secho("⚠️  Web search disabled - enable with '/muse on'", 
                        fg="yellow")
     
     # Display current head if it exists

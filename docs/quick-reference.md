@@ -38,6 +38,8 @@ Just type to chat! No prefix needed.
 | `/set param value` | Change setting |
 | `/mset` | Show model parameters |
 | `/mset chat.temp 0.7` | Set model parameter |
+| `/style standard` | Set response style (concise/standard/comprehensive/custom) |
+| `/format mixed` | Set response format (paragraph/bullet-points/mixed/academic) |
 | `/reset all` | Reset to defaults |
 
 ### Common Settings

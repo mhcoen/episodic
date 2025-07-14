@@ -44,3 +44,5 @@ archive/
 .episodic_history
 command_history
 .mcp/
+.pytest_cache/
+.DS_Store

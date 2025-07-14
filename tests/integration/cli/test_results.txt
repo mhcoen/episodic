@@ -1,0 +1,473 @@
+Episodic CLI Test Results - 2025-07-14 15:55:41.456324
+============================================================
+
+Summary:
+- Total tests: 76
+- Passed: 0
+- Failed: 77
+- Errors: 0
+
+FAILED TESTS:
+------------------------------------------------------------
+
+Command: --init
+Description: Initialize database
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /help
+Description: Show help menu
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /h
+Description: Help shortcut
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /welcome
+Description: Show welcome message
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /about
+Description: Show about information
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /model
+Description: Show current model
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /model list
+Description: List all models
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /model chat gpt-3.5-turbo
+Description: Set chat model
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /model detection gpt-3.5-turbo
+Description: Set detection model
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /model compression gpt-3.5-turbo
+Description: Set compression model
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /model synthesis gpt-3.5-turbo
+Description: Set synthesis model
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /mset
+Description: Show all model parameters
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /mset chat
+Description: Show chat model parameters
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /mset chat.temperature 0.7
+Description: Set chat temperature
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /mset detection.temperature 0
+Description: Set detection temperature
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /config
+Description: Show configuration
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /config-docs
+Description: Show configuration documentation
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /set debug on
+Description: Enable debug mode
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /set debug off
+Description: Disable debug mode
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /set text_wrap on
+Description: Enable text wrapping
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /set show_costs on
+Description: Enable cost display
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /verify
+Description: Verify configuration
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /reset
+Description: Reset configuration
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics
+Description: List topics
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics list
+Description: List topics explicitly
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics rename
+Description: Rename ongoing topics
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics stats
+Description: Show topic statistics
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics scores
+Description: Show topic detection scores
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics index 5
+Description: Manual topic detection
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /topics compress
+Description: Compress current topic
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /compression
+Description: Show compression stats
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /compression stats
+Description: Show compression stats explicitly
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /compression queue
+Description: Show compression queue
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /compression api-stats
+Description: Show API usage stats
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /compression reset-api
+Description: Reset API stats
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /rag
+Description: Show RAG status
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /rag on
+Description: Enable RAG
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /rag off
+Description: Disable RAG
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /search test
+Description: Search knowledge base
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /s test
+Description: Search shortcut
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /index README.md
+Description: Index a file
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /i README.md
+Description: Index shortcut
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /docs
+Description: List documents
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /docs list
+Description: List documents explicitly
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /websearch test query
+Description: Web search test
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /ws test query
+Description: Web search shortcut
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /websearch on
+Description: Enable web search
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /websearch off
+Description: Disable web search
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /websearch config
+Description: Show web search config
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /websearch stats
+Description: Show web search stats
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /websearch cache clear
+Description: Clear web search cache
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /muse
+Description: Toggle muse mode
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /muse on
+Description: Enable muse mode
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /muse off
+Description: Disable muse mode
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /history
+Description: Show conversation history
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /history 5
+Description: Show last 5 messages
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /history all
+Description: Show all history
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /tree
+Description: Show conversation tree
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /graph
+Description: Show conversation graph
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /cost
+Description: Show session costs
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /save test_session.txt
+Description: Save session to file
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /debug
+Description: Toggle debug mode
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /debug on
+Description: Enable debug explicitly
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /debug off
+Description: Disable debug explicitly
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /api-stats
+Description: Show API statistics
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /reset-api-stats
+Description: Reset API statistics
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /init
+Description: Re-initialize database
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /clear
+Description: Clear screen
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /cls
+Description: Clear screen shortcut
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /drift
+Description: Show semantic drift
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /export
+Description: Export conversation
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /summary
+Description: Generate conversation summary
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /rename-topics
+Description: Rename topics (deprecated)
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /compress-current-topic
+Description: Compress current topic (deprecated)
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /exit
+Description: Exit application
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /quit
+Description: Quit application
+Exit code: 127
+Error: /bin/sh: python: command not found
+
+
+Command: /bye
+Description: Bye shortcut
+Exit code: 127
+Error: /bin/sh: python: command not found
+

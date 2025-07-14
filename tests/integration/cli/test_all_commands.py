@@ -31,18 +31,19 @@ def run_command(command, description=""):
     print("-" * 60)
     
     try:
-        # Use echo to pipe input for interactive commands
+        # Use echo to pipe input for interactive commands with virtual environment
+        venv_activate = f'source "{project_root}/.venv/bin/activate" &&'
         if command.startswith("/"):
-            full_command = f'echo "{command}" | cd "{project_root}" && python -m episodic'
+            full_command = f'echo "{command}" | cd "{project_root}" && {venv_activate} python -m episodic'
         else:
-            full_command = f'cd "{project_root}" && python -m episodic {command}'
+            full_command = f'cd "{project_root}" && {venv_activate} python -m episodic {command}'
             
         result = subprocess.run(
             full_command,
             shell=True,
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=30
         )
         
         print(f"Exit code: {result.returncode}")

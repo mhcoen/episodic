@@ -91,8 +91,7 @@ class HelpRAG:
             "docs/quick-reference.md",
             "docs/configuration.md",
             "README.md",
-            "docs/features.md",
-            "docs/user-guide.md"
+            "docs/features.md"
         ]
         
         # Get project root directory
@@ -461,8 +460,7 @@ def help_reindex():
             "docs/quick-reference.md",
             "docs/configuration.md",
             "README.md",
-            "docs/features.md",
-            "docs/user-guide.md"
+            "docs/features.md"
         ]
         
         # Get project root directory
@@ -516,16 +514,31 @@ def help_reindex():
         
         # Summary
         typer.secho("\n" + "─" * 50, fg=get_heading_color())
-        typer.secho(f"\n✅ Reindexing Complete!", fg="green", bold=True)
-        typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg=get_text_color())
-        typer.secho(f"   • Total chunks: {total_chunks}", fg=get_text_color())
+        
+        if indexed_count == 0:
+            typer.secho(f"\n❌ Reindexing Failed!", fg="red", bold=True)
+            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg="red")
+            typer.secho(f"   • Total chunks: {total_chunks}", fg="red")
+            typer.secho(f"   • All files failed to index due to errors above", fg="red")
+            typer.secho(f"\n⚠️  The help search will not work until indexing succeeds.", fg="yellow")
+        elif indexed_count < len(help_docs):
+            typer.secho(f"\n⚠️  Reindexing Partially Complete!", fg="yellow", bold=True)
+            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg="yellow")
+            typer.secho(f"   • Total chunks: {total_chunks}", fg=get_text_color())
+            typer.secho(f"   • Some files failed to index (see errors above)", fg="yellow")
+        else:
+            typer.secho(f"\n✅ Reindexing Complete!", fg="green", bold=True)
+            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg=get_text_color())
+            typer.secho(f"   • Total chunks: {total_chunks}", fg=get_text_color())
+        
         typer.secho(f"   • Collection: episodic_help", fg=get_text_color())
         
         if config.get('rag_preserve_formatting', True):
             typer.secho(f"   • Format preservation: Enabled", fg=get_text_color())
         
-        typer.secho("\nYou can now search documentation with:", fg=get_text_color())
-        typer.secho("  /help <query>", fg=get_system_color())
+        if indexed_count > 0:
+            typer.secho("\nYou can now search documentation with:", fg=get_text_color())
+            typer.secho("  /help <query>", fg=get_system_color())
         
     except Exception as e:
         typer.secho(f"\n❌ Error during reindexing: {str(e)}", fg="red")

@@ -137,6 +137,26 @@ View/set model parameters
 /mset detection.top_p default   # Remove override, use default
 ```
 
+### /style
+Set global response style (affects length and detail level)
+```bash
+/style                      # Show current style
+/style concise              # Brief, direct responses (1-2 sentences when possible)
+/style standard             # Clear, well-structured responses with appropriate detail
+/style comprehensive        # Thorough, detailed responses with examples and context
+/style custom               # Use model-specific max_tokens settings for fine control
+```
+
+### /format
+Set global response format (affects presentation structure)
+```bash
+/format                     # Show current format
+/format paragraph           # Flowing prose in paragraph form with markdown headers
+/format bullet-points       # Bullet points and lists for all information
+/format mixed               # Mix of paragraphs and bullet points as appropriate
+/format academic            # Formal academic style with proper citations [Source N]
+```
+
 ### Configuration Documentation
 Access configuration docs through settings command:
 ```bash

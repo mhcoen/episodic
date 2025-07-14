@@ -216,8 +216,8 @@ class EpisodicRAG:
         # Check for duplicates
         existing_doc_id = check_duplicate(content_hash)
         if existing_doc_id:
-            typer.echo(f"Document already indexed with ID: {existing_doc_id}", 
-                      fg=get_text_color())
+            typer.secho(f"Document already indexed with ID: {existing_doc_id}", 
+                       fg=get_text_color())
             # Get the existing document's chunk count
             doc = _get_document(existing_doc_id)
             return existing_doc_id, doc['chunk_count'] if doc else 0
@@ -421,8 +421,8 @@ class EpisodicRAG:
         
         # Check if we should do web search
         if self._should_search_web(results, include_web):
-            from episodic.web_search import WebSearcher
-            searcher = WebSearcher()
+            from episodic.web_search import WebSearchManager
+            searcher = WebSearchManager()
             
             # Perform web search
             web_results = searcher.search(message, max_results=3)
@@ -521,7 +521,7 @@ def get_rag_system() -> Optional[EpisodicRAG]:
             _rag_system = EpisodicRAG()
         except Exception as e:
             if config.get("debug"):
-                typer.echo(f"Failed to initialize RAG system: {e}", fg="red")
+                typer.secho(f"Failed to initialize RAG system: {e}", fg="red")
             return None
     
     return _rag_system

@@ -385,6 +385,23 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 /set wrap true               # Enable text wrapping
 ```
 
+#### Response Formatting
+```bash
+# Global response style (affects length and detail level)
+/style                       # Show current style
+/style concise               # Brief, direct responses
+/style standard              # Clear, well-structured responses
+/style comprehensive         # Thorough, detailed responses
+/style custom                # Use model-specific max_tokens
+
+# Global response format (affects presentation structure)
+/format                      # Show current format
+/format paragraph            # Flowing prose with markdown headers
+/format bullet-points        # Bullet points and lists
+/format mixed                # Mix of paragraphs and bullet points
+/format academic             # Formal academic style with citations
+```
+
 #### Model Parameters
 ```bash
 /mset  # Show all model parameters

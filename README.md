@@ -9,10 +9,12 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 - **🤖 Universal LLM Interface**: Chat with OpenAI, Anthropic, Google, Ollama, and more through one interface
 - **🗄️ Persistent Memory**: All conversations stored in a local SQLite database
+- **📓 Import/Export Conversations**: Save conversations as editable markdown files for sharing, backup, or continuing later
 - **🎯 Automatic Topic Detection**: Intelligently segments conversations into semantic topics
 - **📊 Context Management**: Compresses old topics to stay within LLM context limits
 - **💰 Cost & Usage Tracking**: Real-time tracking of tokens used and costs across all LLM providers
 - **🌐 Web Search**: Search the web and get AI-synthesized summaries of results
+- **🔍 Configurable Web Providers**: Choose from DuckDuckGo, Google, Bing, or Searx with automatic fallback
 - **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
 - **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info
 - **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
@@ -64,7 +66,11 @@ python -m episodic
 
 ```bash
 /topics          # See how your conversation is organized
-/search query    # Search your indexed documents  
+/export          # Save current topic to markdown (alias: /ex)
+/import file.md  # Load a markdown conversation (alias: /im)
+/files           # List markdown files in directory (alias: /ls)
+/search query    # Search your indexed documents (alias: /s) 
+/index file      # Add file to knowledge base (alias: /i)
 /muse            # Switch to Perplexity-like web search mode
 /style           # Set global response style (concise/standard/comprehensive/custom)
 /format          # Set global response format (paragraph/bullet-points/mixed/academic)
@@ -177,6 +183,39 @@ Episodic automatically manages long conversations by detecting topic changes and
 🔄 Topic changed → Compressing previous topic
 📌 New topic: database-scaling-strategies
 💾 Context usage: 38% (previous topic compressed to 420 tokens)
+```
+
+### 📝 Save and Resume Conversations
+Export conversations to markdown for sharing, backup, or continuing later:
+
+```text
+> Tell me about the history of computing
+🤖 The history of computing spans several millennia...
+
+> /export
+✅ Conversation saved to: exports/history-of-computing-2025-01-15.md
+
+# Later, or on another machine:
+> /ls exports
+📁 Markdown files in exports
+📄 history-of-computing-2025-01-15.md
+   Size: 3.2 KB • Modified: 2 hours ago
+   Preview: History of Computing
+
+> /import exports/history-of-computing-2025-01-15.md
+✅ Conversation loaded successfully!
+
+> What about quantum computing?
+🤖 Building on our discussion of computing history, quantum computing represents...
+
+# Export specific topics or entire conversations
+> /topics
+[1] ✓ History of Computing
+[2] ✓ Programming Languages  
+[3] ○ Quantum Computing (ongoing)
+
+> /export 1-2 computing-basics.md  # Export topics 1 and 2
+> /export all full-conversation.md  # Export everything
 ```
 
 ### 🏠 Offline Usage

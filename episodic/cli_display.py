@@ -17,13 +17,15 @@ from episodic.db import get_head, get_recent_topics
 
 def setup_environment():
     """Set up the environment for the CLI."""
+    # Clear the screen on startup (portable across platforms)
+    typer.clear()
+    
     # Ensure required directories exist
     os.makedirs("logs", exist_ok=True)
     os.makedirs("scripts", exist_ok=True)
     
     # Set up any other environment needs
-    if config.get("clear_on_start", False):
-        typer.clear()
+    # Note: clear_on_start config option is now deprecated as we always clear
 
 
 def display_welcome():

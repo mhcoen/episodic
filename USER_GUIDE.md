@@ -11,8 +11,9 @@
 8. [Web Search](#web-search)
 9. [Muse Mode](#muse-mode)
 10. [Configuration](#configuration)
-11. [Advanced Features](#advanced-features)
-12. [Experimental Features](#experimental-features)
+11. [Saving and Loading Conversations](#saving-and-loading-conversations)
+12. [Advanced Features](#advanced-features)
+13. [Experimental Features](#experimental-features)
 
 ## Introduction
 
@@ -161,6 +162,9 @@ When you interrupt a response:
 | `/show <node_id>` | Show details of a specific node |
 | `/head` | Show current conversation head |
 | `/ancestry` | Show the conversation history |
+| `/export` or `/ex` | Export current topic to markdown |
+| `/import <file>` or `/im <file>` | Import markdown conversation |
+| `/files [dir]` or `/ls [dir]` | List markdown files in directory |
 
 ### Model Selection
 ```bash
@@ -373,6 +377,83 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 [Contextual follow-up with new search]
 ```
 
+## Saving and Loading Conversations
+
+### Exporting Conversations
+
+Episodic can export your conversations to markdown files for sharing, backup, or later continuation:
+
+```bash
+/export                      # Export current topic with auto-generated filename
+/ex 1-3                      # Export topics 1 through 3 (using alias)
+/export all conversation.md  # Export entire conversation to specific file
+/ex 2,4,6 selected.md        # Export specific topics (using alias)
+```
+
+#### Topic Specifications
+- `current` - Export the current/ongoing topic (default)
+- `3` - Export topic number 3
+- `1-5` - Export topics 1 through 5 (range)
+- `1,3,5` - Export topics 1, 3, and 5 (list)
+- `all` - Export all topics
+
+#### Export Format
+Exported files include:
+- Date and time at the top
+- Conversation exchanges with **You:** and **LLM:** prefixes
+- Model information and changes
+- Topic boundaries and detection notes
+- Node IDs for reference (cannot be reused)
+
+### Importing Conversations
+
+Load previously exported conversations or markdown files from other sources:
+
+```bash
+/import conversation.md      # Load a conversation file
+/im exports/meeting.md       # Load from specific directory (using alias)
+```
+
+**Note**: Imported conversations create new nodes in your conversation DAG. The system can parse various markdown dialogue formats including:
+- Episodic's export format
+- ChatGPT exports
+- Claude conversation exports
+- Generic markdown with dialogue patterns
+
+### Listing Files
+
+Browse available markdown files:
+
+```bash
+/files                      # List files in current directory (primary command)
+/ls exports                 # List files in exports directory (using alias)
+/files ~/Documents/chats    # List files in specific directory
+```
+
+The listing shows:
+- File size
+- Modification time (relative for recent files)
+- Preview of file content (title or first heading)
+
+### Example Workflow
+
+```bash
+# Have a conversation about a project
+> Let's design a REST API for a task management system
+🤖 I'll help you design a REST API for task management...
+
+# Export for team review
+> /export api-design.md
+✅ Exported to: exports/api-design.md
+
+# Later, continue the conversation
+> /import exports/api-design.md
+✅ Loaded conversation from exports/api-design.md
+
+> What about authentication for this API?
+🤖 Building on our API design, here are authentication options...
+```
+
 ## Configuration
 
 ### Viewing Settings
@@ -566,6 +647,19 @@ What are the latest developments in quantum computing?
 /model synthesis ollama/llama3
 ```
 
+### Collaborative Documentation
+```bash
+# Morning standup discussion
+What are the key points from yesterday's API review?
+
+# Export for team sharing
+/export standup-2024-01-15.md
+
+# Team member loads and continues
+/import standup-2024-01-15.md
+Based on the API review, I suggest we add rate limiting...
+```
+
 ## Scripting and Automation
 
 ### Using Scripts
@@ -633,6 +727,13 @@ Automate your common setup:
 /set topics true
 /model chat gpt-4
 /muse
+```
+
+**scripts/backup-conversations.txt:**
+```bash
+# Export all topics for backup
+/export all backup-{date}.md
+/topics
 ```
 
 ### Saving Sessions

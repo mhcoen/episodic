@@ -190,6 +190,7 @@ def show_help_with_categories():
         ("/style", "Set global response style (concise/standard/comprehensive/custom)"),
         ("/format", "Set global response format (paragraph/bullet-points/mixed/academic)"),
         ("/topics", "List conversation topics"),
+        ("/export", "Export conversation to markdown"),
         ("/list", "Show recent conversation nodes"),
         ("/config", "View current system configuration"),
         ("/set", "Change configuration settings"),
@@ -202,7 +203,8 @@ def show_help_with_categories():
         ("/help settings", "Configuration and system management"),
         ("/help search", "Knowledge base and muse configuration"),
         ("/help history", "Navigation and conversation history"),
-        ("/help topics", "Topic detection and management")
+        ("/help topics", "Topic detection and management"),
+        ("/help markdown", "Markdown file operations")
     ]
     
     # Other options
@@ -256,9 +258,11 @@ def show_category_help(category: str):
         show_history_help()
     elif category == "topics":
         show_topics_help()
+    elif category == "markdown":
+        show_markdown_help()
     else:
         typer.secho(f"Unknown help category: {category}", fg="red")
-        typer.secho("Available categories: chat, settings, search, history, topics", fg=get_text_color())
+        typer.secho("Available categories: chat, settings, search, history, topics, markdown", fg=get_text_color())
 
 
 def show_chat_help():
@@ -469,6 +473,60 @@ def show_topics_help():
     
     typer.secho("Commands:", fg=get_text_color())
     _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
+
+
+def show_markdown_help():
+    """Show markdown file operation commands."""
+    
+    # Commands
+    commands = [
+        ("/export, /ex", "Export current topic to markdown"),
+        ("/export <spec> [file]", "Export topics to markdown file"),
+        ("/import, /im <file>", "Import markdown conversation"),
+        ("/files, /ls [dir]", "List markdown files in directory")
+    ]
+    
+    # Topic specifications
+    specs = [
+        ("current", "Export current topic (default)"),
+        ("3", "Export topic #3"),
+        ("1-5", "Export topics 1 through 5"),
+        ("1,3,5", "Export topics 1, 3, and 5"),
+        ("all", "Export all topics")
+    ]
+    
+    # Examples
+    examples = [
+        ("/export", "Save current topic with auto-name"),
+        ("/ex 1-3 meeting.md", "Save topics 1-3 to meeting.md (using alias)"),
+        ("/import research.md", "Load research.md conversation"),
+        ("/im notes.md", "Load notes.md (using alias)"),
+        ("/files", "List markdown files in current directory"),
+        ("/ls exports", "List files in exports directory (using alias)")
+    ]
+    
+    # Find the longest command/spec across ALL sections for uniform alignment
+    all_items = commands + [(f"  {s}", d) for s, d in specs] + examples
+    max_width = max(len(item) for item, _ in all_items)
+    
+    # Display header
+    typer.secho("📝 Markdown File Operations", fg=get_heading_color(), bold=True)
+    typer.secho("Export, import, and manage markdown conversation files.", fg=get_text_color())
+    typer.echo()
+    
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+    
+    typer.secho("Topic Specifications:", fg=get_text_color())
+    for spec, desc in specs:
+        padding = ' ' * max(1, max_width - len(spec) - 2)
+        typer.secho(f"  {spec}{padding}", fg=get_system_color(), nl=False)
+        typer.secho(desc, fg=get_text_color())
     typer.echo()
     
     typer.secho("Examples:", fg=get_heading_color(), bold=True)

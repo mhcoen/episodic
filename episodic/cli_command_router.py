@@ -102,11 +102,11 @@ def handle_command(command_str: str) -> bool:
             _handle_execute(args)
         elif cmd == "/save":
             _handle_save(args)
-        elif cmd == "/export":
+        elif cmd in ["/export", "/ex"]:
             _handle_export(args)
-        elif cmd == "/import":
+        elif cmd in ["/import", "/im"]:
             _handle_import(args)
-        elif cmd == "/ls":
+        elif cmd in ["/ls", "/files"]:
             _handle_ls(args)
         elif cmd == "/benchmark":
             _handle_benchmark(args)
@@ -681,7 +681,7 @@ def _handle_import(args: List[str]):
 
 
 def _handle_ls(args: List[str]):
-    """Handle /ls command."""
+    """Handle /ls or /files command."""
     from episodic.commands.ls import ls_command
     
     # Pass directory or None for current directory

@@ -265,5 +265,26 @@ class TestCLISessionManagement(unittest.TestCase):
         self.assertAlmostEqual(costs["total_cost_usd"], 0.01, places=3)
 
 
+    def test_markdown_command_aliases(self):
+        """Test that markdown command aliases work correctly."""
+        from episodic.cli_command_router import _handle_export, _handle_import, _handle_ls
+        from unittest.mock import patch, MagicMock
+        
+        # Test /ex alias for /export
+        with patch('episodic.commands.markdown_export.export_command') as mock_export:
+            _handle_export(['current'])
+            mock_export.assert_called_once()
+        
+        # Test /im alias for /import
+        with patch('episodic.commands.markdown_import.import_command') as mock_import:
+            _handle_import(['test.md'])
+            mock_import.assert_called_once()
+        
+        # Test /ls alias for /files
+        with patch('episodic.commands.ls.ls_command') as mock_ls:
+            _handle_ls([])
+            mock_ls.assert_called_once()
+
+
 if __name__ == '__main__':
     unittest.main()

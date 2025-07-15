@@ -116,9 +116,9 @@ class TestCLICommands(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertNotIn("Error executing command:", result.stdout)
     
-    def test_websearch_commands(self):
+    def test_web_commands(self):
         """Test web search commands."""
-        self.assertCommandSucceeds("/websearch test query", "")
+        self.assertCommandSucceeds("/web test query", "")
         # Note: actual search might fail without API keys, but command should parse
     
     def test_muse_commands(self):

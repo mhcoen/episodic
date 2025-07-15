@@ -265,8 +265,8 @@ class TestWebSearchCommands(unittest.TestCase):
         """Clean up."""
         self.patcher.stop()
     
-    def test_websearch_command(self):
-        """Test /websearch command."""
+    def test_web_command(self):
+        """Test /web command."""
         from episodic.commands.web_search import websearch
         
         # Mock search results
@@ -280,8 +280,8 @@ class TestWebSearchCommands(unittest.TestCase):
         # Verify search was called
         self.mock_manager.search.assert_called_once_with("test query", num_results=5)
     
-    def test_websearch_toggle(self):
-        """Test /websearch on/off."""
+    def test_web_toggle(self):
+        """Test /web on/off."""
         from episodic.commands.web_search import websearch_toggle
         
         # Test enabling
@@ -292,8 +292,8 @@ class TestWebSearchCommands(unittest.TestCase):
         websearch_toggle(False)
         self.assertFalse(config.get('web_search_enabled'))
     
-    def test_websearch_stats(self):
-        """Test /websearch stats."""
+    def test_web_stats(self):
+        """Test /web stats."""
         from episodic.commands.web_search import websearch_stats
         
         # Mock stats

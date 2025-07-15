@@ -152,13 +152,13 @@ commands_to_test = [
     ("/docs list", "List documents explicitly"),
     
     # Web search commands
-    ("/websearch test query", "Web search test"),
+    ("/web test query", "Web search test"),
     ("/ws test query", "Web search shortcut"),
-    ("/websearch on", "Enable web search"),
-    ("/websearch off", "Disable web search"),
-    ("/websearch config", "Show web search config"),
-    ("/websearch stats", "Show web search stats"),
-    ("/websearch cache clear", "Clear web search cache"),
+    ("/web on", "Enable web search"),
+    ("/web off", "Disable web search"),
+    ("/web config", "Show web search config"),
+    ("/web stats", "Show web search stats"),
+    ("/web cache clear", "Clear web search cache"),
     
     # Muse mode
     ("/muse", "Toggle muse mode"),

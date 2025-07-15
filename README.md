@@ -66,6 +66,8 @@ python -m episodic
 /topics          # See how your conversation is organized
 /search query    # Search your indexed documents  
 /muse            # Switch to Perplexity-like web search mode
+/style           # Set global response style (concise/standard/comprehensive/custom)
+/format          # Set global response format (paragraph/bullet-points/mixed/academic)
 /web provider    # Configure web search providers
 /model list      # View available AI models
 /help            # See all commands
@@ -210,9 +212,37 @@ Common settings that can be changed via the CLI:
 /set topic-auto true          # Automatic topic detection
 /set show_cost true           # Display token costs
 /set debug true               # Enable debug output
+/style comprehensive          # Set detailed response style globally
+/format academic              # Use academic format for all responses
 ```
 
 See the [Configuration Documentation](docs/configuration.md) for all configuration options.
+
+### Global Response Formatting
+
+Episodic provides unified response style and format controls that work across all modes (chat, RAG-enhanced, and muse synthesis):
+
+```bash
+# Response styles control length and detail level
+/style concise        # Brief, direct responses (1-2 sentences when possible)
+/style standard       # Clear, well-structured responses with appropriate detail  
+/style comprehensive  # Thorough, detailed responses with examples and context
+/style custom         # Use model-specific max_tokens settings
+
+# Response formats control presentation structure
+/format paragraph     # Flowing prose with markdown headers
+/format bullet-points # Bullet points and lists for all information
+/format mixed         # Mix of paragraphs and bullet points as appropriate  
+/format academic      # Formal academic style with proper citations
+
+# These settings apply universally
+> /style comprehensive
+> /format academic
+> What is machine learning?
+🤖 [Detailed academic-style response with citations across all modes]
+```
+
+The system intelligently adapts prompts based on context - for example, with small RAG contexts it emphasizes using provided sources, while with web search it focuses on synthesis.
 
 ### Model Parameters
 

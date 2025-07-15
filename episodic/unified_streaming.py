@@ -159,10 +159,11 @@ def unified_stream_response(
     start_time = time.time()
     
     # Process stream
-    for chunk_content in process_stream_response(stream_generator, model):
-        if chunk_content:
-            full_response_parts.append(chunk_content)
-            accumulated_text += chunk_content
+    try:
+        for chunk_content in process_stream_response(stream_generator, model):
+            if chunk_content:
+                full_response_parts.append(chunk_content)
+                accumulated_text += chunk_content
             
             # Process accumulated text into words
             # Find the last space or newline in the accumulated text
@@ -236,6 +237,15 @@ def unified_stream_response(
                 in_numbered_list = False
                 in_header = False
                 accumulated_text = parts[1] if len(parts) > 1 else ""
+    
+    except KeyboardInterrupt:
+        # User pressed Ctrl-C, clean up and return what we have
+        typer.echo()  # New line after interrupted output
+        typer.secho("\n⚡ Response interrupted", fg="yellow")
+        
+        # Join what we have so far
+        full_response = ''.join(full_response_parts)
+        return full_response + "\n[Response interrupted by user]"
     
     # Process any remaining text
     if accumulated_text.strip():

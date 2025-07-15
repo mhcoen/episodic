@@ -44,6 +44,6 @@ def create_rag_tables():
         # Create indices for performance
         c.execute('CREATE INDEX IF NOT EXISTS idx_rag_documents_hash ON rag_documents(content_hash)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_rag_documents_source ON rag_documents(source)')
-        c.execute('CREATE INDEX IF NOT EXISTS idx_rag_retrievals_doc ON rag_retrievals(document_id)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_rag_retrievals_retrieved_at ON rag_retrievals(retrieved_at)')
         
         conn.commit()

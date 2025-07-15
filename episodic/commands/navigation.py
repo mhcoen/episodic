@@ -125,6 +125,8 @@ def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing
             conversation_manager.current_node_id = None
             conversation_manager.current_topic = None
             conversation_manager.reset_session_costs()
+            # Reinitialize conversation state after reset
+            conversation_manager.initialize_conversation()
         else:
             typer.secho("✅ Database initialized", fg=get_system_color())
 

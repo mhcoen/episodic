@@ -112,6 +112,8 @@ def handle_command(command_str: str) -> bool:
             _handle_verify()
         elif cmd in ["/help", "/h"]:
             _handle_help(args)
+        elif cmd == "/help-reindex":
+            _handle_help_reindex()
         elif cmd == "/about":
             _handle_about()
         elif cmd == "/welcome":
@@ -494,6 +496,12 @@ def _handle_help(args: List[str]):
         help(query=query)
     else:
         help()
+
+
+def _handle_help_reindex():
+    """Handle /help-reindex command."""
+    from episodic.commands.help import help_reindex
+    help_reindex()
 
 
 def _handle_deprecated_commands(cmd: str, args: List[str]):

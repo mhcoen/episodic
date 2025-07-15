@@ -103,6 +103,13 @@ def talk_loop() -> None:
     # Initialize conversation manager
     conversation_manager = ConversationManager()
     
+    # Track Ctrl-C for double-press exit
+    last_interrupt_time = 0
+    
+    # Update the module-level instance in conversation.py to use the same instance
+    import episodic.conversation
+    episodic.conversation.conversation_manager = conversation_manager
+    
     # Initialize the database state
     conversation_manager.initialize_conversation()
     
@@ -147,13 +154,21 @@ def talk_loop() -> None:
             time.sleep(MAIN_LOOP_SLEEP_INTERVAL)
             
         except KeyboardInterrupt:
-            # Handle Ctrl+C gracefully
-            typer.echo()  # New line after ^C
-            # Finalize any ongoing topics before exit
-            if conversation_manager:
-                conversation_manager.finalize_current_topic()
-            typer.secho("\nGoodbye! 👋", fg=get_system_color())
-            break
+            # Handle Ctrl+C
+            current_time = time.time()
+            if current_time - last_interrupt_time < 1.0:  # Double Ctrl-C within 1 second
+                typer.echo()  # New line after ^C
+                # Finalize any ongoing topics before exit
+                if conversation_manager:
+                    conversation_manager.finalize_current_topic()
+                typer.secho("\nGoodbye! 👋", fg=get_system_color())
+                break
+            else:
+                # Single Ctrl-C - just continue to next prompt
+                # The streaming handler will have already shown "Response interrupted"
+                typer.echo()  # New line after ^C
+                last_interrupt_time = current_time
+                continue
         except EOFError:
             # Handle Ctrl+D
             typer.echo()  # New line
@@ -214,6 +229,11 @@ def main(
         # Need to initialize conversation manager to get costs
         global conversation_manager
         conversation_manager = ConversationManager()
+        
+        # Update the module-level instance in conversation.py to use the same instance
+        import episodic.conversation
+        episodic.conversation.conversation_manager = conversation_manager
+        
         conversation_manager.initialize_conversation()
         
         from episodic.commands import cost as show_cost
@@ -230,6 +250,11 @@ def main(
         # Initialize conversation manager (reuse global)
         if not conversation_manager:
             conversation_manager = ConversationManager()
+            
+            # Update the module-level instance in conversation.py to use the same instance
+            import episodic.conversation
+            episodic.conversation.conversation_manager = conversation_manager
+            
         conversation_manager.initialize_conversation()
         
         # Execute the script

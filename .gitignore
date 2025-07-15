@@ -43,3 +43,6 @@ archive/
 # Episodic history files (should be in ~/.episodic/)
 .episodic_history
 command_history
+.mcp/
+.pytest_cache/
+.DS_Store

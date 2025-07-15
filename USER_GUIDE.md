@@ -143,6 +143,16 @@ Simply type your message and press Enter. Episodic will:
 3. Stream the response
 4. Save everything to the database
 
+### Interrupting Responses
+You can interrupt long streaming responses using Ctrl-C:
+- **Single Ctrl-C**: Interrupts the current response and returns to the prompt
+- **Double Ctrl-C** (within 1 second): Exits Episodic
+
+When you interrupt a response:
+- The partial response is saved to the conversation history
+- You'll see "⚡ Response interrupted" message
+- The system returns cleanly to the prompt for your next input
+
 ### Navigation Commands
 
 | Command | Description |
@@ -383,6 +393,23 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 /set stream-rate 15          # Words per second
 /set color full              # Color mode (none/basic/full)
 /set wrap true               # Enable text wrapping
+```
+
+#### Response Formatting
+```bash
+# Global response style (affects length and detail level)
+/style                       # Show current style
+/style concise               # Brief, direct responses
+/style standard              # Clear, well-structured responses
+/style comprehensive         # Thorough, detailed responses
+/style custom                # Use model-specific max_tokens
+
+# Global response format (affects presentation structure)
+/format                      # Show current format
+/format paragraph            # Flowing prose with markdown headers
+/format bullet-points        # Bullet points and lists
+/format mixed                # Mix of paragraphs and bullet points
+/format academic             # Formal academic style with citations
 ```
 
 #### Model Parameters

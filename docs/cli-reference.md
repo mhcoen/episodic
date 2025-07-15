@@ -29,6 +29,18 @@ In Episodic's talk mode:
 - Type messages without any prefix to chat with the LLM
 - Use "/" prefix for commands
 
+## Keyboard Shortcuts
+
+### Interrupting Responses (Ctrl-C)
+- **During streaming**: Press Ctrl-C once to interrupt the LLM response
+- **At the prompt**: Press Ctrl-C twice quickly (within 1 second) to exit Episodic
+- Interrupted responses are saved with a "[Response interrupted by user]" marker
+
+### Exit Options
+- `/exit` or `/quit` - Normal exit with cleanup
+- `Ctrl-D` - Exit immediately (EOF)
+- `Ctrl-C Ctrl-C` - Double Ctrl-C to exit from anywhere
+
 ## Navigation Commands
 
 ### /init
@@ -135,6 +147,26 @@ View/set model parameters
 /mset synthesis.top_p 0.9   # Set synthesis nucleus sampling
 /mset chat.temperature default  # Reset to default value
 /mset detection.top_p default   # Remove override, use default
+```
+
+### /style
+Set global response style (affects length and detail level)
+```bash
+/style                      # Show current style
+/style concise              # Brief, direct responses (1-2 sentences when possible)
+/style standard             # Clear, well-structured responses with appropriate detail
+/style comprehensive        # Thorough, detailed responses with examples and context
+/style custom               # Use model-specific max_tokens settings for fine control
+```
+
+### /format
+Set global response format (affects presentation structure)
+```bash
+/format                     # Show current format
+/format paragraph           # Flowing prose in paragraph form with markdown headers
+/format bullet-points       # Bullet points and lists for all information
+/format mixed               # Mix of paragraphs and bullet points as appropriate
+/format academic            # Formal academic style with proper citations [Source N]
 ```
 
 ### Configuration Documentation

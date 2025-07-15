@@ -189,6 +189,35 @@ Unified topic management
 /topics stats               # Topic statistics
 ```
 
+## Markdown Operations
+
+### /export, /ex
+Export conversations to markdown
+```bash
+/export                     # Export current topic
+/ex                         # Short form
+/export 3                   # Export topic 3
+/ex 1-5 summary.md          # Export topics 1-5 to file
+/export all backup.md       # Export entire conversation
+```
+
+### /import, /im
+Import markdown conversations
+```bash
+/import conversation.md     # Import markdown file
+/im exports/backup.md       # Short form
+/im ~/Documents/chat.md     # Import from path
+```
+
+### /files, /ls
+List markdown files
+```bash
+/files                      # List markdown files in current dir
+/ls                         # Unix-style alias
+/files exports              # List files in exports directory
+/ls ~/Documents             # List files in specific path
+```
+
 ## Knowledge Base (RAG)
 
 ### /rag

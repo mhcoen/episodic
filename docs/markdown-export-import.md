@@ -9,12 +9,13 @@ Episodic provides markdown export and import functionality to save and resume co
 - Create conversation templates
 - Backup important discussions
 
-## Export Command (`/export`)
+## Export Command (`/export`, `/ex`)
 
 ### Basic Syntax
 
 ```bash
 /export [topic-spec] [filename]
+/ex [topic-spec] [filename]      # Alias
 ```
 
 ### Topic Specifications
@@ -33,24 +34,26 @@ Episodic provides markdown export and import functionality to save and resume co
 ```bash
 # Export current topic with auto-generated filename
 /export
+/ex                  # Using alias
 
 # Export current topic to specific file
 /export current my-research.md
+/ex current my-research.md      # Using alias
 
 # Export a single topic
 /export 3
-/export 3 topic-three.md
+/ex 3 topic-three.md
 
 # Export a range of topics
 /export 1-5
-/export 1-5 week-summary.md
+/ex 1-5 week-summary.md
 
 # Export specific topics
-/export 1,3,5 selected-topics.md
+/ex 1,3,5 selected-topics.md
 
 # Export all topics
 /export all
-/export all complete-conversation.md
+/ex all complete-conversation.md
 ```
 
 ### Default Behavior
@@ -60,12 +63,13 @@ Episodic provides markdown export and import functionality to save and resume co
 - **Directory**: Saved to `exports/` subdirectory
 - **Extension**: `.md` is added automatically if not provided
 
-## List Command (`/ls`)
+## List Command (`/files`, `/ls`)
 
 ### Basic Syntax
 
 ```bash
-/ls [directory]
+/files [directory]    # Primary command
+/ls [directory]       # Alias (Unix-style shorthand)
 ```
 
 ### Description
@@ -76,16 +80,18 @@ Lists all markdown files (`.md` and `.markdown`) in the specified directory. If 
 
 ```bash
 # List markdown files in current directory
-/ls
+/files
+/ls              # Using alias
 
 # List markdown files in exports directory
-/ls exports
+/files exports
+/ls exports      # Using alias
 
 # List markdown files in home directory
-/ls ~
+/files ~
 
 # List markdown files in specific path
-/ls ~/Documents
+/files ~/Documents
 /ls /Users/username/notes
 ```
 
@@ -99,12 +105,13 @@ For each markdown file, displays:
 
 Files are sorted by modification time with newest first.
 
-## Import Command (`/import`)
+## Import Command (`/import`, `/im`)
 
 ### Basic Syntax
 
 ```bash
 /import <filename>
+/im <filename>       # Alias
 ```
 
 ### Examples
@@ -112,15 +119,17 @@ Files are sorted by modification time with newest first.
 ```bash
 # Import from exports directory
 /import exports/mars-exploration-2025-01-15.md
+/im exports/mars-exploration-2025-01-15.md      # Using alias
 
 # Import from current directory
 /import conversation.md
+/im conversation.md                              # Using alias
 
 # Import from absolute path
-/import ~/Documents/research-notes.md
+/im ~/Documents/research-notes.md
 
 # Import from relative path
-/import ../backups/old-chat.md
+/im ../backups/old-chat.md
 ```
 
 ### Import Behavior

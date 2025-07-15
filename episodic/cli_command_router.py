@@ -106,6 +106,8 @@ def handle_command(command_str: str) -> bool:
             _handle_export(args)
         elif cmd == "/import":
             _handle_import(args)
+        elif cmd == "/ls":
+            _handle_ls(args)
         elif cmd == "/benchmark":
             _handle_benchmark(args)
         elif cmd == "/reset-benchmarks":
@@ -676,3 +678,12 @@ def _handle_import(args: List[str]):
     else:
         filepath = " ".join(args)
         resume_command(filepath)
+
+
+def _handle_ls(args: List[str]):
+    """Handle /ls command."""
+    from episodic.commands.ls import ls_command
+    
+    # Pass directory or None for current directory
+    directory = " ".join(args) if args else None
+    ls_command(directory)

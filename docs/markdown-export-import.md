@@ -60,6 +60,45 @@ Episodic provides markdown export and import functionality to save and resume co
 - **Directory**: Saved to `exports/` subdirectory
 - **Extension**: `.md` is added automatically if not provided
 
+## List Command (`/ls`)
+
+### Basic Syntax
+
+```bash
+/ls [directory]
+```
+
+### Description
+
+Lists all markdown files (`.md` and `.markdown`) in the specified directory. If no directory is specified, lists files in the current directory.
+
+### Examples
+
+```bash
+# List markdown files in current directory
+/ls
+
+# List markdown files in exports directory
+/ls exports
+
+# List markdown files in home directory
+/ls ~
+
+# List markdown files in specific path
+/ls ~/Documents
+/ls /Users/username/notes
+```
+
+### Output Information
+
+For each markdown file, displays:
+- **Filename** with 📄 icon
+- **File size** (in B, KB, or MB)
+- **Last modified** (relative time for recent files)
+- **Preview** (title or first line of content)
+
+Files are sorted by modification time with newest first.
+
 ## Import Command (`/import`)
 
 ### Basic Syntax

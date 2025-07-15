@@ -1,0 +1,5 @@
+# Test /ls command
+/ls
+/ls exports
+/ls scripts
+/ls ~/Documents

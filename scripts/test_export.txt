@@ -1,0 +1,4 @@
+# Test markdown export/import functionality
+/export current test-export.md
+/export 1 topic-one.md
+/export all full-conversation.md

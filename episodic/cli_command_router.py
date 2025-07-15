@@ -102,6 +102,10 @@ def handle_command(command_str: str) -> bool:
             _handle_execute(args)
         elif cmd == "/save":
             _handle_save(args)
+        elif cmd == "/export":
+            _handle_export(args)
+        elif cmd == "/import":
+            _handle_import(args)
         elif cmd == "/benchmark":
             _handle_benchmark(args)
         elif cmd == "/reset-benchmarks":
@@ -652,3 +656,23 @@ def _handle_last(args: List[str]):
     
     # Show just the last exchange (count=1)
     list_command(count=1)
+
+
+def _handle_export(args: List[str]):
+    """Handle /export command."""
+    from episodic.commands.save import save_command
+    
+    # Join args back into a single string for parsing
+    args_str = " ".join(args) if args else ""
+    save_command(args_str)
+
+
+def _handle_import(args: List[str]):
+    """Handle /import command."""
+    from episodic.commands.resume import resume_command
+    
+    if not args:
+        typer.secho("Usage: /import <filename.md>", fg="red")
+    else:
+        filepath = " ".join(args)
+        resume_command(filepath)

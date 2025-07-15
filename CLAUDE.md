@@ -143,6 +143,28 @@ tests/
 
 ## Current Session Context
 
+### Working Session (2025-07-15)
+- **Completed Markdown Export/Import Feature**
+  - Added command aliases: `/ex` for export, `/im` for import
+  - Changed `/ls` to be alias for primary command `/files`
+  - Fixed help category from "save" to "markdown" (conflict with existing /save)
+- **Fixed Export Bug** - Missing assistant messages
+  - Root cause: Topics incorrectly end on user messages instead of assistant responses
+  - Topics use (3,3) sliding window detection on user queries
+  - Implemented workaround in `get_nodes_for_topic()` to include assistant response after topic end
+  - Uses `get_children()` to append assistant response when topic ends on user message
+- **Test Suite Improvements**
+  - Fixed 17 database tests (100% pass rate)
+  - Removed deprecated `close_connection()` references
+  - Fixed mock configuration issues
+  - Updated database context managers
+- **Security Issue**: User's OpenAI API key exposed in .mcp.json in git history
+  - Requires git history cleanup with BFG or filter-branch
+- **Discovered Major Issue**: Topic boundaries incorrectly placed
+  - Currently: Topics end at user message where change detected
+  - Should be: Topics end after assistant response for complete pairs
+  - Affects: Exports, compression, topic statistics
+
 ### Working Session (2025-07-13)
 - **Comprehensive Code Review and Improvements**
   - Performed thorough security and code quality analysis of entire project
@@ -449,6 +471,12 @@ This means if you change the detection model, it affects both detection accuracy
   - `show <doc_id>` - Show document content
   - `remove <doc_id>` - Remove a document
   - `clear [source]` - Clear documents
+
+#### Markdown Commands
+- `/export` or `/ex` - Export current topic to markdown
+- `/export <spec> [file]` or `/ex <spec> [file]` - Export topics to markdown file
+- `/import <file>` or `/im <file>` - Import markdown conversation
+- `/files [dir]` or `/ls [dir]` - List markdown files in directory
 
 #### Web Search Commands
 - `/muse on/off` - Enable/disable web search synthesis mode (like Perplexity)

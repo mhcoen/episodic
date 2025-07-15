@@ -1,6 +1,34 @@
 # Episodic Project Memory
 
-Last Updated: 2025-07-13
+Last Updated: 2025-07-15
+
+## Recent Session (2025-07-15)
+### Markdown Export/Import Feature Completion
+- **Added command aliases**:
+  - `/ex` for `/export` - Export topics to markdown
+  - `/im` for `/import` - Import markdown conversation  
+  - `/files` as primary command with `/ls` as alias - List markdown files
+- **Fixed help category conflict**:
+  - Changed from "save" to "markdown" (avoiding conflict with existing /save command)
+  - Updated all documentation and help text
+- **Fixed export bug**:
+  - Issue: Exports only showed user messages, missing assistant responses
+  - Root cause: Topics incorrectly end on user messages instead of assistant responses
+  - Solution: Modified `get_nodes_for_topic()` to check for and include assistant response after topic end
+  - Uses `get_children()` to find assistant response when topic ends on user message
+- **Completed test fixes**:
+  - Fixed 17 database tests to all pass (100% pass rate)
+  - Removed deprecated `close_connection()` calls
+  - Fixed mock configuration issues
+  - Updated database context managers
+- **Security issue identified**:
+  - User's OpenAI API key was exposed in .mcp.json in git history
+  - Needs git history cleanup with BFG or filter-branch
+- **Discovered topic boundary issue**:
+  - Topics currently end at user messages where change is detected
+  - Should end after assistant response for complete conversation pairs
+  - Affects exports, compression, and topic statistics
+  - Current detection uses (3,3) sliding window on user queries
 
 ## Recent Session (2025-07-13)
 ### Comprehensive Code Review and Improvements

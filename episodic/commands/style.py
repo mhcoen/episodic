@@ -24,7 +24,7 @@ FORMAT_DEFINITIONS = {
     },
     "mixed": {
         "description": "Mix of paragraphs and bullet points as appropriate",
-        "prompt": "Use a mix of paragraphs and bullet points as appropriate with markdown headers (### Header Name) for sections."
+        "prompt": "Use a natural mix of paragraphs and bullet points as appropriate. Only use markdown headers (### Header Name) for longer responses that truly need sections."
     },
     "academic": {
         "description": "Formal academic style with proper citations",
@@ -41,7 +41,7 @@ STYLE_DEFINITIONS = {
     "standard": {
         "description": "Clear, well-structured responses with appropriate detail",
         "max_tokens": 1000,
-        "prompt": "Provide a clear, well-structured response with appropriate detail."
+        "prompt": "Provide a clear, natural response with appropriate detail. Be conversational for simple queries and more structured for complex topics."
     },
     "comprehensive": {
         "description": "Thorough, detailed responses with examples and context",

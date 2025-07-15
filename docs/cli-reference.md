@@ -29,6 +29,18 @@ In Episodic's talk mode:
 - Type messages without any prefix to chat with the LLM
 - Use "/" prefix for commands
 
+## Keyboard Shortcuts
+
+### Interrupting Responses (Ctrl-C)
+- **During streaming**: Press Ctrl-C once to interrupt the LLM response
+- **At the prompt**: Press Ctrl-C twice quickly (within 1 second) to exit Episodic
+- Interrupted responses are saved with a "[Response interrupted by user]" marker
+
+### Exit Options
+- `/exit` or `/quit` - Normal exit with cleanup
+- `Ctrl-D` - Exit immediately (EOF)
+- `Ctrl-C Ctrl-C` - Double Ctrl-C to exit from anywhere
+
 ## Navigation Commands
 
 ### /init

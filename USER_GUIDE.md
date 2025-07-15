@@ -143,6 +143,16 @@ Simply type your message and press Enter. Episodic will:
 3. Stream the response
 4. Save everything to the database
 
+### Interrupting Responses
+You can interrupt long streaming responses using Ctrl-C:
+- **Single Ctrl-C**: Interrupts the current response and returns to the prompt
+- **Double Ctrl-C** (within 1 second): Exits Episodic
+
+When you interrupt a response:
+- The partial response is saved to the conversation history
+- You'll see "⚡ Response interrupted" message
+- The system returns cleanly to the prompt for your next input
+
 ### Navigation Commands
 
 | Command | Description |

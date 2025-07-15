@@ -28,6 +28,7 @@ PROVIDER_CONFIG = {
         "models": [
             {"name": "gpt-4o-mini", "display_name": "GPT-4o Mini"},
             {"name": "gpt-4o", "display_name": "GPT-4o"},
+            {"name": "gpt-o3", "display_name": "GPT-o3"},
             {"name": "gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo"},
             {"name": "gpt-4", "display_name": "GPT-4"},
             {"name": "gpt-4.5", "display_name": "GPT-4.5"}

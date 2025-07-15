@@ -187,7 +187,7 @@ def parse_topic_numbers(spec: str) -> List[int]:
 
 def get_nodes_for_topic(topic: dict) -> List[dict]:
     """Get all nodes belonging to a topic."""
-    from episodic.db_nodes import get_ancestry, get_head
+    from episodic.db_nodes import get_ancestry, get_head, get_children
     
     # Get end node (or head if ongoing)
     end_node_id = topic.get('end_node_id')
@@ -215,5 +215,14 @@ def get_nodes_for_topic(topic: dict) -> List[dict]:
         
         if node['id'] == topic.get('end_node_id'):
             break
+    
+    # Check if we need to add an assistant response after the end node
+    # This handles the case where topics end on user messages
+    if topic_nodes and topic_nodes[-1].get('role') == 'user':
+        children = get_children(topic.get('end_node_id'))
+        for child in children:
+            if child.get('role') == 'assistant':
+                topic_nodes.append(child)
+                break  # Only add the first assistant response
     
     return topic_nodes

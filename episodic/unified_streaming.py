@@ -135,8 +135,8 @@ def unified_stream_response(
             
             # Add punctuation delays
             punctuation_delays = {
-                '.': 0.1, '!': 0.1, '?': 0.1,
-                ':': 0.1, ';': 0.1, ',': 0.1, '\n': 0.1
+                '.': 0.05, '!': 0.05, '?': 0.05,
+                ':': 0.05, ';': 0.05, ',': 0.05, '\n': 0.05
             }
             for punct, delay in punctuation_delays.items():
                 if word.rstrip().endswith(punct):

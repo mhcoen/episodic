@@ -1,0 +1,44 @@
+# Core dependencies
+click==8.2.1
+networkx==3.5
+plotly==6.2.0
+pydantic==2.11.7
+python-dotenv==1.1.1
+requests==2.32.4
+rich==14.0.0
+typer==0.16.0
+
+# LLM and ML dependencies
+litellm==1.74.0.post1
+numpy==2.3.1
+openai==1.93.2
+scikit-learn==1.7.0
+scipy==1.16.0
+tiktoken==0.9.0
+torch==2.7.1
+transformers==4.53.1
+
+# Database dependencies
+SQLAlchemy==2.0.41
+
+# Web and API dependencies
+aiohttp==3.12.13
+beautifulsoup4==4.13.4
+Flask==3.1.1
+Flask-SocketIO==5.5.1
+httpx==0.28.1
+websocket-client==1.8.0
+
+# RAG dependencies (optional)
+chromadb==1.0.15
+sentence-transformers==5.0.0
+
+# Testing dependencies
+pytest==8.4.1
+pytest-asyncio==1.0.0
+
+# Development dependencies (optional)
+autoflake==2.3.1
+black==25.1.0
+flake8==7.3.0
+mypy==1.16.1

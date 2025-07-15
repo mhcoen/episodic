@@ -1,0 +1,2 @@
+# Test help command
+/help

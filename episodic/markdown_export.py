@@ -140,7 +140,6 @@ def get_topics_by_spec(spec: str) -> List[dict]:
     if spec == "current":
         # Get current topic from conversation manager
         from episodic.conversation import conversation_manager
-        from episodic.db_topics import get_recent_topics
         
         # Get the most recent ongoing topic
         topics = get_recent_topics(limit=10)
@@ -194,9 +193,9 @@ def get_nodes_for_topic(topic: dict) -> List[dict]:
     end_node_id = topic.get('end_node_id')
     if not end_node_id:
         # Ongoing topic - use current head
-        head = get_head()
-        if head:
-            end_node_id = head['id']
+        head_id = get_head()
+        if head_id:
+            end_node_id = head_id
         else:
             return []
     

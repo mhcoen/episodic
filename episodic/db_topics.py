@@ -33,7 +33,7 @@ def store_topic(name: str, start_node_id: str, end_node_id: Optional[str] = None
         conn.commit()
 
 
-def get_recent_topics(limit: int = 10):
+def get_recent_topics(limit: Optional[int] = 10):
     """
     Get recent topics from the database.
     
@@ -51,20 +51,36 @@ def get_recent_topics(limit: int = 10):
         columns = [column[1] for column in c.fetchall()]
         has_confidence = 'confidence' in columns
         
-        if has_confidence:
-            c.execute("""
-                SELECT name, start_node_id, end_node_id, confidence 
-                FROM topics 
-                ORDER BY ROWID DESC 
-                LIMIT ?
-            """, (limit,))
+        if limit is None:
+            # Get all topics
+            if has_confidence:
+                c.execute("""
+                    SELECT name, start_node_id, end_node_id, confidence 
+                    FROM topics 
+                    ORDER BY ROWID DESC
+                """)
+            else:
+                c.execute("""
+                    SELECT name, start_node_id, end_node_id, NULL as confidence 
+                    FROM topics 
+                    ORDER BY ROWID DESC
+                """)
         else:
-            c.execute("""
-                SELECT name, start_node_id, end_node_id, NULL as confidence 
-                FROM topics 
-                ORDER BY ROWID DESC 
-                LIMIT ?
-            """, (limit,))
+            # Get limited topics
+            if has_confidence:
+                c.execute("""
+                    SELECT name, start_node_id, end_node_id, confidence 
+                    FROM topics 
+                    ORDER BY ROWID DESC 
+                    LIMIT ?
+                """, (limit,))
+            else:
+                c.execute("""
+                    SELECT name, start_node_id, end_node_id, NULL as confidence 
+                    FROM topics 
+                    ORDER BY ROWID DESC 
+                    LIMIT ?
+                """, (limit,))
         
         topics = []
         for row in c.fetchall():

@@ -11,7 +11,7 @@ import sqlite3
 from episodic.db import (
     get_connection, database_exists, initialize_db, insert_node, get_node,
     get_ancestry, set_head, get_head, get_descendants, delete_node,
-    resolve_node_ref, get_recent_nodes, get_all_nodes, close_connection
+    resolve_node_ref, get_recent_nodes, get_all_nodes
 )
 
 class TestDatabase(unittest.TestCase):
@@ -34,8 +34,9 @@ class TestDatabase(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after each test."""
-        # Close any open connections
-        close_connection()
+        # Close the connection pool to ensure clean state
+        from episodic.db_connection import close_pool
+        close_pool()
 
         # Restore the original EPISODIC_DB_PATH environment variable
         if self.original_db_path is not None:
@@ -176,34 +177,41 @@ class TestDatabase(unittest.TestCase):
 
         # Check that the correct descendants were returned
         self.assertEqual(len(descendants), 4)
-        self.assertIn(child1_id, descendants)
-        self.assertIn(child2_id, descendants)
-        self.assertIn(grandchild1_id, descendants)
-        self.assertIn(grandchild2_id, descendants)
+        descendant_ids = [d['id'] for d in descendants]
+        self.assertIn(child1_id, descendant_ids)
+        self.assertIn(child2_id, descendant_ids)
+        self.assertIn(grandchild1_id, descendant_ids)
+        self.assertIn(grandchild2_id, descendant_ids)
 
         # Get the descendants of child1
         descendants = get_descendants(child1_id)
 
         # Check that the correct descendants were returned
         self.assertEqual(len(descendants), 2)
-        self.assertIn(grandchild1_id, descendants)
-        self.assertIn(grandchild2_id, descendants)
+        descendant_ids = [d['id'] for d in descendants]
+        self.assertIn(grandchild1_id, descendant_ids)
+        self.assertIn(grandchild2_id, descendant_ids)
 
     def test_delete_node(self):
-        """Test that a node and its descendants can be deleted."""
+        """Test that a node can be deleted (but not if it has children)."""
         # Create a tree of nodes
         root_id, _ = insert_node("Root")
         child1_id, _ = insert_node("Child 1", root_id)
         child2_id, _ = insert_node("Child 2", root_id)
         grandchild_id, _ = insert_node("Grandchild", child1_id)
 
-        # Delete child1 and its descendants
-        deleted_nodes = delete_node(child1_id)
+        # Try to delete child1 which has children - should fail
+        with self.assertRaises(ValueError) as cm:
+            delete_node(child1_id)
+        self.assertIn("has 1 children", str(cm.exception))
 
-        # Check that the correct nodes were deleted
-        self.assertEqual(len(deleted_nodes), 2)
-        self.assertIn(child1_id, deleted_nodes)
-        self.assertIn(grandchild_id, deleted_nodes)
+        # Delete grandchild (no children) - should succeed
+        deleted_count = delete_node(grandchild_id)
+        self.assertEqual(deleted_count, 1)
+
+        # Now child1 has no children, so we can delete it
+        deleted_count = delete_node(child1_id)
+        self.assertEqual(deleted_count, 1)
 
         # Check that the deleted nodes are no longer in the database
         self.assertIsNone(get_node(child1_id))
@@ -229,12 +237,12 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(get_head(), root_id)
 
     def test_delete_nonexistent_node(self):
-        """Test that deleting a nonexistent node returns an empty list."""
+        """Test that deleting a nonexistent node returns 0."""
         # Try to delete a nonexistent node
-        deleted_nodes = delete_node("nonexistent-id")
+        deleted_count = delete_node("nonexistent-id")
 
-        # Check that an empty list was returned
-        self.assertEqual(deleted_nodes, [])
+        # Check that 0 was returned
+        self.assertEqual(deleted_count, 0)
 
     def test_resolve_node_ref(self):
         """Test that a node reference can be resolved to its UUID."""
@@ -254,27 +262,37 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(resolved_id, node_id)
 
     def test_resolve_nonexistent_node_ref(self):
-        """Test that resolving a nonexistent node reference returns the reference."""
+        """Test that resolving a nonexistent node reference returns None."""
         # Try to resolve a nonexistent reference
         ref = "nonexistent-ref"
         resolved_id = resolve_node_ref(ref)
 
-        # Check that the resolved ID is the same as the reference
-        self.assertEqual(resolved_id, ref)
+        # Check that None was returned for non-existent node
+        self.assertIsNone(resolved_id)
 
     def test_get_recent_nodes(self):
         """Test that recent nodes can be retrieved."""
-        # Insert some nodes
+        # Create a chain of nodes
         node_ids = []
+        parent_id = None
         for i in range(10):
-            node_id, _ = insert_node(f"Node {i}")
+            node_id, _ = insert_node(f"Node {i}", parent_id)
             node_ids.append(node_id)
+            parent_id = node_id  # Next node will be child of this one
+        
+        # Set the last node as head
+        set_head(node_ids[-1])
 
         # Get the 5 most recent nodes
         recent_nodes = get_recent_nodes(5)
 
         # Check that the correct number of nodes was returned
         self.assertEqual(len(recent_nodes), 5)
+        
+        # Check that they are the most recent ones (in reverse order)
+        recent_node_ids = [n['id'] for n in recent_nodes]
+        expected_ids = list(reversed(node_ids[-5:]))
+        self.assertEqual(recent_node_ids, expected_ids)
 
         # Check that the nodes are in reverse order of insertion
         for i, node in enumerate(recent_nodes):

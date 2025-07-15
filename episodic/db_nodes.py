@@ -247,15 +247,22 @@ def delete_node(node_id):
             # For now, we'll prevent deletion of nodes with children
             raise ValueError(f"Cannot delete node {node_id} because it has {len(children)} children")
         
+        # If this was the head node, update head to its parent
+        # Must check this BEFORE deleting the node
+        is_head = get_head() == node_id
+        if is_head:
+            node = get_node(node_id)
+            parent_id = node.get('parent_id') if node else None
+        
         # Delete the node
         c.execute("DELETE FROM nodes WHERE id = ? OR short_id = ?", (node_id, node_id))
         deleted_count = c.rowcount
         
-        # If this was the head node, update head to its parent
-        if get_head() == node_id:
-            node = get_node(node_id)
-            if node and node.get('parent_id'):
-                set_head(node['parent_id'])
+        # Update head if necessary
+        if is_head:
+            if parent_id:
+                # Use the same connection/cursor to avoid deadlock
+                c.execute("UPDATE state SET head_id = ? WHERE name = 'head'", (parent_id,))
             else:
                 # No parent, clear the head
                 c.execute("UPDATE state SET head_id = NULL WHERE name = 'head'")

@@ -16,7 +16,7 @@ from episodic.server import (
     app, start_server, stop_server, index, set_current_node,
     get_current_node, delete_node_endpoint, get_graph_data_endpoint
 )
-from episodic.db import initialize_db, insert_node, get_node, set_head, get_head, close_connection
+from episodic.db import initialize_db, insert_node, get_node, set_head, get_head
 
 class TestServer(unittest.TestCase):
     """Test the server endpoints."""
@@ -51,8 +51,9 @@ class TestServer(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after each test."""
-        # Close any open database connections
-        close_connection()
+        # Close the connection pool to ensure clean state
+        from episodic.db_connection import close_pool
+        close_pool()
 
         # Restore the original EPISODIC_DB_PATH environment variable
         if self.original_db_path is not None:

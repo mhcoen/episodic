@@ -113,23 +113,6 @@ class TestCLICommands(unittest.TestCase):
         # Clean up temporary directory
         shutil.rmtree(self.test_dir, ignore_errors=True)
     
-    @unittest.skip("version command was removed in refactoring")
-    @patch('episodic.cli.typer.echo')
-    def test_version_command(self, mock_echo):
-        """Test version command."""
-        # Version command no longer exists in refactored CLI
-        pass
-    
-    @unittest.skip("providers command was removed in refactoring")
-    @patch('episodic.cli.typer.echo')
-    @patch('episodic.cli.get_current_provider')
-    @patch('episodic.cli.get_available_providers')
-    def test_providers_command(self, mock_get_providers, mock_get_current, mock_echo):
-        """Test providers command."""
-        # Providers command no longer exists in refactored CLI
-        # Provider info is now shown through /model command
-        pass
-    
     @patch('typer.secho')
     @patch('episodic.commands.prompts.get_available_prompts')
     @patch('episodic.commands.prompts.load_prompt')
@@ -182,21 +165,6 @@ class TestCLIInitialization(unittest.TestCase):
         if self.original_db_path:
             config.set("database_path", self.original_db_path)
         shutil.rmtree(self.test_dir, ignore_errors=True)
-    
-    @unittest.skip("_initialize_prompt was removed in refactoring")
-    @patch('episodic.cli.PromptManager')
-    def test_initialize_prompt(self, mock_prompt_manager):
-        """Test prompt initialization."""
-        # This function no longer exists in the refactored CLI
-        pass
-    
-    @unittest.skip("_initialize_model was removed in refactoring")
-    @patch('episodic.cli.ensure_provider_matches_model')
-    @patch('episodic.cli.typer.echo')
-    def test_initialize_model(self, mock_echo, mock_ensure_provider):
-        """Test model initialization."""
-        # This function no longer exists in the refactored CLI
-        pass
 
 
 class TestCLIConfiguration(unittest.TestCase):
@@ -258,18 +226,20 @@ class TestCLIConfiguration(unittest.TestCase):
 class TestCLISessionManagement(unittest.TestCase):
     """Test CLI session and state management."""
     
-    @unittest.skip("display_session_summary was removed in refactoring")
-    def test_display_session_summary(self):
-        """Test session summary display."""
-        # Session costs are now managed by conversation_manager
-        pass
-    
     def test_session_cost_accumulation(self):
         """Test that session costs accumulate correctly."""
-        from episodic.conversation import conversation_manager
+        from episodic.conversation import ConversationManager
         
-        # Reset session costs
-        conversation_manager.reset_session_costs()
+        # Create a new conversation manager instance for testing
+        cm = ConversationManager()
+        
+        # Initialize session costs
+        cm.session_costs = {
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_tokens": 0,
+            "total_cost_usd": 0.0
+        }
         
         # Simulate cost updates
         cost_info = {
@@ -282,13 +252,13 @@ class TestCLISessionManagement(unittest.TestCase):
         # Update costs twice to test accumulation
         for _ in range(2):
             # In the real code, this happens inside _handle_chat_message_impl
-            conversation_manager.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
-            conversation_manager.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
-            conversation_manager.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
-            conversation_manager.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
+            cm.session_costs["total_input_tokens"] += cost_info.get("input_tokens", 0)
+            cm.session_costs["total_output_tokens"] += cost_info.get("output_tokens", 0)
+            cm.session_costs["total_tokens"] += cost_info.get("total_tokens", 0)
+            cm.session_costs["total_cost_usd"] += cost_info.get("cost_usd", 0.0)
         
         # Verify accumulation
-        costs = conversation_manager.get_session_costs()
+        costs = cm.get_session_costs()
         self.assertEqual(costs["total_input_tokens"], 200)
         self.assertEqual(costs["total_output_tokens"], 100)
         self.assertEqual(costs["total_tokens"], 300)

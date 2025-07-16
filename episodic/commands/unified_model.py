@@ -116,6 +116,9 @@ def show_available_models():
                 typer.secho(f"\nAvailable models from ", nl=False, fg=get_heading_color(), bold=True)
                 typer.secho(f"{provider_name}:", fg=get_heading_color(), bold=True)
 
+                # Track HuggingFace model index for special pricing display
+                hf_model_index = 0
+                
                 for model in models:
                     if isinstance(model, dict):
                         model_name = model.get("name", "unknown")
@@ -146,20 +149,44 @@ def show_available_models():
                             if input_cost or output_cost:
                                 pricing = f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
                             else:
-                                # For local providers, show "Local model" instead of "Pricing not available"
-                                if provider_name in LOCAL_PROVIDERS:
+                                # Special handling for HuggingFace models
+                                if provider_name == "huggingface":
+                                    if hf_model_index == 0:
+                                        pricing = "Free tier: ~30K tokens/month"
+                                    elif hf_model_index == 1:
+                                        pricing = "Pro tier: $9/month unlimited"
+                                    else:
+                                        pricing = ""  # No pricing for rest
+                                    hf_model_index += 1
+                                elif provider_name in LOCAL_PROVIDERS:
                                     pricing = "Local model"
                                 else:
                                     pricing = "Pricing not available"
                         except Exception:
-                            # For local providers, show "Local model" instead of "Pricing not available"
-                            if provider_name in LOCAL_PROVIDERS:
+                            # Special handling for HuggingFace models
+                            if provider_name == "huggingface":
+                                if hf_model_index == 0:
+                                    pricing = "Free tier: ~30K tokens/month"
+                                elif hf_model_index == 1:
+                                    pricing = "Pro tier: $9/month unlimited"
+                                else:
+                                    pricing = ""  # No pricing for rest
+                                hf_model_index += 1
+                            elif provider_name in LOCAL_PROVIDERS:
                                 pricing = "Local model"
                             else:
                                 pricing = "Pricing not available"
                     else:
                         # cost_per_token not available
-                        if provider_name in LOCAL_PROVIDERS:
+                        if provider_name == "huggingface":
+                            if hf_model_index == 0:
+                                pricing = "Free tier: ~30K tokens/month"
+                            elif hf_model_index == 1:
+                                pricing = "Pro tier: $9/month unlimited"
+                            else:
+                                pricing = ""  # No pricing for rest
+                            hf_model_index += 1
+                        elif provider_name in LOCAL_PROVIDERS:
                             pricing = "Local model"
                         else:
                             pricing = "Pricing not available"
@@ -168,14 +195,24 @@ def show_available_models():
                     typer.secho(f"{current_idx:2d}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
                     typer.secho(f". ", nl=False, fg=get_text_color())
                     typer.secho(f"{display_name:30s}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
-                    typer.secho(f"\t(", nl=False, fg=get_text_color())
-                    if pricing == "Local model":
-                        typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)
-                    elif pricing == "Pricing not available":
-                        typer.secho(f"{pricing}", nl=False, fg=typer.colors.YELLOW)
+                    
+                    # Only show pricing info if not empty
+                    if pricing:
+                        typer.secho(f"\t(", nl=False, fg=get_text_color())
+                        if pricing == "Local model":
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)
+                        elif pricing == "Pricing not available":
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.YELLOW)
+                        elif "Free tier" in pricing:
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.GREEN)
+                        elif "Pro tier" in pricing:
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_BLUE, bold=True)
+                        else:
+                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+                        typer.secho(")", fg=get_text_color())
                     else:
-                        typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_MAGENTA, bold=True)
-                    typer.secho(")", fg=get_text_color())
+                        # No pricing info, just add newline
+                        typer.echo()
                     current_idx += 1
 
     except Exception as e:

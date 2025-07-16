@@ -16,7 +16,8 @@ PROVIDER_API_KEYS = {
     "cohere": "COHERE_API_KEY",
     "azure": "AZURE_API_KEY",
     "groq": "GROQ_API_KEY",
-    "openrouter": "OPENROUTER_API_KEY"
+    "openrouter": "OPENROUTER_API_KEY",
+    "huggingface": "HUGGINGFACE_API_KEY"
 }
 
 # Local providers that don't require API keys
@@ -75,6 +76,22 @@ PROVIDER_CONFIG = {
             {"name": "openrouter/meta-llama/llama-2-70b-chat", "display_name": "Llama 2 70B (OR)"},
             {"name": "openrouter/mistralai/mixtral-8x7b-instruct", "display_name": "Mixtral 8x7B (OR)"},
             {"name": "openrouter/cohere/command-r-plus", "display_name": "Command R+ (OR)"}
+        ]
+    },
+    "huggingface": {
+        "models": [
+            {"name": "huggingface/tiiuae/falcon-180B-chat", "display_name": "Falcon 180B Chat"},
+            {"name": "huggingface/tiiuae/falcon-40b-instruct", "display_name": "Falcon 40B Instruct"},
+            {"name": "huggingface/meta-llama/Meta-Llama-3-70B-Instruct", "display_name": "Llama 3 70B Instruct"},
+            {"name": "huggingface/meta-llama/Meta-Llama-3-8B-Instruct", "display_name": "Llama 3 8B Instruct"},
+            {"name": "huggingface/meta-llama/Llama-2-70b-chat-hf", "display_name": "Llama 2 70B Chat"},
+            {"name": "huggingface/meta-llama/Llama-2-13b-chat-hf", "display_name": "Llama 2 13B Chat"},
+            {"name": "huggingface/meta-llama/Llama-2-7b-chat-hf", "display_name": "Llama 2 7B Chat"},
+            {"name": "huggingface/mistralai/Mixtral-8x7B-Instruct-v0.1", "display_name": "Mixtral 8x7B"},
+            {"name": "huggingface/mistralai/Mistral-7B-Instruct-v0.2", "display_name": "Mistral 7B"},
+            {"name": "huggingface/bigcode/starcoder", "display_name": "StarCoder"},
+            {"name": "huggingface/microsoft/DialoGPT-medium", "display_name": "DialoGPT Medium"},
+            {"name": "huggingface/google/flan-t5-xxl", "display_name": "FLAN-T5 XXL"}
         ]
     }
 }

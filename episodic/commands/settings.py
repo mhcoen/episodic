@@ -345,7 +345,16 @@ def cost():
     
     # Cost
     typer.secho("─" * 40, fg=get_text_color())
-    typer.secho(f"Total cost:    ${costs['total_cost_usd']:>10.4f}", fg="green", bold=True)
+    
+    # Check if using Hugging Face model
+    current_model = config.get("model", "")
+    if current_model.startswith("huggingface/"):
+        # Show HF tier information instead of cost
+        typer.secho("Hugging Face Usage:", fg="green", bold=True)
+        typer.secho(f"  Free tier:  ~30K tokens/month", fg=get_text_color())
+        typer.secho(f"  Pro tier:   $9/month unlimited", fg=get_text_color())
+    else:
+        typer.secho(f"Total cost:    ${costs['total_cost_usd']:>10.4f}", fg="green", bold=True)
     
     # API stats if available
     if 'api_stats' in costs and costs['api_stats']:

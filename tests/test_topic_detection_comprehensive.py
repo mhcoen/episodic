@@ -8,6 +8,11 @@ Tests the complete topic detection system including:
 - Topic boundaries
 - Hybrid detection methods
 - Configuration handling
+
+DEBUGGING INFORMATION:
+- Recent changes: HuggingFace models now supported in topic detection
+- Topic boundaries fixed to avoid overlap
+- Enhanced error reporting for easier debugging
 """
 
 import unittest
@@ -17,6 +22,7 @@ import os
 import sys
 import json
 from datetime import datetime
+import traceback
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -30,6 +36,16 @@ from tests.fixtures.conversations import (
     SINGLE_TOPIC_CONVERSATION,
     create_test_node
 )
+
+
+def print_test_context(test_name, test_data=None):
+    """Print context information for debugging test failures."""
+    print(f"\n{'=' * 60}")
+    print(f"TEST: {test_name}")
+    print(f"TIME: {datetime.now()}")
+    if test_data:
+        print(f"DATA: {json.dumps(test_data, indent=2)}")
+    print(f"{'=' * 60}\n")
 
 
 class TestTopicDetectionIntegration(unittest.TestCase):
@@ -58,63 +74,84 @@ class TestTopicDetectionIntegration(unittest.TestCase):
     @patch('episodic.llm.query_llm')
     def test_automatic_topic_detection(self, mock_llm):
         """Test automatic topic detection during conversation."""
-        # Mock responses for conversation
-        conversation_responses = [
-            "Mars is a fascinating planet with many challenges for colonization.",
-            "The main challenges include radiation, atmosphere, and resources.",
-            "The journey would take 6-9 months depending on orbital alignment.",
-            "Italian pasta is made with tipo 00 flour and fresh eggs.",
-            "Cook pasta in plenty of salted boiling water.",
-            "There are hundreds of pasta shapes, each for specific sauces."
-        ]
+        print_test_context("test_automatic_topic_detection")
         
-        # Mock topic detection responses
-        topic_detection_responses = [
-            json.dumps({"topic_changed": False, "confidence": 0.9}),
-            json.dumps({"topic_changed": False, "confidence": 0.9}),
-            json.dumps({"topic_changed": True, "confidence": 0.95}),  # Topic change!
-            json.dumps({"topic_changed": False, "confidence": 0.9}),
-        ]
-        
-        # Setup mock to handle both conversation and detection
-        response_index = 0
-        detection_index = 0
-        
-        def mock_llm_handler(*args, **kwargs):
-            nonlocal response_index, detection_index
+        try:
+            # Mock responses for conversation
+            conversation_responses = [
+                "Mars is a fascinating planet with many challenges for colonization.",
+                "The main challenges include radiation, atmosphere, and resources.",
+                "The journey would take 6-9 months depending on orbital alignment.",
+                "Italian pasta is made with tipo 00 flour and fresh eggs.",
+                "Cook pasta in plenty of salted boiling water.",
+                "There are hundreds of pasta shapes, each for specific sauces."
+            ]
             
-            # Check if this is a topic detection call
-            if isinstance(args[0], list) and any('topic detection' in str(msg) for msg in args[0]):
-                response = topic_detection_responses[detection_index % len(topic_detection_responses)]
-                detection_index += 1
-                return {'choices': [{'message': {'content': response}}]}
-            else:
-                # Regular conversation
-                response = conversation_responses[response_index % len(conversation_responses)]
-                response_index += 1
-                return mock_llm_response(response)
-        
-        mock_llm.side_effect = mock_llm_handler
-        
-        # Send messages that should trigger topic change
-        messages = [
-            "Tell me about Mars colonization",
-            "What are the main challenges?",
-            "How long is the journey?",
-            "I want to learn about Italian pasta",  # Topic change
-            "How do I cook it properly?",
-            "Tell me about pasta shapes"
-        ]
-        
-        for msg in messages:
-            self.manager.send_message(msg)
-        
-        # Verify topics were created
-        from episodic.db import get_recent_topics
-        topics = get_recent_topics()
-        
-        # Should have at least 2 topics
-        self.assertGreaterEqual(len(topics), 2)
+            # Mock topic detection responses
+            topic_detection_responses = [
+                json.dumps({"topic_changed": False, "confidence": 0.9}),
+                json.dumps({"topic_changed": False, "confidence": 0.9}),
+                json.dumps({"topic_changed": True, "confidence": 0.95}),  # Topic change!
+                json.dumps({"topic_changed": False, "confidence": 0.9}),
+            ]
+            
+            # Setup mock to handle both conversation and detection
+            response_index = 0
+            detection_index = 0
+            
+            def mock_llm_handler(*args, **kwargs):
+                nonlocal response_index, detection_index
+                
+                # Log the call for debugging
+                print(f"  Mock LLM called with: {kwargs.get('model', 'unknown model')}")
+                
+                # Check if this is a topic detection call
+                if isinstance(args[0], list) and any('topic detection' in str(msg) for msg in args[0]):
+                    response = topic_detection_responses[detection_index % len(topic_detection_responses)]
+                    detection_index += 1
+                    print(f"  -> Topic detection response: {response}")
+                    return {'choices': [{'message': {'content': response}}]}
+                else:
+                    # Regular conversation
+                    response = conversation_responses[response_index % len(conversation_responses)]
+                    response_index += 1
+                    print(f"  -> Conversation response: {response[:50]}...")
+                    return mock_llm_response(response)
+            
+            mock_llm.side_effect = mock_llm_handler
+            
+            # Send messages that should trigger topic change
+            messages = [
+                "Tell me about Mars colonization",
+                "What are the main challenges?",
+                "How long is the journey?",
+                "I want to learn about Italian pasta",  # Topic change
+                "How do I cook it properly?",
+                "Tell me about pasta shapes"
+            ]
+            
+            print(f"\nSending {len(messages)} messages:")
+            for i, msg in enumerate(messages):
+                print(f"  Message {i+1}: {msg}")
+                self.manager.send_message(msg)
+            
+            # Verify topics were created
+            from episodic.db import get_recent_topics
+            topics = get_recent_topics()
+            
+            print(f"\nTopics created: {len(topics)}")
+            for topic in topics:
+                print(f"  - {topic.get('name', 'Unnamed')}: {topic.get('start_node_id', '?')} -> {topic.get('end_node_id', 'ongoing')}")
+            
+            # Should have at least 2 topics
+            self.assertGreaterEqual(len(topics), 2, 
+                f"Expected at least 2 topics, but got {len(topics)}. Topics: {[t.get('name') for t in topics]}")
+            
+        except Exception as e:
+            print(f"\n❌ TEST FAILED: {self.__class__.__name__}.test_automatic_topic_detection")
+            print(f"Error: {str(e)}")
+            print(f"Traceback:\n{traceback.format_exc()}")
+            raise
     
     def test_topic_boundary_detection(self):
         """Test accurate detection of topic boundaries."""

@@ -67,10 +67,17 @@ def format_conversation_to_markdown(
     lines.append(f"# {title}")
     lines.append(f"*{datetime.now().strftime('%B %d, %Y')}*")
     
-    # Get initial model/style from first node
+    # Get initial model/style from first assistant node
+    model = 'unknown'
     if topic_nodes_list and topic_nodes_list[0][1]:
-        first_node = topic_nodes_list[0][1][0]
-        model = first_node.get('model', 'unknown')
+        # Find the first assistant node to get the model
+        for node in topic_nodes_list[0][1]:
+            if node.get('role') == 'assistant' and node.get('model'):
+                model = node.get('model')
+                # If there's a provider, prepend it
+                if node.get('provider'):
+                    model = f"{node.get('provider')}/{model}"
+                break
         # TODO: Get actual style/format from config
         lines.append(f"*Model: {model} • Style: standard • Format: mixed*")
     

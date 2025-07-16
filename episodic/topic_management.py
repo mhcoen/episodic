@@ -277,10 +277,27 @@ class TopicHandler:
                 actual_boundary = analyze_topic_boundary(start_node_id, assistant_node_id, user_node_id)
             else:
                 # Use simple heuristic - topic ends at last assistant response before change
-                actual_boundary = assistant_node_id  # End at the assistant response before topic change
+                # If no assistant response exists, find the previous node
+                if assistant_node_id:
+                    actual_boundary = assistant_node_id
+                else:
+                    # Find the node before user_node_id to avoid overlap
+                    from episodic.db import get_node, get_ancestry
+                    ancestry = get_ancestry(user_node_id)
+                    if len(ancestry) >= 2:
+                        # Get the node just before user_node_id
+                        actual_boundary = ancestry[-2]['id']
+                    else:
+                        # Edge case: this is the very first exchange
+                        actual_boundary = None
             
             # Close the previous topic at the determined boundary
-            update_topic_end_node(topic_name, start_node_id, actual_boundary)
+            if actual_boundary:
+                update_topic_end_node(topic_name, start_node_id, actual_boundary)
+            else:
+                # Cannot determine a clean boundary - log warning
+                if config.get("debug"):
+                    debug_print(f"Warning: Could not determine topic boundary for {topic_name}", indent=True)
             
             # Extract a proper name for the topic now that it's complete
             if topic_name.startswith('ongoing-'):
@@ -420,14 +437,28 @@ class TopicHandler:
                                     user_node_id
                                 )
                             else:
-                                actual_boundary = assistant_node_id
+                                # Use simple heuristic - if no assistant response, use previous node
+                                if assistant_node_id:
+                                    actual_boundary = assistant_node_id
+                                else:
+                                    # Get the node before user_node_id
+                                    ancestry = get_ancestry(user_node_id)
+                                    if len(ancestry) >= 2:
+                                        actual_boundary = ancestry[-2]['id']
+                                    else:
+                                        actual_boundary = None
                             
                             # Now close the initial topic at the actual boundary
-                            update_topic_end_node(topic_name, first_user_node_id, actual_boundary)
+                            if actual_boundary:
+                                update_topic_end_node(topic_name, first_user_node_id, actual_boundary)
+                            else:
+                                if config.get("debug"):
+                                    debug_print(f"Warning: Could not determine topic boundary for initial topic", indent=True)
                             
                             # Queue for compression
-                            from episodic.compression import queue_topic_for_compression
-                            queue_topic_for_compression(first_user_node_id, actual_boundary, topic_name)
+                            if actual_boundary:
+                                from episodic.compression import queue_topic_for_compression
+                                queue_topic_for_compression(first_user_node_id, actual_boundary, topic_name)
                             
                             typer.echo("")
                             secho_color(f"📌 Created initial topic: {topic_name}", fg=get_system_color())

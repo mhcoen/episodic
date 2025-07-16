@@ -115,7 +115,7 @@ def execute_script(filename: str):
             executed += 1
             
             # Show progress
-            typer.secho(f"[{executed}/{total_lines}] {line}", fg="cyan", bold=True)
+            typer.secho(f"[{executed}/{total_lines}] {line}", fg="white", bold=True)
             
             # Execute the line
             if line.startswith('/'):

@@ -1,0 +1,55 @@
+# Episodic Demo Database Population Script
+# Creates conversations with clear topic transitions
+
+# Topic 1: Web Development (8 exchanges)
+What's the best JavaScript framework for beginners?
+How do I center a div in CSS?
+What's the difference between let and const in JavaScript?
+Should I learn TypeScript?
+
+# Clear topic transition
+I'd like to switch topics. Let's talk about cooking.
+
+# Topic 2: Baking Bread (8 exchanges)
+What's the easiest bread recipe for beginners?
+How do I know when my dough has risen enough?
+What's the difference between active dry yeast and instant yeast?
+Why did my bread turn out dense?
+
+# Another topic transition
+That's helpful, thanks. Now I'm curious about astronomy.
+
+# Topic 3: Astronomy and Planets (8 exchanges)
+Which planet has the most moons?
+Tell me about Saturn's rings
+Is Pluto still considered a planet?
+What's the largest known exoplanet?
+
+# Topic transition
+Let's change gears. I need help with Python.
+
+# Topic 4: Python Data Analysis (8 exchanges)
+What's the best library for data analysis in Python?
+How do I read a CSV file with pandas?
+What's the difference between numpy arrays and Python lists?
+How do I create a simple plot with matplotlib?
+
+# Topic transition
+Great info! Now let's discuss fitness.
+
+# Topic 5: Exercise and Health (6 exchanges)
+What's a good beginner workout routine?
+How many days a week should I exercise?
+What's the difference between cardio and strength training?
+
+# Final topic
+One more topic - let's talk about books.
+
+# Topic 6: Science Fiction Books (6 exchanges)
+Can you recommend a good sci-fi book?
+What's your opinion on Isaac Asimov's Foundation series?
+Have you read anything by Ursula K. Le Guin?
+
+# End the session
+Thanks for all the great conversations!
+/quit

@@ -106,8 +106,12 @@ class ConnectionPool:
         conn = sqlite3.connect(self.db_path)
         # Enable WAL mode for better concurrency
         conn.execute("PRAGMA journal_mode=WAL")
-        # Enable query optimization
-        conn.execute("PRAGMA optimize")
+        # Enable query optimization (but don't fail if it doesn't work)
+        try:
+            conn.execute("PRAGMA optimize")
+        except sqlite3.OperationalError:
+            # Database might be locked or not fully initialized yet
+            logger.debug("Could not optimize database (might be locked or initializing)")
         return conn
         
     def get_connection(self, timeout: float = POOL_TIMEOUT) -> Optional[sqlite3.Connection]:

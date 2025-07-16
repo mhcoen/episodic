@@ -142,8 +142,10 @@ def talk_loop() -> None:
             if user_input.startswith('/'):
                 should_exit = handle_command(user_input)
                 if should_exit:
-                    # Finalize any ongoing topics before exit
-                    conversation_manager.finalize_current_topic()
+                    # Finalize any ongoing topics before exit (only if database exists)
+                    from episodic.db import database_exists
+                    if database_exists() and conversation_manager:
+                        conversation_manager.finalize_current_topic()
                     typer.secho("\nGoodbye! 👋", fg=get_system_color())
                     break
             else:
@@ -158,8 +160,9 @@ def talk_loop() -> None:
             current_time = time.time()
             if current_time - last_interrupt_time < 1.0:  # Double Ctrl-C within 1 second
                 typer.echo()  # New line after ^C
-                # Finalize any ongoing topics before exit
-                if conversation_manager:
+                # Finalize any ongoing topics before exit (only if database exists)
+                from episodic.db import database_exists
+                if database_exists() and conversation_manager:
                     conversation_manager.finalize_current_topic()
                 typer.secho("\nGoodbye! 👋", fg=get_system_color())
                 break
@@ -172,8 +175,9 @@ def talk_loop() -> None:
         except EOFError:
             # Handle Ctrl+D
             typer.echo()  # New line
-            # Finalize any ongoing topics before exit
-            if conversation_manager:
+            # Finalize any ongoing topics before exit (only if database exists)
+            from episodic.db import database_exists
+            if database_exists() and conversation_manager:
                 conversation_manager.finalize_current_topic()
             typer.secho("\nGoodbye! 👋", fg=get_system_color())
             break
@@ -265,8 +269,10 @@ def main(
             from episodic.commands import cost as show_cost
             show_cost()
         
-        # Finalize any ongoing topics
-        conversation_manager.finalize_current_topic()
+        # Finalize any ongoing topics (only if database still exists)
+        from episodic.db import database_exists
+        if database_exists():
+            conversation_manager.finalize_current_topic()
         return
     
     # Normal interactive mode

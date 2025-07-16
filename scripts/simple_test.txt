@@ -1,0 +1,18 @@
+# Simple test with 3 topics
+
+# Topic 1: Programming
+What is Python?
+How do I write a for loop?
+What are list comprehensions?
+
+# Topic 2: Weather  
+What's the weather like today?
+Will it rain tomorrow?
+What causes thunderstorms?
+
+# Topic 3: Food
+What's a good pasta recipe?
+How do I make pizza dough?
+What wine goes with Italian food?
+
+/quit

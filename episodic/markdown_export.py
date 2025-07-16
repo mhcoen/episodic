@@ -159,13 +159,21 @@ def get_topics_by_spec(spec: str) -> List[dict]:
     else:
         # Parse numeric specifications
         topic_numbers = parse_topic_numbers(spec)
-        all_topics = get_recent_topics(limit=None)
+        
+        # Get topics using the same limit as /topics display (10)
+        # to ensure numbering matches what user sees
+        display_topics = get_recent_topics(limit=10)
+        
+        # If user requests a topic number beyond 10, get all topics
+        max_requested = max(topic_numbers) if topic_numbers else 0
+        if max_requested > 10:
+            display_topics = get_recent_topics(limit=None)
         
         # Filter to requested topics (1-indexed)
         selected = []
         for num in topic_numbers:
-            if 0 < num <= len(all_topics):
-                selected.append(all_topics[num-1])
+            if 0 < num <= len(display_topics):
+                selected.append(display_topics[num-1])
         
         return selected
 

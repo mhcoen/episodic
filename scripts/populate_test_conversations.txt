@@ -1,0 +1,33 @@
+# Test conversations script for Episodic
+# This creates multiple topics with various conversation lengths
+
+# Topic 1: Python Programming (6 messages)
+What's the difference between a list and a tuple in Python?
+How do I handle exceptions in Python?
+Can you show me an example of a decorator?
+
+# Topic 2: Space Exploration (8 messages)
+Tell me about the James Webb Space Telescope
+What discoveries has it made so far?
+How does it compare to Hubble?
+What's next for space telescopes?
+
+# Topic 3: Cooking Italian Food (6 messages)
+What's the secret to making good pasta carbonara?
+Should I use guanciale or pancetta?
+What about the cheese - pecorino or parmesan?
+
+# Topic 4: Machine Learning Basics (10 messages)
+What is a neural network?
+How does backpropagation work?
+What's the difference between supervised and unsupervised learning?
+Can you explain what overfitting means?
+How do I prevent overfitting in my models?
+
+# Topic 5: Climate Change (6 messages)
+What are the main causes of climate change?
+How much has global temperature risen?
+What can individuals do to help?
+
+# Exit after populating
+/quit

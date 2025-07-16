@@ -46,3 +46,6 @@ command_history
 .mcp/
 .pytest_cache/
 .DS_Store
+
+# State tracking files
+CURRENT_STATE.md

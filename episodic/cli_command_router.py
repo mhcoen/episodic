@@ -100,6 +100,8 @@ def handle_command(command_str: str) -> bool:
             _handle_prompt(args)
         elif cmd == "/execute":
             _handle_execute(args)
+        elif cmd == "/script":
+            _handle_execute(args)  # /script is an alias for /execute
         elif cmd == "/save":
             _handle_save(args)
         elif cmd in ["/export", "/ex"]:

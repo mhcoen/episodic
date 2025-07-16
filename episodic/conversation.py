@@ -379,10 +379,19 @@ class ConversationManager:
             if config.get("skip_llm_response", False):
                 # Create a placeholder response
                 display_response = "[LLM response skipped]"
+                # Extract provider from model if present
+                if "/" in model:
+                    provider, model_name = model.split("/", 1)
+                else:
+                    provider = None
+                    model_name = model
+                    
                 assistant_node_id, assistant_short_id = insert_node(
                     display_response, 
                     user_node_id, 
-                    role="assistant"
+                    role="assistant",
+                    provider=provider,
+                    model=model
                 )
                 
                 # Display drift if enabled
@@ -505,10 +514,19 @@ class ConversationManager:
             
             # Store the assistant's response
             with benchmark_resource("Database", "insert assistant node"):
+                # Extract provider from model if present
+                if "/" in model:
+                    provider, model_name = model.split("/", 1)
+                else:
+                    provider = None
+                    model_name = model
+                    
                 assistant_node_id, assistant_short_id = insert_node(
                     display_response, 
                     user_node_id, 
-                    role="assistant"
+                    role="assistant",
+                    provider=provider,
+                    model=model
                 )
             
             # Update current node

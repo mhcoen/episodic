@@ -98,10 +98,8 @@ def handle_command(command_str: str) -> bool:
             _handle_muse(args)
         elif cmd == "/prompt":
             _handle_prompt(args)
-        elif cmd == "/execute":
-            _handle_execute(args)
         elif cmd == "/script":
-            _handle_execute(args)  # /script is an alias for /execute
+            _handle_script(args)
         elif cmd == "/save":
             _handle_save(args)
         elif cmd in ["/export", "/ex"]:
@@ -438,10 +436,10 @@ def _handle_prompt(args: List[str]):
             typer.secho(f"Unknown prompt action: {action}", fg="red")
 
 
-def _handle_execute(args: List[str]):
-    """Handle /execute command."""
+def _handle_script(args: List[str]):
+    """Handle /script command."""
     if not args:
-        typer.secho("Usage: /execute <script_file>", fg="red")
+        typer.secho("Usage: /script <script_file>", fg="red")
     else:
         from episodic.cli_session import execute_script
         filename = " ".join(args)

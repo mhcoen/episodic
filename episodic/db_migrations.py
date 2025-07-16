@@ -27,22 +27,10 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
     """
     db_path = get_db_path()
     
-    # If erase is True, close connections first, then delete the existing database
-    if erase and os.path.exists(db_path):
-        # Close all connections before removing the database file
-        from .db_connection import close_pool
-        close_pool()
-        
-        # Remove the database file
-        os.remove(db_path)
-        logger.info(f"Deleted existing database at {db_path}")
-        
-        # Also remove WAL and SHM files if they exist
-        for suffix in ['-wal', '-shm']:
-            wal_path = db_path + suffix
-            if os.path.exists(wal_path):
-                os.remove(wal_path)
-                logger.info(f"Deleted {wal_path}")
+    # If erase is True, use the robust reset function
+    if erase:
+        from .db_reset import reset_database_subsystem
+        reset_database_subsystem(db_path if os.path.exists(db_path) else None)
     
     with get_connection() as conn:
         c = conn.cursor()

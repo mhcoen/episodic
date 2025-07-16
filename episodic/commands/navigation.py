@@ -115,6 +115,9 @@ def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing
         
         if erase:
             typer.secho("🗑️  Erasing existing database...", fg=get_system_color())
+            # Close all existing connections before erasing
+            from episodic.db_connection import close_pool
+            close_pool()
         
         init_db(erase=erase)
         

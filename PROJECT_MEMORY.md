@@ -11,11 +11,17 @@ Last Updated: 2025-07-15
 - **Fixed help category conflict**:
   - Changed from "save" to "markdown" (avoiding conflict with existing /save command)
   - Updated all documentation and help text
-- **Fixed export bug**:
-  - Issue: Exports only showed user messages, missing assistant responses
-  - Root cause: Topics incorrectly end on user messages instead of assistant responses
-  - Solution: Modified `get_nodes_for_topic()` to check for and include assistant response after topic end
-  - Uses `get_children()` to find assistant response when topic ends on user message
+- **Fixed multiple export bugs**:
+  - Issue 1: Exports only showed user messages, missing assistant responses
+    - Root cause: Topics incorrectly end on user messages instead of assistant responses
+    - Solution: Modified `get_nodes_for_topic()` to check for and include assistant response after topic end
+  - Issue 2: Topic numbering mismatch between /topics display and export
+    - Fixed export to use same ordering as /topics (10 most recent)
+- **Fixed database initialization issues**:
+  - Fixed `/init --erase` "no such table: nodes" error
+  - Added database existence checks before finalizing topics on exit
+  - Fixed "database is locked" errors by handling PRAGMA optimize failures gracefully
+  - Created `populate_demo_database.txt` script for testing
 - **Completed test fixes**:
   - Fixed 17 database tests to all pass (100% pass rate)
   - Removed deprecated `close_connection()` calls

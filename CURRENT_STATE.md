@@ -17,11 +17,18 @@
    - Updated database context managers
    - Deleted 5 skipped test methods
 
-3. **Export Bug Fix**
+3. **Export Bug Fixes**
    - Fixed issue where exports only showed user messages
    - Root cause: Topics incorrectly end on user messages instead of assistant responses
    - Implemented workaround in get_nodes_for_topic() to include assistant response after topic end
    - Uses get_children() to find and append assistant response when topic ends on user message
+   - Fixed topic numbering mismatch - export now matches /topics display (10 most recent)
+
+4. **Database Initialization Fixes**
+   - Fixed /init --erase "no such table: nodes" error
+   - Added database existence checks before finalizing topics
+   - Fixed "database is locked" errors by handling PRAGMA optimize failures
+   - Created populate_demo_database.txt script for testing
 
 ### Current Issues
 
@@ -44,6 +51,7 @@
 
 ### Recent Commits
 ```
+1998512 fix: handle database locked errors and /init --erase issues
 b5d76af fix: include assistant messages in markdown export when topics end on user messages
 28251cd fix: resolve export command errors
 6a5dbbd Remove requirements_minimal.txt from repository
@@ -56,6 +64,7 @@ b5d76af fix: include assistant messages in markdown export when topics end on us
 - [ ] Update web search command tests from /websearch to /web
 - [ ] Add tests for new markdown aliases
 - [ ] Fix topic boundary detection to mark after assistant responses (major task)
+- [ ] Add Brave Search as a web search provider
 
 ### Command Aliases
 - `/export` or `/ex` - Export topics to markdown

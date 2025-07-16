@@ -277,7 +277,7 @@ class TopicHandler:
                 actual_boundary = analyze_topic_boundary(start_node_id, assistant_node_id, user_node_id)
             else:
                 # Use simple heuristic - topic ends at last assistant response before change
-                actual_boundary = user_node_id  # End at the user message that triggered the change
+                actual_boundary = assistant_node_id  # End at the assistant response before topic change
             
             # Close the previous topic at the determined boundary
             update_topic_end_node(topic_name, start_node_id, actual_boundary)
@@ -420,7 +420,7 @@ class TopicHandler:
                                     user_node_id
                                 )
                             else:
-                                actual_boundary = user_node_id
+                                actual_boundary = assistant_node_id
                             
                             # Now close the initial topic at the actual boundary
                             update_topic_end_node(topic_name, first_user_node_id, actual_boundary)

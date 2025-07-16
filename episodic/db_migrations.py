@@ -27,10 +27,15 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
     """
     db_path = get_db_path()
     
-    # If erase is True, use the robust reset function
-    if erase:
-        from .db_reset import reset_database_subsystem
-        reset_database_subsystem(db_path if os.path.exists(db_path) else None)
+    # If erase is True, delete the existing database
+    if erase and os.path.exists(db_path):
+        # First close any connection pool
+        from .db_connection import close_pool
+        close_pool()
+        
+        # Then remove the database file
+        os.remove(db_path)
+        logger.info(f"Deleted existing database at {db_path}")
     
     with get_connection() as conn:
         c = conn.cursor()

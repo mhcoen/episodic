@@ -115,10 +115,6 @@ def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing
         
         if erase:
             typer.secho("🗑️  Erasing existing database...", fg=get_system_color())
-            # Use the robust reset function
-            from episodic.db_reset import reset_database_subsystem
-            from episodic.db_connection import get_db_path
-            reset_database_subsystem(get_db_path())
         
         init_db(erase=erase)
         

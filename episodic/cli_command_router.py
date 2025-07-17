@@ -96,6 +96,8 @@ def handle_command(command_str: str) -> bool:
             _handle_web(args)
         elif cmd == "/muse":
             _handle_muse(args)
+        elif cmd == "/chat":
+            _handle_chat(args)
         elif cmd == "/prompt":
             _handle_prompt(args)
         elif cmd == "/script":
@@ -415,6 +417,12 @@ def _handle_muse(args: List[str]):
         muse(action=args[0])
     else:
         typer.secho(f"Unknown muse action: {args[0]}", fg="red")
+
+
+def _handle_chat(args: List[str]):
+    """Handle /chat command."""
+    from episodic.commands.mode import chat_command
+    chat_command()
 
 
 def _handle_prompt(args: List[str]):

@@ -118,11 +118,19 @@ def talk_loop() -> None:
     
     # Create prompt session with history file in ~/.episodic directory
     history_file = os.path.expanduser("~/.episodic/command_history")
+    
+    # Set up completer if tab completion is enabled
+    completer = None
+    if config.get("enable_tab_completion", False):
+        from episodic.cli_completer import EpisodicCompleter
+        completer = EpisodicCompleter()
+    
     session = PromptSession(
         history=FileHistory(history_file),
         auto_suggest=AutoSuggestFromHistory(),
         message=get_prompt,
         vi_mode=config.get("vi_mode", False),  # Enable vi mode if configured
+        completer=completer,
     )
     
     # Main loop

@@ -167,9 +167,9 @@ def show_available_models():
                     # Base: "  XX. " = 6 chars
                     # Plus type indicator length (3 for [C]/[I]/[B], 4 for [CI], 3 for [?])
                     # Plus space after indicator = 1
-                    # Plus formatted display (26 chars) 
+                    # Plus actual formatted display length
                     # Plus tech info if present
-                    width = 6 + len(type_indicator) + 1 + 26
+                    width = 6 + len(type_indicator) + 1 + len(formatted_display)
                     if tech_info:
                         width += len(tech_info) + 1
                     
@@ -236,8 +236,8 @@ def show_available_models():
             # Base: "  XX. " = 6 chars
             # Plus actual type indicator length
             # Plus space after indicator = 1
-            # Plus formatted display (26 chars)
-            current_length = 6 + len(info['type_indicator']) + 1 + 26
+            # Plus actual formatted display length
+            current_length = 6 + len(info['type_indicator']) + 1 + len(info['formatted_display'])
             if info['tech_info']:
                 current_length += len(info['tech_info']) + 1
             
@@ -314,7 +314,7 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
             output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
 
             if input_cost or output_cost:
-                return f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
+                return f"${input_cost:.6f}/1K in, ${output_cost:.6f}/1K out"
         except Exception:
             pass
     

@@ -176,6 +176,8 @@
   "text_wrap": true,
   "_comment_context_depth": "Default context depth for building conversation history",
   "context_depth": 5,
+  "_comment_enable_tab_completion": "Enable tab completion for commands and parameters",
+  "enable_tab_completion": true,
   
   "_comment_rag": "// === RAG (RETRIEVAL AUGMENTED GENERATION) ===",
   "_comment_rag_enabled": "Enable RAG for enhanced responses with external knowledge",

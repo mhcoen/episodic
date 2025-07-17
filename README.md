@@ -19,6 +19,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info
 - **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
 - **🎨 Rich CLI**: Streaming responses, colored output, text wrapping
+- **⌨️ Tab Completion**: Context-aware tab completion for commands, parameters, models, and files
 
 ## 🚀 Quick Start
 
@@ -78,6 +79,11 @@ python -m episodic
 /model list      # View available AI models
 /help            # See all commands
 /help <query>    # Search documentation (e.g., /help How do I use muse mode?)
+
+# Tab completion is enabled by default - press Tab after typing:
+/mo<Tab>         # Completes to /model
+/set <Tab>       # Shows all configuration parameters
+/model chat <Tab> # Shows available models
 ```
 
 ## 📖 Documentation

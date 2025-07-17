@@ -143,6 +143,16 @@ tests/
 
 ## Current Session Context
 
+### Working Session (2025-01-16)
+- **Completed Tab Completion Feature**
+  - Added `EpisodicCompleter` class with context-aware tab completion
+  - Enabled by default in config template (`enable_tab_completion: true`)
+  - Shows helpful type hints (boolean, number, float, etc.) instead of generic "parameter"
+  - Supports command completion, parameter completion, model names, file paths, and subcommands
+  - Fixed `/chat` command missing from command router
+  - Shortened pricing display from "input/output" to "in/out" to save space
+  - Fixed alignment issues with [CI] type indicator in model list
+
 ### Working Session (2025-07-15)
 - **Completed Markdown Export/Import Feature**
   - Added command aliases: `/ex` for export, `/im` for import

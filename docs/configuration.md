@@ -75,6 +75,13 @@ This document describes all configuration options available in Episodic.
 
 ### Display Settings
 
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `color_mode` | full | Color display mode (full/basic/none) |
+| `text_wrap` | true | Enable text wrapping for long lines |
+| `context_depth` | 5 | Default context depth for conversation history |
+| `enable_tab_completion` | true | Enable tab completion for commands and parameters |
+
 #### Color Mode Options
 
 The `color_mode` setting controls how Episodic displays colors in the terminal:

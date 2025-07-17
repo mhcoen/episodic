@@ -31,6 +31,15 @@ In Episodic's talk mode:
 
 ## Keyboard Shortcuts
 
+### Tab Completion
+- **Tab completion is enabled by default** - Press Tab to complete commands, parameters, and values
+- **Commands**: Type `/` and press Tab to see all available commands
+- **Parameters**: Type `/set ` and press Tab to see all configuration parameters
+- **Models**: Type `/model chat ` and press Tab to see available models
+- **Files**: Type `/import ` and press Tab to browse files (shows only .md files for import)
+- **Type hints**: Parameters show their expected value type (boolean, number, choice, etc.)
+- To disable: `/set enable_tab_completion false`
+
 ### Interrupting Responses (Ctrl-C)
 - **During streaming**: Press Ctrl-C once to interrupt the LLM response
 - **At the prompt**: Press Ctrl-C twice quickly (within 1 second) to exit Episodic

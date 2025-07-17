@@ -85,7 +85,7 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_set_command(parts, word_before_cursor)
             elif full_cmd in ['topics', 'compression']:
                 yield from self._complete_subcommand(full_cmd, parts, word_before_cursor)
-            elif full_cmd in ['import', 'export', 'index', 'script']:
+            elif full_cmd in ['in', 'out', 'index', 'script']:
                 yield from self._complete_file_path(full_cmd, parts, word_before_cursor)
             elif full_cmd == 'save':
                 yield from self._complete_save_command(parts, word_before_cursor)
@@ -273,13 +273,13 @@ class EpisodicCompleter(Completer):
                     if entry.startswith(partial_name):
                         full_path = os.path.join(search_dir, entry)
                         
-                        # For import, only show .md files and directories
-                        if cmd == 'import':
+                        # For in, only show .md files and directories
+                        if cmd == 'in':
                             if not (os.path.isdir(full_path) or entry.endswith('.md')):
                                 continue
                         
-                        # For export, suggest a default name if no input
-                        if cmd == 'export' and not word:
+                        # For out, suggest a default name if no input
+                        if cmd == 'out' and not word:
                             # Get current topic name for default
                             topics = get_recent_topics(limit=1)
                             if topics and topics[0]['name'] != 'General':

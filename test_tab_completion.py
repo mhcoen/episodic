@@ -73,9 +73,9 @@ def run_tests():
     test_completions("/set")
     test_completions("/")
     
-    # Test alias completion
-    test_completions("/ex")  # Should show /export alias
-    test_completions("/im")  # Should show /import alias
+    # Test short commands
+    test_completions("/o")   # Should show /out
+    test_completions("/i")   # Should show /in and /index
     
     # Test model command completion
     test_completions("/model ")
@@ -93,8 +93,8 @@ def run_tests():
     test_completions("/topics ren")
     
     # Test file completion (current directory)
-    test_completions("/import ")
-    test_completions("/export ")
+    test_completions("/in ")
+    test_completions("/out ")
     
     # Test mset completion
     test_completions("/mset ")

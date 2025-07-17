@@ -36,7 +36,7 @@ In Episodic's talk mode:
 - **Commands**: Type `/` and press Tab to see all available commands
 - **Parameters**: Type `/set ` and press Tab to see all configuration parameters
 - **Models**: Type `/model chat ` and press Tab to see available models
-- **Files**: Type `/import ` and press Tab to browse files (shows only .md files for import)
+- **Files**: Type `/in ` and press Tab to browse files (shows only .md files for import)
 - **Type hints**: Parameters show their expected value type (boolean, number, choice, etc.)
 - To disable: `/set enable_tab_completion false`
 
@@ -200,22 +200,21 @@ Unified topic management
 
 ## Markdown Operations
 
-### /export, /ex
+### /out
 Export conversations to markdown
 ```bash
-/export                     # Export current topic
-/ex                         # Short form
-/export 3                   # Export topic 3
-/ex 1-5 summary.md          # Export topics 1-5 to file
-/export all backup.md       # Export entire conversation
+/out                        # Export current topic
+/out 3                      # Export topic 3
+/out 1-5 summary.md         # Export topics 1-5 to file
+/out all backup.md          # Export entire conversation
 ```
 
-### /import, /im
+### /in
 Import markdown conversations
 ```bash
-/import conversation.md     # Import markdown file
-/im exports/backup.md       # Short form
-/im ~/Documents/chat.md     # Import from path
+/in conversation.md         # Import markdown file
+/in exports/backup.md       # Import from exports directory
+/in ~/Documents/chat.md     # Import from path
 ```
 
 ### /files, /ls

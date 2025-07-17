@@ -190,7 +190,7 @@ def show_help_with_categories():
         ("/style", "Set global response style (concise/standard/comprehensive/custom)"),
         ("/format", "Set global response format (paragraph/bullet-points/mixed/academic)"),
         ("/topics", "List conversation topics"),
-        ("/export", "Export conversation to markdown"),
+        ("/out", "Export conversation to markdown"),
         ("/list", "Show recent conversation nodes"),
         ("/config", "View current system configuration"),
         ("/set", "Change configuration settings"),
@@ -484,9 +484,9 @@ def show_markdown_help():
     
     # Commands
     commands = [
-        ("/export, /ex", "Export current topic to markdown"),
-        ("/export <spec> [file]", "Export topics to markdown file"),
-        ("/import, /im <file>", "Import markdown conversation"),
+        ("/out", "Export current topic to markdown"),
+        ("/out <spec> [file]", "Export topics to markdown file"),
+        ("/in <file>", "Import markdown conversation"),
         ("/files, /ls [dir]", "List markdown files in directory")
     ]
     
@@ -501,10 +501,10 @@ def show_markdown_help():
     
     # Examples
     examples = [
-        ("/export", "Save current topic with auto-name"),
-        ("/ex 1-3 meeting.md", "Save topics 1-3 to meeting.md (using alias)"),
-        ("/import research.md", "Load research.md conversation"),
-        ("/im notes.md", "Load notes.md (using alias)"),
+        ("/out", "Save current topic with auto-name"),
+        ("/out 1-3 meeting.md", "Save topics 1-3 to meeting.md"),
+        ("/in research.md", "Load research.md conversation"),
+        ("/in notes.md", "Load notes.md"),
         ("/files", "List markdown files in current directory"),
         ("/ls exports", "List files in exports directory (using alias)")
     ]

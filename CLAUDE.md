@@ -152,6 +152,10 @@ tests/
   - Fixed `/chat` command missing from command router
   - Shortened pricing display from "input/output" to "in/out" to save space
   - Fixed alignment issues with [CI] type indicator in model list
+- **Renamed Import/Export Commands**
+  - Changed `/import` to `/in` and `/export` to `/out` for brevity
+  - Removed all aliases (no /ex or /im)
+  - Updated all documentation and help text
 
 ### Working Session (2025-07-15)
 - **Completed Markdown Export/Import Feature**

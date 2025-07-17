@@ -104,10 +104,10 @@ def handle_command(command_str: str) -> bool:
             _handle_script(args)
         elif cmd == "/save":
             _handle_save(args)
-        elif cmd in ["/export", "/ex"]:
-            _handle_export(args)
-        elif cmd in ["/import", "/im"]:
-            _handle_import(args)
+        elif cmd == "/out":
+            _handle_out(args)
+        elif cmd == "/in":
+            _handle_in(args)
         elif cmd in ["/ls", "/files"]:
             _handle_ls(args)
         elif cmd == "/benchmark":
@@ -668,8 +668,8 @@ def _handle_last(args: List[str]):
     list_command(count=1)
 
 
-def _handle_export(args: List[str]):
-    """Handle /export command."""
+def _handle_out(args: List[str]):
+    """Handle /out command."""
     from episodic.commands.save import save_command
     
     # Join args back into a single string for parsing
@@ -677,12 +677,12 @@ def _handle_export(args: List[str]):
     save_command(args_str)
 
 
-def _handle_import(args: List[str]):
-    """Handle /import command."""
+def _handle_in(args: List[str]):
+    """Handle /in command."""
     from episodic.commands.resume import resume_command
     
     if not args:
-        typer.secho("Usage: /import <filename.md>", fg="red")
+        typer.secho("Usage: /in <filename.md>", fg="red")
     else:
         filepath = " ".join(args)
         resume_command(filepath)

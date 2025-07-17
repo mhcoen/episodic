@@ -67,8 +67,8 @@ python -m episodic
 
 ```bash
 /topics          # See how your conversation is organized
-/export          # Save current topic to markdown (alias: /ex)
-/import file.md  # Load a markdown conversation (alias: /im)
+/out             # Save current topic to markdown
+/in file.md      # Load a markdown conversation
 /files           # List markdown files in directory (alias: /ls)
 /search query    # Search your indexed documents (alias: /s) 
 /index file      # Add file to knowledge base (alias: /i)
@@ -198,7 +198,7 @@ Export conversations to markdown for sharing, backup, or continuing later:
 > Tell me about the history of computing
 🤖 The history of computing spans several millennia...
 
-> /export
+> /out
 ✅ Conversation saved to: exports/history-of-computing-2025-01-15.md
 
 # Later, or on another machine:
@@ -208,7 +208,7 @@ Export conversations to markdown for sharing, backup, or continuing later:
    Size: 3.2 KB • Modified: 2 hours ago
    Preview: History of Computing
 
-> /import exports/history-of-computing-2025-01-15.md
+> /in exports/history-of-computing-2025-01-15.md
 ✅ Conversation loaded successfully!
 
 > What about quantum computing?
@@ -220,8 +220,8 @@ Export conversations to markdown for sharing, backup, or continuing later:
 [2] ✓ Programming Languages  
 [3] ○ Quantum Computing (ongoing)
 
-> /export 1-2 computing-basics.md  # Export topics 1 and 2
-> /export all full-conversation.md  # Export everything
+> /out 1-2 computing-basics.md  # Export topics 1 and 2
+> /out all full-conversation.md  # Export everything
 ```
 
 ### 🏠 Offline Usage

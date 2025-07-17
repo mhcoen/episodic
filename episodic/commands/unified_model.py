@@ -95,6 +95,8 @@ def show_current_models():
     ]
     
     typer.secho("\nCurrent models:", fg=get_heading_color(), bold=True)
+    seen_types = set()  # Track which model types we've seen
+    
     for description, config_key, context_name in contexts:
         current = config.get(config_key, get_default_for_context(context_name))
         model_str = get_model_string(current)
@@ -109,6 +111,7 @@ def show_current_models():
                 provider = "unknown"
                 
         type_indicator, tech_info = get_model_info_string(current, provider)
+        seen_types.add(type_indicator)  # Collect model types for legend
         
         # Display the model info
         typer.secho(f"  {description:<12} ", fg=get_text_color(), nl=False)
@@ -132,6 +135,28 @@ def show_current_models():
             typer.secho(f" {tech_info}", fg=get_text_color(), dim=True)
         else:
             typer.echo()
+    
+    # Add legend for model types (only show types that are actually present)
+    typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
+    
+    type_info = {
+        '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
+        '[I]': ("Instruct model (best for detection/compression/synthesis)", typer.colors.GREEN),
+        '[CI]': ("Chat & Instruct model (works for both)", typer.colors.CYAN),
+        '[B]': ("Base/Completion model", typer.colors.MAGENTA),
+        '[?]': ("Unknown type", None)  # No color, will use dim
+    }
+    
+    # Only show types that were actually seen (C first as it's most familiar)
+    for type_indicator in ['[C]', '[I]', '[CI]', '[B]', '[?]']:
+        if type_indicator in seen_types:
+            description, color = type_info[type_indicator]
+            typer.secho("  ", nl=False)
+            if color:
+                typer.secho(type_indicator, fg=color, bold=True, nl=False)
+            else:
+                typer.secho(type_indicator, fg=get_text_color(), dim=True, nl=False)
+            typer.secho(f" = {description}", fg=get_text_color())
     
     typer.secho("\nUse '/model list' to see available models", fg=get_text_color(), dim=True)
 
@@ -161,7 +186,10 @@ def show_available_models():
                     
                     # Get model type and tech info
                     type_indicator, tech_info = get_model_info_string(model_name, provider_name)
-                    formatted_display = format_model_display_name(display_name, 26)
+                    # Adjust display name width based on type indicator length
+                    # Base width is 26, but reduce by 1 for 4-char indicators like [CI]
+                    display_width = 26 if len(type_indicator) <= 3 else 25
+                    formatted_display = format_model_display_name(display_name, display_width)
                     
                     # Calculate width for this model
                     # Base: "  XX. " = 6 chars
@@ -195,8 +223,11 @@ def show_available_models():
         # Second pass: display with proper alignment
         current_provider = None
         current_idx = 1
+        seen_types = set()  # Track which model types we've seen
         
         for info in model_info_list:
+            # Collect model types for legend
+            seen_types.add(info['type_indicator'])
             # Display provider header if changed
             if info['provider'] != current_provider:
                 current_provider = info['provider']
@@ -267,23 +298,27 @@ def show_available_models():
     except Exception as e:
         typer.echo(f"Error getting model list: {str(e)}")
     
-    # Add legend for model types
+    # Add legend for model types (only show types that are actually present)
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
-    typer.secho("  ", nl=False)
-    typer.secho("[I]", fg=typer.colors.GREEN, bold=True, nl=False)
-    typer.secho(" = Instruct model (best for detection/compression/synthesis)", fg=get_text_color())
-    typer.secho("  ", nl=False)
-    typer.secho("[C]", fg=typer.colors.BLUE, bold=True, nl=False)
-    typer.secho(" = Chat model (best for conversations)", fg=get_text_color())
-    typer.secho("  ", nl=False)
-    typer.secho("[CI]", fg=typer.colors.CYAN, bold=True, nl=False)
-    typer.secho(" = Chat & Instruct model (works for both)", fg=get_text_color())
-    typer.secho("  ", nl=False)
-    typer.secho("[B]", fg=typer.colors.MAGENTA, bold=True, nl=False)
-    typer.secho(" = Base/Completion model", fg=get_text_color())
-    typer.secho("  ", nl=False)
-    typer.secho("[?]", fg=get_text_color(), dim=True, nl=False)
-    typer.secho(" = Unknown type", fg=get_text_color())
+    
+    type_info = {
+        '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
+        '[I]': ("Instruct model (best for detection/compression/synthesis)", typer.colors.GREEN),
+        '[CI]': ("Chat & Instruct model (works for both)", typer.colors.CYAN),
+        '[B]': ("Base/Completion model", typer.colors.MAGENTA),
+        '[?]': ("Unknown type", None)  # No color, will use dim
+    }
+    
+    # Only show types that were actually seen (C first as it's most familiar)
+    for type_indicator in ['[C]', '[I]', '[CI]', '[B]', '[?]']:
+        if type_indicator in seen_types:
+            description, color = type_info[type_indicator]
+            typer.secho("  ", nl=False)
+            if color:
+                typer.secho(type_indicator, fg=color, bold=True, nl=False)
+            else:
+                typer.secho(type_indicator, fg=get_text_color(), dim=True, nl=False)
+            typer.secho(f" = {description}", fg=get_text_color())
     
     typer.secho("\nTo change a model:", fg=get_text_color())
     typer.secho("  /model chat <number|full-model-name>", fg=get_system_color())

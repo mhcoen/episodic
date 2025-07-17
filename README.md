@@ -7,19 +7,13 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 ## ✨ Features
 
-- **🤖 Universal LLM Interface**: Chat with OpenAI, Anthropic, Google, Ollama, and more through one interface
-- **🗄️ Persistent Memory**: All conversations stored in a local SQLite database
-- **📓 Import/Export Conversations**: Save conversations as editable markdown files for sharing, backup, or continuing later
-- **🎯 Automatic Topic Detection**: Intelligently segments conversations into semantic topics
-- **📊 Context Management**: Compresses old topics to stay within LLM context limits
-- **💰 Cost & Usage Tracking**: Real-time tracking of tokens used and costs across all LLM providers
-- **🌐 Web Search**: Search the web and get AI-synthesized summaries of results
-- **🔍 Configurable Web Providers**: Choose from DuckDuckGo, Google, Bing, or Searx with automatic fallback
-- **📚 Knowledge Base (RAG)**: Index and search your documents during conversations
-- **🔄 Smart RAG Fallback**: Automatically searches web when your documents lack relevant info
-- **🎭 Muse Mode**: Perplexity-like conversational web search with AI-synthesized answers
-- **🎨 Rich CLI**: Streaming responses, colored output, text wrapping
-- **⌨️ Tab Completion**: Context-aware tab completion for commands, parameters, models, and files
+- **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
+- **🎭 Muse Mode** - Perplexity-like web search with multiple providers and automatic fallback
+- **🗄️ Persistent Memory** - Automatic topic detection and context management
+- **📓 Markdown Import/Export** - Save and resume conversations anytime
+- **📚 Knowledge Base (RAG)** - Index documents and search them during chats
+- **💰 Cost Tracking** - Real-time token usage and costs across all providers
+- **🎨 Rich CLI** - Streaming responses, colors, tab completion
 
 ## 🚀 Quick Start
 

@@ -52,7 +52,7 @@ class Config:
                 "show_cost": False,
                 "stream_responses": True,
                 "model": "gpt-4o-mini",
-                "topic_detection_model": "ollama/llama3",
+                "topic_detection_model": "ollama/llama3:instruct",
                 "context_depth": 5,
                 "text_wrap": True,
                 "color_mode": "full"

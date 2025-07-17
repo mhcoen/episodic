@@ -268,6 +268,9 @@ class TopicHandler:
         topic_change_info: Optional[Dict[str, Any]]
     ) -> None:
         """Handle topic boundary detection and management."""
+        # Import at function level to ensure availability throughout
+        from episodic.db import get_node, get_ancestry
+        
         if topic_changed and self.conversation_manager.current_topic:
             # A topic change was detected - close the previous topic
             topic_name, start_node_id = self.conversation_manager.current_topic
@@ -282,7 +285,6 @@ class TopicHandler:
                     actual_boundary = assistant_node_id
                 else:
                     # Find the node before user_node_id to avoid overlap
-                    from episodic.db import get_node, get_ancestry
                     ancestry = get_ancestry(user_node_id)
                     if len(ancestry) >= 2:
                         # Get the node just before user_node_id

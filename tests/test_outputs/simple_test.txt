@@ -1,0 +1,2 @@
+/init --erase
+/exit

@@ -149,8 +149,20 @@ class AsyncCompressionManager:
             # Build conversation text
             conversation_text = self._format_nodes_for_compression(nodes)
             
-            # Create topic-aware compression prompt
-            prompt = f"""Compress this conversation about '{job.topic_name}' into a concise summary.
+            # Load compression prompt template if available
+            from pathlib import Path
+            prompt_path = Path(__file__).parent.parent / 'prompts' / 'compression.md'
+            
+            if prompt_path.exists():
+                # Use template-based prompt
+                prompt_template = prompt_path.read_text()
+                prompt = prompt_template.format(
+                    topic_name=job.topic_name,
+                    conversation_text=conversation_text
+                )
+            else:
+                # Fallback to simple prompt
+                prompt = f"""Compress this conversation about '{job.topic_name}' into a concise summary.
 Focus on key insights, decisions, conclusions, and important details.
 Preserve the essential information while reducing redundancy.
 

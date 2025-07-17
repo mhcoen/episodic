@@ -1,0 +1,127 @@
+STDOUT:
+[96mExecuting script: /var/folders/hl/mgwkf5l500l37_1hm17nk9300000gn/T/tmp_p8l8dsw.txt[0m
+
+[37m[1m[1/21] /init --erase[0m
+[96m🗑️  Erasing existing database...[0m
+[96m✅ Database erased and reinitialized[0m
+
+[37m[1m[2/21] /set automatic_topic_detection true[0m
+[96m✅ Set automatic_topic_detection = True[0m
+
+[37m[1m[3/21] /set min_messages_before_topic_change 4[0m
+[96m✅ Set min_messages_before_topic_change = 4[0m
+
+[37m[1m[4/21] /set show_topics true[0m
+[96m✅ Set show_topics = True[0m
+
+[37m[1m[5/21] /set skip_llm_response true[0m
+[96m✅ Set skip_llm_response = true[0m
+
+[37m[1m[6/21] /model chat gpt-3.5-turbo[0m
+[32m✓ Chat model set to: openai/gpt-3.5-turbo[0m
+
+[37m[1m[7/21] /model detection gpt-3.5-turbo[0m
+[32m✓ Topic detection model set to: openai/gpt-3.5-turbo[0m
+
+[37m[1m[8/21] Hello, tell me about Mars[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[9/21] What's the atmosphere like?[0m
+[96m
+📈 Semantic drift: 0.623 (Moderate drift) from user message ba[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[10/21] How long to get there?[0m
+[96m
+🔄 Semantic drift: 0.837 (High topic shift) from user message bi[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[96m📌 Created initial topic: mars[0m
+
+[37m[1m[11/21] Is it cold?[0m
+[96m
+📈 Semantic drift: 0.771 (Moderate drift) from user message bu[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[12/21] How to make pasta carbonara?[0m
+[96m
+🔄 Semantic drift: 0.893 (High topic shift) from user message ce[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[13/21] What ingredients?[0m
+[96m
+📈 Semantic drift: 0.607 (Moderate drift) from user message co[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[14/21] What cheese to use?[0m
+[96m
+➡️ Semantic drift: 0.479 (Low drift) from user message da[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[15/21] How long to cook?[0m
+[96m
+📈 Semantic drift: 0.635 (Moderate drift) from user message di[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[16/21] What is machine learning?[0m
+[96m
+🔄 Semantic drift: 1.000 (High topic shift) from user message du[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[96m📌 Topic change detected[0m
+
+[37m[1m[17/21] How do neural networks work?[0m
+[96m
+➡️ Semantic drift: 0.449 (Low drift) from user message fe[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[18/21] What is backpropagation?[0m
+[96m
+🔄 Semantic drift: 0.837 (High topic shift) from user message fo[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[19/21] What is deep learning?[0m
+[96m
+📈 Semantic drift: 0.714 (Moderate drift) from user message ga[0m
+
+[96m🤖 [LLM response skipped][0m
+
+[37m[1m[20/21] /topics list[0m
+[93m[1m
+📑 Conversation Topics (2 total)[0m
+[93m======================================================================[0m
+[93m[1m
+[1] ✓ [0m[37m[1mmars[0m
+[37m    Range: [0m[96mba[0m[37m → [0m[96mfi[0m
+[93m[1m
+[2] ○ [0m[37m[1mongoing-1752686435[0m
+[37m    Range: [0m[96mfe[0m[37m → [0m[33mongoing[0m
+
+
+[37m[1m[21/21] /exit[0m
+[33mScript requested exit, stopping execution.[0m
+
+[32m✅ Script execution complete: 21 commands executed[0m
+[93m[1m
+💰 Session Costs[0m
+[93m========================================[0m
+[96mInput tokens:         142[0m
+[96mOutput tokens:          1[0m
+[96mTotal tokens:         143[0m
+[37m────────────────────────────────────────[0m
+[32m[1mTotal cost:    $    0.0001[0m
+[93m========================================[0m
+
+
+STDERR:

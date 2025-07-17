@@ -13,7 +13,8 @@ from typing import Optional, List
 from episodic.config import config
 from episodic.configuration import get_heading_color, get_system_color, get_text_color
 from episodic.llm import get_model_string
-from episodic.llm_config import get_available_providers, get_provider_models
+from episodic.llm_config import get_available_providers, get_provider_models, LOCAL_PROVIDERS, find_provider_for_model
+from episodic.model_utils import get_model_info_string, format_model_display_name
 import warnings
 import io
 from contextlib import redirect_stdout, redirect_stderr
@@ -40,9 +41,9 @@ def model_command(
         /model                              # Show all four models in use
         /model list                         # Show available models with pricing
         /model chat <number|full-name>      # Set chat model
-        /model detection <number|full-name> # Set detection model
-        /model compression <number|full-name> # Set compression model
-        /model synthesis <number|full-name>  # Set synthesis model
+        /model detection <number|full-name> # Set detection model (instruct recommended)
+        /model compression <number|full-name> # Set compression model (instruct recommended)
+        /model synthesis <number|full-name>  # Set synthesis model (instruct recommended)
     
     Examples:
         /model chat 3                       # Select by number from list
@@ -97,8 +98,40 @@ def show_current_models():
     for description, config_key, context_name in contexts:
         current = config.get(config_key, get_default_for_context(context_name))
         model_str = get_model_string(current)
+        
+        # Get model info
+        provider = find_provider_for_model(current)
+        if not provider:
+            # Try to extract provider from model name
+            if "/" in current:
+                provider = current.split("/")[0]
+            else:
+                provider = "unknown"
+                
+        type_indicator, tech_info = get_model_info_string(current, provider)
+        
+        # Display the model info
         typer.secho(f"  {description:<12} ", fg=get_text_color(), nl=False)
-        typer.secho(f"{model_str}", fg=get_heading_color())
+        
+        # Show type indicator with color
+        if type_indicator == '[I]':
+            typer.secho(type_indicator, nl=False, fg=typer.colors.GREEN, bold=True)
+        elif type_indicator == '[C]':
+            typer.secho(type_indicator, nl=False, fg=typer.colors.BLUE, bold=True)
+        elif type_indicator == '[CI]':
+            typer.secho(type_indicator, nl=False, fg=typer.colors.CYAN, bold=True)
+        elif type_indicator == '[B]':
+            typer.secho(type_indicator, nl=False, fg=typer.colors.MAGENTA, bold=True)
+        else:
+            typer.secho(type_indicator, nl=False, fg=get_text_color(), dim=True)
+            
+        typer.secho(f" {model_str}", fg=get_heading_color(), nl=False)
+        
+        # Show technical info if available
+        if tech_info:
+            typer.secho(f" {tech_info}", fg=get_text_color(), dim=True)
+        else:
+            typer.echo()
     
     typer.secho("\nUse '/model list' to see available models", fg=get_text_color(), dim=True)
 
@@ -109,16 +142,15 @@ def show_available_models():
         providers = get_available_providers()
         current_idx = 1
         all_models = []  # Store models for number selection
-
+        
+        # First pass: collect all model info to calculate max width
+        model_info_list = []
+        max_width = 0
+        
         for provider_name, provider_config in providers.items():
             models = get_provider_models(provider_name)
             if models:
-                typer.secho(f"\nAvailable models from ", nl=False, fg=get_heading_color(), bold=True)
-                typer.secho(f"{provider_name}:", fg=get_heading_color(), bold=True)
-
-                # Track HuggingFace model index for special pricing display
                 hf_model_index = 0
-                
                 for model in models:
                     if isinstance(model, dict):
                         model_name = model.get("name", "unknown")
@@ -126,97 +158,132 @@ def show_available_models():
                     else:
                         model_name = model
                         display_name = model
-
-                    # Store for number selection
-                    all_models.append(model_name)
-
-                    # Try to get pricing information using cost_per_token
-                    if cost_per_token:
-                        try:
-                            # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
-                            with warnings.catch_warnings(), \
-                                 redirect_stdout(io.StringIO()), \
-                                 redirect_stderr(io.StringIO()):
-                                warnings.simplefilter("ignore")
-                                # Calculate cost for 1000 tokens (both input and output separately)
-                                input_cost_raw = cost_per_token(model=model_name, prompt_tokens=PRICING_TOKEN_COUNT, completion_tokens=0)
-                                output_cost_raw = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=PRICING_TOKEN_COUNT)
-
-                            # Handle tuple results (sum if tuple, use directly if scalar)
-                            input_cost = sum(input_cost_raw) if isinstance(input_cost_raw, tuple) else input_cost_raw
-                            output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
-
-                            if input_cost or output_cost:
-                                pricing = f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
-                            else:
-                                # Special handling for HuggingFace models
-                                if provider_name == "huggingface":
-                                    if hf_model_index == 0:
-                                        pricing = "Free tier: ~30K tokens/month"
-                                    elif hf_model_index == 1:
-                                        pricing = "Pro tier: $9/month unlimited"
-                                    else:
-                                        pricing = ""  # No pricing for rest
-                                    hf_model_index += 1
-                                elif provider_name in LOCAL_PROVIDERS:
-                                    pricing = "Local model"
-                                else:
-                                    pricing = "Pricing not available"
-                        except Exception:
-                            # Special handling for HuggingFace models
-                            if provider_name == "huggingface":
-                                if hf_model_index == 0:
-                                    pricing = "Free tier: ~30K tokens/month"
-                                elif hf_model_index == 1:
-                                    pricing = "Pro tier: $9/month unlimited"
-                                else:
-                                    pricing = ""  # No pricing for rest
-                                hf_model_index += 1
-                            elif provider_name in LOCAL_PROVIDERS:
-                                pricing = "Local model"
-                            else:
-                                pricing = "Pricing not available"
-                    else:
-                        # cost_per_token not available
-                        if provider_name == "huggingface":
-                            if hf_model_index == 0:
-                                pricing = "Free tier: ~30K tokens/month"
-                            elif hf_model_index == 1:
-                                pricing = "Pro tier: $9/month unlimited"
-                            else:
-                                pricing = ""  # No pricing for rest
-                            hf_model_index += 1
-                        elif provider_name in LOCAL_PROVIDERS:
-                            pricing = "Local model"
-                        else:
-                            pricing = "Pricing not available"
-
-                    typer.secho(f"  ", nl=False)
-                    typer.secho(f"{current_idx:2d}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
-                    typer.secho(f". ", nl=False, fg=get_text_color())
-                    typer.secho(f"{display_name:30s}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
                     
-                    # Only show pricing info if not empty
-                    if pricing:
-                        typer.secho(f"\t(", nl=False, fg=get_text_color())
-                        if pricing == "Local model":
-                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)
-                        elif pricing == "Pricing not available":
-                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.YELLOW)
-                        elif "Free tier" in pricing:
-                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.GREEN)
-                        elif "Pro tier" in pricing:
-                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_BLUE, bold=True)
-                        else:
-                            typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_MAGENTA, bold=True)
-                        typer.secho(")", fg=get_text_color())
-                    else:
-                        # No pricing info, just add newline
-                        typer.echo()
-                    current_idx += 1
-
+                    # Get model type and tech info
+                    type_indicator, tech_info = get_model_info_string(model_name, provider_name)
+                    formatted_display = format_model_display_name(display_name, 26)
+                    
+                    # Calculate width for this model
+                    # Base: "  XX. " = 6 chars
+                    # Plus type indicator length (3 for [C]/[I]/[B], 4 for [CI], 3 for [?])
+                    # Plus space after indicator = 1
+                    # Plus formatted display (26 chars) 
+                    # Plus tech info if present
+                    width = 6 + len(type_indicator) + 1 + 26
+                    if tech_info:
+                        width += len(tech_info) + 1
+                    
+                    max_width = max(max_width, width)
+                    
+                    # Store info for second pass
+                    model_info_list.append({
+                        'provider': provider_name,
+                        'model_name': model_name,
+                        'display_name': display_name,
+                        'type_indicator': type_indicator,
+                        'tech_info': tech_info,
+                        'formatted_display': formatted_display,
+                        'hf_index': hf_model_index if provider_name == "huggingface" else None
+                    })
+                    
+                    if provider_name == "huggingface":
+                        hf_model_index += 1
+        
+        # Add 2 spaces buffer after the longest entry
+        target_column = max_width + 2
+        
+        # Second pass: display with proper alignment
+        current_provider = None
+        current_idx = 1
+        
+        for info in model_info_list:
+            # Display provider header if changed
+            if info['provider'] != current_provider:
+                current_provider = info['provider']
+                typer.secho(f"\nAvailable models from ", nl=False, fg=get_heading_color(), bold=True)
+                typer.secho(f"{current_provider}:", fg=get_heading_color(), bold=True)
+            
+            # Store for number selection
+            all_models.append(info['model_name'])
+            
+            # Get pricing info
+            pricing = get_pricing_for_model(info['model_name'], info['provider'], info['hf_index'])
+            
+            # Display the model
+            typer.secho(f"  ", nl=False)
+            typer.secho(f"{current_idx:2d}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
+            typer.secho(f". ", nl=False, fg=get_text_color())
+            
+            # Show type indicator with color
+            if info['type_indicator'] == '[I]':
+                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.GREEN, bold=True)
+            elif info['type_indicator'] == '[C]':
+                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.BLUE, bold=True)
+            elif info['type_indicator'] == '[CI]':
+                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.CYAN, bold=True)
+            elif info['type_indicator'] == '[B]':
+                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.MAGENTA, bold=True)
+            else:
+                typer.secho(info['type_indicator'], nl=False, fg=get_text_color(), dim=True)
+            
+            typer.secho(f" {info['formatted_display']}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+            
+            # Show technical info if available
+            if info['tech_info']:
+                typer.secho(f" {info['tech_info']}", nl=False, fg=get_text_color(), dim=True)
+            
+            # Calculate padding for alignment
+            # Base: "  XX. " = 6 chars
+            # Plus actual type indicator length
+            # Plus space after indicator = 1
+            # Plus formatted display (26 chars)
+            current_length = 6 + len(info['type_indicator']) + 1 + 26
+            if info['tech_info']:
+                current_length += len(info['tech_info']) + 1
+            
+            padding_needed = max(1, target_column - current_length)
+            padding = " " * padding_needed
+            
+            # Only show pricing info if not empty
+            if pricing:
+                typer.secho(f"{padding}(", nl=False, fg=get_text_color())
+                if pricing == "Local model":
+                    typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_GREEN, bold=True)
+                elif pricing == "Pricing not available":
+                    typer.secho(f"{pricing}", nl=False, fg=typer.colors.YELLOW)
+                elif "Free tier" in pricing:
+                    typer.secho(f"{pricing}", nl=False, fg=typer.colors.GREEN)
+                elif "Pro tier" in pricing:
+                    typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_BLUE, bold=True)
+                else:
+                    typer.secho(f"{pricing}", nl=False, fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+                typer.secho(")", fg=get_text_color())
+            else:
+                # No pricing info, just add newline
+                typer.echo()
+            
+            current_idx += 1
+    
     except Exception as e:
         typer.echo(f"Error getting model list: {str(e)}")
+    
+    # Add legend for model types
+    typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
+    typer.secho("  ", nl=False)
+    typer.secho("[I]", fg=typer.colors.GREEN, bold=True, nl=False)
+    typer.secho(" = Instruct model (best for detection/compression/synthesis)", fg=get_text_color())
+    typer.secho("  ", nl=False)
+    typer.secho("[C]", fg=typer.colors.BLUE, bold=True, nl=False)
+    typer.secho(" = Chat model (best for conversations)", fg=get_text_color())
+    typer.secho("  ", nl=False)
+    typer.secho("[CI]", fg=typer.colors.CYAN, bold=True, nl=False)
+    typer.secho(" = Chat & Instruct model (works for both)", fg=get_text_color())
+    typer.secho("  ", nl=False)
+    typer.secho("[B]", fg=typer.colors.MAGENTA, bold=True, nl=False)
+    typer.secho(" = Base/Completion model", fg=get_text_color())
+    typer.secho("  ", nl=False)
+    typer.secho("[?]", fg=get_text_color(), dim=True, nl=False)
+    typer.secho(" = Unknown type", fg=get_text_color())
     
     typer.secho("\nTo change a model:", fg=get_text_color())
     typer.secho("  /model chat <number|full-model-name>", fg=get_system_color())
@@ -226,6 +293,43 @@ def show_available_models():
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
     typer.secho("  /model chat 7                       # Select by number from list", fg=get_text_color(), dim=True)
     typer.secho("  /model chat claude-opus-4-20250514  # Select by full model name", fg=get_text_color(), dim=True)
+
+
+def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optional[int] = None) -> str:
+    """Get pricing information for a model."""
+    # Try to get pricing information using cost_per_token
+    if cost_per_token:
+        try:
+            # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
+            with warnings.catch_warnings(), \
+                 redirect_stdout(io.StringIO()), \
+                 redirect_stderr(io.StringIO()):
+                warnings.simplefilter("ignore")
+                # Calculate cost for 1000 tokens (both input and output separately)
+                input_cost_raw = cost_per_token(model=model_name, prompt_tokens=PRICING_TOKEN_COUNT, completion_tokens=0)
+                output_cost_raw = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=PRICING_TOKEN_COUNT)
+
+            # Handle tuple results (sum if tuple, use directly if scalar)
+            input_cost = sum(input_cost_raw) if isinstance(input_cost_raw, tuple) else input_cost_raw
+            output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
+
+            if input_cost or output_cost:
+                return f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
+        except Exception:
+            pass
+    
+    # Special handling for HuggingFace models
+    if provider_name == "huggingface" and hf_index is not None:
+        if hf_index == 0:
+            return "Free tier: ~30K tokens/month"
+        elif hf_index == 1:
+            return "Pro tier: $9/month unlimited"
+        else:
+            return ""  # No pricing for rest
+    elif provider_name in LOCAL_PROVIDERS:
+        return "Local model"
+    else:
+        return "Pricing not available"
 
 
 def show_model_for_context(context: str):
@@ -323,9 +427,9 @@ def get_default_for_context(context: str) -> str:
     """Get the default model for a context."""
     defaults = {
         "chat": "gpt-3.5-turbo",
-        "detection": "ollama/llama3",
-        "compression": "ollama/llama3",
-        "synthesis": "gpt-3.5-turbo"
+        "detection": "ollama/phi3",
+        "compression": "ollama/phi3",
+        "synthesis": "ollama/phi3"
     }
     return defaults.get(context, "gpt-3.5-turbo")
 
@@ -377,5 +481,3 @@ def validate_and_clear_incompatible_params(context: str, model_name: str):
                     f"  ℹ️  Removed unsupported parameters for {model_name}: {', '.join(google_unsupported)}", 
                     fg="yellow"
                 )
-
-

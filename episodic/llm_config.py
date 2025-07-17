@@ -31,6 +31,7 @@ PROVIDER_CONFIG = {
             {"name": "gpt-4o", "display_name": "GPT-4o"},
             {"name": "gpt-o3", "display_name": "GPT-o3"},
             {"name": "gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo"},
+            {"name": "gpt-3.5-turbo-instruct", "display_name": "GPT-3.5 Turbo Instruct"},
             {"name": "gpt-4", "display_name": "GPT-4"},
             {"name": "gpt-4.5", "display_name": "GPT-4.5"}
         ]
@@ -65,33 +66,40 @@ PROVIDER_CONFIG = {
     "openrouter": {
         "api_base": "https://openrouter.ai/api/v1",
         "models": [
+            # Keep essential chat models
             {"name": "openrouter/anthropic/claude-opus-4-20250514", "display_name": "Claude 4 Opus (OR)"},
-            {"name": "openrouter/anthropic/claude-3-opus", "display_name": "Claude 3 Opus (OR)"},
             {"name": "openrouter/anthropic/claude-3-sonnet", "display_name": "Claude 3 Sonnet (OR)"},
-            {"name": "openrouter/anthropic/claude-3-haiku", "display_name": "Claude 3 Haiku (OR)"},
-            {"name": "openrouter/openai/gpt-4-turbo-preview", "display_name": "GPT-4 Turbo (OR)"},
             {"name": "openrouter/openai/gpt-4", "display_name": "GPT-4 (OR)"},
             {"name": "openrouter/openai/gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo (OR)"},
             {"name": "openrouter/google/gemini-pro", "display_name": "Gemini Pro (OR)"},
-            {"name": "openrouter/meta-llama/llama-2-70b-chat", "display_name": "Llama 2 70B (OR)"},
-            {"name": "openrouter/mistralai/mixtral-8x7b-instruct", "display_name": "Mixtral 8x7B (OR)"},
-            {"name": "openrouter/cohere/command-r-plus", "display_name": "Command R+ (OR)"}
+            # Add instruct models
+            {"name": "openrouter/mistralai/mistral-7b-instruct", "display_name": "Mistral 7B Instruct (OR)"},
+            {"name": "openrouter/meta-llama/llama-3.3-70b-instruct", "display_name": "Llama 3.3 70B Instruct (OR)"},
+            {"name": "openrouter/qwen/qwen-2-72b-instruct", "display_name": "Qwen 2 72B Instruct (OR)"},
+            {"name": "openrouter/microsoft/phi-3.5-mini-128k-instruct", "display_name": "Phi 3.5 Mini 128K (OR)"},
+            {"name": "openrouter/databricks/dbrx-instruct", "display_name": "DBRX Instruct 132B (OR)"},
+            {"name": "openrouter/nousresearch/hermes-3-405b-instruct", "display_name": "Hermes 3 405B Instruct (OR)"},
+            # Keep one existing instruct model
+            {"name": "openrouter/mistralai/mixtral-8x7b-instruct", "display_name": "Mixtral 8x7B Instruct (OR)"}
         ]
     },
     "huggingface": {
         "models": [
-            {"name": "huggingface/tiiuae/falcon-180B-chat", "display_name": "Falcon 180B Chat"},
+            # Chat models as requested by user
+            {"name": "huggingface/meta-llama/Meta-Llama-3-8B", "display_name": "Meta Llama 3 8B"},
+            {"name": "huggingface/meta-llama/Meta-Llama-3-70B", "display_name": "Meta Llama 3 70B"},
+            {"name": "huggingface/meta-llama/Llama-2-7b-chat", "display_name": "Meta Llama 2 7B Chat"},
+            {"name": "huggingface/Qwen/Qwen-3", "display_name": "Alibaba Qwen 3"},
+            {"name": "huggingface/mistralai/Mistral-Small-3.1", "display_name": "Mistral Small 3.1"},
+            {"name": "huggingface/mistralai/Mixtral-8x7B-Instruct-v0.1", "display_name": "Mixtral 8x7B Instruct"},
+            {"name": "huggingface/deepseek-ai/DeepSeek-R1-0528", "display_name": "DeepSeek R1-0528"},
+            {"name": "huggingface/google/gemma-7b", "display_name": "Google Gemma 7B"},
+            # Keep just a few instruct models
             {"name": "huggingface/tiiuae/falcon-40b-instruct", "display_name": "Falcon 40B Instruct"},
-            {"name": "huggingface/meta-llama/Meta-Llama-3-70B-Instruct", "display_name": "Llama 3 70B Instruct"},
-            {"name": "huggingface/meta-llama/Meta-Llama-3-8B-Instruct", "display_name": "Llama 3 8B Instruct"},
-            {"name": "huggingface/meta-llama/Llama-2-70b-chat-hf", "display_name": "Llama 2 70B Chat"},
-            {"name": "huggingface/meta-llama/Llama-2-13b-chat-hf", "display_name": "Llama 2 13B Chat"},
-            {"name": "huggingface/meta-llama/Llama-2-7b-chat-hf", "display_name": "Llama 2 7B Chat"},
-            {"name": "huggingface/mistralai/Mixtral-8x7B-Instruct-v0.1", "display_name": "Mixtral 8x7B"},
-            {"name": "huggingface/mistralai/Mistral-7B-Instruct-v0.2", "display_name": "Mistral 7B"},
-            {"name": "huggingface/bigcode/starcoder", "display_name": "StarCoder"},
-            {"name": "huggingface/microsoft/DialoGPT-medium", "display_name": "DialoGPT Medium"},
-            {"name": "huggingface/google/flan-t5-xxl", "display_name": "FLAN-T5 XXL"}
+            {"name": "huggingface/01-ai/Yi-1.5-34B-Chat", "display_name": "Yi 1.5 34B Chat"},
+            # Base models
+            {"name": "huggingface/bigscience/bloom", "display_name": "BLOOM 176B"},
+            {"name": "huggingface/EleutherAI/gpt-neox-20b", "display_name": "GPT-NeoX 20B"}
         ]
     }
 }

@@ -18,7 +18,7 @@ class WebSynthesizer:
     """Synthesize web search results into coherent answers."""
     
     def __init__(self):
-        self.synthesis_model = config.get('muse_model') or config.get('model', 'gpt-3.5-turbo')
+        self.synthesis_model = config.get('synthesis_model') or config.get('muse_model') or config.get('model', 'gpt-3.5-turbo')
         # Use global style system instead of muse-specific style
         self.style = config.get('response_style', 'standard')
         self.detail = config.get('muse_detail', 'moderate')
@@ -276,6 +276,31 @@ def synthesize_web_response(query: str, search_results: Dict[str, Any],
     
     # Synthesize the response
     response = synthesizer.synthesize_results(query, results, extracted_content)
+    
+    # Handle streaming case - when streaming is enabled, synthesize_results returns a dict
+    if isinstance(response, dict) and response.get('streaming'):
+        # Execute the actual synthesis with streaming
+        from episodic.llm import _execute_llm_query
+        messages = [
+            {"role": "system", "content": response['system_message']},
+            {"role": "user", "content": response['prompt']}
+        ]
+        
+        stream_generator, _ = _execute_llm_query(
+            messages,
+            model=response['model'],
+            temperature=response.get('temperature', 0.3),
+            max_tokens=response.get('max_tokens', 1500),
+            stream=True
+        )
+        
+        # Collect the streamed response
+        full_response = ""
+        for chunk in stream_generator:
+            if chunk:
+                full_response += chunk
+        
+        return full_response
     
     return response or "I couldn't find relevant information to answer your question."
 

@@ -113,16 +113,16 @@
   "benchmark_display": false,
   
   "_comment_compression": "// === COMPRESSION SETTINGS ===",
-  "_comment_compression_model": "Model to use for topic compression",
-  "compression_model": "ollama/llama3",
+  "_comment_compression_model": "Model to use for topic compression (instruct models recommended)",
+  "compression_model": "ollama/phi3",
   "_comment_compression_min_nodes": "Minimum nodes required before allowing compression",
   "compression_min_nodes": 10,
   "_comment_show_compression_notifications": "Show notifications when topics are compressed",
   "show_compression_notifications": true,
   
   "_comment_models_detect": "// === MODEL SELECTION ===",
-  "_comment_topic_detection_model": "Model to use for topic detection",
-  "topic_detection_model": "ollama/llama3",
+  "_comment_topic_detection_model": "Model to use for topic detection (instruct models recommended)",
+  "topic_detection_model": "ollama/phi3",
   "_comment_model": "Current conversation model (set via /model command)",
   "model": "gpt-4o-mini",
   
@@ -252,8 +252,10 @@
   "muse_max_tokens": null,
   "_comment_muse_sources": "Source selection: first-only, top-three, all-relevant",
   "muse_sources": "top-three",
-  "_comment_muse_model": "Model for synthesis (None = use main model)",
+  "_comment_muse_model": "Model for synthesis (deprecated - use synthesis_model instead)",
   "muse_model": null,
+  "_comment_synthesis_model": "Model to use for web search synthesis (instruct models recommended)",
+  "synthesis_model": "ollama/phi3",
   
   "_comment_providers": "// === SEARCH PROVIDER SETTINGS ===",
   "_comment_searx_instance_url": "Searx instance URL (can be self-hosted for privacy)",

@@ -450,7 +450,7 @@ def websearch_synthesis():
         typer.secho("Auto (based on style)", fg=typer.colors.WHITE, dim=True)
     
     # Synthesis model
-    synthesis_model = config.get('muse_model')
+    synthesis_model = config.get('synthesis_model') or config.get('muse_model')
     typer.secho("  Model: ", nl=False, fg=get_text_color())
     if synthesis_model:
         typer.secho(f"{synthesis_model}", fg="bright_yellow")

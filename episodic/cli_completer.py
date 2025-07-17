@@ -81,6 +81,8 @@ class EpisodicCompleter(Completer):
             # Route to appropriate completer
             if full_cmd in ['model']:
                 yield from self._complete_model_command(parts, word_before_cursor)
+            elif full_cmd == 'web':
+                yield from self._complete_web_command(parts, word_before_cursor)
             elif full_cmd in ['set', 'mset']:
                 yield from self._complete_set_command(parts, word_before_cursor)
             elif full_cmd in ['topics', 'compression']:
@@ -144,6 +146,29 @@ class EpisodicCompleter(Completer):
                             display=f"{display_name} ({provider_name})",
                             display_meta='model'
                         )
+    
+    def _complete_web_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /web command."""
+        if len(parts) == 2:
+            # Complete subcommands
+            subcommands = ['provider', 'list', 'reset']
+            for sub in subcommands:
+                if sub.startswith(word.lower()):
+                    yield Completion(
+                        sub,
+                        start_position=-len(word),
+                        display_meta='web subcommand'
+                    )
+        elif len(parts) == 3 and parts[1] == 'provider':
+            # Complete provider names
+            providers = ['duckduckgo', 'google', 'bing', 'searx']
+            for provider in providers:
+                if provider.startswith(word.lower()):
+                    yield Completion(
+                        provider,
+                        start_position=-len(word),
+                        display_meta='search provider'
+                    )
     
     def _complete_set_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /set and /mset commands."""

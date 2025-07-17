@@ -1,83 +1,41 @@
-# Current State - July 15, 2025
+# Current State
 
-## Branch: bug/export
+## Architecture Overview
 
-### Completed Work
+Episodic uses a modular architecture with clear separation of concerns:
 
-1. **Markdown Export/Import Feature** (from previous session)
-   - Added markdown export functionality (`/export` or `/ex`)
-   - Added markdown import functionality (`/import` or `/im`)
-   - Added file listing command (`/files` as primary, `/ls` as alias)
-   - Changed help category from "save" to "markdown"
+- **Core Components**: Conversation DAG, Topic Detection, LLM Integration
+- **Database**: SQLite with migration system
+- **CLI**: Typer-based with command registry
+- **Testing**: Comprehensive pytest suite
 
-2. **Test Fixes**
-   - Fixed 17 database tests (100% passing)
-   - Removed deprecated close_connection() calls
-   - Fixed mock configuration issues
-   - Updated database context managers
-   - Deleted 5 skipped test methods
+## Key Features Status
 
-3. **Export Bug Fixes**
-   - Fixed issue where exports only showed user messages
-   - Root cause: Topics incorrectly end on user messages instead of assistant responses
-   - Implemented workaround in get_nodes_for_topic() to include assistant response after topic end
-   - Uses get_children() to find and append assistant response when topic ends on user message
-   - Fixed topic numbering mismatch - export now matches /topics display (10 most recent)
+- ✅ **Multi-provider LLM support** via LiteLLM
+- ✅ **Automatic topic detection** with sliding window
+- ✅ **RAG system** with ChromaDB integration
+- ✅ **Web search** with provider fallback
+- ✅ **Markdown import/export**
+- ✅ **Cost tracking** across all providers
+- ✅ **Tab completion** support
 
-4. **Database Initialization Fixes**
-   - Fixed /init --erase "no such table: nodes" error
-   - Added database existence checks before finalizing topics
-   - Fixed "database is locked" errors by handling PRAGMA optimize failures
-   - Created populate_demo_database.txt script for testing
-
-### Current Issues
+## Known Issues
 
 1. **Topic Boundary Detection**
    - Topics currently end at user messages (where change is detected)
    - Should end after assistant response for complete conversation pairs
-   - Affects exports, compression, and topic statistics
-   - Current (3,3) sliding window detection on user queries
+   - Workaround implemented in export functionality
 
-2. **Remaining Test Failures**
-   - Import path updates needed for refactored modules
-   - Web search command tests need update (/websearch → /web)
-   - New markdown alias tests need to be added
+## Testing
 
-### Database State
-- Default location: ~/.episodic/episodic.db
-- Contains mix of topics with correct and incorrect boundaries
-- Topic ID 1 ("greetings") has only user messages due to boundary issue
-- Most recent topic: "unix-command-ls" (ongoing)
+- Run all tests: `python tests/run_all_tests.py all`
+- Run specific categories: `unit`, `integration`, `quick`, `topics`
+- CLI testing: `python tests/integration/cli/test_all_commands.py`
+- Documentation: `tests/ORGANIZED_TESTS.md`
 
-### Recent Commits
-```
-1998512 fix: handle database locked errors and /init --erase issues
-b5d76af fix: include assistant messages in markdown export when topics end on user messages
-28251cd fix: resolve export command errors
-6a5dbbd Remove requirements_minimal.txt from repository
-0ed10cd test: remove pointless markdown alias mock tests
-85cde87 test: add remaining test fixes and markdown alias tests
-```
+## Development Guidelines
 
-### Todo Items
-- [ ] Update import paths for refactored modules
-- [ ] Update web search command tests from /websearch to /web
-- [ ] Add tests for new markdown aliases
-- [ ] Fix topic boundary detection to mark after assistant responses (major task)
-- [ ] Add Brave Search as a web search provider
-
-### Command Aliases
-- `/export` or `/ex` - Export topics to markdown
-- `/import` or `/im` - Import markdown conversation
-- `/files` or `/ls` - List markdown files
-
-### API Key Security Issue (Resolved)
-- User's OpenAI API key was exposed in .mcp.json
-- User needs to revoke old key and clean git history
-- New .mcp.json should be in .gitignore
-
-### Next Steps
-1. Consider implementing proper fix for topic boundary detection
-2. Complete remaining test updates
-3. Discuss alternative names for import/export (user expressed dislike)
-4. Clean git history to remove exposed API key
+- Maximum 500 lines per file (hard cap at 600)
+- Use command registry for new commands
+- Add migrations for database changes
+- Follow existing patterns in codebase

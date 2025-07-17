@@ -1,229 +1,60 @@
 # Episodic Project Memory
 
-Last Updated: 2025-07-15
+## Project Overview
 
-## Recent Session (2025-07-15)
-### Markdown Export/Import Feature Completion
-- **Added command aliases**:
-  - `/ex` for `/export` - Export topics to markdown
-  - `/im` for `/import` - Import markdown conversation  
-  - `/files` as primary command with `/ls` as alias - List markdown files
-- **Fixed help category conflict**:
-  - Changed from "save" to "markdown" (avoiding conflict with existing /save command)
-  - Updated all documentation and help text
-- **Fixed multiple export bugs**:
-  - Issue 1: Exports only showed user messages, missing assistant responses
-    - Root cause: Topics incorrectly end on user messages instead of assistant responses
-    - Solution: Modified `get_nodes_for_topic()` to check for and include assistant response after topic end
-  - Issue 2: Topic numbering mismatch between /topics display and export
-    - Fixed export to use same ordering as /topics (10 most recent)
-- **Fixed database initialization issues**:
-  - Fixed `/init --erase` "no such table: nodes" error
-  - Added database existence checks before finalizing topics on exit
-  - Fixed "database is locked" errors by handling PRAGMA optimize failures gracefully
-  - Created `populate_demo_database.txt` script for testing
-- **Completed test fixes**:
-  - Fixed 17 database tests to all pass (100% pass rate)
-  - Removed deprecated `close_connection()` calls
-  - Fixed mock configuration issues
-  - Updated database context managers
-- **Security issue identified**:
-  - User's OpenAI API key was exposed in .mcp.json in git history
-  - Needs git history cleanup with BFG or filter-branch
-- **Discovered topic boundary issue**:
-  - Topics currently end at user messages where change is detected
-  - Should end after assistant response for complete conversation pairs
-  - Affects exports, compression, and topic statistics
-  - Current detection uses (3,3) sliding window on user queries
+Episodic is a conversational DAG-based memory agent that creates persistent, navigable conversations with language models. It automatically organizes conversations into topics and provides advanced features like RAG, web search, and multi-model support.
 
-## Recent Session (2025-07-13)
-### Comprehensive Code Review and Improvements
-- **Performed thorough code review** of entire Episodic project
-- **Dependency Audit Completed**:
-  - Reduced from 383 to ~120 dependencies (69% reduction)
-  - Created `requirements_cleaned.txt` with organized dependencies
-  - Created `requirements_minimal.txt` with core dependencies only
-  - Removed 150+ unnecessary PyObjC packages
-  - Full analysis in `requirements_cleanup_summary.md`
-- **Basic Test Suite Created**:
-  - `tests/basic/test_conversation_flow.py` - Tests conversation lifecycle
-  - `tests/basic/test_topic_detection_comprehensive.py` - Tests topic detection
-  - `tests/basic/test_configuration_comprehensive.py` - Tests configuration
-  - `tests/basic/run_basic_tests.py` - Test runner script
-  - ~60 test methods with mocked LLM calls
-- **Performance Improvements**:
-  - Connection pooling already implemented in `db_connection.py`
-  - Fixed async web search bug (await in non-async function)
-  - Created `web_search_async.py` and `web_search_fix.patch`
-- **Key Findings**: Visualization server being replaced (eliminates critical auth issue)
+## Architecture Highlights
+
+- **Modular Design**: Split into focused modules under 600 lines each
+- **Database**: SQLite with migration system, default location `~/.episodic/episodic.db`
+- **LLM Integration**: Unified interface via LiteLLM supporting 20+ providers
+- **Topic Detection**: Multiple algorithms including sliding window and hybrid detection
+- **RAG System**: Vector database using ChromaDB for document similarity search
+- **Web Search**: Pluggable provider system with automatic fallback
+
+## Key Components
+
+### Core Modules
+- `conversation.py` - Core conversation management (545 lines)
+- `topic_management.py` - Topic detection and handling (508 lines)
+- `response_streaming.py` - Streaming implementations (410 lines)
+- `context_builder.py` - Context preparation with RAG/web (226 lines)
+- `text_formatter.py` - Text formatting and wrapping (385 lines)
+- `unified_streaming.py` - Centralized streaming output (411 lines)
+
+### Database Modules
+- `db_connection.py` - Connection management
+- `db_nodes.py` - Node operations
+- `db_topics.py` - Topic operations
+- `db_scoring.py` - Topic detection scoring
+- `db_compression.py` - Compression operations
+- `db_rag.py` - RAG database operations
+
+### Command System
+- Unified commands with subactions (e.g., `/topics list|rename|compress`)
+- Command registry for better organization
+- Tab completion support with context-aware suggestions
 
 ## Testing
-- **Framework**: pytest (not unittest)
-- **Location**: tests/ directory  
-- **Types**: Unit and integration tests
-- **Command**: `python tests/run_all_tests.py`
-- **CLI Testing**: `python tests/integration/cli/test_all_commands.py` - Comprehensive CLI command test suite
-- **Documentation**: tests/ORGANIZED_TESTS.md - Complete guide to running tests
-- **New Basic Tests**: `python tests/basic/run_basic_tests.py` - Core functionality tests
 
-## Recent Session (2025-07-11 continued - Final)
-### Repository Cleanup for Public Release
-- **Removed all usage tracking data from Git history**:
-  - `episodic/usage_tracking2.json` (contained user IDs, timestamps, personal data)
-  - `episodic/uploads/` directory (Anthropic usage files with sensitive information)
-  - Used BFG Repo-Cleaner to completely remove from all commits
-  - Used git filter-branch with Python script to clean 299 commits
-- **Fixed incorrect dates in documentation**:
-  - Updated PROJECT_MEMORY.md session dates (2025-01-09 → 2025-07-09)
-  - Updated memory file session dates from January/June to July 2025
-  - Fixed RAG_IMPLEMENTATION_COMPLETE.md date (2025-01-07 → 2025-07-07)
-  - All dates now consistent with current date of July 11, 2025
-- **Updated README first conversation example**:
-  - Removed unnecessary `/init` command (database created automatically)
-  - Added muse mode demonstration with web search example
-  - Made example more engaging and realistic
-- **Repository Status**: 
-  - All sensitive data removed from Git history
-  - Clean commit messages without AI attribution
-  - Accurate documentation dates
-  - Ready for public release
+- **Framework**: pytest
+- **Test Runner**: `python tests/run_all_tests.py`
+- **Categories**: unit, integration, quick, topics, coverage
+- **CLI Testing**: Comprehensive command validation suite
 
-## Recent Session (2025-07-11 continued)
-### Web Search Provider Fallback Implementation
-- **Implemented automatic fallback** between search providers when errors occur
-- **Shorter parameter names**: All web search params accessible via `web.` prefix
-  - `/set web.providers google,bing,duckduckgo` - Set provider order
-  - `/set web.fallback true` - Enable/disable fallback
-  - `/set web.cache 3600` - Cache duration
-- **Provider precedence**: Users specify ordered list, system tries each until one works
-- **Performance**: Caches working provider for N minutes (default: 5)
-- **Graceful degradation**: Always falls back to DuckDuckGo as last resort
-- Created `WEB_SEARCH_FALLBACK_IMPLEMENTATION.md` documenting changes
+## Development Guidelines
 
-### Web Search Provider Discovery
-- All providers available: DuckDuckGo (default/free), Google, Bing, Searx
-- Google requires: `GOOGLE_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` environment variables
-- Configuration: `/set web.provider google` or `/set web.providers google,bing,duckduckgo`
-- Rate limits: 100 queries/day on Google free tier
-- Automatic fallback between providers on quota/auth errors
+- **File Length**: Maximum 500 lines per file (hard cap at 600)
+- **Code Organization**: Follow established module structure
+- **Commands**: Use command registry for new commands
+- **Configuration**: Add defaults to `config_defaults.py`
+- **Database Changes**: Create migrations in `episodic/migrations/`
+- **Debug Output**: Use `debug_utils.py` for debug functions
 
-### Test Documentation
-- Created `tests/ORGANIZED_TESTS.md` with comprehensive test running guide
-- Documents all test categories: unit, integration, CLI, coverage
-- Explains why CLI testing is challenging (interactive nature)
-- Recommends `test_all_commands.py` for comprehensive CLI validation
+## Future Development
 
-## Recent Session (2025-07-11)
-### Comprehensive CLI Bug Fixes
-- **Issue**: Major refactoring broke 37 out of 60 CLI commands (38% pass rate)
-- **Fixed All Critical Issues**:
-  - Model commands: Fixed 'module' object is not callable error
-  - RAG system: Fixed import errors (rag_toggle, index_file, docs_command)
-  - Compression: Fixed import to use compression_command
-  - Web search: Fixed function signature mismatch with websearch_command
-  - Muse mode: Created missing muse.py module
-  - Topic commands: Fixed get_current_topic AttributeError and Typer decorator issues
-- **Added Missing Commands**: /h, /about, /welcome, /config, /history, /tree, /graph, /summary
-- **Result**: ~100% pass rate for all critical commands
-- **Created Test Infrastructure**:
-  - `test_all_commands.py` - Tests every CLI command
-  - `BUG_REPORT.md` - Detailed bug documentation
-  - `FIXES_SUMMARY.md` - Summary of all fixes
-  - `analyze_test_results.py` - Test result analysis script
-
-### Streaming Response Fix
-- **Issue**: Duplicate output - last word printed twice in natural rhythm mode
-- **Root Cause**: Queued printer calling finish() which re-printed already queued words
-- **Fix**: Unified streaming architecture in response_streaming.py
-- **Result**: Clean output without duplication
-
-## Recent Session (2025-07-10)
-### Major Code Cleanup
-- **Removed unused imports**: Used autoflake to clean 56+ unused imports across 41 files
-- **Deleted deprecated code**: Removed `conversation_original.py`, `settings_old.py`, and no-op `close_connection()` function
-- **Fixed empty exception blocks**: Added proper error logging instead of silent failures
-- **Consolidated duplicate functions**: Created `debug_utils.py` to unify 3 duplicate `debug_print()` implementations
-- **Created CLEANUP_SUMMARY.md**: Documented all cleanup changes
-
-### Completed Refactoring Tasks
-- ✅ **Enforced 500-600 line limit**: All active files now under 600 lines
-- ✅ **Fixed compression commands**: Removed confusing unified command structure
-- ✅ **Conversation.py refactoring**: Successfully split from 1,872 lines into:
-  - `topic_management.py` (508 lines) - Topic detection and management
-  - `response_streaming.py` (410 lines) - Streaming implementations  
-  - `text_formatter.py` (385 lines) - Text formatting and wrapping
-  - `context_builder.py` (226 lines) - Context preparation with RAG/web
-  - `conversation.py` (545 lines) - Core conversation flow
-  - `unified_streaming.py` (411 lines) - Unified streaming logic
-  - Extended existing modules for web synthesis
-
-### Visualization.py Status
-- **IGNORE**: User is replacing visualization.py entirely (1,278 lines)
-- Do not attempt to refactor or modify this file
-
-## Recent Session (2025-07-09 continued)
-### Embedding Model Configuration and Topic Detection
-- **Issue Fixed**: BGE embedding model wasn't being used by all topic detectors
-- Updated all `ConversationalDrift` instantiations to read config settings
-- Fixed detectors: RealtimeWindowDetector, SlidingWindowDetector, SimpleDriftDetector, HybridTopicDetector
-- **Key Finding**: BGE models produce lower drift scores (0.65-0.7) vs default model (0.9+)
-- Implemented `/mset embedding` command system for easy model configuration
-- Available models: paraphrase-mpnet, BGE family, GTE family, MiniLM variants
-- Documented that topic naming uses same model as topic detection
-
-### Python Library Update and Fixes (earlier)
-- Fixed Python 3.13 regex syntax warning by replacing `\S` and `\s` with explicit character classes
-- Fixed /set command to show short curated list with descriptions
-- Changed /set and /help to use 'all' instead of '--all'
-- Fixed color-mode documentation (full/basic/none, not dark/light/none)
-- Removed non-functional stream-char-mode settings
-- Implemented centralized cost tracking in LLMManager
-- Fixed help system file indexing
-
-### Git History Cleanup (earlier)
-- **CRITICAL**: Removed all Claude/Anthropic references from entire git history
-- Rewrote 328 commits using git filter-branch
-- Force pushed to private remote repository
-- Installed local commit-msg hook to prevent future occurrences
-- Hook blocks commits with "claude" or "anthropic" (case-insensitive)
-
-## Recent Decisions
-- Fixed unified streaming bold formatting using raw ANSI codes
-- Headers (###) now display without markdown markers but remain bold
-- Separated memory: Claude Desktop uses general memory, Claude Code uses project-specific
-- All LLM cost tracking now centralized through LLMManager
-- Git commits must never mention Claude/Anthropic per CLAUDE.md
-- BGE embedding models need lower thresholds (0.65-0.75) vs default (0.9)
-- Topic naming uses same model as topic detection (not separately configurable)
-
-## Current Focus
-- ✅ **COMPLETED**: Enforced 500 line cap per file (all files now under 600 lines)
-- ✅ **COMPLETED**: Fixed compression command structure
-- ✅ **COMPLETED**: Major code cleanup (unused imports, deprecated code, duplicate functions)
-- ✅ **COMPLETED**: Web search provider fallback system with configurable precedence
-- **Next priorities**:
-  - Add previous history to /muse mode for follow-up questions
-  - Improve web search synthesis with better source attribution
-
-## User Preferences
-- 80x24 terminal, needs proper word wrapping
-- Bold formatting for numbered/bullet lists up to colon
-- Prefers explicit over implicit behavior
-- No AI attribution in commits
-- Prefers simple solutions over complex ones
-- Wants clear, modular configuration options
-- Values understanding why features work the way they do
-
-## Code Quality Guidelines
-- **File Length**: Maximum 500 lines per file (absolute cap at 600)
-- Files exceeding limit must be refactored or modularized
-- Keep modules focused on single responsibilities
-
-## Architecture Notes
-- Unified streaming in `episodic/unified_streaming.py`
-- RAG system with ChromaDB
-- Web search with DuckDuckGo provider
-- Topic detection with configurable models
-- Python 3.13.5 (has stricter syntax warnings)
-- Embedding configuration: drift_embedding_provider, drift_embedding_model, drift_threshold
-- All topic detectors now properly read embedding configuration from config
+- **Adaptive Topic Detection**: Dynamic context management for non-linear conversations
+- **DAG Branching**: Support for conversation trees and topic returns
+- **Enhanced Embeddings**: Multiple embedding providers for different use cases
+- **Running Topic Prediction**: Real-time topic detection during conversation

@@ -69,8 +69,8 @@ python -m episodic
 /muse            # Switch to Perplexity-like web search mode
 /style           # Set global response style (concise/standard/comprehensive/custom)
 /format          # Set global response format (paragraph/bullet-points/mixed/academic)
-/web provider    # Configure web search providers
-/model list      # View available AI models
+/web             # Show current web search provider
+/model           # Show current AI models
 /help            # See all commands
 /help <query>    # Search documentation (e.g., /help How do I use muse mode?)
 

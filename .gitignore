@@ -38,7 +38,6 @@ archive/
 # Working directory for temporary notes and documentation
 working/
 .idea/
-archive/
 
 # Episodic history files (should be in ~/.episodic/)
 .episodic_history
@@ -49,3 +48,21 @@ command_history
 
 # State tracking files
 CURRENT_STATE.md
+logs/
+exports/
+*.stats
+profile_*.stats
+.venv/
+venv/
+.env
+*.key
+*.pem
+config.json
+*.tmp
+*.temp
+*.log
+*.bak
+.episodic/
+~/.episodic/
+*.swp
+*.swo

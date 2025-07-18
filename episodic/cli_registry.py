@@ -655,35 +655,59 @@ def show_advanced_help():
 
 def show_simple_help():
     """Show help for simple mode - just the essential commands."""
-    # Essential commands for simple mode
-    simple_commands = [
+    # Group commands by category
+    conversation_commands = [
         ("/chat", "Normal conversation mode"),
         ("/muse", "Web search mode (like Perplexity)"),
-        ("/new", "Start fresh topic"),
-        ("/save", "Save current conversation"),
+        ("/new", "Start fresh topic")
+    ]
+    
+    file_commands = [
+        ("/save", "Save current topic"),
         ("/load", "Load a conversation"),
-        ("/files", "List saved conversations"),
-        ("/style", "Set response length"),
-        ("/format", "Set response format"),
+        ("/files", "List saved conversations")
+    ]
+    
+    style_commands = [
+        ("/style", "Set response length (concise/standard/comprehensive)"),
+        ("/format", "Set response format (paragraph/bullet-points)")
+    ]
+    
+    system_commands = [
         ("/help", "Show this help"),
         ("/exit", "Leave Episodic")
     ]
     
-    # Find the longest command for alignment
-    max_width = max(len(cmd) for cmd, _ in simple_commands)
+    # Find the longest command across all groups for uniform alignment
+    all_commands = conversation_commands + file_commands + style_commands + system_commands
+    max_width = max(len(cmd) for cmd, _ in all_commands)
     
     # Display header
     typer.secho("⌨️  Just type to chat.", fg=get_text_color())
     typer.echo()
-    typer.secho("Or use these commands:", fg=get_text_color())
+    
+    # Display conversation commands
+    typer.secho("💬 Conversation", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(conversation_commands, max_width)
     typer.echo()
     
-    # Display commands
-    _display_aligned_commands(simple_commands, max_width)
+    # Display file commands
+    typer.secho("📁 Files", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(file_commands, max_width)
+    typer.echo()
+    
+    # Display style commands
+    typer.secho("✨ Style", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(style_commands, max_width)
+    typer.echo()
+    
+    # Display system commands
+    typer.secho("⚙️  System", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(system_commands, max_width)
     typer.echo()
     
     # Show how to get back to advanced mode
-    typer.secho("Advanced Mode:", fg=get_heading_color(), bold=True)
+    typer.secho("🔓 Advanced Mode", fg=get_heading_color(), bold=True)
     typer.secho("  /advanced", fg=get_system_color(), bold=True, nl=False)
     typer.secho("  - Access all 50+ commands", fg="cyan")
     typer.echo()

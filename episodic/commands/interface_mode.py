@@ -13,27 +13,25 @@ def simple_mode_command():
     
     typer.secho("\n🎯 Simple Mode Activated", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())
-    typer.secho("Just the essentials - 10 commands to get things done:", fg=get_text_color())
     typer.echo()
     
-    commands = [
-        ("/chat", "Normal conversation mode"),
-        ("/muse", "Web search mode (like Perplexity)"),
-        ("/new", "Start fresh topic"),
-        ("/save", "Save current topic"),
-        ("/load", "Load conversation"),
-        ("/files", "List saved conversations"),
-        ("/style", "Set response length (concise/standard/comprehensive)"),
-        ("/format", "Set response format (paragraph/bullet-points)"),
-        ("/help", "Show commands"),
-        ("/exit", "Leave Episodic"),
-    ]
-    
-    for cmd, desc in commands:
-        typer.secho(f"  {cmd:<10}", fg=get_system_color(), bold=True, nl=False)
-        typer.secho(f" - {desc}", fg=get_text_color())
-    
+    # Show grouped commands
+    typer.secho("💬 Conversation:", fg=get_text_color(), bold=True)
+    typer.secho("   /chat   - Normal mode  |  /muse - Web search  |  /new - Fresh topic", fg=get_text_color())
     typer.echo()
+    
+    typer.secho("📁 Files:", fg=get_text_color(), bold=True)
+    typer.secho("   /save   - Save topic   |  /load - Load file   |  /files - List saved", fg=get_text_color())
+    typer.echo()
+    
+    typer.secho("✨ Style:", fg=get_text_color(), bold=True)
+    typer.secho("   /style  - Response length  |  /format - Response format", fg=get_text_color())
+    typer.echo()
+    
+    typer.secho("⚙️  System:", fg=get_text_color(), bold=True)
+    typer.secho("   /help   - Show commands    |  /exit - Leave", fg=get_text_color())
+    typer.echo()
+    
     typer.secho("Advanced features hidden. Type /advanced to access all commands.", fg=get_text_color())
     typer.secho("Tab completion now shows only simple mode commands.", fg=get_text_color(), dim=True)
 

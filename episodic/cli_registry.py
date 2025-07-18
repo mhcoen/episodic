@@ -53,12 +53,22 @@ def handle_command_with_registry(command_str: str) -> bool:
     if cmd in EXIT_COMMANDS or cmd == "q":
         return True
     
+    # Check if we're in simple mode
+    from episodic.commands.interface_mode import is_simple_mode, get_simple_mode_commands
+    
     # Look up command in registry
     cmd_info = command_registry.get_command(cmd)
     
     if not cmd_info:
         typer.secho(f"Unknown command: /{cmd}", fg="red")
         typer.echo("Type /help for available commands")
+        return False
+    
+    # In simple mode, restrict to allowed commands
+    if is_simple_mode() and cmd not in get_simple_mode_commands():
+        typer.secho(f"Command /{cmd} is not available in simple mode.", fg="red")
+        typer.secho("Available commands: /chat, /muse, /save, /load, /files, /help, /exit", fg="yellow")
+        typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
         return False
     
     # Check if deprecated
@@ -182,6 +192,12 @@ def _format_aligned_commands(commands_and_descriptions, max_width=None):
 def show_help_with_categories():
     """Show basic help information with common commands and categories."""
     _ensure_registry_initialized()
+    
+    # Check if we're in simple mode
+    from episodic.config import config
+    if config.get("interface_mode", "advanced") == "simple":
+        show_simple_help()
+        return
     
     # Essential commands
     essential_commands = [
@@ -635,6 +651,36 @@ def show_advanced_help():
     typer.secho(" or ", fg=get_text_color(), nl=False)
     typer.secho("/quit", fg="cyan", bold=True, nl=False)
     typer.secho(" to leave", fg=get_text_color())
+
+
+def show_simple_help():
+    """Show help for simple mode - just the 7 essential commands."""
+    # Essential commands for simple mode
+    simple_commands = [
+        ("/chat", "Normal conversation mode"),
+        ("/muse", "Web search mode (like Perplexity)"),
+        ("/save", "Save current conversation"),
+        ("/load", "Load a conversation"),
+        ("/files", "List saved conversations"),
+        ("/help", "Show this help"),
+        ("/exit", "Leave Episodic")
+    ]
+    
+    # Find the longest command for alignment
+    max_width = max(len(cmd) for cmd, _ in simple_commands)
+    
+    # Display header
+    typer.secho("⌨️  Just type to chat.", fg=get_text_color())
+    typer.echo()
+    typer.secho("Or use these commands:", fg=get_text_color())
+    typer.echo()
+    
+    # Display commands
+    _display_aligned_commands(simple_commands, max_width)
+    typer.echo()
+    
+    # Show current mode
+    typer.secho("💡 Want more features? Type /advanced", fg=get_text_color(), dim=True)
 
 
 def get_category_icon(category: str) -> str:

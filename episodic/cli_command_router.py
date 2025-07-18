@@ -54,6 +54,16 @@ def handle_command(command_str: str) -> bool:
     if cmd_without_slash in EXIT_COMMANDS or cmd_without_slash == "q":
         return True
     
+    # Check if we're in simple mode
+    from episodic.commands.interface_mode import is_simple_mode, get_simple_mode_commands
+    
+    # In simple mode, restrict to allowed commands
+    if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands():
+        typer.secho(f"Command {cmd} is not available in simple mode.", fg="red")
+        typer.secho("Available commands: /chat, /muse, /save, /load, /files, /help, /exit", fg="yellow")
+        typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
+        return False
+    
     try:
         # Route to appropriate handler
         if cmd == "/init":
@@ -102,8 +112,16 @@ def handle_command(command_str: str) -> bool:
             _handle_prompt(args)
         elif cmd == "/script":
             _handle_script(args)
+        elif cmd == "/scripts":
+            _handle_scripts(args)
         elif cmd == "/save":
-            _handle_save(args)
+            _handle_save_new(args)
+        elif cmd == "/load":
+            _handle_load(args)
+        elif cmd == "/simple":
+            _handle_simple()
+        elif cmd == "/advanced":
+            _handle_advanced()
         elif cmd == "/out":
             _handle_out(args)
         elif cmd == "/in":
@@ -695,3 +713,61 @@ def _handle_ls(args: List[str]):
     # Pass directory or None for current directory
     directory = " ".join(args) if args else None
     ls_command(directory)
+
+
+def _handle_scripts(args: List[str]):
+    """Handle /scripts command."""
+    from episodic.commands.scripts import scripts_command
+    
+    if not args:
+        scripts_command()
+    else:
+        subcommand = args[0]
+        remaining_args = args[1:]
+        if subcommand in ["save", "run", "list"]:
+            if subcommand == "save" and remaining_args:
+                scripts_command(subcommand, " ".join(remaining_args))
+            elif subcommand == "run" and remaining_args:
+                scripts_command(subcommand, " ".join(remaining_args))
+            else:
+                scripts_command(subcommand)
+        else:
+            typer.secho(f"Unknown scripts subcommand: {subcommand}", fg="red")
+            typer.secho("Usage: /scripts [save|run|list]", fg="yellow")
+
+
+def _handle_save_new(args: List[str]):
+    """Handle new /save command (for conversations)."""
+    from episodic.commands.save_load import save_command
+    
+    filename = " ".join(args) if args else None
+    save_command(filename)
+
+
+def _handle_load(args: List[str]):
+    """Handle /load command."""
+    from episodic.commands.save_load import load_command
+    
+    if not args:
+        typer.secho("Usage: /load <filename>", fg="red")
+    else:
+        filename = " ".join(args)
+        load_command(filename)
+
+
+def _handle_files():
+    """Handle /files command (when not handled by /ls)."""
+    from episodic.commands.save_load import files_command
+    files_command()
+
+
+def _handle_simple():
+    """Handle /simple command."""
+    from episodic.commands.interface_mode import simple_mode_command
+    simple_mode_command()
+
+
+def _handle_advanced():
+    """Handle /advanced command."""
+    from episodic.commands.interface_mode import advanced_mode_command
+    advanced_mode_command()

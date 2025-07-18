@@ -110,11 +110,17 @@ def register_all_commands():
         _handle_history, _handle_tree, _handle_graph
     )
     
-    # Import script commands from CLI
-    from episodic.cli import save_session_script, execute_script
+    # Import script commands
+    from episodic.commands.scripts import scripts_command
+    
+    # Import save/load commands
+    from episodic.commands.save_load import save_command, load_command, files_command
     
     # Import mode commands
     from episodic.commands.mode import handle_muse, handle_chat
+    
+    # Import interface mode commands
+    from episodic.commands.interface_mode import simple_mode_command, advanced_mode_command
     
     # Import style and format commands
     from episodic.commands.style import handle_style, handle_format
@@ -185,9 +191,17 @@ def register_all_commands():
     command_registry.register("history", _handle_history, "Show conversation history", "Navigation")
     command_registry.register("tree", _handle_tree, "Show conversation tree structure", "Navigation")
     command_registry.register("graph", _handle_graph, "Show conversation graph visualization", "Utility")
-    command_registry.register("script", execute_script, "Execute commands from a script file", "Utility")
-    command_registry.register("save", save_session_script, "Save session commands to a script file", "Utility")
+    command_registry.register("scripts", scripts_command, "Manage session scripts (save/run/list)", "Utility")
     command_registry.register("compress", compress, "Compress a topic or branch", "Compression")
+    
+    # Register simple mode commands
+    command_registry.register("save", save_command, "Save conversation to markdown file", "Conversation")
+    command_registry.register("load", load_command, "Load conversation from markdown file", "Conversation")
+    command_registry.register("files", files_command, "List saved conversations", "Conversation")
+    
+    # Register interface mode switching commands
+    command_registry.register("simple", simple_mode_command, "Switch to simple mode (7 essential commands)", "Configuration")
+    command_registry.register("advanced", advanced_mode_command, "Switch to advanced mode (all commands)", "Configuration")
     
     # Register RAG commands with lazy loading wrappers
     def lazy_rag_toggle(*args, **kwargs):

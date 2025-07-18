@@ -31,7 +31,14 @@ def setup_environment():
 def display_welcome():
     """Display welcome message immediately."""
     typer.secho("Welcome to Episodic!", fg=get_system_color(), bold=True)
-    typer.secho("Just start typing to chat or /help for commands.", fg=get_text_color())
+    
+    # Check if we're in simple mode
+    interface_mode = config.get("interface_mode", "advanced")
+    if interface_mode == "simple":
+        typer.secho("Simple mode - Just start typing to chat or /help for commands.", fg=get_text_color())
+    else:
+        typer.secho("Just start typing to chat or /help for commands.", fg=get_text_color())
+        typer.secho("💡 New to Episodic? Type /simple for a streamlined experience.", fg=get_text_color(), dim=True)
 
 def display_model_info():
     """Display model and pricing information."""

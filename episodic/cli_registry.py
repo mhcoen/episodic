@@ -144,7 +144,7 @@ def _display_aligned_commands(commands_and_descriptions, max_width=None):
     terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
     
     # Display each line with perfect alignment and word wrapping
-    for i, (cmd, desc) in enumerate(commands_and_descriptions):
+    for cmd, desc in commands_and_descriptions:
         padding = ' ' * max(2, max_width - len(cmd) + 2)  # Minimum 2 spaces between command and description
         
         # Calculate available width for description
@@ -169,10 +169,6 @@ def _display_aligned_commands(commands_and_descriptions, max_width=None):
             for line in wrapped_lines[1:]:
                 typer.echo(continuation_padding, nl=False)
                 typer.secho(line, fg="cyan")
-        
-        # Add a blank line after each command (except the last one)
-        if i < len(commands_and_descriptions) - 1:
-            typer.echo()
 
 
 def _format_aligned_commands(commands_and_descriptions, max_width=None):

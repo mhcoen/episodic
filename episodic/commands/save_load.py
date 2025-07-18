@@ -77,15 +77,15 @@ Filename:"""
 
 def save_command(filename: Optional[str] = None):
     """
-    Save the current conversation to a markdown file.
+    Save the current topic to a markdown file.
     
     Usage:
-        /save                  # Auto-generate filename from current topic
-        /save my-chat          # Save as my-chat.md
-        /save "Project Notes"  # Save as project-notes.md
+        /save                  # Save current topic with auto-generated name
+        /save my-chat          # Save current topic as my-chat.md
+        /save "Project Notes"  # Save current topic as project-notes.md
         
-    Note: Currently exports all topics. Future enhancement will save only
-    topics since the last /new command for session-based workflows.
+    Note: Saves only the current topic to keep file sizes manageable.
+    Use /out in advanced mode for more export options.
     """
     # Get current topic for auto-naming
     topics = get_recent_topics(limit=50)
@@ -138,17 +138,17 @@ def save_command(filename: Optional[str] = None):
     filepath = export_dir / full_filename
     
     try:
-        # Export all topics in the conversation
-        # TODO: Future enhancement - export only since last /new command
-        export_topics_to_markdown("all", str(filepath))
+        # Export only the current topic by default (not entire history!)
+        # This prevents massive file sizes as conversations grow
+        export_topics_to_markdown("current", str(filepath))
         
         # Get file stats for display
         stat = os.stat(filepath)
         size_kb = stat.st_size / 1024
         
-        typer.secho(f"✅ Conversation saved to: {filepath}", fg="green")
+        typer.secho(f"✅ Current topic saved to: {filepath}", fg="green")
         typer.secho(f"   Size: {size_kb:.1f} KB", fg=get_text_color())
-        typer.secho(f"   Topics: {len(topics)} included", fg=get_text_color())
+        typer.secho(f"   Topic: {current_topic_name}", fg=get_text_color())
         
         # Show how to load it back
         typer.secho(f"\n   Load with: /load {full_filename}", fg=get_text_color())

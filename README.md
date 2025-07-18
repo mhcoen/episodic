@@ -8,7 +8,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 ## ✨ Features
 
 - **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
-- **🎭 Muse Mode** - Perplexity-like web search with multiple providers and automatic fallback
+- **🎭 Muse Mode** - Perplexity-like web search with multiple providers (DuckDuckGo, Google, Bing, Brave, Searx)
 - **🗄️ Persistent Memory** - Automatic topic detection and context management
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
@@ -16,6 +16,8 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🎨 Rich CLI** - Streaming responses, colors, tab completion
 
 ## 🚀 Quick Start
+
+📖 **New users: See [QUICK_START.md](QUICK_START.md) for a complete 5-minute setup guide using free services!**
 
 ### Installation
 
@@ -28,12 +30,33 @@ cd episodic
 pip install -e .
 ```
 
+### Setup (Choose One)
+
+```bash
+# Option 1: Free start with Hugging Face (recommended for beginners)
+# Get a free token at https://huggingface.co/settings/tokens
+export HUGGINGFACE_API_KEY="hf_..."
+
+# Option 2: Use OpenAI (better chat quality, costs money)
+# Get a key at https://platform.openai.com/api-keys
+export OPENAI_API_KEY="sk-..."
+
+# Option 3: Fully local with Ollama (advanced users)
+# Install from https://ollama.com, then:
+ollama pull llama3
+```
+
 ### First Conversation
 
 ```bash
 # Start Episodic (database created automatically on first run)
 python -m episodic
 ```
+
+Episodic automatically configures itself based on available providers:
+- **With Hugging Face**: Uses Falcon-7B-Instruct for background tasks (free tier compatible)
+- **With OpenAI**: Uses GPT-4 for chat, GPT-3.5-Turbo-Instruct for analysis
+- **With Ollama**: Uses local models for complete privacy
 
 ```text
 # Just start chatting!
@@ -132,7 +155,7 @@ Index your papers and documents, then ask questions that search both your knowle
 ```bash
 /set rag-auto true              # Enable automatic RAG search
 /set web-auto true              # Enable automatic web fallback
-/set rag-threshold 0.7             # Adjust relevance sensitivity (0.0-1.0)
+/set rag-threshold 0.7          # Adjust relevance sensitivity (0.0-1.0)
 ```
 
 ### 🧩 Multi-Model Workflows
@@ -142,11 +165,10 @@ Use different models for different tasks to optimize performance and cost:
 # Use GPT-4 for complex reasoning
 > /model chat gpt-4o
 
-# Use fast local model for topic detection  
-> /model detection ollama/llama3
-
-# Use cheap model for compression
-> /model compression gpt-3.5-turbo
+# Use instruct models for background tasks
+> /model detection huggingface/tiiuae/falcon-7b-instruct
+> /model compression gpt-3.5-turbo-instruct
+> /model synthesis huggingface/tiiuae/falcon-7b-instruct
 
 # Configure model parameters
 > /mset chat.temperature 0.7
@@ -154,7 +176,7 @@ Use different models for different tasks to optimize performance and cost:
 > /mset compression.max_tokens 500
 
 > Explain the halting problem
-🤖 [GPT-4 provides detailed explanation while Llama3 manages topics]
+🤖 [GPT-4 provides detailed explanation while Falcon-7B manages topics]
 ```
 
 ### 💾 Long Conversation Management
@@ -224,9 +246,9 @@ Run completely offline with local models:
 ```text
 # Set all contexts to use local models
 > /model chat ollama/llama3
-> /model detection ollama/llama3  
-> /model compression ollama/mistral
-> /model synthesis ollama/llama3
+> /model detection ollama/phi3  # Instruct model for detection
+> /model compression ollama/mistral  # Instruct model for compression
+> /model synthesis ollama/phi3  # Instruct model for synthesis
 
 # Disable online features (stay in chat mode)
 > /rag off
@@ -240,8 +262,8 @@ Run completely offline with local models:
 
 Episodic is highly configurable. While many settings can be changed interactively with the `/set` command, you can set your defaults by creating a personal configuration file.
 
-1. Copy `episodic/config.default.json` to `episodic/config.json`.
-2. Edit `episodic/config.json` to set your preferences, such as API keys or default models.
+1. Copy `episodic/config_template.json` to `~/.episodic/config.json`.
+2. Edit `~/.episodic/config.json` to set your preferences, such as API keys or default models.
 
 Common settings that can be changed via the CLI:
 
@@ -304,9 +326,9 @@ Use '/mset <context>.<param> default' to reset to default value
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────
 Chat:        gpt-4
-Detection:   ollama/llama3  
-Compression: gpt-3.5-turbo
-Synthesis:   claude-3-haiku
+Detection:   huggingface/tiiuae/falcon-7b-instruct  
+Compression: gpt-3.5-turbo-instruct
+Synthesis:   huggingface/tiiuae/falcon-7b-instruct
 ```
 
 Each context serves a specific purpose:
@@ -322,7 +344,7 @@ Episodic uses a modular architecture:
 - **Conversation DAG**: Messages stored as nodes in a directed acyclic graph
 - **Topic Detection**: Multiple algorithms including sliding window and hybrid detection
 - **RAG System**: Vector database using ChromaDB for document similarity search
-- **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Searx)
+- **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Brave, Searx)
 
 ## 🧪 Testing
 
@@ -502,4 +524,5 @@ GitHub: [@mhcoen](https://github.com/mhcoen)
 
 ---
 
-*Start your persistent AI conversations today with Episodic!*
+*Episodic: AI that remembers the conversation.*
+

@@ -160,6 +160,7 @@ CONFIG_DOCS = {
     "google_search_engine_id": "Google Custom Search Engine ID (or set GOOGLE_SEARCH_ENGINE_ID)",
     "bing_api_key": "Bing Search API key from Azure (or set BING_API_KEY env var)",
     "bing_endpoint": "Bing Search API endpoint URL",
+    "brave_api_key": "Brave Search API key from https://api.search.brave.com/ (or set BRAVE_API_KEY env var)",
     
     # Caching and performance
     "use_context_cache": "Enable prompt caching to reduce API costs when supported",

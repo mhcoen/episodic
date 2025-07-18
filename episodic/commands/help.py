@@ -232,7 +232,7 @@ def help(advanced: bool = False, query: Optional[str] = None):
         # Then add help search info
         typer.secho("\n🔍 Documentation Search:", fg=get_heading_color(), bold=True)
         cmd = "/help <query>"
-        padding = ' ' * max(1, 30 - len(cmd) - 2)
+        padding = ' ' * max(1, 30 - len(cmd))
         typer.secho(f"  {cmd}{padding}", fg=get_system_color(), bold=True, nl=False)
         typer.secho("Search documentation", fg=get_text_color())
         typer.secho("\n  Examples:", fg=get_text_color(), dim=True)

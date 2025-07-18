@@ -161,7 +161,7 @@ class EpisodicCompleter(Completer):
                     )
         elif len(parts) == 3 and parts[1] == 'provider':
             # Complete provider names
-            providers = ['duckduckgo', 'google', 'bing', 'searx']
+            providers = ['duckduckgo', 'google', 'bing', 'brave', 'searx']
             for provider in providers:
                 if provider.startswith(word.lower()):
                     yield Completion(

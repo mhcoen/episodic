@@ -114,7 +114,7 @@
   
   "_comment_compression": "// === COMPRESSION SETTINGS ===",
   "_comment_compression_model": "Model to use for topic compression (instruct models recommended)",
-  "compression_model": "ollama/phi3",
+  "compression_model": "huggingface/tiiuae/falcon-7b-instruct",
   "_comment_compression_min_nodes": "Minimum nodes required before allowing compression",
   "compression_min_nodes": 10,
   "_comment_show_compression_notifications": "Show notifications when topics are compressed",
@@ -122,7 +122,7 @@
   
   "_comment_models_detect": "// === MODEL SELECTION ===",
   "_comment_topic_detection_model": "Model to use for topic detection (instruct models recommended)",
-  "topic_detection_model": "ollama/phi3",
+  "topic_detection_model": "huggingface/tiiuae/falcon-7b-instruct",
   "_comment_model": "Current conversation model (set via /model command)",
   "model": "gpt-4o-mini",
   
@@ -144,6 +144,7 @@
   "ai21_api_key": null,
   "voyage_api_key": null,
   "openrouter_api_key": null,
+  "brave_api_key": null,
   "azure_api_key": null,
   "azure_api_base": null,
   "azure_api_version": null,
@@ -257,7 +258,7 @@
   "_comment_muse_model": "Model for synthesis (deprecated - use synthesis_model instead)",
   "muse_model": null,
   "_comment_synthesis_model": "Model to use for web search synthesis (instruct models recommended)",
-  "synthesis_model": "ollama/phi3",
+  "synthesis_model": "huggingface/tiiuae/falcon-7b-instruct",
   
   "_comment_providers": "// === SEARCH PROVIDER SETTINGS ===",
   "_comment_searx_instance_url": "Searx instance URL (can be self-hosted for privacy)",

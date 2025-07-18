@@ -147,6 +147,7 @@ ENV_VAR_MAPPING = {
     'google_api_key': 'GOOGLE_API_KEY',
     'google_search_engine_id': 'GOOGLE_SEARCH_ENGINE_ID',
     'bing_api_key': 'BING_API_KEY',
+    'brave_api_key': 'BRAVE_API_KEY',
     'searx_instance_url': 'SEARX_INSTANCE_URL',
     
     # RAG

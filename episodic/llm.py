@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 # Suppress LiteLLM's verbose output
 litellm.suppress_debug_info = True
 os.environ["LITELLM_LOG"] = "ERROR"  # Only show errors
+litellm.set_verbose = False
+
+# Also suppress the LiteLLM logger
+litellm_logger = logging.getLogger("LiteLLM")
+litellm_logger.setLevel(logging.ERROR)
 
 # Also suppress the specific provider list messages
 

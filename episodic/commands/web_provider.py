@@ -66,6 +66,7 @@ def show_current_provider():
         ("duckduckgo", "DuckDuckGo", "Free, no API key required"),
         ("google", "Google", "Requires API key and CSE ID"),
         ("bing", "Bing", "Requires API key"),
+        ("brave", "Brave", "Requires API key"),
         ("searx", "Searx", "Requires instance URL"),
     ]
     
@@ -97,8 +98,8 @@ def show_current_provider():
     
     # Show example for setting provider order
     typer.secho("\nExample:", fg=get_heading_color())
-    typer.secho("  /set web.providers google,bing,duckduckgo", fg=get_system_color(), dim=True)
-    typer.secho("  Sets Google as primary, falls back to Bing, then DuckDuckGo", fg=get_text_color(), dim=True)
+    typer.secho("  /set web.providers brave,google,duckduckgo", fg=get_system_color(), dim=True)
+    typer.secho("  Sets Brave as primary, falls back to Google, then DuckDuckGo", fg=get_text_color(), dim=True)
 
 
 def list_providers():
@@ -110,6 +111,7 @@ def list_providers():
         ("duckduckgo", "DuckDuckGo", "Free, no API key required"),
         ("google", "Google", "Requires API key and CSE ID"),
         ("bing", "Bing", "Requires API key"),
+        ("brave", "Brave", "Requires API key"),
         ("searx", "Searx", "Requires instance URL"),
     ]
     
@@ -177,6 +179,20 @@ def show_provider_details():
         typer.secho("Rate Limit: ", fg=get_text_color(), nl=False)
         typer.secho("1000 queries/month (free tier)", fg=get_system_color())
         
+    elif current == "brave":
+        typer.secho("Type: ", fg=get_text_color(), nl=False)
+        typer.secho("Requires API key", fg="yellow")
+        typer.secho("API Key: ", fg=get_text_color(), nl=False)
+        api_key = config.get("brave_api_key") or config.get("BRAVE_API_KEY")
+        if api_key:
+            typer.secho("Configured ✓", fg="green")
+        else:
+            typer.secho("Not configured ✗", fg="red")
+        typer.secho("Rate Limit: ", fg=get_text_color(), nl=False)
+        typer.secho("Varies by subscription tier", fg=get_system_color())
+        typer.secho("Features: ", fg=get_text_color(), nl=False)
+        typer.secho("Web search, news, images, videos", fg=get_system_color())
+        
     elif current == "searx":
         typer.secho("Type: ", fg=get_text_color(), nl=False)
         typer.secho("Self-hosted or public instance", fg="cyan")
@@ -192,7 +208,7 @@ def set_provider(provider_name: str):
     """Set the web search provider."""
     provider_name = provider_name.lower()
     
-    valid_providers = ["duckduckgo", "google", "bing", "searx"]
+    valid_providers = ["duckduckgo", "google", "bing", "brave", "searx"]
     
     if provider_name not in valid_providers:
         typer.secho(f"Unknown provider: {provider_name}", fg="red")
@@ -219,6 +235,14 @@ def set_provider(provider_name: str):
             typer.secho("⚠️  Bing search requires an API key:", fg="yellow")
             typer.secho("  - Set BING_SEARCH_API_KEY environment variable", fg=get_text_color())
             typer.secho("\nGet your API key from: https://www.microsoft.com/en-us/bing/apis/bing-web-search-api", fg="cyan")
+            return
+    
+    elif provider_name == "brave":
+        api_key = config.get("brave_api_key") or config.get("BRAVE_API_KEY")
+        if not api_key:
+            typer.secho("⚠️  Brave search requires an API key:", fg="yellow")
+            typer.secho("  - Set BRAVE_API_KEY environment variable", fg=get_text_color())
+            typer.secho("\nGet your API key from: https://api.search.brave.com/", fg="cyan")
             return
     
     elif provider_name == "searx":

@@ -59,10 +59,17 @@ class EpisodicCompleter(Completer):
         
         # Command completion
         if len(parts) <= 1:
+            # Check if we're in simple mode
+            from episodic.commands.interface_mode import is_simple_mode, get_simple_mode_commands
+            
             # Complete command names
             partial = line[1:]  # Remove the /
             for cmd in sorted(self.commands):
                 if cmd.startswith(partial.lower()):
+                    # In simple mode, only show allowed commands
+                    if is_simple_mode() and cmd not in get_simple_mode_commands():
+                        continue
+                        
                     # Calculate start position
                     start_pos = -len(line)
                     yield Completion(

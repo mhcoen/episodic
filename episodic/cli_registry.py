@@ -680,8 +680,13 @@ def show_simple_help():
     _display_aligned_commands(simple_commands, max_width)
     typer.echo()
     
-    # Show current mode
-    typer.secho("💡 Want more features? Type /advanced", fg=get_text_color(), dim=True)
+    # Show how to get back to advanced mode
+    typer.secho("Advanced Mode:", fg=get_heading_color(), bold=True)
+    typer.secho("  /advanced", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("  - Access all 50+ commands", fg="cyan")
+    typer.echo()
+    
+    typer.secho("💡 Type /advanced anytime to unlock full features", fg=get_text_color(), dim=True)
 
 
 def get_category_icon(category: str) -> str:

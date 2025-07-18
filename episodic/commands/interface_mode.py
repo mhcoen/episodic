@@ -20,7 +20,7 @@ def simple_mode_command():
         ("/chat", "Normal conversation mode"),
         ("/muse", "Web search mode (like Perplexity)"),
         ("/new", "Start fresh topic"),
-        ("/save", "Save conversation"),
+        ("/save", "Save current topic"),
         ("/load", "Load conversation"),
         ("/files", "List saved conversations"),
         ("/help", "Show commands"),
@@ -32,7 +32,8 @@ def simple_mode_command():
         typer.secho(f" - {desc}", fg=get_text_color())
     
     typer.echo()
-    typer.secho("💡 Want more features? Type /advanced", fg=get_text_color(), dim=True)
+    typer.secho("Advanced features hidden. Type /advanced to access all commands.", fg=get_text_color())
+    typer.secho("Tab completion now shows only simple mode commands.", fg=get_text_color(), dim=True)
 
 
 def advanced_mode_command():

@@ -24,6 +24,12 @@ def setup_environment():
     os.makedirs("logs", exist_ok=True)
     os.makedirs("scripts", exist_ok=True)
     
+    # Apply simple mode display settings if starting in simple mode
+    if config.get("interface_mode", "advanced") == "simple":
+        config.set("show_drift", False)
+        config.set("show_topics", False)
+        config.set("debug", False)
+    
     # Set up any other environment needs
     # Note: clear_on_start config option is now deprecated as we always clear
 

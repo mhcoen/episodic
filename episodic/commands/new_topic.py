@@ -11,7 +11,7 @@ from datetime import datetime
 from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color
 from episodic.conversation import conversation_manager
-from episodic.db import save_node, get_recent_topics, save_topic
+from episodic.db import insert_node, get_recent_topics, store_topic
 
 
 def new_command(topic_name: Optional[str] = None):
@@ -51,14 +51,14 @@ def new_command(topic_name: Optional[str] = None):
             'cost': 0.0
         }
         
-        system_node_id = save_node(node_data)
+        system_node_id = insert_node(node_data)
         conversation_manager.update_head(system_node_id)
         
         # Create the new topic starting after the system message
         # The topic will officially start with the user's next message
         if topic_name:
             # Pre-create the topic with the given name
-            save_topic(topic_name, system_node_id, None)
+            store_topic(topic_name, system_node_id, None)
             typer.secho(f"\n🆕 Started new topic: {topic_name}", fg=get_system_color(), bold=True)
         else:
             typer.secho("\n🆕 Started fresh conversation", fg=get_system_color(), bold=True)

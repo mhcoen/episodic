@@ -4,7 +4,7 @@ Interface mode commands for switching between simple and advanced modes.
 
 import typer
 from episodic.config import config
-from episodic.configuration import get_system_color, get_text_color
+from episodic.configuration import get_system_color, get_text_color, get_heading_color
 
 
 def simple_mode_command():
@@ -16,29 +16,49 @@ def simple_mode_command():
     config.set("show_topics", False)
     config.set("debug", False)
     
-    typer.secho("\n🎯 Simple Mode Activated", fg=get_system_color(), bold=True)
-    typer.secho("─" * 50, fg=get_system_color())
+    typer.secho("\n✨ Simple Mode", fg=get_system_color(), bold=True)
+    typer.secho("Everything you need, nothing you don't.\n", fg=get_text_color())
+    
+    # Conversation commands
+    typer.secho("💬 Conversation", fg=get_heading_color(), bold=True)
+    typer.secho("   /chat   ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Normal conversation mode", fg=get_text_color())
+    typer.secho("   /muse   ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Web-enhanced mode (like Perplexity)", fg=get_text_color())
+    typer.secho("   /new    ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Start a fresh topic", fg=get_text_color())
     typer.echo()
     
-    # Show grouped commands
-    typer.secho("💬 Conversation:", fg=get_text_color(), bold=True)
-    typer.secho("   /chat   - Normal mode  |  /muse - Web search  |  /new - Fresh topic", fg=get_text_color())
+    # File commands
+    typer.secho("📁 Files", fg=get_heading_color(), bold=True)
+    typer.secho("   /save   ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Save current topic", fg=get_text_color())
+    typer.secho("   /load   ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Load a conversation", fg=get_text_color())
+    typer.secho("   /files  ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("List saved conversations", fg=get_text_color())
     typer.echo()
     
-    typer.secho("📁 Files:", fg=get_text_color(), bold=True)
-    typer.secho("   /save   - Save topic   |  /load - Load file   |  /files - List saved", fg=get_text_color())
+    # Style commands
+    typer.secho("✨ Style", fg=get_heading_color(), bold=True)
+    typer.secho("   /style  ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Response length (concise/standard/comprehensive)", fg=get_text_color())
+    typer.secho("   /format ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Response format (paragraph/bullet-points)", fg=get_text_color())
     typer.echo()
     
-    typer.secho("✨ Style:", fg=get_text_color(), bold=True)
-    typer.secho("   /style  - Response length  |  /format - Response format", fg=get_text_color())
+    # System commands
+    typer.secho("⚙️  System", fg=get_heading_color(), bold=True)
+    typer.secho("   /help   ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Show this help", fg=get_text_color())
+    typer.secho("   /exit   ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Leave Episodic", fg=get_text_color())
     typer.echo()
     
-    typer.secho("⚙️  System:", fg=get_text_color(), bold=True)
-    typer.secho("   /help   - Show commands    |  /exit - Leave", fg=get_text_color())
-    typer.echo()
-    
-    typer.secho("Advanced features hidden. Type /advanced to access all commands.", fg=get_text_color())
-    typer.secho("Tab completion now shows only simple mode commands.", fg=get_text_color(), dim=True)
+    typer.secho("──────────────────────────────────────────────────", fg=get_system_color(), dim=True)
+    typer.secho("💡 Type ", fg=get_text_color(), nl=False)
+    typer.secho("/advanced", fg=get_system_color(), bold=True, nl=False)
+    typer.secho(" to access all 50+ commands", fg=get_text_color())
 
 
 def advanced_mode_command():

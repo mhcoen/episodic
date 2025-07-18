@@ -60,7 +60,7 @@ def handle_command(command_str: str) -> bool:
     # In simple mode, restrict to allowed commands
     if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands():
         typer.secho(f"Command {cmd} is not available in simple mode.", fg="red")
-        typer.secho("Available commands: /chat, /muse, /save, /load, /files, /help, /exit", fg="yellow")
+        typer.secho("Available commands: /chat, /muse, /new, /save, /load, /files, /help, /exit", fg="yellow")
         typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
         return False
     
@@ -118,6 +118,10 @@ def handle_command(command_str: str) -> bool:
             _handle_save_new(args)
         elif cmd == "/load":
             _handle_load(args)
+        elif cmd == "/new":
+            _handle_new(args)
+        elif cmd == "/clear":
+            _handle_clear()
         elif cmd == "/simple":
             _handle_simple()
         elif cmd == "/advanced":
@@ -771,3 +775,20 @@ def _handle_advanced():
     """Handle /advanced command."""
     from episodic.commands.interface_mode import advanced_mode_command
     advanced_mode_command()
+
+
+def _handle_new(args: List[str]):
+    """Handle /new command."""
+    from episodic.commands.new_topic import new_command
+    
+    if args:
+        topic_name = " ".join(args)
+        new_command(topic_name)
+    else:
+        new_command()
+
+
+def _handle_clear():
+    """Handle /clear command."""
+    from episodic.commands.new_topic import clear_command
+    clear_command()

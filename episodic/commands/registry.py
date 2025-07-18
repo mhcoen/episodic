@@ -122,6 +122,9 @@ def register_all_commands():
     # Import interface mode commands
     from episodic.commands.interface_mode import simple_mode_command, advanced_mode_command
     
+    # Import new topic command
+    from episodic.commands.new_topic import new_command, clear_command
+    
     # Import style and format commands
     from episodic.commands.style import handle_style, handle_format
     
@@ -198,9 +201,11 @@ def register_all_commands():
     command_registry.register("save", save_command, "Save conversation to markdown file", "Conversation")
     command_registry.register("load", load_command, "Load conversation from markdown file", "Conversation")
     command_registry.register("files", files_command, "List saved conversations", "Conversation")
+    command_registry.register("new", new_command, "Start a fresh topic/conversation", "Conversation")
+    command_registry.register("clear", clear_command, "Clear context and start fresh (alias for /new)", "Conversation")
     
     # Register interface mode switching commands
-    command_registry.register("simple", simple_mode_command, "Switch to simple mode (7 essential commands)", "Configuration")
+    command_registry.register("simple", simple_mode_command, "Switch to simple mode (8 essential commands)", "Configuration")
     command_registry.register("advanced", advanced_mode_command, "Switch to advanced mode (all commands)", "Configuration")
     
     # Register RAG commands with lazy loading wrappers

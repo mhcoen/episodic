@@ -161,7 +161,7 @@ def _display_aligned_commands(commands_and_descriptions, max_width=None):
         typer.secho(f" ", nl=False)
         typer.secho(f"{cmd}", bold=True, nl=False)
         typer.echo(padding, nl=False)
-        typer.secho(wrapped_lines[0], fg="cyan")
+        typer.secho(wrapped_lines[0], fg="cyan", nl=True)
         
         # Display continuation lines if any
         if len(wrapped_lines) > 1:

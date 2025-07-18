@@ -11,6 +11,11 @@ def simple_mode_command():
     """Switch to simple mode with just essential commands."""
     config.set("interface_mode", "simple")
     
+    # Disable technical output in simple mode
+    config.set("show_drift", False)
+    config.set("show_topics", False)
+    config.set("debug", False)
+    
     typer.secho("\n🎯 Simple Mode Activated", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())
     typer.echo()
@@ -39,6 +44,11 @@ def simple_mode_command():
 def advanced_mode_command():
     """Switch to advanced mode with all commands available."""
     config.set("interface_mode", "advanced")
+    
+    # Re-enable technical output in advanced mode (restore defaults)
+    config.set("show_drift", True)
+    config.set("show_topics", False)  # Keep topics off by default
+    # Don't change debug - let user control that
     
     typer.secho("\n🔓 Advanced Mode Activated", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())

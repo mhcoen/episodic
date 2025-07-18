@@ -205,7 +205,7 @@ def register_all_commands():
     command_registry.register("clear", clear_command, "Clear context and start fresh (alias for /new)", "Conversation")
     
     # Register interface mode switching commands
-    command_registry.register("simple", simple_mode_command, "Switch to simple mode (8 essential commands)", "Configuration")
+    command_registry.register("simple", simple_mode_command, "Switch to simple mode (10 essential commands)", "Configuration")
     command_registry.register("advanced", advanced_mode_command, "Switch to advanced mode (all commands)", "Configuration")
     
     # Register RAG commands with lazy loading wrappers

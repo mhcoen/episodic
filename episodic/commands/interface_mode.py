@@ -13,7 +13,7 @@ def simple_mode_command():
     
     typer.secho("\n🎯 Simple Mode Activated", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())
-    typer.secho("Just the essentials - 8 commands to get things done:", fg=get_text_color())
+    typer.secho("Just the essentials - 10 commands to get things done:", fg=get_text_color())
     typer.echo()
     
     commands = [
@@ -23,6 +23,8 @@ def simple_mode_command():
         ("/save", "Save current topic"),
         ("/load", "Load conversation"),
         ("/files", "List saved conversations"),
+        ("/style", "Set response length (concise/standard/comprehensive)"),
+        ("/format", "Set response format (paragraph/bullet-points)"),
         ("/help", "Show commands"),
         ("/exit", "Leave Episodic"),
     ]
@@ -57,5 +59,5 @@ def get_simple_mode_commands() -> set:
     """Get the set of commands available in simple mode."""
     return {
         "chat", "muse", "save", "load", "files", "new",
-        "help", "exit", "quit", "simple", "advanced"
+        "style", "format", "help", "exit", "quit", "simple", "advanced"
     }

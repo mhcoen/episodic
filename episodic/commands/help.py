@@ -217,6 +217,12 @@ def help(advanced: bool = False, query: Optional[str] = None):
             
         # Handle "/help all" to show all commands
         if query_lower == "all":
+            # Check if we're in simple mode
+            from episodic.commands.interface_mode import is_simple_mode
+            if is_simple_mode():
+                typer.secho("Advanced help is not available in simple mode.", fg="red")
+                typer.secho("Type /advanced to switch to advanced mode first.", fg="yellow")
+                return
             show_commands_help(advanced=True)
             return
         

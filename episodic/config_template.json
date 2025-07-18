@@ -181,6 +181,8 @@
   "enable_tab_completion": true,
   "_comment_interface_mode": "Interface mode: simple (7 commands) or advanced (all commands)",
   "interface_mode": "advanced",
+  "_comment_use_llm_filenames": "Use LLM to generate descriptive filenames when saving conversations",
+  "use_llm_filenames": true,
   
   "_comment_rag": "// === RAG (RETRIEVAL AUGMENTED GENERATION) ===",
   "_comment_rag_enabled": "Enable RAG for enhanced responses with external knowledge",

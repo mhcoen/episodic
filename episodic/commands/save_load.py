@@ -14,7 +14,63 @@ from pathlib import Path
 from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color
 from episodic.markdown_export import export_topics_to_markdown
-from episodic.db import get_recent_topics, get_head
+from episodic.db import get_recent_topics, get_head, get_recent_messages
+from episodic.llm import query_llm
+
+
+def generate_filename_with_llm(topics: list, recent_messages: list) -> Optional[str]:
+    """
+    Use an instruct LLM to generate a descriptive filename based on conversation content.
+    Returns None if generation fails.
+    """
+    try:
+        # Get the topic detection model (fast and cheap)
+        model = config.get("topic_detection_model", "huggingface/tiiuae/falcon-7b-instruct")
+        
+        # Build a summary of the conversation
+        topic_names = [t['name'] for t in topics if t['name'] != "ongoing-discussion"][:3]
+        
+        # Get last few messages for context
+        context_messages = []
+        for msg in recent_messages[-6:]:  # Last 6 messages
+            if msg['node_type'] == 'user':
+                context_messages.append(f"User: {msg['content'][:100]}...")
+        
+        prompt = f"""Generate a short, descriptive filename (2-4 words) for a conversation about these topics:
+Topics: {', '.join(topic_names) if topic_names else 'general discussion'}
+Recent questions: {' '.join(context_messages[-3:]) if context_messages else 'various topics'}
+
+Rules:
+- Use only letters, numbers, and hyphens
+- Make it descriptive but concise
+- No dates or timestamps
+- Lowercase only
+- Example good filenames: quantum-physics-basics, recipe-collection, travel-planning
+
+Filename:"""
+
+        response = query_llm(
+            prompt,
+            model=model,
+            temperature=0.3,
+            max_tokens=20,
+            system_prompt="You are a helpful assistant that generates concise, descriptive filenames."
+        )
+        
+        # Clean the response
+        filename = response.strip().lower()
+        filename = filename.replace(' ', '-').replace('_', '-')
+        filename = ''.join(c for c in filename if c.isalnum() or c == '-')
+        
+        # Validate it's reasonable
+        if 2 <= len(filename) <= 50 and filename[0].isalnum():
+            return filename
+            
+    except Exception as e:
+        if config.get("debug"):
+            typer.secho(f"Could not generate filename with LLM: {e}", fg="yellow")
+    
+    return None
 
 
 def save_command(filename: Optional[str] = None):
@@ -39,11 +95,24 @@ def save_command(filename: Optional[str] = None):
     
     # Generate filename if not provided
     if not filename:
-        # Create filename from topic and timestamp
-        safe_topic = current_topic_name.lower().replace(' ', '-').replace('_', '-')
-        safe_topic = ''.join(c for c in safe_topic if c.isalnum() or c == '-')
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M")
-        filename = f"{safe_topic}-{timestamp}"
+        # Try to use LLM to generate a descriptive filename
+        generated_filename = None
+        if config.get("use_llm_filenames", True):  # New config option
+            recent_messages = get_recent_messages(limit=10)
+            generated_filename = generate_filename_with_llm(topics, recent_messages)
+            
+            if generated_filename:
+                # Add a short timestamp to ensure uniqueness
+                timestamp = datetime.now().strftime("%H%M")
+                filename = f"{generated_filename}-{timestamp}"
+                typer.secho(f"Generated filename: {generated_filename}", fg=get_text_color(), dim=True)
+        
+        # Fall back to topic-based naming if LLM fails or is disabled
+        if not filename:
+            safe_topic = current_topic_name.lower().replace(' ', '-').replace('_', '-')
+            safe_topic = ''.join(c for c in safe_topic if c.isalnum() or c == '-')
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+            filename = f"{safe_topic}-{timestamp}"
     
     # Clean up filename
     filename = filename.strip()

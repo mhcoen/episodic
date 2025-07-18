@@ -14,7 +14,7 @@ from pathlib import Path
 from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color
 from episodic.markdown_export import export_topics_to_markdown
-from episodic.db import get_recent_topics, get_head, get_recent_messages
+from episodic.db import get_recent_topics, get_head, get_recent_nodes
 from episodic.llm import query_llm
 
 
@@ -73,6 +73,8 @@ Filename:"""
     return None
 
 
+
+
 def save_command(filename: Optional[str] = None):
     """
     Save the current conversation to a markdown file.
@@ -81,6 +83,9 @@ def save_command(filename: Optional[str] = None):
         /save                  # Auto-generate filename from current topic
         /save my-chat          # Save as my-chat.md
         /save "Project Notes"  # Save as project-notes.md
+        
+    Note: Currently exports all topics. Future enhancement will save only
+    topics since the last /new command for session-based workflows.
     """
     # Get current topic for auto-naming
     topics = get_recent_topics(limit=50)
@@ -98,7 +103,7 @@ def save_command(filename: Optional[str] = None):
         # Try to use LLM to generate a descriptive filename
         generated_filename = None
         if config.get("use_llm_filenames", True):  # New config option
-            recent_messages = get_recent_messages(limit=10)
+            recent_messages = get_recent_nodes(limit=10)
             generated_filename = generate_filename_with_llm(topics, recent_messages)
             
             if generated_filename:
@@ -134,7 +139,7 @@ def save_command(filename: Optional[str] = None):
     
     try:
         # Export all topics in the conversation
-        # Use "all" to export all topics
+        # TODO: Future enhancement - export only since last /new command
         export_topics_to_markdown("all", str(filepath))
         
         # Get file stats for display

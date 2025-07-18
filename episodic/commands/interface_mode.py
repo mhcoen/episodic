@@ -16,6 +16,10 @@ def simple_mode_command():
     config.set("show_topics", False)
     config.set("debug", False)
     
+    # Persist only the interface_mode setting
+    config.config["interface_mode"] = "simple"
+    config._save()
+    
     typer.secho("\n✨ Simple Mode", fg=get_system_color(), bold=True)
     typer.secho("Everything you need, nothing you don't.\n", fg=get_text_color())
     
@@ -69,6 +73,10 @@ def advanced_mode_command():
     config.set("show_drift", True)
     config.set("show_topics", False)  # Keep topics off by default
     # Don't change debug - let user control that
+    
+    # Persist only the interface_mode setting
+    config.config["interface_mode"] = "advanced"
+    config._save()
     
     typer.secho("\n🔓 Advanced Mode Activated", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())

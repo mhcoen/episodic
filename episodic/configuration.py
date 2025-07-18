@@ -49,6 +49,55 @@ COLOR_SCHEMES = {
         "prompt": "BLUE",                   # Prompt symbol color
         "text": "BLACK",                    # General text (labels, etc)
         "heading": "BRIGHT_BLUE"            # Section headings - changed to bright blue for better visibility
+    },
+    "gemini": {
+        "llm_response": "BRIGHT_BLUE",      # Gemini-inspired blue for AI responses
+        "system_info": "BRIGHT_CYAN",       # Bright cyan for system messages
+        "prompt": "BRIGHT_GREEN",           # Bright green prompt
+        "text": "WHITE",                    # White text
+        "heading": "BRIGHT_CYAN"            # Cyan headings for tech feel
+    },
+    "solarized_dark": {
+        "llm_response": "CYAN",             # Solarized cyan
+        "system_info": "BLUE",              # Solarized blue
+        "prompt": "GREEN",                  # Solarized green
+        "text": "WHITE",                    # Base0
+        "heading": "YELLOW"                 # Solarized yellow
+    },
+    "solarized_light": {
+        "llm_response": "CYAN",             # Solarized cyan
+        "system_info": "BLUE",              # Solarized blue
+        "prompt": "GREEN",                  # Solarized green
+        "text": "BLACK",                    # Base00
+        "heading": "YELLOW"                 # Solarized yellow
+    },
+    "monokai": {
+        "llm_response": "WHITE",            # White for main text
+        "system_info": "CYAN",              # Cyan for system
+        "prompt": "GREEN",                  # Green prompt
+        "text": "WHITE",                    # White text
+        "heading": "YELLOW"                 # Yellow headings
+    },
+    "dracula": {
+        "llm_response": "WHITE",            # Foreground white
+        "system_info": "CYAN",              # Dracula cyan
+        "prompt": "GREEN",                  # Dracula green
+        "text": "WHITE",                    # Foreground
+        "heading": "BRIGHT_MAGENTA"         # Dracula pink
+    },
+    "nord": {
+        "llm_response": "BRIGHT_CYAN",      # Nord8 - bright cyan
+        "system_info": "CYAN",              # Nord7 - cyan
+        "prompt": "GREEN",                  # Nord14 - green
+        "text": "WHITE",                    # Snow storm
+        "heading": "BRIGHT_BLUE"            # Nord9 - bright blue
+    },
+    "gruvbox": {
+        "llm_response": "BRIGHT_YELLOW",    # Gruvbox yellow
+        "system_info": "CYAN",              # Gruvbox aqua
+        "prompt": "GREEN",                  # Gruvbox green
+        "text": "WHITE",                    # Light
+        "heading": "YELLOW"                 # Gruvbox yellow
     }
 }
 

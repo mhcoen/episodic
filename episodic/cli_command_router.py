@@ -86,6 +86,8 @@ def handle_command(command_str: str) -> bool:
             _handle_style(args)
         elif cmd == "/format":
             _handle_format(args)
+        elif cmd == "/theme":
+            _handle_theme(args)
         elif cmd == "/set":
             _handle_set(args)
         elif cmd == "/reset":
@@ -292,6 +294,15 @@ def _handle_format(args: List[str]):
     """Handle /format command."""
     from episodic.commands.style import handle_format
     handle_format(args)
+
+
+def _handle_theme(args: List[str]):
+    """Handle /theme command."""
+    from episodic.commands.theme import theme_command
+    if args:
+        theme_command(args[0])
+    else:
+        theme_command()
 
 
 def _handle_set(args: List[str]):

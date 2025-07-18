@@ -98,6 +98,12 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_file_path(full_cmd, parts, word_before_cursor)
             elif full_cmd == 'save':
                 yield from self._complete_save_command(parts, word_before_cursor)
+            elif full_cmd == 'style':
+                yield from self._complete_style_command(parts, word_before_cursor)
+            elif full_cmd == 'format':
+                yield from self._complete_format_command(parts, word_before_cursor)
+            elif full_cmd == 'theme':
+                yield from self._complete_theme_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
@@ -368,4 +374,48 @@ class EpisodicCompleter(Completer):
                         suggestion,
                         start_position=-len(word),
                         display_meta='checkpoint name'
+                    )
+    
+    def _complete_style_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /style command arguments."""
+        if len(parts) == 2:
+            # Complete style options
+            styles = ['concise', 'standard', 'comprehensive', 'custom']
+            for style in styles:
+                if style.startswith(word.lower()):
+                    yield Completion(
+                        style,
+                        start_position=-len(word),
+                        display_meta='response style'
+                    )
+    
+    def _complete_format_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /format command arguments."""
+        if len(parts) == 2:
+            # Complete format options
+            formats = ['paragraph', 'bullet-points', 'mixed', 'academic']
+            for fmt in formats:
+                if fmt.startswith(word.lower()):
+                    yield Completion(
+                        fmt,
+                        start_position=-len(word),
+                        display_meta='response format'
+                    )
+    
+    def _complete_theme_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /theme command arguments."""
+        if len(parts) == 2:
+            # Import here to avoid circular imports
+            from episodic.configuration import COLOR_SCHEMES
+            
+            # Complete theme names
+            themes = list(COLOR_SCHEMES.keys())
+            themes.append('list')  # Add 'list' as an option
+            
+            for theme in themes:
+                if theme.startswith(word.lower()):
+                    yield Completion(
+                        theme,
+                        start_position=-len(word),
+                        display_meta='theme' if theme != 'list' else 'action'
                     )

@@ -128,6 +128,9 @@ def register_all_commands():
     # Import style and format commands
     from episodic.commands.style import handle_style, handle_format
     
+    # Import theme command
+    from episodic.commands.theme import theme_command
+    
     # Import unified commands
     from episodic.commands.unified_topics import topics_command
     from episodic.commands.unified_compression import compression_command
@@ -181,6 +184,7 @@ def register_all_commands():
     command_registry.register("mset", mset_command, "Set model parameters (e.g., mset chat.temperature 0.7)", "Configuration")
     command_registry.register("style", handle_style, "Set global response style (concise/standard/comprehensive/custom)", "Configuration")
     command_registry.register("format", handle_format, "Set global response format (paragraph/bullet-points/mixed/academic)", "Configuration")
+    command_registry.register("theme", theme_command, "Manage color themes", "Configuration")
     command_registry.register("prompt", prompts, "Manage system prompts", "Conversation", aliases=["prompts"])
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
     command_registry.register("muse", handle_muse, "Enable muse mode (web search synthesis)", "Conversation")

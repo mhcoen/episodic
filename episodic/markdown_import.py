@@ -108,8 +108,8 @@ def parse_topics(content: str) -> List[Dict]:
                 content_parts.append(next_line)
                 j += 1
             
-            # Update position
-            i = j - 1
+            # Update position to continue after the message
+            i = j
             
             # Create message
             content = '\n'.join(content_parts).strip()
@@ -118,6 +118,7 @@ def parse_topics(content: str) -> List[Dict]:
                     'role': role,
                     'content': content
                 })
+            continue  # Skip the i += 1 at the end
         
         i += 1
     

@@ -196,6 +196,139 @@ COLOR_SCHEMES = {
         "prompt": "GREEN",                  # Rose Pine pine
         "text": "WHITE",                    # Rose Pine text
         "heading": "BRIGHT_MAGENTA"         # Rose Pine rose
+    },
+    "github_dark": {
+        "llm_response": "BRIGHT_CYAN",      # GitHub dark cyan
+        "system_info": "BLUE",              # GitHub dark blue
+        "prompt": "GREEN",                  # GitHub dark green
+        "text": "WHITE",                    # GitHub dark text
+        "heading": "BRIGHT_BLUE"            # GitHub dark bright blue
+    },
+    "github_light": {
+        "llm_response": "BLUE",             # GitHub light blue
+        "system_info": "MAGENTA",           # GitHub light purple
+        "prompt": "GREEN",                  # GitHub light green
+        "text": "BLACK",                    # GitHub light text
+        "heading": "BLUE"                   # GitHub light blue
+    },
+    "vscode_dark": {
+        "llm_response": "CYAN",             # VS Code dark cyan
+        "system_info": "BRIGHT_BLUE",       # VS Code dark blue
+        "prompt": "GREEN",                  # VS Code dark green
+        "text": "WHITE",                    # VS Code dark foreground
+        "heading": "YELLOW"                 # VS Code dark yellow
+    },
+    "atom_one_light": {
+        "llm_response": "CYAN",             # Atom One Light cyan
+        "system_info": "MAGENTA",           # Atom One Light purple
+        "prompt": "GREEN",                  # Atom One Light green
+        "text": "BLACK",                    # Atom One Light text
+        "heading": "BLUE"                   # Atom One Light blue
+    },
+    "spacemacs": {
+        "llm_response": "BRIGHT_MAGENTA",   # Spacemacs purple
+        "system_info": "CYAN",              # Spacemacs cyan
+        "prompt": "GREEN",                  # Spacemacs green
+        "text": "WHITE",                    # Spacemacs foreground
+        "heading": "BRIGHT_YELLOW"          # Spacemacs yellow
+    },
+    "doom_one": {
+        "llm_response": "CYAN",             # Doom One cyan
+        "system_info": "BRIGHT_BLUE",       # Doom One blue
+        "prompt": "GREEN",                  # Doom One green
+        "text": "WHITE",                    # Doom One foreground
+        "heading": "BRIGHT_MAGENTA"         # Doom One magenta
+    },
+    "iceberg": {
+        "llm_response": "BRIGHT_CYAN",      # Iceberg cyan
+        "system_info": "BLUE",              # Iceberg blue
+        "prompt": "GREEN",                  # Iceberg green
+        "text": "WHITE",                    # Iceberg foreground
+        "heading": "BRIGHT_BLUE"            # Iceberg bright blue
+    },
+    "apprentice": {
+        "llm_response": "CYAN",             # Apprentice cyan
+        "system_info": "BRIGHT_CYAN",       # Apprentice bright cyan
+        "prompt": "GREEN",                  # Apprentice green
+        "text": "WHITE",                    # Apprentice foreground
+        "heading": "YELLOW"                 # Apprentice yellow
+    },
+    "papercolor_light": {
+        "llm_response": "CYAN",             # PaperColor light cyan
+        "system_info": "MAGENTA",           # PaperColor light magenta
+        "prompt": "GREEN",                  # PaperColor light green
+        "text": "BLACK",                    # PaperColor light foreground
+        "heading": "BLUE"                   # PaperColor light blue
+    },
+    "papercolor_dark": {
+        "llm_response": "BRIGHT_CYAN",      # PaperColor dark cyan
+        "system_info": "CYAN",              # PaperColor dark cyan
+        "prompt": "GREEN",                  # PaperColor dark green
+        "text": "WHITE",                    # PaperColor dark foreground
+        "heading": "BRIGHT_YELLOW"          # PaperColor dark yellow
+    },
+    "base16_default": {
+        "llm_response": "CYAN",             # Base16 cyan
+        "system_info": "BLUE",              # Base16 blue
+        "prompt": "GREEN",                  # Base16 green
+        "text": "WHITE",                    # Base16 foreground
+        "heading": "YELLOW"                 # Base16 yellow
+    },
+    "horizon": {
+        "llm_response": "BRIGHT_MAGENTA",   # Horizon pink
+        "system_info": "BRIGHT_CYAN",       # Horizon cyan
+        "prompt": "BRIGHT_RED",             # Horizon red
+        "text": "WHITE",                    # Horizon foreground
+        "heading": "BRIGHT_YELLOW"          # Horizon gold
+    },
+    "snazzy": {
+        "llm_response": "BRIGHT_CYAN",      # Snazzy cyan
+        "system_info": "BRIGHT_MAGENTA",    # Snazzy magenta
+        "prompt": "GREEN",                  # Snazzy green
+        "text": "WHITE",                    # Snazzy foreground
+        "heading": "BRIGHT_YELLOW"          # Snazzy yellow
+    },
+    "oceanic_next": {
+        "llm_response": "CYAN",             # Oceanic Next cyan
+        "system_info": "BRIGHT_CYAN",       # Oceanic Next bright cyan
+        "prompt": "GREEN",                  # Oceanic Next green
+        "text": "WHITE",                    # Oceanic Next foreground
+        "heading": "BRIGHT_YELLOW"          # Oceanic Next yellow
+    },
+    "city_lights": {
+        "llm_response": "BRIGHT_CYAN",      # City Lights cyan
+        "system_info": "BRIGHT_BLUE",       # City Lights blue
+        "prompt": "GREEN",                  # City Lights green
+        "text": "WHITE",                    # City Lights foreground
+        "heading": "BRIGHT_MAGENTA"         # City Lights pink
+    },
+    "moonlight": {
+        "llm_response": "BRIGHT_BLUE",      # Moonlight blue
+        "system_info": "CYAN",              # Moonlight cyan
+        "prompt": "GREEN",                  # Moonlight green
+        "text": "WHITE",                    # Moonlight foreground
+        "heading": "BRIGHT_MAGENTA"         # Moonlight purple
+    },
+    "darcula": {
+        "llm_response": "CYAN",             # Darcula cyan (IntelliJ theme)
+        "system_info": "BRIGHT_YELLOW",     # Darcula yellow
+        "prompt": "GREEN",                  # Darcula green
+        "text": "WHITE",                    # Darcula foreground
+        "heading": "BRIGHT_YELLOW"          # Darcula orange
+    },
+    "vim_dark": {
+        "llm_response": "CYAN",             # Vim default cyan
+        "system_info": "BRIGHT_BLUE",       # Vim default blue
+        "prompt": "GREEN",                  # Vim default green
+        "text": "WHITE",                    # Vim default white
+        "heading": "YELLOW"                 # Vim default yellow
+    },
+    "embark": {
+        "llm_response": "BRIGHT_CYAN",      # Embark cyan
+        "system_info": "BRIGHT_MAGENTA",    # Embark pink
+        "prompt": "GREEN",                  # Embark green
+        "text": "WHITE",                    # Embark foreground
+        "heading": "BRIGHT_YELLOW"          # Embark yellow
     }
 }
 

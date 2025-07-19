@@ -41,9 +41,9 @@ def display_welcome():
     # Check if we're in simple mode
     interface_mode = config.get("interface_mode", "advanced")
     if interface_mode == "simple":
-        typer.secho("Simple mode - Just start typing to chat or /help for commands.", fg=get_text_color())
+        typer.secho("Running in Simple mode.", fg=get_text_color())
     else:
-        typer.secho("Just start typing to chat or /help for commands.", fg=get_text_color())
+        typer.echo()  # Add blank line for better spacing
         typer.secho("💡 New to Episodic? Type /simple for a streamlined experience.", fg=get_text_color(), dim=True)
 
 def display_model_info():
@@ -105,7 +105,9 @@ def display_model_info():
         
         if current_topic:
             typer.secho(f"Current topic: {current_topic['name']}", fg=get_system_color())
-    
+
+    typer.echo()
+    typer.secho("Just start typing to chat or /help for commands.", fg=get_text_color())
     typer.echo()
 
 

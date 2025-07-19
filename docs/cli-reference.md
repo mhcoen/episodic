@@ -50,6 +50,20 @@ In Episodic's talk mode:
 - `Ctrl-D` - Exit immediately (EOF)
 - `Ctrl-C Ctrl-C` - Double Ctrl-C to exit from anywhere
 
+## Interface Mode Commands
+
+### /simple
+Switch to simple mode - streamlined interface with essential commands only
+```bash
+/simple            # Switch to simple mode
+```
+
+### /advanced
+Switch to advanced mode - full access to all 50+ commands
+```bash
+/advanced          # Switch to advanced mode
+```
+
 ## Navigation Commands
 
 ### /init

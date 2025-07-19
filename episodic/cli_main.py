@@ -113,7 +113,8 @@ def talk_loop() -> None:
     # Initialize the database state
     conversation_manager.initialize_conversation()
     
-    # Display model info
+    # Display model info with spacing
+    typer.echo()  # Add blank line for visual separation
     display_model_info()
     
     # Create prompt session with history file in ~/.episodic directory

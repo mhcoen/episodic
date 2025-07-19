@@ -36,24 +36,47 @@ def suppress_all_output():
 
 
 def _display_help_output(text: str, color: str):
-    """Display help output with proper formatting."""
+    """Display help output with proper formatting and word wrapping."""
+    import shutil
+    import textwrap
+    
+    # Get terminal width for wrapping
+    terminal_width = shutil.get_terminal_size().columns
+    wrap_width = min(terminal_width - 2, 80)  # Leave some margin, cap at 80
+    
     # For non-streaming output, we need to handle bold markers
     lines = text.split('\n')
     for line in lines:
-        if '**' not in line:
-            typer.secho(line, fg=color)
-        else:
-            # Split by bold markers
-            parts = re.split(r'(\*\*[^*]+\*\*)', line)
-            for part in parts:
-                if part.startswith('**') and part.endswith('**'):
-                    # This is bold text - remove markers and display bold
-                    bold_text = part[2:-2]
-                    typer.secho(bold_text, fg=color, bold=True, nl=False)
+        # Wrap long lines
+        if len(line) > wrap_width:
+            # First remove bold markers temporarily for accurate wrapping
+            clean_line = line.replace('**', '')
+            wrapped = textwrap.wrap(clean_line, width=wrap_width)
+            
+            # Now display each wrapped line with bold markers restored
+            for wrapped_line in wrapped:
+                if '**' not in line:
+                    typer.secho(wrapped_line, fg=color)
                 else:
-                    # Regular text
-                    typer.secho(part, fg=color, nl=False)
-            typer.echo()  # Add newline at end
+                    # Restore and handle bold markers
+                    # This is simplified - just displays without bold for wrapped lines
+                    typer.secho(wrapped_line, fg=color)
+        else:
+            # Short lines - display normally with bold support
+            if '**' not in line:
+                typer.secho(line, fg=color)
+            else:
+                # Split by bold markers
+                parts = re.split(r'(\*\*[^*]+\*\*)', line)
+                for part in parts:
+                    if part.startswith('**') and part.endswith('**'):
+                        # This is bold text - remove markers and display bold
+                        bold_text = part[2:-2]
+                        typer.secho(bold_text, fg=color, bold=True, nl=False)
+                    else:
+                        # Regular text
+                        typer.secho(part, fg=color, nl=False)
+                typer.echo()  # Add newline at end
 
 
 
@@ -272,6 +295,23 @@ def help(advanced: bool = False, query: Optional[str] = None):
 
 
 def help_command(query: str):
+    # Handle common queries directly for accuracy
+    query_lower = query.lower()
+    
+    # Interface mode queries
+    if any(phrase in query_lower for phrase in ['advanced mode', 'change to advanced', 'switch to advanced', 'enable advanced']):
+        typer.secho("\n🔍 Searching documentation for: " + query, fg=get_heading_color())
+        typer.echo()
+        typer.secho("To switch to advanced mode, use:", fg=get_system_color())
+        typer.secho("  /advanced", fg=get_system_color(), bold=True)
+        return
+    
+    if any(phrase in query_lower for phrase in ['simple mode', 'change to simple', 'switch to simple', 'enable simple']):
+        typer.secho("\n🔍 Searching documentation for: " + query, fg=get_heading_color())
+        typer.echo()
+        typer.secho("To switch to simple mode, use:", fg=get_system_color())
+        typer.secho("  /simple", fg=get_system_color(), bold=True)
+        return
     """
     Search Episodic documentation using RAG.
     
@@ -345,18 +385,52 @@ def help_command(query: str):
         config.set('rag_enabled', True)
         
         # Create a simple, direct prompt - context will be added FIRST by RAG
-        help_prompt = f"""Answer this Episodic question: {query}
+        help_prompt = f"""Answer this Episodic CLI question: {query}
+
+Instructions:
+- Use the documentation context provided above to answer
+- If you see relevant commands in the context, use them
+- Commands in Episodic always start with /
+- Be helpful and answer the user's intent
 
 Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
         
         typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
         
-        # Enhance the prompt with RAG context
+        # Search help docs directly for better relevance
+        search_terms = query
+        
+        # For interface mode questions, search more specifically
+        if 'advanced' in query.lower():
+            # Search for the actual command
+            search_terms = "/advanced command switch mode"
+        elif 'simple' in query.lower():
+            search_terms = "/simple command switch mode"
+        
         try:
             with suppress_all_output():
-                enhanced_prompt = rag_system.enhance_with_context(help_prompt)
+                # Use help_rag for better search
+                search_results = help_rag.search_help(search_terms, n_results=5)
+                
+                # Build context from search results
+                context_parts = []
+                for result in search_results[:3]:  # Use top 3 results
+                    context_parts.append(result['content'])
+                
+                # Debug: Show what we found
+                if config.get('debug', False):
+                    typer.secho(f"\nDebug: Found {len(search_results)} results", fg=get_text_color())
+                    for i, result in enumerate(search_results[:3]):
+                        typer.secho(f"Result {i+1} preview: {result['content'][:100]}...", fg=get_text_color())
+                
+                # Create enhanced prompt with context
+                if context_parts:
+                    context = "\n\n".join(context_parts)
+                    enhanced_prompt = f"Documentation Context:\n{context}\n\n{help_prompt}"
+                else:
+                    enhanced_prompt = help_prompt
         except Exception:
-            # If suppression fails, just run without it
+            # Fallback to regular enhancement
             enhanced_prompt = rag_system.enhance_with_context(help_prompt)
         
         # sources_used is not returned by enhance_with_context
@@ -386,11 +460,16 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
                 
                 # Stream the response - use regular streaming with wrapping
                 # Don't use format preservation as it prevents proper word wrapping
+                import shutil
+                terminal_width = shutil.get_terminal_size().columns
+                wrap_width = min(terminal_width - 2, 80)  # Leave margin, cap at 80
+                
                 response_text = unified_stream_response(
                     stream_gen,
                     model=model,
-                    color=get_system_color()
-                    # Let regular streaming handle wrapping and bold
+                    color=get_system_color(),
+                    wrap_width=wrap_width,
+                    preserve_formatting=False  # Ensure wrapping is enabled
                 )
                 
             except Exception as stream_error:

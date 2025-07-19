@@ -72,6 +72,10 @@ def apply_theme(theme_name: str):
 
 def list_themes():
     """List all available themes with color samples."""
+    # Define light themes
+    light_themes = {'light', 'solarized_light', 'github_light', 
+                   'atom_one_light', 'papercolor_light'}
+    
     typer.secho("\nAvailable themes:", fg=get_heading_color(), bold=True)
     typer.echo()
     
@@ -80,11 +84,12 @@ def list_themes():
         original = config.get("color_mode")
         config.set("color_mode", theme_name)
         
-        # Show theme name and sample colors
-        typer.secho(f"  {theme_name:<15}", bold=True, nl=False)
+        # Show theme name with L/D label - fixed width for alignment
+        theme_label = f"{theme_name} (L)" if theme_name in light_themes else f"{theme_name} (D)"
+        typer.secho(f"  {theme_label:<22}", bold=True, nl=False)
         
         # Show color dots
-        typer.secho("  ●", fg=get_text_color(), nl=False)
+        typer.secho(" ●", fg=get_text_color(), nl=False)
         typer.secho(" ●", fg=get_system_color(), nl=False)
         typer.secho(" ●", fg=get_llm_color(), nl=False)
         typer.secho(" ●", fg=get_heading_color(), nl=False)
@@ -129,6 +134,12 @@ class ThemeSelector:
     def __init__(self):
         self.themes = list(COLOR_SCHEMES.keys())
         self.original_theme = config.get("color_mode", "dark")
+        
+        # Define which themes are light vs dark
+        self.light_themes = {
+            'light', 'solarized_light', 'github_light', 
+            'atom_one_light', 'papercolor_light'
+        }
         # Start at current theme
         try:
             self.current_index = self.themes.index(self.original_theme)
@@ -157,7 +168,7 @@ class ThemeSelector:
         self.move_cursor(start_row, 2)
         print(f"{blue}Select a theme:{reset}")
         self.move_cursor(start_row + 1, 2)
-        print(f"{blue}{'─' * 18}{reset}")
+        print(f"{blue}{'─' * 21}{reset}")
         
         # Calculate visible range
         visible_start = self.scroll_offset
@@ -175,20 +186,23 @@ class ThemeSelector:
         visible_count = visible_end - visible_start
         for i, idx in enumerate(range(visible_start, visible_end)):
             theme = self.themes[idx]
+            # Add L/D label
+            theme_label = f"{theme} (L)" if theme in self.light_themes else f"{theme} (D)"
+            
             row = list_start + i
             self.move_cursor(row, 2)
             
             if idx == self.current_index:
                 # Highlight selected theme (white on blue)
-                print(f"\033[1;44;37m▶ {theme:<15}\033[0m   ")  # Bold + blue bg + white fg
+                print(f"\033[1;44;37m▶ {theme_label:<18}\033[0m   ")  # Bold + blue bg + white fg
             else:
-                print(f"{blue}  {theme:<15}{reset}   ")  # Blue text + extra spaces to clear any artifacts
+                print(f"{blue}  {theme_label:<18}{reset}   ")  # Blue text + extra spaces to clear any artifacts
         
         # Clear any remaining lines if we're showing fewer themes
         for i in range(visible_count, self.visible_items):
             row = list_start + i
             self.move_cursor(row, 2)
-            print(" " * 20)  # Clear the line
+            print(" " * 23)  # Clear the line
         
         # Show bottom scroll indicator if needed (after the themes, not on them)
         bottom_indicator_row = list_start + self.visible_items

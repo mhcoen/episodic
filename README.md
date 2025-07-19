@@ -2,18 +2,24 @@
 
 A conversational memory system that creates persistent, navigable conversations with Large Language Models (LLMs). Episodic automatically organizes conversations into topics, manages context windows, and provides tools for searching both local knowledge and the web.
 
+- Episodic is unique in offering a straightforward *simple* mode, which lets them chat and intelligently search the web. This mode hides Episodic's complexity and configuration but lets users take advantage of its advanced capabilities. Simple mode handles all details of enabling chatting and searching the web. It automatically organizes conversations by topic, detects subject changes, and keeps conversational records and summaries. Conversations are easily accessible in common *markdown files*, which Episodic can both read and write.
+
+- Episodic has also has an *advanced* mode, which is well suited to developers, academics, researchers, and anyone interested in experimenting with LLM-based applications. This unlocks a comprehensive suite of commands for multi-model orchestration, RAG, semantic detection models, prompt engineering, performance benchmarking, cost analyses, and fine-grained system control.
+
+Users can happily remain entirely within the *simple* mode, which makes use of free systems to provide advanced capabilities. Researchers can use *advanced* mode to quickly gain access to rich computational tools and models of conversation.
+
 ## Motivation
 I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It has since become my preferred daily interface and framework for both routine LLM use and developing new capabilities based on them.
 
 ## ✨ Features
 
 - **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
-- **🎭 Muse Mode** - Perplexity-like web search with multiple providers (DuckDuckGo, Google, Bing, Brave, Searx)
+- **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **🗄️ Persistent Memory** - Automatic topic detection and context management
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
-- **🎨 Rich CLI** - Streaming responses, colors, tab completion
+- **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
 ## 🚀 Quick Start
 
@@ -311,7 +317,7 @@ Fine-tune model behavior across four contexts with `/mset`:
 
 ```
 ⚙️  Model Parameters:
-──────────────────────────────────────────────────────────────────────
+───────────────────��──────────────────────────────────────────────────
 Parameter            Chat     Detection Compression Synthesis  
 ──────────────────────────────────────────────────────────────────────
 temperature           0.7        0.0        0.3        0.3     
@@ -525,4 +531,3 @@ GitHub: [@mhcoen](https://github.com/mhcoen)
 ---
 
 *Episodic: AI that remembers the conversation.*
-

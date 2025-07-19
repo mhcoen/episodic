@@ -481,8 +481,8 @@ class EpisodicRAG:
         context_parts.append("\n### User Query ###")
         context_parts.append(message)
         
-        # Record retrieval for analytics
-        if used_doc_ids:
+        # Record retrieval for analytics (skip for help RAG)
+        if used_doc_ids and not getattr(self, '_is_help_rag', False):
             record_retrieval(message, used_doc_ids, chunk_texts)
         
         return "\n".join(context_parts)

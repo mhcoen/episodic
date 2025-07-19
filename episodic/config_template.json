@@ -267,6 +267,8 @@
   "muse_model": null,
   "_comment_synthesis_model": "Model to use for web search synthesis (instruct models recommended)",
   "synthesis_model": "huggingface/tiiuae/falcon-7b-instruct",
+  "_comment_muse_context_depth": "Number of previous messages to include as context in muse mode",
+  "muse_context_depth": 5,
   
   "_comment_providers": "// === SEARCH PROVIDER SETTINGS ===",
   "_comment_searx_instance_url": "Searx instance URL (can be self-hosted for privacy)",

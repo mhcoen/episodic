@@ -457,6 +457,12 @@ class ConversationManager:
             
             # Check if we're in muse mode and have web context
             if config.get("muse_mode") and web_context:
+                # Debug: print conversation history
+                if config.get("debug"):
+                    debug_print(f"Muse mode: passing {len(messages)} messages to synthesis")
+                    for i, msg in enumerate(messages):
+                        debug_print(f"  Message {i}: {msg['role']} - {msg['content'][:50]}...")
+                
                 # Use web synthesis for muse mode
                 full_response = synthesize_web_response(
                     query=user_input,

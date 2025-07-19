@@ -47,7 +47,7 @@ CONFIG_DOCS = {
     "show_drift": "Show semantic drift scores in topic detection",
     "muse_mode": "Muse mode: treat all input as web search queries (like Perplexity)",
     "response_style": "Global response style for all modes: concise, standard, comprehensive, custom",
-    "response_format": "Global response format for all modes: paragraph, bullet-points, mixed, academic",
+    "response_format": "Global response format for all modes: paragraph, bulleted, mixed, academic",
     
     # Topic detection
     "automatic_topic_detection": "Enable automatic topic detection during conversations",

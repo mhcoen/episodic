@@ -488,7 +488,7 @@ The listing shows:
 # Global response format (affects presentation structure)
 /format                      # Show current format
 /format paragraph            # Flowing prose with markdown headers
-/format bullet-points        # Bullet points and lists
+/format bulleted             # Bullet points and lists
 /format mixed                # Mix of paragraphs and bullet points
 /format academic             # Formal academic style with citations
 ```

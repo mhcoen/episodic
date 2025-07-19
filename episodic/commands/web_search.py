@@ -404,7 +404,7 @@ def websearch_synthesis():
     
     formats = [
         ('paragraph', 'Flowing prose in paragraphs', current_format == 'paragraph'),
-        ('bullet-points', 'Structured lists throughout', current_format == 'bullet-points'),
+        ('bulleted', 'Structured lists throughout', current_format == 'bulleted'),
         ('mixed', 'Automatic based on content', current_format == 'mixed'),
         ('academic', 'Formal style with citations', current_format == 'academic')
     ]

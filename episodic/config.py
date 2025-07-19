@@ -140,8 +140,8 @@ class Config:
             raise ValueError(f"Invalid synthesis style: {value}. Must be one of: concise, standard, comprehensive, exhaustive")
         elif key == 'muse_detail' and value not in ['minimal', 'moderate', 'detailed', 'maximum']:
             raise ValueError(f"Invalid synthesis detail: {value}. Must be one of: minimal, moderate, detailed, maximum")
-        elif key == 'muse_format' and value not in ['paragraph', 'bullet-points', 'mixed', 'academic']:
-            raise ValueError(f"Invalid synthesis format: {value}. Must be one of: paragraph, bullet-points, mixed, academic")
+        elif key == 'muse_format' and value not in ['paragraph', 'bulleted', 'mixed', 'academic']:
+            raise ValueError(f"Invalid synthesis format: {value}. Must be one of: paragraph, bulleted, mixed, academic")
         elif key == 'muse_sources' and value not in ['first-only', 'top-three', 'all-relevant', 'selective']:
             raise ValueError(f"Invalid synthesis sources: {value}. Must be one of: first-only, top-three, all-relevant, selective")
         elif key == 'muse_max_tokens' and value is not None:

@@ -228,7 +228,7 @@ Answer:"""
         """Get additional requirements based on configuration."""
         requirements = []
         
-        if self.format == 'bullet-points':
+        if self.format == 'bulleted':
             requirements.append("- Use bullet points with format: • **Label**: Information")
         elif self.format == 'academic':
             requirements.append("- Include citations in format [Source N] after claims")

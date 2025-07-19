@@ -393,7 +393,7 @@ class EpisodicCompleter(Completer):
         """Complete /format command arguments."""
         if len(parts) == 2:
             # Complete format options
-            formats = ['paragraph', 'bullet-points', 'mixed', 'academic']
+            formats = ['paragraph', 'bulleted', 'mixed', 'academic']
             for fmt in formats:
                 if fmt.startswith(word.lower()):
                     yield Completion(

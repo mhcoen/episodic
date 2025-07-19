@@ -131,16 +131,11 @@ def save_command(filename: Optional[str] = None):
     # Add .md extension
     full_filename = f"{safe_filename}.md"
     
-    # Ensure exports directory exists
-    export_dir = Path("exports")
-    export_dir.mkdir(exist_ok=True)
-    
-    filepath = export_dir / full_filename
-    
     try:
         # Export only the current topic by default (not entire history!)
         # This prevents massive file sizes as conversations grow
-        export_topics_to_markdown("current", str(filepath))
+        # Note: export_topics_to_markdown will use the configured export directory
+        filepath = export_topics_to_markdown("current", full_filename)
         
         # Get file stats for display
         stat = os.stat(filepath)
@@ -174,8 +169,8 @@ def load_command(filename: str):
     if not filename.endswith('.md'):
         filename = f"{filename}.md"
     
-    # Look in exports directory first
-    export_dir = Path("exports")
+    # Get configured export directory
+    export_dir = Path(os.path.expanduser(config.get("export_directory", "~/.episodic/exports")))
     filepath = export_dir / filename
     
     if not filepath.exists():
@@ -198,7 +193,7 @@ def files_command():
     Usage:
         /files    # List all saved conversations
     """
-    export_dir = Path("exports")
+    export_dir = Path(os.path.expanduser(config.get("export_directory", "~/.episodic/exports")))
     
     typer.secho("\n📁 Saved Conversations:", fg=get_system_color(), bold=True)
     typer.secho("─" * 60, fg=get_system_color())

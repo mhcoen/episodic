@@ -224,7 +224,7 @@ Export conversations to markdown for sharing, backup, or continuing later:
 ✅ Conversation saved to: exports/history-of-computing-2025-01-15.md
 
 # Later, or on another machine:
-> /ls exports
+> /files exports
 📁 Markdown files in exports
 📄 history-of-computing-2025-01-15.md
    Size: 3.2 KB • Modified: 2 hours ago

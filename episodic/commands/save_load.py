@@ -6,6 +6,7 @@ as markdown files for the simple mode interface.
 """
 
 import os
+import re
 import typer
 from typing import Optional
 from datetime import datetime
@@ -127,6 +128,15 @@ def save_command(filename: Optional[str] = None):
     # Make filename filesystem-safe
     safe_filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_')).rstrip()
     safe_filename = safe_filename.replace(' ', '-').lower()
+    
+    # Check if filename already has a timestamp pattern (YYYYMMDD-HHMM or just HHMM)
+    import re
+    has_timestamp = bool(re.search(r'-\d{8}-\d{4}$|-\d{4}$', safe_filename))
+    
+    # Add timestamp if not already present
+    if not has_timestamp:
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+        safe_filename = f"{safe_filename}-{timestamp}"
     
     # Add .md extension
     full_filename = f"{safe_filename}.md"

@@ -356,24 +356,76 @@ class EpisodicCompleter(Completer):
             pass
     
     def _complete_save_command(self, parts: List[str], word: str) -> List[Completion]:
-        """Complete /save command with checkpoint names."""
+        """Complete /save command with topic-based names."""
         if len(parts) == 2:
-            # Suggest checkpoint names based on current context
-            suggestions = [
-                'before_refactor',
-                'checkpoint',
-                'backup',
-                'stable',
-                'working',
-                'experiment'
-            ]
+            suggestions = []
             
-            for suggestion in suggestions:
+            # Get current topic for intelligent suggestions
+            try:
+                from episodic.db import get_recent_topics, get_recent_nodes
+                
+                # Get current topic
+                topics = get_recent_topics(limit=5)
+                if topics:
+                    current_topic = topics[-1]  # Most recent topic
+                    topic_name = current_topic.get('name', '').lower()
+                    
+                    # Clean up topic name for filename
+                    safe_name = ''.join(c for c in topic_name if c.isalnum() or c in ' -_')
+                    safe_name = safe_name.replace(' ', '-').strip('-')
+                    
+                    if safe_name and safe_name not in ['ongoing', 'multiline-input']:
+                        # Add topic-based suggestions
+                        suggestions.extend([
+                            safe_name,
+                            f"{safe_name}-final",
+                            f"{safe_name}-backup",
+                            f"{safe_name}-v2",
+                        ])
+                
+                # Try to get more context from recent messages
+                recent_messages = get_recent_nodes(limit=10)
+                if recent_messages:
+                    # Extract key terms from recent conversation
+                    user_messages = [m for m in recent_messages if m.get('role') == 'user']
+                    if user_messages:
+                        # Get key words from last user message
+                        last_msg = user_messages[-1].get('content', '')
+                        # Extract potential keywords (simple approach)
+                        words = last_msg.lower().split()
+                        # Filter for meaningful words (length > 3, not common words)
+                        keywords = [w for w in words 
+                                  if len(w) > 3 and w not in ['what', 'this', 'that', 'with', 'from', 'about']]
+                        
+                        # Add keyword-based suggestions
+                        for keyword in keywords[:2]:  # Top 2 keywords
+                            safe_keyword = ''.join(c for c in keyword if c.isalnum())
+                            if safe_keyword:
+                                suggestions.append(safe_keyword)
+                
+            except:
+                # If database access fails, fall back to generic suggestions
+                pass
+            
+            # Add a few generic fallbacks if we have no topic-based suggestions
+            if not suggestions:
+                suggestions = ['conversation', 'chat-export', 'notes']
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_suggestions = []
+            for s in suggestions:
+                if s and s not in seen:
+                    seen.add(s)
+                    unique_suggestions.append(s)
+            
+            # Yield completions
+            for suggestion in unique_suggestions[:6]:  # Limit to 6 suggestions
                 if suggestion.startswith(word.lower()):
                     yield Completion(
                         suggestion,
                         start_position=-len(word),
-                        display_meta='checkpoint name'
+                        display_meta='suggested name'
                     )
     
     def _complete_style_command(self, parts: List[str], word: str) -> List[Completion]:

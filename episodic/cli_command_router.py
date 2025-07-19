@@ -137,8 +137,12 @@ def handle_command(command_str: str) -> bool:
             _handle_out(args)
         elif cmd == "/in":
             _handle_in(args)
-        elif cmd in ["/ls", "/files"]:
+        elif cmd == "/ls":
             _handle_ls(args)
+        elif cmd == "/files":
+            # Use the proper files command from save_load module
+            from episodic.commands.save_load import files_command
+            files_command()
         elif cmd == "/benchmark":
             _handle_benchmark(args)
         elif cmd == "/reset-benchmarks":

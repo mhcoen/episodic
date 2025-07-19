@@ -3,6 +3,7 @@
 import typer
 from episodic.markdown_import import import_markdown_file
 from episodic.configuration import get_system_color, get_text_color
+from episodic.commands.interface_mode import is_simple_mode
 
 def resume_command(filepath: str):
     """
@@ -28,8 +29,12 @@ def resume_command(filepath: str):
         conversation_manager.current_node_id = last_node_id
         
         typer.secho(f"✅ Conversation loaded successfully!", fg=get_system_color())
-        typer.secho(f"   Continue chatting or use /list to see recent messages", 
-                   fg=get_text_color())
+        if is_simple_mode():
+            typer.secho(f"   Continue chatting to pick up where you left off", 
+                       fg=get_text_color())
+        else:
+            typer.secho(f"   Continue chatting or use /list to see recent messages", 
+                       fg=get_text_color())
         
     except FileNotFoundError:
         typer.secho(f"❌ File not found: {filepath}", fg="red")

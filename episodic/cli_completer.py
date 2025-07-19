@@ -104,6 +104,8 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_format_command(parts, word_before_cursor)
             elif full_cmd == 'theme':
                 yield from self._complete_theme_command(parts, word_before_cursor)
+            elif full_cmd == 'load':
+                yield from self._complete_load_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
@@ -471,3 +473,47 @@ class EpisodicCompleter(Completer):
                         start_position=-len(word),
                         display_meta='theme' if theme != 'list' else 'action'
                     )
+    
+    def _complete_load_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /load command with most recently modified markdown files."""
+        if len(parts) == 2:
+            try:
+                import os
+                from pathlib import Path
+                from datetime import datetime
+                from episodic.config import config
+                
+                # Get export directory
+                export_dir = Path(os.path.expanduser(config.get("export_directory", "~/.episodic/exports")))
+                
+                if export_dir.exists():
+                    # Get all markdown files with modification times
+                    md_files = []
+                    for file in export_dir.glob("*.md"):
+                        stat = file.stat()
+                        mtime = stat.st_mtime
+                        md_files.append((file.stem, mtime, file.name))
+                    
+                    # Sort by modification time (newest first)
+                    md_files.sort(key=lambda x: x[1], reverse=True)
+                    
+                    # Generate completions for top 10 most recent files
+                    for filename, mtime, full_name in md_files[:10]:
+                        if filename.lower().startswith(word.lower()):
+                            # Calculate time ago
+                            time_diff = datetime.now().timestamp() - mtime
+                            if time_diff < 3600:
+                                time_ago = f"{int(time_diff / 60)} min ago"
+                            elif time_diff < 86400:
+                                time_ago = f"{int(time_diff / 3600)} hours ago"
+                            else:
+                                time_ago = f"{int(time_diff / 86400)} days ago"
+                            
+                            yield Completion(
+                                filename,  # Complete without .md extension
+                                start_position=-len(word),
+                                display_meta=time_ago
+                            )
+            except Exception:
+                # If anything fails, just don't provide completions
+                pass

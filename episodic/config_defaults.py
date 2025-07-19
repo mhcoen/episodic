@@ -183,6 +183,7 @@ CONFIG_DOCS = {
     "context_depth": "Default number of previous messages to include in conversation context",
     "show_input_box": "Display user input in a styled box after typing",
     "use_unicode_boxes": "Use Unicode box-drawing characters (disable for basic terminals)",
+    "export_directory": "Directory for saving exported markdown files (~ is expanded to home directory)",
     
     # Detection thresholds
     "drift_threshold": "Semantic drift threshold for topic changes (0.9+ indicates topic change)",

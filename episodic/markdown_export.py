@@ -3,16 +3,27 @@
 import os
 from datetime import datetime
 from typing import List, Tuple, Optional
+from pathlib import Path
 from episodic.db_nodes import get_node, get_ancestry
 from episodic.db_topics import get_recent_topics
 from episodic.topics import count_nodes_in_topic
+from episodic.config import config
 
 def export_topics_to_markdown(
     topic_spec: str, 
     filename: Optional[str] = None,
-    export_dir: str = "exports"
+    export_dir: Optional[str] = None
 ) -> str:
-    """Export specified topics to markdown file."""
+    """Export specified topics to markdown file.
+    
+    Args:
+        topic_spec: Topics to export ("current", "all", "1-3", etc.)
+        filename: Optional filename (can be full path or just filename)
+        export_dir: Optional export directory (overrides config)
+    
+    Returns:
+        Full path to the exported file
+    """
     # Parse topic specification
     topics_to_export = get_topics_by_spec(topic_spec)
     
@@ -26,12 +37,24 @@ def export_topics_to_markdown(
         if nodes:
             topic_nodes_list.append((topic, nodes))
     
-    # Generate filename if not provided
-    if not filename:
-        first_topic = topics_to_export[0]
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        topic_name = first_topic['name'].lower().replace(' ', '-')
-        filename = f"{topic_name}-{date_str}.md"
+    # Handle filename and directory
+    if filename and os.path.sep in filename:
+        # Full path provided
+        filepath = Path(filename)
+        export_dir = str(filepath.parent)
+        filename = filepath.name
+    else:
+        # Use config or default export directory
+        if export_dir is None:
+            export_dir = config.get("export_directory", "~/.episodic/exports")
+        export_dir = os.path.expanduser(export_dir)
+        
+        # Generate filename if not provided
+        if not filename:
+            first_topic = topics_to_export[0]
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            topic_name = first_topic['name'].lower().replace(' ', '-')
+            filename = f"{topic_name}-{date_str}.md"
     
     # Ensure .md extension
     if not filename.endswith('.md'):

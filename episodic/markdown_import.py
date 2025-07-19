@@ -53,8 +53,8 @@ def parse_topics(content: str) -> List[Dict]:
             i += 1
             continue
         
-        # Skip metadata lines
-        if line.strip().startswith('*') or line.strip().startswith('<!--'):
+        # Skip metadata lines (but not bold text like **You**)
+        if (line.strip().startswith('*') and not line.strip().startswith('**')) or line.strip().startswith('<!--'):
             i += 1
             continue
         

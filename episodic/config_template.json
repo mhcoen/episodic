@@ -183,6 +183,10 @@
   "interface_mode": "advanced",
   "_comment_use_llm_filenames": "Use LLM to generate descriptive filenames when saving conversations",
   "use_llm_filenames": true,
+  "_comment_show_input_box": "Display user input in a styled box after typing",
+  "show_input_box": true,
+  "_comment_use_unicode_boxes": "Use Unicode box-drawing characters (disable for basic terminals)",
+  "use_unicode_boxes": true,
   
   "_comment_rag": "// === RAG (RETRIEVAL AUGMENTED GENERATION) ===",
   "_comment_rag_enabled": "Enable RAG for enhanced responses with external knowledge",

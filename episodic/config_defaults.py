@@ -180,6 +180,8 @@ CONFIG_DOCS = {
     "color_mode": "Terminal color mode: 'none' (no colors), 'basic' (8 colors), or 'full' (256 colors)",
     "text_wrap": "Enable wrapping of long lines to fit terminal width",
     "context_depth": "Default number of previous messages to include in conversation context",
+    "show_input_box": "Display user input in a styled box after typing",
+    "use_unicode_boxes": "Use Unicode box-drawing characters (disable for basic terminals)",
     
     # Detection thresholds
     "drift_threshold": "Semantic drift threshold for topic changes (0.9+ indicates topic change)",

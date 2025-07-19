@@ -147,6 +147,9 @@ def register_all_commands():
     except ImportError:
         web_available = False
     
+    # Import reflection command
+    from episodic.commands.reflection import reflection_command
+    
     # Register navigation commands
     command_registry.register("init", init, "Initialize the database", "Navigation")
     command_registry.register("add", add, "Add a new node manually", "Navigation")
@@ -238,6 +241,9 @@ def register_all_commands():
     # Register web provider commands if available
     if web_available:
         command_registry.register("web", web_command, "Manage web search providers", "Configuration")
+    
+    # Register reflection command
+    command_registry.register("reflect", reflection_command, "Enable multi-step reflection and reasoning", "Conversation")
 
 
 # Don't initialize on import - will be called when needed

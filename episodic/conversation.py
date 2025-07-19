@@ -447,6 +447,11 @@ class ConversationManager:
                     last_user_message["content"] = enhanced_content
                     messages.append(last_user_message)
             
+            # Apply reflection mode if enabled
+            if config.get("reflection_mode", False):
+                from episodic.commands.reflection import handle_reflection_in_conversation
+                messages = handle_reflection_in_conversation(user_input, messages)
+            
             # Prepare for LLM query
             from episodic.web_synthesis import synthesize_web_response
             

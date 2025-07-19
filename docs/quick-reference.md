@@ -19,6 +19,7 @@ Just type to chat! No prefix needed.
 | `/cost` | Show token usage |
 | `/topics` | List conversation topics |
 | `/muse` | Enable web search mode |
+| `/reflect` | Enable multi-step reflection |
 | `/help` | Show all commands |
 
 ### Knowledge & Search

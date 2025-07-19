@@ -91,6 +91,8 @@ def handle_command(command_str: str) -> bool:
             _handle_format(args)
         elif cmd == "/theme":
             _handle_theme(args)
+        elif cmd == "/reflect":
+            _handle_reflect(args)
         elif cmd == "/set":
             _handle_set(args)
         elif cmd == "/reset":
@@ -306,6 +308,32 @@ def _handle_theme(args: List[str]):
         theme_command(args[0])
     else:
         theme_command()
+
+
+def _handle_reflect(args: List[str]):
+    """Handle /reflect command."""
+    from episodic.commands.reflection import reflection_command
+    if args:
+        # Check if --steps flag is provided
+        steps = 3  # default
+        query_parts = []
+        i = 0
+        while i < len(args):
+            if args[i] == "--steps" and i + 1 < len(args):
+                try:
+                    steps = int(args[i + 1])
+                    i += 2
+                    continue
+                except ValueError:
+                    typer.secho("Error: --steps must be followed by a number", fg=get_error_color())
+                    return
+            query_parts.append(args[i])
+            i += 1
+        
+        query = " ".join(query_parts) if query_parts else None
+        reflection_command(query=query, steps=steps)
+    else:
+        reflection_command()
 
 
 def _handle_set(args: List[str]):

@@ -18,7 +18,7 @@ FORMAT_DEFINITIONS = {
         "description": "Flowing prose in paragraph form with markdown headers",
         "prompt": "Use flowing prose in paragraph form with markdown headers (### Header Name) for sections."
     },
-    "bullet-points": {
+    "bulleted": {
         "description": "Bullet points and lists for all information",
         "prompt": "Use bullet points and lists for all information with markdown headers (### Header Name) for sections."
     },
@@ -175,7 +175,7 @@ def format_command(format_type: str = None):
             secho_color(f"{marker} {format_name}: {info['description']}", fg=get_text_color(), bold=is_current)
         
         typer.echo("")
-        secho_color("Usage: /format [paragraph|bullet-points|mixed|academic]", fg=get_text_color(), dim=True)
+        secho_color("Usage: /format [paragraph|bulleted|mixed|academic]", fg=get_text_color(), dim=True)
         return
     
     # Validate and set format

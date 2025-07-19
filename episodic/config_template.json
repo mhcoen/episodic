@@ -12,7 +12,7 @@
   "muse_mode": false,
   "_comment_response_style": "Global response style for all modes: concise, standard, comprehensive, custom",
   "response_style": "standard",
-  "_comment_response_format": "Global response format for all modes: paragraph, bullet-points, mixed, academic",
+  "_comment_response_format": "Global response format for all modes: paragraph, bulleted, mixed, academic",
   "response_format": "mixed",
   
   "_comment_topic": "// === TOPIC DETECTION SETTINGS ===",

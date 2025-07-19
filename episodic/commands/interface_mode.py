@@ -48,11 +48,13 @@ def simple_mode_command():
     typer.secho("   /style  ", fg=get_system_color(), bold=True, nl=False)
     typer.secho("Response length (concise/standard/comprehensive)", fg=get_text_color())
     typer.secho("   /format ", fg=get_system_color(), bold=True, nl=False)
-    typer.secho("Response format (paragraph/bullet-points)", fg=get_text_color())
+    typer.secho("Response format (paragraph/bulleted/mixed/academic)", fg=get_text_color())
     typer.echo()
     
     # System commands
     typer.secho("⚙️  System", fg=get_heading_color(), bold=True)
+    typer.secho("   /theme  ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Change color theme", fg=get_text_color())
     typer.secho("   /help   ", fg=get_system_color(), bold=True, nl=False)
     typer.secho("Show this help", fg=get_text_color())
     typer.secho("   /exit   ", fg=get_system_color(), bold=True, nl=False)
@@ -95,5 +97,5 @@ def get_simple_mode_commands() -> set:
     """Get the set of commands available in simple mode."""
     return {
         "chat", "muse", "save", "load", "files", "new",
-        "style", "format", "help", "exit", "quit", "simple", "advanced"
+        "style", "format", "theme", "help", "exit", "quit", "simple", "advanced"
     }

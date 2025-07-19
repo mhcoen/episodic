@@ -97,7 +97,7 @@ Episodic automatically configures itself based on available providers:
 /index file      # Add file to knowledge base (alias: /i)
 /muse            # Switch to Perplexity-like web search mode
 /style           # Set global response style (concise/standard/comprehensive/custom)
-/format          # Set global response format (paragraph/bullet-points/mixed/academic)
+/format          # Set global response format (paragraph/bulleted/mixed/academic)
 /web             # Show current web search provider
 /model           # Show current AI models
 /help            # See all commands
@@ -298,7 +298,7 @@ Episodic provides unified response style and format controls that work across al
 
 # Response formats control presentation structure
 /format paragraph     # Flowing prose with markdown headers
-/format bullet-points # Bullet points and lists for all information
+/format bulleted      # Bullet points and lists for all information
 /format mixed         # Mix of paragraphs and bullet points as appropriate  
 /format academic      # Formal academic style with proper citations
 

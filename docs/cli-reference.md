@@ -194,7 +194,7 @@ Set global response format (affects presentation structure)
 ```bash
 /format                     # Show current format
 /format paragraph           # Flowing prose in paragraph form with markdown headers
-/format bullet-points       # Bullet points and lists for all information
+/format bulleted       # Bullet points and lists for all information
 /format mixed               # Mix of paragraphs and bullet points as appropriate
 /format academic            # Formal academic style with proper citations [Source N]
 ```

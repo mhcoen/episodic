@@ -67,7 +67,7 @@ def handle_command_with_registry(command_str: str) -> bool:
     # In simple mode, restrict to allowed commands
     if is_simple_mode() and cmd not in get_simple_mode_commands():
         typer.secho(f"Command /{cmd} is not available in simple mode.", fg="red")
-        typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /help, /exit", fg="yellow")
+        typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /theme, /help, /exit", fg="yellow")
         typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
         return False
     
@@ -204,7 +204,7 @@ def show_help_with_categories():
         ("/muse", "Enable web search synthesis mode"),
         ("/chat", "Enable normal LLM conversation mode"), 
         ("/style", "Set global response style (concise/standard/comprehensive/custom)"),
-        ("/format", "Set global response format (paragraph/bullet-points/mixed/academic)"),
+        ("/format", "Set global response format (paragraph/bulleted/mixed/academic)"),
         ("/topics", "List conversation topics"),
         ("/out", "Export conversation to markdown"),
         ("/list", "Show recent conversation nodes"),
@@ -289,7 +289,7 @@ def show_chat_help():
         ("/chat", "Enable normal LLM conversation mode"),
         ("/muse", "Enable web search synthesis mode (like Perplexity)"),
         ("/style <style>", "Set global response style (concise/standard/comprehensive/custom)"),
-        ("/format <format>", "Set global response format (paragraph/bullet-points/mixed/academic)"),
+        ("/format <format>", "Set global response format (paragraph/bulleted/mixed/academic)"),
         ("/topics", "List conversation topics"),
         ("/topics list", "List all topics with details"),
         ("/topics rename", "Rename ongoing topics"),
@@ -301,7 +301,7 @@ def show_chat_help():
     examples = [
         ("/muse", "Switch to web search mode"),
         ("/style concise", "Set shorter responses for all modes"),
-        ("/format bullet-points", "Use bullet points for all modes"),
+        ("/format bulleted", "Use bullet points for all modes"),
         ("/topics", "See conversation topics")
     ]
 
@@ -645,7 +645,7 @@ def show_advanced_help():
     typer.secho("• Global response style: ", fg=get_text_color(), nl=False)
     typer.secho("/style concise|standard|comprehensive|custom", fg="cyan", bold=True)
     typer.secho("• Global response format: ", fg=get_text_color(), nl=False)
-    typer.secho("/format paragraph|bullet-points|mixed|academic", fg="cyan", bold=True)
+    typer.secho("/format paragraph|bulleted|mixed|academic", fg="cyan", bold=True)
     typer.secho("• Type ", fg=get_text_color(), nl=False)
     typer.secho("/exit", fg="cyan", bold=True, nl=False)
     typer.secho(" or ", fg=get_text_color(), nl=False)
@@ -670,10 +670,11 @@ def show_simple_help():
     
     style_commands = [
         ("/style", "Set response length (concise/standard/comprehensive)"),
-        ("/format", "Set response format (paragraph/bullet-points)")
+        ("/format", "Set response format (paragraph/bulleted/mixed/academic)")
     ]
     
     system_commands = [
+        ("/theme", "Change color theme"),
         ("/help", "Show this help"),
         ("/exit", "Leave Episodic")
     ]

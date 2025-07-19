@@ -6,9 +6,10 @@ import shutil
 from typing import List, Optional
 import typer
 from episodic.configuration import get_text_color
+from episodic.config import config
 
 
-def draw_input_box(text: str, width: Optional[int] = None, color: Optional[str] = None) -> None:
+def draw_input_box(text: str, width: Optional[int] = None, color: Optional[str] = None, prompt: Optional[str] = None) -> None:
     """
     Draw a box around user input text.
     
@@ -16,6 +17,7 @@ def draw_input_box(text: str, width: Optional[int] = None, color: Optional[str] 
         text: The text to display in the box
         width: Optional fixed width for the box (defaults to terminal width - 4)
         color: Optional color for the box (defaults to dim text color)
+        prompt: Optional prompt to use (defaults to ">" or "»" in muse mode)
     """
     # Get terminal width
     terminal_width = shutil.get_terminal_size().columns
@@ -56,8 +58,9 @@ def draw_input_box(text: str, width: Optional[int] = None, color: Optional[str] 
     # Draw text lines with prefix
     for i, line in enumerate(lines):
         if i == 0:
-            # First line gets the > prefix
-            content = f"> {line}"
+            # First line gets the prompt prefix
+            prompt_char = prompt if prompt else ("»" if config.get("muse_mode") else ">")
+            content = f"{prompt_char} {line}"
         else:
             # Continuation lines are indented
             content = f"  {line}"
@@ -76,7 +79,7 @@ def draw_input_box(text: str, width: Optional[int] = None, color: Optional[str] 
     print(f"\033[38;5;236m╰{'─' * (box_width - 2)}╯\033[0m")
 
 
-def draw_simple_input_box(text: str, width: Optional[int] = None, color: Optional[str] = None) -> None:
+def draw_simple_input_box(text: str, width: Optional[int] = None, color: Optional[str] = None, prompt: Optional[str] = None) -> None:
     """
     Draw a simple box using ASCII characters (fallback for terminals without Unicode).
     
@@ -84,6 +87,7 @@ def draw_simple_input_box(text: str, width: Optional[int] = None, color: Optiona
         text: The text to display in the box
         width: Optional fixed width for the box
         color: Optional color for the box
+        prompt: Optional prompt to use (defaults to ">" or "»" in muse mode)
     """
     # Get terminal width
     terminal_width = shutil.get_terminal_size().columns
@@ -122,7 +126,9 @@ def draw_simple_input_box(text: str, width: Optional[int] = None, color: Optiona
     # Draw text lines
     for i, line in enumerate(lines):
         if i == 0:
-            content = f"> {line}"
+            # First line gets the prompt prefix
+            prompt_char = prompt if prompt else ("»" if config.get("muse_mode") else ">")
+            content = f"{prompt_char} {line}"
         else:
             content = f"  {line}"
         

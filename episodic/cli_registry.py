@@ -293,7 +293,7 @@ def show_chat_help():
         ("/topics", "List conversation topics"),
         ("/topics list", "List all topics with details"),
         ("/topics rename", "Rename ongoing topics"),
-        ("/summary", "Summarize recent conversation"),
+        ("/summary", "Summarize conversation (brief/short/standard/detailed/bulleted)"),
         ("/cost", "Show token usage and costs")
     ]
     

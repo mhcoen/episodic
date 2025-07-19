@@ -106,6 +106,8 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_theme_command(parts, word_before_cursor)
             elif full_cmd == 'load':
                 yield from self._complete_load_command(parts, word_before_cursor)
+            elif full_cmd == 'summary':
+                yield from self._complete_summary_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
@@ -517,3 +519,37 @@ class EpisodicCompleter(Completer):
             except Exception:
                 # If anything fails, just don't provide completions
                 pass
+    
+    def _complete_summary_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /summary command arguments."""
+        if len(parts) >= 2:
+            # Complete length options and count options
+            options = ['brief', 'short', 'standard', 'detailed', 'bulleted', 'all', 'loaded', '5', '10', '20', '50']
+            # Filter out already used options
+            used_options = set(parts[1:])
+            
+            for option in options:
+                if option not in used_options and option.startswith(word):
+                    # Add descriptive metadata
+                    if option == 'brief':
+                        meta = '2-3 sentences'
+                    elif option == 'short':
+                        meta = 'compact paragraph'
+                    elif option == 'standard':
+                        meta = 'medium length'
+                    elif option == 'detailed':
+                        meta = 'comprehensive'
+                    elif option == 'bulleted':
+                        meta = 'bullet points'
+                    elif option == 'all':
+                        meta = 'entire history'
+                    elif option == 'loaded':
+                        meta = 'last loaded conversation'
+                    else:
+                        meta = f'last {option} exchanges'
+                    
+                    yield Completion(
+                        option,
+                        start_position=-len(word),
+                        display_meta=meta
+                    )

@@ -15,6 +15,10 @@ from urllib.parse import quote_plus
 
 import typer
 from episodic.config import config
+from episodic.configuration import (
+    get_error_color, get_warning_color, get_success_color,
+    get_info_color, get_system_color
+)
 
 
 @dataclass
@@ -70,7 +74,7 @@ class DuckDuckGoProvider(WebSearchProvider):
             typer.secho(
                 "⚠️  Web search requires additional dependencies. Install with:\n"
                 "    pip install aiohttp beautifulsoup4",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -110,7 +114,7 @@ class DuckDuckGoProvider(WebSearchProvider):
                     
         except Exception as e:
             if config.get('debug'):
-                typer.secho(f"DuckDuckGo search error: {e}", fg="red")
+                typer.secho(f"DuckDuckGo search error: {e}", fg=get_error_color())
         
         return results
 
@@ -143,7 +147,7 @@ class SearxProvider(WebSearchProvider):
             typer.secho(
                 "⚠️  Web search requires aiohttp. Install with:\n"
                 "    pip install aiohttp",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -163,7 +167,7 @@ class SearxProvider(WebSearchProvider):
                 async with session.get(url, params=params) as response:
                     if response.status != 200:
                         if config.get('debug'):
-                            typer.secho(f"Searx returned status {response.status}", fg="yellow")
+                            typer.secho(f"Searx returned status {response.status}", fg=get_warning_color())
                         return []
                     
                     data = await response.json()
@@ -185,7 +189,7 @@ class SearxProvider(WebSearchProvider):
                     
         except Exception as e:
             if config.get('debug'):
-                typer.secho(f"Searx search error: {e}", fg="red")
+                typer.secho(f"Searx search error: {e}", fg=get_error_color())
         
         return results
 
@@ -220,7 +224,7 @@ class GoogleProvider(WebSearchProvider):
             typer.secho(
                 "⚠️  Web search requires aiohttp. Install with:\n"
                 "    pip install aiohttp",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -239,7 +243,7 @@ class GoogleProvider(WebSearchProvider):
                     if response.status != 200:
                         error_data = await response.text()
                         if config.get('debug'):
-                            typer.secho(f"Google API error: {error_data}", fg="red")
+                            typer.secho(f"Google API error: {error_data}", fg=get_error_color())
                         # Parse common Google API errors
                         if response.status == 403:
                             if "custom search api has not been used" in error_data.lower():
@@ -272,7 +276,7 @@ class GoogleProvider(WebSearchProvider):
                     
         except Exception as e:
             if config.get('debug'):
-                typer.secho(f"Google search error: {e}", fg="red")
+                typer.secho(f"Google search error: {e}", fg=get_error_color())
         
         return results
 
@@ -307,7 +311,7 @@ class BingProvider(WebSearchProvider):
             typer.secho(
                 "⚠️  Web search requires aiohttp. Install with:\n"
                 "    pip install aiohttp",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -328,7 +332,7 @@ class BingProvider(WebSearchProvider):
                     if response.status != 200:
                         if config.get('debug'):
                             error_data = await response.text()
-                            typer.secho(f"Bing API error: {error_data}", fg="red")
+                            typer.secho(f"Bing API error: {error_data}", fg=get_error_color())
                         return []
                     
                     data = await response.json()
@@ -348,7 +352,7 @@ class BingProvider(WebSearchProvider):
                     
         except Exception as e:
             if config.get('debug'):
-                typer.secho(f"Bing search error: {e}", fg="red")
+                typer.secho(f"Bing search error: {e}", fg=get_error_color())
         
         return results
 
@@ -382,7 +386,7 @@ class BraveProvider(WebSearchProvider):
             typer.secho(
                 "⚠️  Brave Search requires the official client. Install with:\n"
                 "    pip install brave-search-python-client",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -416,7 +420,7 @@ class BraveProvider(WebSearchProvider):
             
         except Exception as e:
             if config.get('debug'):
-                typer.secho(f"Brave search error: {e}", fg="red")
+                typer.secho(f"Brave search error: {e}", fg=get_error_color())
             # Check for common errors
             if "401" in str(e) or "unauthorized" in str(e).lower():
                 raise Exception("Invalid Brave API key")
@@ -511,7 +515,7 @@ class WebSearchManager:
         providers_list = config.get('web_search_providers')
         
         if config.get('debug'):
-            typer.secho(f"[DEBUG] web_search_providers from config: {providers_list}", fg="yellow")
+            typer.secho(f"[DEBUG] web_search_providers from config: {providers_list}", fg=get_warning_color())
         
         if not providers_list:
             # Fall back to single provider for backward compatibility
@@ -522,7 +526,7 @@ class WebSearchManager:
             providers_list = [p.strip() for p in providers_list.split(',')]
         
         if config.get('debug'):
-            typer.secho(f"[DEBUG] Final providers list: {providers_list}", fg="yellow")
+            typer.secho(f"[DEBUG] Final providers list: {providers_list}", fg=get_warning_color())
         
         # Initialize all available provider classes
         provider_classes = {
@@ -551,14 +555,14 @@ class WebSearchManager:
                 provider = provider_class()
                 if provider is None:
                     if config.get('debug'):
-                        typer.secho(f"⚠️  {provider_name} class returned None instance", fg="yellow")
+                        typer.secho(f"⚠️  {provider_name} class returned None instance", fg=get_warning_color())
                     continue
                 providers.append(provider)
                 if config.get('debug'):
-                    typer.secho(f"✓ Successfully created {provider_name} provider", fg="cyan")
+                    typer.secho(f"✓ Successfully created {provider_name} provider", fg=get_info_color())
             except Exception as e:
                 if config.get('debug'):
-                    typer.secho(f"⚠️  Failed to create {provider_name} provider: {e}", fg="red")
+                    typer.secho(f"⚠️  Failed to create {provider_name} provider: {e}", fg=get_error_color())
         
         # Always ensure DuckDuckGo is available as last resort
         if not any(isinstance(p, DuckDuckGoProvider) for p in providers):
@@ -588,7 +592,7 @@ class WebSearchManager:
         """Execute async search for a single provider."""
         try:
             # Always show which provider we're using
-            typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
+            typer.secho(f"🔍 Searching with {provider_name}...", fg=get_info_color())
             
             results = await provider.search(query, num_results)
             
@@ -597,7 +601,7 @@ class WebSearchManager:
             
             # Empty results might be valid
             if config.get('debug'):
-                typer.secho(f"{provider_name} returned no results", fg="yellow")
+                typer.secho(f"{provider_name} returned no results", fg=get_warning_color())
                 
         except Exception as e:
             # Show errors for debugging
@@ -609,7 +613,7 @@ class WebSearchManager:
                         fg="yellow"
                     )
                 else:
-                    typer.secho(f"⚠️  {provider_name} search failed: {error_msg}", fg="red")
+                    typer.secho(f"⚠️  {provider_name} search failed: {error_msg}", fg=get_error_color())
                     
         return None
     
@@ -635,7 +639,7 @@ class WebSearchManager:
             cached = self.cache.get(query, cache_duration)
             if cached:
                 if config.get('debug'):
-                    typer.secho(f"Using cached results for: {query}", fg="cyan")
+                    typer.secho(f"Using cached results for: {query}", fg=get_info_color())
                 return cached[:num_results]
         
         # Check rate limit
@@ -643,7 +647,7 @@ class WebSearchManager:
             remaining = self.rate_limiter.remaining()
             typer.secho(
                 f"⚠️  Rate limit reached. {remaining} searches remaining this hour.",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -666,7 +670,7 @@ class WebSearchManager:
         for i, provider in enumerate(providers_to_try):
             if provider is None or provider.__class__ is None:
                 if config.get('debug'):
-                    typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg="yellow")
+                    typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg=get_warning_color())
                 continue
             provider_name = provider.__class__.__name__.replace('Provider', '')
             
@@ -706,12 +710,12 @@ class WebSearchManager:
                     self._working_provider_timestamp = datetime.now()
                 
                 if i > 0:  # We used a fallback
-                    typer.secho(f"✅ {provider_name} search successful", fg="green")
+                    typer.secho(f"✅ {provider_name} search successful", fg=get_success_color())
                 
                 return results
         
         # No provider succeeded
-        typer.secho("⚠️  All search providers failed", fg="red")
+        typer.secho("⚠️  All search providers failed", fg=get_error_color())
         return []
     
     def search(self, query: str, num_results: int = None, 
@@ -736,7 +740,7 @@ class WebSearchManager:
             cached = self.cache.get(query, cache_duration)
             if cached:
                 if config.get('debug'):
-                    typer.secho(f"Using cached results for: {query}", fg="cyan")
+                    typer.secho(f"Using cached results for: {query}", fg=get_info_color())
                 return cached[:num_results]
         
         # Check rate limit
@@ -744,7 +748,7 @@ class WebSearchManager:
             remaining = self.rate_limiter.remaining()
             typer.secho(
                 f"⚠️  Rate limit reached. {remaining} searches remaining this hour.",
-                fg="yellow"
+                fg=get_warning_color()
             )
             return []
         
@@ -767,7 +771,7 @@ class WebSearchManager:
         for i, provider in enumerate(providers_to_try):
             if provider is None or provider.__class__ is None:
                 if config.get('debug'):
-                    typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg="yellow")
+                    typer.secho(f"⚠️  Provider at index {i} is None, skipping", fg=get_warning_color())
                 continue
             provider_name = provider.__class__.__name__.replace('Provider', '')
             
@@ -795,7 +799,7 @@ class WebSearchManager:
             
             try:
                 # Always show which provider we're using
-                typer.secho(f"🔍 Searching with {provider_name}...", fg="cyan")
+                typer.secho(f"🔍 Searching with {provider_name}...", fg=get_info_color())
                 
                 # Run async search in sync context
                 loop = asyncio.new_event_loop()
@@ -816,13 +820,13 @@ class WebSearchManager:
                         self._working_provider_timestamp = datetime.now()
                     
                     if i > 0:  # We used a fallback
-                        typer.secho(f"✅ {provider_name} search successful", fg="green")
+                        typer.secho(f"✅ {provider_name} search successful", fg=get_success_color())
                     
                     return results
                 
                 # Empty results might be valid, but try next provider
                 if config.get('debug'):
-                    typer.secho(f"{provider_name} returned no results", fg="yellow")
+                    typer.secho(f"{provider_name} returned no results", fg=get_warning_color())
                     
             except Exception as e:
                 # Always show errors for the primary provider
@@ -865,7 +869,7 @@ class WebSearchManager:
                     continue
         
         # All providers failed
-        typer.secho("❌ All search providers failed", fg="red")
+        typer.secho("❌ All search providers failed", fg=get_error_color())
         return []
     
     def clear_cache(self):

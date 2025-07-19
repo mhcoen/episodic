@@ -10,7 +10,10 @@ from typing import List
 from datetime import datetime
 
 from episodic.config import config
-from episodic.configuration import get_system_color
+from episodic.configuration import (
+    get_system_color, get_error_color, get_warning_color, 
+    get_success_color, get_text_color
+)
 
 
 # Global session state
@@ -84,10 +87,10 @@ def execute_script(filename: str):
             break
     
     if not filepath:
-        typer.secho(f"Script file not found: {filename}", fg="red")
-        typer.secho("Searched in:", fg="yellow")
+        typer.secho(f"Script file not found: {filename}", fg=get_error_color())
+        typer.secho("Searched in:", fg=get_warning_color())
         for path in search_paths:
-            typer.secho(f"  - {path}", fg="yellow")
+            typer.secho(f"  - {path}", fg=get_warning_color())
         return
     
     typer.secho(f"Executing script: {filepath}", fg=get_system_color())
@@ -115,14 +118,14 @@ def execute_script(filename: str):
             executed += 1
             
             # Show progress
-            typer.secho(f"[{executed}/{total_lines}] {line}", fg="white", bold=True)
+            typer.secho(f"[{executed}/{total_lines}] {line}", fg=get_text_color(), bold=True)
             
             # Execute the line
             if line.startswith('/'):
                 # It's a command
                 should_exit = handle_command(line)
                 if should_exit:
-                    typer.secho("Script requested exit, stopping execution.", fg="yellow")
+                    typer.secho("Script requested exit, stopping execution.", fg=get_warning_color())
                     break
             else:
                 # It's a chat message
@@ -134,15 +137,15 @@ def execute_script(filename: str):
                 time.sleep(config.get("script_delay", 0.1))
         
         typer.echo()
-        typer.secho(f"✅ Script execution complete: {executed} commands executed", fg="green")
+        typer.secho(f"✅ Script execution complete: {executed} commands executed", fg=get_success_color())
         
     except FileNotFoundError:
-        typer.secho(f"Script file not found: {filepath}", fg="red")
+        typer.secho(f"Script file not found: {filepath}", fg=get_error_color())
     except Exception as e:
-        typer.secho(f"Error executing script: {e}", fg="red")
+        typer.secho(f"Error executing script: {e}", fg=get_error_color())
         if config.get("debug"):
             import traceback
-            typer.secho(traceback.format_exc(), fg="red")
+            typer.secho(traceback.format_exc(), fg=get_error_color())
 
 
 def save_to_history(message: str):
@@ -165,4 +168,4 @@ def save_to_history(message: str):
     except Exception as e:
         # Don't let history errors break the main flow
         if config.get("debug"):
-            typer.secho(f"Failed to save to history: {e}", fg="yellow")
+            typer.secho(f"Failed to save to history: {e}", fg=get_warning_color())

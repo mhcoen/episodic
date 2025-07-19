@@ -9,7 +9,10 @@ import typer
 import re
 from typing import Optional
 from episodic.config import config
-from episodic.configuration import get_heading_color, get_text_color, get_system_color
+from episodic.configuration import (
+    get_heading_color, get_text_color, get_system_color,
+    get_error_color, get_warning_color, get_success_color
+)
 # Import EpisodicRAG only when needed to avoid import errors
 from episodic.commands.utility import help as show_commands_help
 import os
@@ -78,7 +81,7 @@ class HelpRAG:
                 # Update the rag's collection reference
                 self.rag.collection = self.collection
         except Exception as e:
-            typer.secho(f"Error creating help collection: {str(e)}", fg="red")
+            typer.secho(f"Error creating help collection: {str(e)}", fg=get_error_color())
             raise
             
         self._indexed_docs = set()
@@ -139,7 +142,7 @@ class HelpRAG:
                         self._indexed_docs.add(doc)
                         
                 except Exception as e:
-                    typer.secho(f"Error checking/indexing {doc}: {str(e)}", fg="red")
+                    typer.secho(f"Error checking/indexing {doc}: {str(e)}", fg=get_error_color())
     
     def search_help(self, query: str, n_results: int = 5) -> list:
         """Search help documentation."""
@@ -220,8 +223,8 @@ def help(advanced: bool = False, query: Optional[str] = None):
             # Check if we're in simple mode
             from episodic.commands.interface_mode import is_simple_mode
             if is_simple_mode():
-                typer.secho("Advanced help is not available in simple mode.", fg="red")
-                typer.secho("Type /advanced to switch to advanced mode first.", fg="yellow")
+                typer.secho("Advanced help is not available in simple mode.", fg=get_error_color())
+                typer.secho("Type /advanced to switch to advanced mode first.", fg=get_warning_color())
                 return
             show_commands_help(advanced=True)
             return
@@ -256,13 +259,13 @@ def help(advanced: bool = False, query: Optional[str] = None):
         help_command(query)
     except ImportError as e:
         if "chromadb" in str(e):
-            typer.secho("\n⚠️  Documentation search requires ChromaDB.", fg="yellow")
+            typer.secho("\n⚠️  Documentation search requires ChromaDB.", fg=get_warning_color())
             typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())
         else:
             raise
     except Exception as e:
         # Catch all other errors and provide fallback
-        typer.secho(f"\n⚠️  Error with documentation search: {str(e)}", fg="yellow")
+        typer.secho(f"\n⚠️  Error with documentation search: {str(e)}", fg=get_warning_color())
         typer.secho("Showing all commands instead:", fg=get_text_color())
         typer.echo()
         show_commands_help(advanced=True)
@@ -308,7 +311,7 @@ def help_command(query: str):
         import chromadb  # noqa: F401
         import sentence_transformers  # noqa: F401
     except ImportError:
-        typer.secho("\n⚠️  Documentation search requires ChromaDB and sentence-transformers.", fg="yellow")
+        typer.secho("\n⚠️  Documentation search requires ChromaDB and sentence-transformers.", fg=get_warning_color())
         typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())
         typer.secho("\nAlternatively, browse the documentation files directly:", fg=get_text_color())
         typer.secho("  • USER_GUIDE.md", fg=get_text_color(), dim=True)
@@ -320,7 +323,7 @@ def help_command(query: str):
     try:
         help_rag = get_help_rag()
     except Exception as e:
-        typer.secho(f"\n⚠️  Error initializing help system: {str(e)}", fg="yellow")
+        typer.secho(f"\n⚠️  Error initializing help system: {str(e)}", fg=get_warning_color())
         return
     
     # Ensure docs are indexed
@@ -392,7 +395,7 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
                 
             except Exception as stream_error:
                 if config.get('debug', False):
-                    typer.secho(f"Streaming error: {stream_error}", fg="yellow")
+                    typer.secho(f"Streaming error: {stream_error}", fg=get_warning_color())
                 # Fallback to non-streaming
                 result = query_llm(enhanced_prompt, model=model, stream=False)
                 response_text = result[0] if isinstance(result, tuple) else result
@@ -405,7 +408,7 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
             _display_help_output(response_text, get_system_color())
         
     except Exception as e:
-        typer.secho(f"\n⚠️  Error getting help: {str(e)}", fg="yellow")
+        typer.secho(f"\n⚠️  Error getting help: {str(e)}", fg=get_warning_color())
         typer.secho("Try browsing the documentation files directly.", fg=get_text_color())
     
     finally:
@@ -432,7 +435,7 @@ def help_reindex():
         import chromadb  # noqa: F401
         import sentence_transformers  # noqa: F401
     except ImportError:
-        typer.secho("\n⚠️  Documentation indexing requires ChromaDB and sentence-transformers.", fg="yellow")
+        typer.secho("\n⚠️  Documentation indexing requires ChromaDB and sentence-transformers.", fg=get_warning_color())
         typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())
         return
     
@@ -508,30 +511,30 @@ def help_reindex():
                         chunks = len(doc_ids)
                         total_chunks += chunks
                         indexed_count += 1
-                        typer.secho(f"     ✓ Indexed {chunks} chunks", fg="green")
+                        typer.secho(f"     ✓ Indexed {chunks} chunks", fg=get_success_color())
                         help_rag._indexed_docs.add(doc)
                     else:
-                        typer.secho(f"     ✗ Failed to index", fg="red")
+                        typer.secho(f"     ✗ Failed to index", fg=get_error_color())
                         
                 except Exception as e:
-                    typer.secho(f"     ✗ Error: {str(e)}", fg="red")
+                    typer.secho(f"     ✗ Error: {str(e)}", fg=get_error_color())
             else:
-                typer.secho(f"\n  ⚠️  {doc} - File not found", fg="yellow")
+                typer.secho(f"\n  ⚠️  {doc} - File not found", fg=get_warning_color())
         
         # Summary
         typer.secho("\n" + "─" * 50, fg=get_heading_color())
         
         if indexed_count == 0:
             typer.secho(f"\n❌ Reindexing Failed!", fg="red", bold=True)
-            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg="red")
-            typer.secho(f"   • Total chunks: {total_chunks}", fg="red")
-            typer.secho(f"   • All files failed to index due to errors above", fg="red")
-            typer.secho(f"\n⚠️  The help search will not work until indexing succeeds.", fg="yellow")
+            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg=get_error_color())
+            typer.secho(f"   • Total chunks: {total_chunks}", fg=get_error_color())
+            typer.secho(f"   • All files failed to index due to errors above", fg=get_error_color())
+            typer.secho(f"\n⚠️  The help search will not work until indexing succeeds.", fg=get_warning_color())
         elif indexed_count < len(help_docs):
             typer.secho(f"\n⚠️  Reindexing Partially Complete!", fg="yellow", bold=True)
-            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg="yellow")
+            typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg=get_warning_color())
             typer.secho(f"   • Total chunks: {total_chunks}", fg=get_text_color())
-            typer.secho(f"   • Some files failed to index (see errors above)", fg="yellow")
+            typer.secho(f"   • Some files failed to index (see errors above)", fg=get_warning_color())
         else:
             typer.secho(f"\n✅ Reindexing Complete!", fg="green", bold=True)
             typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg=get_text_color())
@@ -547,7 +550,7 @@ def help_reindex():
             typer.secho("  /help <query>", fg=get_system_color())
         
     except Exception as e:
-        typer.secho(f"\n❌ Error during reindexing: {str(e)}", fg="red")
+        typer.secho(f"\n❌ Error during reindexing: {str(e)}", fg=get_error_color())
         if config.get('debug', False):
             import traceback
             traceback.print_exc()

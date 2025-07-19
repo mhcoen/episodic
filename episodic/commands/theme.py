@@ -8,6 +8,9 @@ and selecting color themes.
 import sys
 import tty
 import termios
+import select
+import fcntl
+import os
 import typer
 from typing import Optional, List, Tuple, Dict
 from episodic.config import config
@@ -28,14 +31,19 @@ def theme_command(theme_name: Optional[str] = None):
     """
     if theme_name is None:
         # Interactive selector
-        selector = ThemeSelector()
-        selected = selector.run()
-        
-        if selected:
-            apply_theme(selected)
-            typer.secho(f"\n✅ Theme changed to: {selected}", fg=get_system_color())
-        else:
-            typer.secho("\n❌ Theme selection cancelled", fg="yellow")
+        try:
+            selector = ThemeSelector()
+            selected = selector.run()
+            
+            if selected:
+                apply_theme(selected)
+                typer.secho(f"\n✅ Theme changed to: {selected}", fg=get_system_color())
+            else:
+                typer.secho("\n❌ Theme selection cancelled", fg="yellow")
+        except Exception as e:
+            typer.secho(f"\n❌ Theme selector error: {e}", fg="red")
+            import traceback
+            traceback.print_exc()
             
     elif theme_name == "list":
         # List all themes
@@ -116,12 +124,21 @@ def show_theme_sample(theme_name: str):
 
 
 class ThemeSelector:
-    """Interactive theme selector with side-by-side display."""
+    """Interactive theme selector with side-by-side display and scrollable list."""
     
     def __init__(self):
         self.themes = list(COLOR_SCHEMES.keys())
-        self.current_index = 0
         self.original_theme = config.get("color_mode", "dark")
+        # Start at current theme
+        try:
+            self.current_index = self.themes.index(self.original_theme)
+        except ValueError:
+            self.current_index = 0
+        self.visible_items = 12  # Number of themes visible at once
+        self.scroll_offset = 0   # Current scroll position
+        # Adjust scroll to show current theme
+        if self.current_index >= self.visible_items:
+            self.scroll_offset = self.current_index - self.visible_items // 2
         
     def clear_screen(self):
         """Clear the terminal screen."""
@@ -132,28 +149,81 @@ class ThemeSelector:
         print(f"\033[{row};{col}H", end="")
         
     def draw_theme_list(self, start_row: int):
-        """Draw the theme list on the left."""
+        """Draw the scrollable theme list on the left."""
+        # Use blue color for visibility on white backgrounds
+        blue = "\033[34m"
+        reset = "\033[0m"
+        
         self.move_cursor(start_row, 2)
-        print("Theme Selection")
+        print(f"{blue}Select a theme:{reset}")
+        self.move_cursor(start_row + 1, 2)
+        print(f"{blue}{'─' * 18}{reset}")
         
-        for i, theme in enumerate(self.themes):
-            self.move_cursor(start_row + 2 + i, 2)
-            if i == self.current_index:
-                print(f"▶ {theme:<15} ◀── selected")
+        # Calculate visible range
+        visible_start = self.scroll_offset
+        visible_end = min(self.scroll_offset + self.visible_items, len(self.themes))
+        
+        # Show top scroll indicator if needed
+        list_start = start_row + 3  # Always leave room for scroll indicator
+        self.move_cursor(start_row + 2, 2)
+        if self.scroll_offset > 0:
+            print(f"{blue}  ↑ more ↑     {reset}")
+        else:
+            print("               ")  # Clear the line if no indicator needed
+        
+        # Draw visible themes
+        visible_count = visible_end - visible_start
+        for i, idx in enumerate(range(visible_start, visible_end)):
+            theme = self.themes[idx]
+            row = list_start + i
+            self.move_cursor(row, 2)
+            
+            if idx == self.current_index:
+                # Highlight selected theme (white on blue)
+                print(f"\033[1;44;37m▶ {theme:<15}\033[0m   ")  # Bold + blue bg + white fg
             else:
-                print(f"  {theme:<15}")
+                print(f"{blue}  {theme:<15}{reset}   ")  # Blue text + extra spaces to clear any artifacts
         
-        # Instructions at bottom
-        self.move_cursor(start_row + len(self.themes) + 4, 2)
-        print("[↑↓] Select theme   [Enter] Apply   [Esc] Cancel")
+        # Clear any remaining lines if we're showing fewer themes
+        for i in range(visible_count, self.visible_items):
+            row = list_start + i
+            self.move_cursor(row, 2)
+            print(" " * 20)  # Clear the line
+        
+        # Show bottom scroll indicator if needed (after the themes, not on them)
+        bottom_indicator_row = list_start + self.visible_items
+        self.move_cursor(bottom_indicator_row, 2)
+        if visible_end < len(self.themes):
+            print(f"{blue}  ↓ more ↓     {reset}")  # Extra spaces to clear any leftover text
+        else:
+            print("               ")  # Clear the line if no indicator needed
+        
+        # Show position indicator (clear the line first to handle digit changes)
+        self.move_cursor(start_row + self.visible_items + 6, 2)
+        print(f"{blue}{self.current_index + 1}/{len(self.themes)}    {reset}")
+        
+        # Instructions at bottom (vertically stacked)
+        self.move_cursor(start_row + self.visible_items + 8, 2)
+        print(f"{blue}  ↑↓ Navigate {reset}")
+        self.move_cursor(start_row + self.visible_items + 9, 2)
+        print(f"{blue}  PgUp/Dn Page{reset}")
+        self.move_cursor(start_row + self.visible_items + 10, 2)
+        print(f"{blue}  Home/End Jump{reset}")
+        self.move_cursor(start_row + self.visible_items + 11, 2)
+        print(f"{blue}  Enter Select{reset}")
+        self.move_cursor(start_row + self.visible_items + 12, 2)
+        print(f"{blue}  Esc Cancel  {reset}")
     
     def draw_preview_box(self, start_row: int, theme_name: str):
         """Draw the preview box on the right."""
+        # Save current theme
+        current_theme = config.get("color_mode", "dark")
+        
         # Temporarily apply theme for preview
         config.set("color_mode", theme_name)
         
-        col = 40  # Start column for the box
-        width = 49  # Box width
+        col = 25  # Start column for the box (closer now that list is compact)
+        width = 50  # Box width (narrower for more compact display)
         
         # Box structure with actual Episodic UI elements
         preview_lines = self._get_preview_lines(theme_name, width)
@@ -161,132 +231,220 @@ class ThemeSelector:
         # Draw each line
         for i, line in enumerate(preview_lines):
             self.move_cursor(start_row + i, col)
+            # Clear to end of line first to ensure no artifacts
+            print("\033[K", end="")  
             print(line, end="")
         
         sys.stdout.flush()
+        
+        # Restore original theme
+        config.set("color_mode", current_theme)
     
     def _get_preview_lines(self, theme_name: str, width: int) -> List[str]:
         """Generate preview lines with proper coloring."""
         lines = []
         
-        # Helper to pad content to box width
-        def pad(text: str, color_func=None) -> str:
-            if color_func:
-                colored = color_func(text)
-                # Account for ANSI codes in padding
-                padding = width - 2 - len(text)
-                return f"│ {colored}{' ' * padding}│"
+        # Create a format string for consistent width
+        inner_width = width - 2  # Account for the borders
+        
+        def get_display_width(text: str) -> int:
+            """Get the actual display width of text, accounting for emojis."""
+            width = 0
+            i = 0
+            while i < len(text):
+                char = text[i]
+                code = ord(char)
+                
+                # Skip variation selectors (zero-width)
+                if code == 0xFE0F or (0xFE00 <= code <= 0xFE0F):
+                    i += 1
+                    continue
+                
+                # Check if character is emoji
+                if (0x1F300 <= code <= 0x1F9FF or  # Misc symbols & pictographs
+                    0x1F600 <= code <= 0x1F64F or  # Emoticons
+                    0x2600 <= code <= 0x26FF or    # Misc symbols
+                    0x2700 <= code <= 0x27BF or    # Dingbats
+                    code in [0x2705, 0x26A0, 0x274C, 0x2728, 0x2757]):  # Specific emojis
+                    width += 2  # Emoji takes 2 columns
+                else:
+                    width += 1  # Regular character
+                
+                i += 1
+            return width
+        
+        def make_line_exact(content: str, plain_text: str) -> str:
+            """Make a line exactly width chars wide.
+            content: the styled content
+            plain_text: the unstyled text for length calculation
+            """
+            # No borders - just pad to width
+            display_width = get_display_width(plain_text)
+            padding_needed = width - display_width
+            if padding_needed < 0:
+                padding_needed = 0
+            return f"{content}{' ' * padding_needed}"
+        
+        def make_box_line(text: str, style_func=None) -> str:
+            """Create a box line with exact width."""
+            if style_func:
+                styled = style_func(text)
+                return make_line_exact(styled, text)
             else:
-                padding = width - 2 - len(text)
-                return f"│ {text}{' ' * padding}│"
+                return make_line_exact(text, text)
+        
+        # Helper for empty line
+        def empty_line() -> str:
+            return ' ' * width
         
         # Build preview
-        sep_color = lambda t: f"\033[90m{t}\033[0m"  # Gray for separators
+        sep_color = lambda t: f"\033[1;90m{t}\033[0m"  # Bold gray for separators
         
-        lines.append(sep_color("╭" + "─" * (width-2) + "╮"))
-        lines.append(f"│{typer.style(f'THEME: {theme_name.upper()}'.center(width-2), fg=get_heading_color(), bold=True)}│")
-        lines.append(sep_color("├" + "─" * (width-2) + "┤"))
-        lines.append("│" + " " * (width-2) + "│")
+        lines.append(sep_color("╭" + "─" * inner_width + "╮"))
+        
+        # Theme title
+        title_text = f'THEME: {theme_name.upper()}'
+        centered_text = title_text.center(inner_width - 2)
+        title_line = f"{sep_color('│')} {typer.style(centered_text, fg=get_heading_color(), bold=True)} {sep_color('│')}"
+        lines.append(title_line)
+        
+        lines.append(sep_color("└" + "─" * inner_width + "┘"))
+        lines.append(empty_line())
         
         # Conversation
-        lines.append(pad("> What's the capital of France?", 
-                        lambda t: typer.style(t, fg="green", bold=True)))
-        lines.append("│" + " " * (width-2) + "│")
-        lines.append(pad("The capital of France is Paris. It has",
-                        lambda t: typer.style(t, fg=get_llm_color())))
-        lines.append(pad("been the capital since 987 AD.",
-                        lambda t: typer.style(t, fg=get_llm_color())))
-        lines.append("│" + " " * (width-2) + "│")
-        lines.append(pad("[Input: 8 • Output: 47 • Cost: $0.0021]",
-                        lambda t: typer.style(t, fg=get_text_color(), dim=True)))
-        lines.append("│" + " " * (width-2) + "│")
+        lines.append(make_box_line("> What's the capital of France?", 
+                                   lambda t: typer.style(t, fg="green", bold=True)))
+        lines.append(empty_line())
+        lines.append(make_box_line("The capital of France is Paris. It has",
+                                   lambda t: typer.style(t, fg=get_llm_color())))
+        lines.append(make_box_line("been the capital since 987 AD.",
+                                   lambda t: typer.style(t, fg=get_llm_color())))
+        lines.append(empty_line())
+        lines.append(make_box_line("[Input: 8 • Output: 47 • Cost: $0.0021]",
+                                   lambda t: typer.style(t, fg=get_text_color(), dim=True)))
+        lines.append(empty_line())
         
         # Muse mode
-        lines.append(pad("» Search for latest AI breakthroughs",
-                        lambda t: typer.style(t, fg="bright_magenta", bold=True)))
-        lines.append(pad("🔍 Searching web...",
-                        lambda t: typer.style(t, fg=get_system_color())))
-        lines.append(pad("✨ Synthesizing from 8 sources...",
-                        lambda t: typer.style(t, fg=get_system_color())))
-        lines.append("│" + " " * (width-2) + "│")
+        lines.append(make_box_line("» Search for latest AI breakthroughs",
+                                   lambda t: typer.style(t, fg="bright_magenta", bold=True)))
+        lines.append(make_box_line("🔍 Searching web...",
+                                   lambda t: typer.style(t, fg=get_system_color())))
+        lines.append(make_box_line("✨ Synthesizing from 8 sources...",
+                                   lambda t: typer.style(t, fg=get_system_color())))
+        lines.append(empty_line())
         
         # Status messages
-        lines.append(pad("System Status:",
-                        lambda t: typer.style(t, fg=get_heading_color(), bold=True)))
-        lines.append(pad("  ✅ Topic saved to: notes.md",
-                        lambda t: typer.style(t, fg="green")))
-        lines.append(pad("  ⚠️  Rate limit: 45/50 requests",
-                        lambda t: typer.style(t, fg="yellow")))
-        lines.append(pad("  ❌ Error: Connection failed",
-                        lambda t: typer.style(t, fg="red")))
-        lines.append(pad("  🎭 Muse mode ENABLED",
-                        lambda t: typer.style(t, fg=get_system_color(), bold=True)))
-        lines.append(pad("  📌 New topic: python-debugging",
-                        lambda t: typer.style(t, fg=get_system_color(), bold=True)))
-        lines.append(pad("  💡 Type /help for commands",
-                        lambda t: typer.style(t, fg=get_text_color(), dim=True)))
-        lines.append("│" + " " * (width-2) + "│")
+        lines.append(make_box_line("System Status:",
+                                   lambda t: typer.style(t, fg=get_heading_color(), bold=True)))
+        lines.append(make_box_line("  ✅ Topic saved to: notes.md",
+                                   lambda t: typer.style(t, fg="green")))
+        lines.append(make_box_line("  ⚠️  Rate limit: 45/50 requests",
+                                   lambda t: typer.style(t, fg="yellow")))
+        lines.append(make_box_line("  ❌ Error: Connection failed",
+                                   lambda t: typer.style(t, fg="red")))
+        lines.append(make_box_line("  🎭 Muse mode ENABLED",
+                                   lambda t: typer.style(t, fg=get_system_color(), bold=True)))
+        lines.append(make_box_line("  📌 New topic: python-debugging",
+                                   lambda t: typer.style(t, fg=get_system_color(), bold=True)))
+        lines.append(make_box_line("  💡 Type /help for commands",
+                                   lambda t: typer.style(t, fg=get_text_color(), dim=True)))
+        lines.append(empty_line())
         
         # Configuration
-        lines.append(pad("Current Configuration:",
-                        lambda t: typer.style(t, fg=get_heading_color(), bold=True)))
+        lines.append(make_box_line("Current Configuration:",
+                                   lambda t: typer.style(t, fg=get_heading_color(), bold=True)))
         
-        # Model line
-        model_line = "  Model:    gpt-4o-mini"
-        colored_model = f"  {typer.style('Model:', fg=get_text_color())}    {typer.style('gpt-4o-mini', fg=get_llm_color())}"
-        padding = width - 2 - len(model_line)
-        lines.append(f"│ {colored_model}{' ' * padding}│")
+        # Model line - special handling for multi-colored line
+        model_text = "  Model:    gpt-4o-mini"
+        model_label = typer.style('Model:', fg=get_text_color())
+        model_value = typer.style('gpt-4o-mini', fg=get_llm_color())
+        colored_model = f"  {model_label}    {model_value}"
+        lines.append(make_line_exact(colored_model, model_text))
         
-        # Cost line
-        cost_line = "  Cost:     $0.0234"
-        colored_cost = f"  {typer.style('Cost:', fg=get_text_color())}     {typer.style('$0.0234', fg='green')}"
-        padding = width - 2 - len(cost_line)
-        lines.append(f"│ {colored_cost}{' ' * padding}│")
+        # Cost line - special handling for multi-colored line
+        cost_text = "  Cost:     $0.0234"
+        cost_label = typer.style('Cost:', fg=get_text_color())
+        cost_value = typer.style('$0.0234', fg='green')
+        colored_cost = f"  {cost_label}     {cost_value}"
+        lines.append(make_line_exact(colored_cost, cost_text))
         
-        lines.append("│" + " " * (width-2) + "│")
+        lines.append(empty_line())
         
         # Commands
-        lines.append(pad("Commands:",
-                        lambda t: typer.style(t, fg=get_heading_color(), bold=True)))
+        lines.append(make_box_line("Commands:",
+                                   lambda t: typer.style(t, fg=get_heading_color(), bold=True)))
         
-        # Command with argument
-        cmd_line = "  /save <name>    Save current topic"
-        colored_cmd = f"  {typer.style('/save', fg='bright_yellow', bold=True)} {typer.style('<name>', fg='bright_magenta')}    Save current topic"
-        padding = width - 2 - len(cmd_line)
-        lines.append(f"│ {colored_cmd}{' ' * padding}│")
+        # Command with argument - special handling
+        cmd_text = "  /save <name>    Save current topic"
+        save_cmd = typer.style('/save', fg='bright_yellow', bold=True)
+        name_arg = typer.style('<name>', fg='bright_magenta')
+        colored_cmd = f"  {save_cmd} {name_arg}    Save current topic"
+        lines.append(make_line_exact(colored_cmd, cmd_text))
         
-        lines.append(pad("  /theme gemini",
-                        lambda t: typer.style(t, fg="green", italic=True)))
-        lines.append("│" + " " * (width-2) + "│")
+        lines.append(make_box_line("  /theme gemini",
+                                   lambda t: typer.style(t, fg="green", italic=True)))
+        lines.append(empty_line())
         
-        lines.append(sep_color("├" + "─" * (width-2) + "┤"))
-        lines.append(pad("← → Navigate  │  ↵ Select  │  ESC Cancel",
-                        lambda t: typer.style(t, fg=get_text_color(), dim=True)))
-        lines.append(sep_color("╰" + "─" * (width-2) + "╯"))
+        lines.append(sep_color("┌" + "─" * inner_width + "┐"))
+        
+        # Bottom navigation bar
+        nav_text = "↑↓ Navigate  │  ↵ Select  │  ESC Cancel"
+        nav_line = f"{sep_color('│')} {typer.style(nav_text.center(inner_width - 2), fg=get_text_color(), dim=True)} {sep_color('│')}"
+        lines.append(nav_line)
+        
+        lines.append(sep_color("└" + "─" * inner_width + "┘"))
         
         return lines
     
     def get_key(self) -> str:
-        """Get a single keypress."""
+        """Get a single keypress - working version."""
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
+        
         try:
-            tty.setraw(sys.stdin.fileno())
-            key = sys.stdin.read(1)
+            tty.setraw(fd)
             
-            # Handle special keys
-            if key == '\033':  # ESC sequence
-                next_chars = sys.stdin.read(2)
-                if next_chars == '[A':  # Up arrow
-                    return 'up'
-                elif next_chars == '[B':  # Down arrow
-                    return 'down'
-                else:
-                    return 'escape'
-            elif key == '\r' or key == '\n':
+            # Read first character
+            ch1 = sys.stdin.read(1)
+            if not ch1:
+                return None
+            
+            # Handle regular keys
+            if ch1 == '\r' or ch1 == '\n':
                 return 'enter'
             
-            return key
+            # Handle ESC
+            if ch1 == '\x1b':
+                # Make stdin non-blocking temporarily
+                flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+                
+                try:
+                    # Try to read the rest of escape sequence
+                    rest = sys.stdin.read(10)  # Read up to 10 more chars
+                    fcntl.fcntl(fd, fcntl.F_SETFL, flags)  # Restore blocking
+                    
+                    if len(rest) >= 2 and rest[0] == '[':
+                        # It's an escape sequence
+                        if rest[1] == 'A': return 'up'
+                        elif rest[1] == 'B': return 'down'
+                        elif rest[1] == 'C': return None  # right
+                        elif rest[1] == 'D': return None  # left
+                        elif rest[1] == '5': return 'pageup'
+                        elif rest[1] == '6': return 'pagedown'
+                        elif rest[1] == 'H': return 'home'
+                        elif rest[1] == 'F': return 'end'
+                    # If we got here, it's just ESC
+                    return 'escape'
+                except:
+                    fcntl.fcntl(fd, fcntl.F_SETFL, flags)  # Restore blocking
+                    return 'escape'
+            
+            # Ignore everything else
+            return None
+            
+        except Exception:
+            return None
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     
@@ -300,22 +458,70 @@ class ThemeSelector:
             self.clear_screen()
             
             while True:
-                # Draw UI
+                # Clear and redraw UI
+                self.clear_screen()
                 self.draw_theme_list(2)
                 self.draw_preview_box(2, self.themes[self.current_index])
                 
                 # Get input
                 key = self.get_key()
                 
+                # Skip if no valid key
+                if key is None:
+                    continue
+                
+                # Process key
                 if key == 'up':
                     self.current_index = (self.current_index - 1) % len(self.themes)
+                    # Adjust scroll offset if needed
+                    if self.current_index < self.scroll_offset:
+                        self.scroll_offset = self.current_index
+                    elif self.current_index == len(self.themes) - 1:
+                        # Wrapped to bottom
+                        self.scroll_offset = max(0, len(self.themes) - self.visible_items)
+                    continue
                 elif key == 'down':
                     self.current_index = (self.current_index + 1) % len(self.themes)
+                    # Adjust scroll offset if needed
+                    if self.current_index >= self.scroll_offset + self.visible_items:
+                        self.scroll_offset = self.current_index - self.visible_items + 1
+                    elif self.current_index == 0:
+                        # Wrapped to top
+                        self.scroll_offset = 0
+                    continue
+                elif key == 'pageup':
+                    # Move up by visible_items
+                    self.current_index = max(0, self.current_index - self.visible_items)
+                    self.scroll_offset = max(0, self.scroll_offset - self.visible_items)
+                    continue
+                elif key == 'pagedown':
+                    # Move down by visible_items
+                    self.current_index = min(len(self.themes) - 1, self.current_index + self.visible_items)
+                    if self.current_index >= self.scroll_offset + self.visible_items:
+                        self.scroll_offset = min(self.current_index - self.visible_items + 1, 
+                                               len(self.themes) - self.visible_items)
+                    continue
+                elif key == 'home':
+                    # Go to first theme
+                    self.current_index = 0
+                    self.scroll_offset = 0
+                    continue
+                elif key == 'end':
+                    # Go to last theme
+                    self.current_index = len(self.themes) - 1
+                    self.scroll_offset = max(0, len(self.themes) - self.visible_items)
+                    continue
                 elif key == 'enter':
                     return self.themes[self.current_index]
                 elif key == 'escape':
                     break
+                else:
+                    # Any other key - ignore and continue
+                    continue
                     
+        except KeyboardInterrupt:
+            # Handle Ctrl-C gracefully
+            pass
         finally:
             # Restore terminal and original theme
             print("\033[?25h", end="")     # Show cursor

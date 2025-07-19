@@ -98,6 +98,104 @@ COLOR_SCHEMES = {
         "prompt": "GREEN",                  # Gruvbox green
         "text": "WHITE",                    # Light
         "heading": "YELLOW"                 # Gruvbox yellow
+    },
+    "one_dark": {
+        "llm_response": "CYAN",             # One Dark cyan
+        "system_info": "BRIGHT_BLUE",       # One Dark blue
+        "prompt": "GREEN",                  # One Dark green
+        "text": "WHITE",                    # One Dark foreground
+        "heading": "BRIGHT_MAGENTA"         # One Dark purple
+    },
+    "tokyo_night": {
+        "llm_response": "BRIGHT_CYAN",      # Tokyo Night cyan
+        "system_info": "BLUE",              # Tokyo Night blue
+        "prompt": "GREEN",                  # Tokyo Night green
+        "text": "WHITE",                    # Tokyo Night foreground
+        "heading": "BRIGHT_MAGENTA"         # Tokyo Night magenta
+    },
+    "catppuccin": {
+        "llm_response": "BRIGHT_BLUE",      # Catppuccin sky
+        "system_info": "CYAN",              # Catppuccin teal
+        "prompt": "GREEN",                  # Catppuccin green
+        "text": "WHITE",                    # Catppuccin text
+        "heading": "BRIGHT_MAGENTA"         # Catppuccin mauve
+    },
+    "material": {
+        "llm_response": "CYAN",             # Material cyan
+        "system_info": "BRIGHT_CYAN",       # Material light cyan
+        "prompt": "GREEN",                  # Material green
+        "text": "WHITE",                    # Material foreground
+        "heading": "YELLOW"                 # Material yellow
+    },
+    "ayu_dark": {
+        "llm_response": "BRIGHT_YELLOW",    # Ayu orange
+        "system_info": "CYAN",              # Ayu cyan
+        "prompt": "GREEN",                  # Ayu green
+        "text": "WHITE",                    # Ayu foreground
+        "heading": "BRIGHT_YELLOW"          # Ayu yellow
+    },
+    "palenight": {
+        "llm_response": "BRIGHT_CYAN",      # Palenight cyan
+        "system_info": "BLUE",              # Palenight blue
+        "prompt": "GREEN",                  # Palenight green
+        "text": "WHITE",                    # Palenight foreground
+        "heading": "BRIGHT_MAGENTA"         # Palenight purple
+    },
+    "tomorrow_night": {
+        "llm_response": "CYAN",             # Tomorrow cyan
+        "system_info": "BLUE",              # Tomorrow blue
+        "prompt": "GREEN",                  # Tomorrow green
+        "text": "WHITE",                    # Tomorrow foreground
+        "heading": "YELLOW"                 # Tomorrow yellow
+    },
+    "synthwave": {
+        "llm_response": "BRIGHT_MAGENTA",   # Synthwave pink
+        "system_info": "BRIGHT_CYAN",       # Synthwave cyan
+        "prompt": "BRIGHT_MAGENTA",         # Synthwave magenta
+        "text": "WHITE",                    # Synthwave foreground
+        "heading": "BRIGHT_YELLOW"          # Synthwave yellow
+    },
+    "cobalt2": {
+        "llm_response": "BRIGHT_YELLOW",    # Cobalt2 yellow
+        "system_info": "BRIGHT_CYAN",       # Cobalt2 cyan
+        "prompt": "GREEN",                  # Cobalt2 green
+        "text": "WHITE",                    # Cobalt2 foreground
+        "heading": "BRIGHT_YELLOW"          # Cobalt2 orange
+    },
+    "night_owl": {
+        "llm_response": "CYAN",             # Night Owl cyan
+        "system_info": "BRIGHT_BLUE",       # Night Owl blue
+        "prompt": "GREEN",                  # Night Owl green
+        "text": "WHITE",                    # Night Owl foreground
+        "heading": "BRIGHT_YELLOW"          # Night Owl yellow
+    },
+    "zenburn": {
+        "llm_response": "BRIGHT_YELLOW",    # Zenburn yellow
+        "system_info": "CYAN",              # Zenburn cyan
+        "prompt": "GREEN",                  # Zenburn green
+        "text": "WHITE",                    # Zenburn foreground
+        "heading": "YELLOW"                 # Zenburn yellow
+    },
+    "everforest": {
+        "llm_response": "GREEN",            # Everforest aqua
+        "system_info": "CYAN",              # Everforest blue
+        "prompt": "GREEN",                  # Everforest green
+        "text": "WHITE",                    # Everforest foreground
+        "heading": "BRIGHT_GREEN"           # Everforest green
+    },
+    "kanagawa": {
+        "llm_response": "CYAN",             # Kanagawa wave blue
+        "system_info": "BRIGHT_BLUE",       # Kanagawa spring blue
+        "prompt": "GREEN",                  # Kanagawa spring green
+        "text": "WHITE",                    # Kanagawa foreground
+        "heading": "BRIGHT_YELLOW"          # Kanagawa autumn yellow
+    },
+    "rosepine": {
+        "llm_response": "BRIGHT_CYAN",      # Rose Pine foam
+        "system_info": "BRIGHT_MAGENTA",    # Rose Pine iris
+        "prompt": "GREEN",                  # Rose Pine pine
+        "text": "WHITE",                    # Rose Pine text
+        "heading": "BRIGHT_MAGENTA"         # Rose Pine rose
     }
 }
 
@@ -164,6 +262,27 @@ def get_heading_color():
     import typer
     color_name = get_color_scheme()["heading"]
     return getattr(typer.colors, color_name)
+
+def get_error_color():
+    """Get the color for error messages."""
+    import typer
+    return typer.colors.RED
+
+def get_warning_color():
+    """Get the color for warning messages."""
+    import typer
+    return typer.colors.YELLOW
+
+def get_success_color():
+    """Get the color for success messages."""
+    import typer
+    return typer.colors.GREEN
+
+def get_info_color():
+    """Get the color for informational messages."""
+    import typer
+    # Use system color for info messages to match theme
+    return get_system_color()
 
 # Cost display formatting
 COST_PRECISION = 6  # Number of decimal places for cost display

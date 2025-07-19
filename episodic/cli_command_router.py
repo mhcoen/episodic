@@ -9,7 +9,10 @@ import typer
 from typing import List, Tuple
 
 from episodic.config import config
-from episodic.configuration import EXIT_COMMANDS, get_text_color, get_heading_color, get_system_color
+from episodic.configuration import (
+    EXIT_COMMANDS, get_text_color, get_heading_color, get_system_color,
+    get_error_color, get_warning_color, get_success_color
+)
 from episodic.cli_helpers import _has_flag
 from episodic.benchmark import display_pending_benchmark
 
@@ -59,8 +62,8 @@ def handle_command(command_str: str) -> bool:
     
     # In simple mode, restrict to allowed commands
     if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands():
-        typer.secho(f"Command {cmd} is not available in simple mode.", fg="red")
-        typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /help, /exit", fg="yellow")
+        typer.secho(f"Command {cmd} is not available in simple mode.", fg=get_error_color())
+        typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /help, /exit", fg=get_warning_color())
         typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
         return False
     
@@ -168,10 +171,10 @@ def handle_command(command_str: str) -> bool:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
     except Exception as e:
-        typer.secho(f"Error executing command: {e}", fg="red")
+        typer.secho(f"Error executing command: {e}", fg=get_error_color())
         if config.get("debug"):
             import traceback
-            typer.secho(traceback.format_exc(), fg="red")
+            typer.secho(traceback.format_exc(), fg=get_error_color())
     
     # Display any pending benchmarks after command execution
     display_pending_benchmark()
@@ -193,7 +196,7 @@ def _handle_init(args: List[str]):
 def _handle_add(args: List[str]):
     """Handle /add command."""
     if not args:
-        typer.secho("Usage: /add <content>", fg="red")
+        typer.secho("Usage: /add <content>", fg=get_error_color())
     else:
         from episodic.commands import add
         content = " ".join(args)
@@ -203,7 +206,7 @@ def _handle_add(args: List[str]):
 def _handle_show(args: List[str]):
     """Handle /show command."""
     if not args:
-        typer.secho("Usage: /show <node_id>", fg="red")
+        typer.secho("Usage: /show <node_id>", fg=get_error_color())
     else:
         from episodic.commands import show
         show(args[0])
@@ -346,7 +349,7 @@ def _handle_topics(args: List[str]):
             if action_args:
                 handle_topics_action(action="index", window_size=int(action_args[0]))
             else:
-                typer.secho("Usage: /topics index <number>", fg="red")
+                typer.secho("Usage: /topics index <number>", fg=get_error_color())
         elif action == "scores":
             handle_topics_action(action="scores")
         elif action == "stats":
@@ -354,8 +357,8 @@ def _handle_topics(args: List[str]):
         elif action == "list":
             handle_topics_action(action="list")
         else:
-            typer.secho(f"Unknown topics action: {action}", fg="red")
-            typer.secho("Available actions: list, rename, compress, index, scores, stats", fg="yellow")
+            typer.secho(f"Unknown topics action: {action}", fg=get_error_color())
+            typer.secho("Available actions: list, rename, compress, index, scores, stats", fg=get_warning_color())
 
 
 def _handle_compression(args: List[str]):
@@ -369,7 +372,7 @@ def _handle_compression(args: List[str]):
         if action in ["stats", "queue", "compress", "api-stats", "reset-api"]:
             compression_command(action=action)
         else:
-            typer.secho(f"Unknown compression action: {action}", fg="red")
+            typer.secho(f"Unknown compression action: {action}", fg=get_error_color())
 
 
 def _handle_rag(args: List[str]):
@@ -384,13 +387,13 @@ def _handle_rag(args: List[str]):
     elif args[0] == "off":
         rag_toggle(enable=False)
     else:
-        typer.secho(f"Unknown rag action: {args[0]}", fg="red")
+        typer.secho(f"Unknown rag action: {args[0]}", fg=get_error_color())
 
 
 def _handle_search(args: List[str]):
     """Handle /search or /s command."""
     if not args:
-        typer.secho("Usage: /search <query>", fg="red")
+        typer.secho("Usage: /search <query>", fg=get_error_color())
     else:
         from episodic.commands.rag import search
         query = " ".join(args)
@@ -402,7 +405,7 @@ def _handle_index(args: List[str]):
     from episodic.commands.rag import index_text, index_file
     
     if not args:
-        typer.secho("Usage: /index <file_path> or /index --text \"<content>\"", fg="red")
+        typer.secho("Usage: /index <file_path> or /index --text \"<content>\"", fg=get_error_color())
     else:
         if args[0] == "--text" and len(args) > 1:
             # Index raw text
@@ -449,7 +452,7 @@ def _handle_muse(args: List[str]):
     elif args[0] in ["on", "off"]:
         muse(action=args[0])
     else:
-        typer.secho(f"Unknown muse action: {args[0]}", fg="red")
+        typer.secho(f"Unknown muse action: {args[0]}", fg=get_error_color())
 
 
 def _handle_chat(args: List[str]):
@@ -474,13 +477,13 @@ def _handle_prompt(args: List[str]):
             prompt_name = args[1] if len(args) > 1 else None
             prompt(action="show", prompt_name=prompt_name)
         else:
-            typer.secho(f"Unknown prompt action: {action}", fg="red")
+            typer.secho(f"Unknown prompt action: {action}", fg=get_error_color())
 
 
 def _handle_script(args: List[str]):
     """Handle /script command."""
     if not args:
-        typer.secho("Usage: /script <script_file>", fg="red")
+        typer.secho("Usage: /script <script_file>", fg=get_error_color())
     else:
         from episodic.cli_session import execute_script
         filename = " ".join(args)
@@ -490,12 +493,12 @@ def _handle_script(args: List[str]):
 def _handle_save(args: List[str]):
     """Handle /save command."""
     if not args:
-        typer.secho("Usage: /save <filename>", fg="red")
+        typer.secho("Usage: /save <filename>", fg=get_error_color())
     else:
         from episodic.cli_session import save_session_script
         filename = " ".join(args)
         save_session_script(filename)
-        typer.secho(f"✅ Session saved to scripts/{filename}", fg="green")
+        typer.secho(f"✅ Session saved to scripts/{filename}", fg=get_success_color())
 
 
 def _handle_benchmark(args: List[str]):
@@ -511,14 +514,14 @@ def _handle_benchmark(args: List[str]):
         elif action == "off":
             benchmark(enable=False)
         else:
-            typer.secho(f"Unknown benchmark action: {action}", fg="red")
+            typer.secho(f"Unknown benchmark action: {action}", fg=get_error_color())
 
 
 def _handle_reset_benchmarks():
     """Handle /reset-benchmarks command."""
     from episodic.benchmark import reset_benchmarks
     reset_benchmarks()
-    typer.secho("✅ Benchmark data reset", fg="green")
+    typer.secho("✅ Benchmark data reset", fg=get_success_color())
 
 
 def _handle_config_docs():
@@ -673,9 +676,9 @@ def _handle_summary(args: List[str]):
                 count = int(arg)
                 summary(count)
             except ValueError:
-                typer.secho("Invalid argument. Use a number or 'all'", fg="red")
+                typer.secho("Invalid argument. Use a number or 'all'", fg=get_error_color())
     else:
-        typer.secho("Usage: /summary [count|all]", fg="red")
+        typer.secho("Usage: /summary [count|all]", fg=get_error_color())
 
 
 def _handle_list(args: List[str]):
@@ -690,7 +693,7 @@ def _handle_list(args: List[str]):
             count = int(args[0])
             list_command(count=count)
         except ValueError:
-            typer.secho("Usage: /list [count]", fg="red")
+            typer.secho("Usage: /list [count]", fg=get_error_color())
 
 
 def _handle_last(args: List[str]):
@@ -715,7 +718,7 @@ def _handle_in(args: List[str]):
     from episodic.commands.resume import resume_command
     
     if not args:
-        typer.secho("Usage: /in <filename.md>", fg="red")
+        typer.secho("Usage: /in <filename.md>", fg=get_error_color())
     else:
         filepath = " ".join(args)
         resume_command(filepath)
@@ -747,8 +750,8 @@ def _handle_scripts(args: List[str]):
             else:
                 scripts_command(subcommand)
         else:
-            typer.secho(f"Unknown scripts subcommand: {subcommand}", fg="red")
-            typer.secho("Usage: /scripts [save|run|list]", fg="yellow")
+            typer.secho(f"Unknown scripts subcommand: {subcommand}", fg=get_error_color())
+            typer.secho("Usage: /scripts [save|run|list]", fg=get_warning_color())
 
 
 def _handle_save_new(args: List[str]):
@@ -764,7 +767,7 @@ def _handle_load(args: List[str]):
     from episodic.commands.save_load import load_command
     
     if not args:
-        typer.secho("Usage: /load <filename>", fg="red")
+        typer.secho("Usage: /load <filename>", fg=get_error_color())
     else:
         filename = " ".join(args)
         load_command(filename)

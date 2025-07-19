@@ -20,7 +20,7 @@ from episodic.db import (
 # Lazy import _execute_llm_query to avoid loading litellm at startup
 # from episodic.llm import _execute_llm_query
 from episodic.configuration import (
-    get_llm_color, get_system_color,
+    get_llm_color, get_system_color, get_success_color, get_error_color,
     DEFAULT_CONTEXT_DEPTH
 )
 from episodic.config import config
@@ -170,7 +170,7 @@ class ConversationManager:
                 )
                 
                 if config.get("debug"):
-                    secho_color(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)", fg='green', bold=True)
+                    secho_color(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)", fg=get_success_color(), bold=True)
                     
                 # Update current topic reference
                 if self.current_topic and self.current_topic[0] == current_topic['name']:
@@ -510,7 +510,7 @@ class ConversationManager:
                         else:
                             display_response = "[No response from LLM]"
                             typer.echo("")
-                            secho_color(display_response, fg='red')
+                            secho_color(display_response, fg=get_error_color())
             
             # Store the assistant's response
             with benchmark_resource("Database", "insert assistant node"):

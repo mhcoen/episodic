@@ -45,6 +45,13 @@ In Episodic's talk mode:
 - **At the prompt**: Press Ctrl-C twice quickly (within 1 second) to exit Episodic
 - Interrupted responses are saved with a "[Response interrupted by user]" marker
 
+### User Input Display
+- User input is displayed in a styled box after pressing Enter
+- Box automatically sizes to fit content (up to 80 characters wide)
+- Long inputs wrap within the box
+- Disable with: `/set show_input_box false`
+- Use ASCII boxes for basic terminals: `/set use_unicode_boxes false`
+
 ### Exit Options
 - `/exit` or `/quit` - Normal exit with cleanup
 - `Ctrl-D` - Exit immediately (EOF)
@@ -402,6 +409,15 @@ Manage system prompts
 /prompt creative            # Switch to prompt
 /prompt show                # Show current prompt
 /prompt custom "Be brief"   # Set custom prompt
+```
+
+### /reflect
+Enable multi-step reflection and reasoning
+```bash
+/reflect                    # Enable reflection mode for next message
+/reflect "problem"          # Reflect on specific problem
+/reflect "problem" --steps 5  # Custom number of reflection steps
+/reflect off                # Disable reflection mode
 ```
 
 ### /summary

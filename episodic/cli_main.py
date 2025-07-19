@@ -147,6 +147,43 @@ def talk_loop() -> None:
             # Save to session commands (internal only, no file history)
             add_to_session_commands(user_input)
             
+            # Display user input in a box if enabled
+            if config.get("show_input_box", True):
+                from episodic.box_utils import draw_input_box, draw_simple_input_box
+                import shutil
+                
+                # Calculate how many lines the input took up in the terminal
+                terminal_width = shutil.get_terminal_size().columns
+                
+                # The prompt is either "> " or "» " (both 2 chars)
+                prompt_length = 2
+                
+                # Calculate how many lines the input occupied
+                # Account for word wrapping - each line starts at column 0 after wrapping
+                cursor_position = prompt_length
+                lines_used = 1
+                
+                # Simple character counting to handle wrapped lines
+                for char in user_input:
+                    if char == '\n':
+                        lines_used += 1
+                        cursor_position = 0
+                    else:
+                        cursor_position += 1
+                        if cursor_position >= terminal_width:
+                            lines_used += 1
+                            cursor_position = 0
+                
+                # Move cursor up and clear all the lines the input occupied
+                for _ in range(lines_used):
+                    print("\033[1A\033[2K", end="")  # Move up 1 line and clear it
+                
+                # Use Unicode box if supported, otherwise ASCII
+                if config.get("use_unicode_boxes", True):
+                    draw_input_box(user_input)
+                else:
+                    draw_simple_input_box(user_input)
+            
             # Check if it's a command
             if user_input.startswith('/'):
                 should_exit = handle_command(user_input)

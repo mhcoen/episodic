@@ -19,6 +19,7 @@ from .summary import summary
 from .utility import benchmark
 from .help import help
 from .model import handle_model
+from .reflection import reflection_command
 
 __all__ = [
     # Navigation commands
@@ -31,5 +32,5 @@ __all__ = [
     'compress', 'compression_stats', 'compression_queue', 'api_call_stats', 'reset_api_stats',
     # Other commands
     'visualize', 'prompts', 'summary', 'benchmark', 'help',
-    'handle_model'
+    'handle_model', 'reflection_command'
 ]

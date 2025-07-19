@@ -1,0 +1,21 @@
+# Reflection Demo Script
+# This script demonstrates the multi-step reflection feature
+
+# First, let's set up a good model for reflection
+/model chat gpt-4o-mini
+
+# Example 1: Enable reflection for the next message
+/reflect
+How can I design a scalable microservices architecture?
+
+# Example 2: Direct reflection on a complex problem
+/reflect "What are the philosophical implications of artificial consciousness?" --steps 4
+
+# Example 3: Mathematical problem solving with reflection
+/reflect "Prove that the square root of 2 is irrational" --steps 3
+
+# Example 4: Creative problem solving
+/reflect "Design a sustainable city for 1 million people in 2050" --steps 5
+
+# Show the cost of our reflection session
+/cost

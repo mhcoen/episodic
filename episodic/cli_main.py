@@ -46,20 +46,7 @@ def handle_chat_message(user_input: str) -> None:
         return
     
     try:
-        # Check if we're in muse mode
-        if config.get("muse_mode", False):
-            # In muse mode, treat all input as web search
-            from episodic.commands.web_search import websearch
-            # Check if web search is enabled
-            if not config.get('web_search_enabled', False):
-                typer.secho("⚠️  Web search is not enabled. Use '/muse on' to enable.", fg="yellow")
-                return
-            
-            # Perform web search with synthesis
-            websearch(user_input, synthesize=True)
-            return
-        
-        # Normal chat mode - continue with LLM
+        # Normal chat mode - continue with LLM (muse mode is handled within)
         # Get the current model from config
         model = config.get("model", "gpt-3.5-turbo")
         
@@ -68,8 +55,11 @@ def handle_chat_message(user_input: str) -> None:
         prompt_manager = get_prompt_manager()
         system_message = prompt_manager.get_active_prompt_content(config.get)
         
-        # Get context depth from config (if available)
-        context_depth = config.get("context_depth", 5)
+        # Get context depth from config - use muse_context_depth if in muse mode
+        if config.get("muse_mode", False):
+            context_depth = config.get("muse_context_depth", 5)
+        else:
+            context_depth = config.get("context_depth", 5)
         
         # Call the conversation handler
         from episodic.conversation import handle_chat_message as _handle_chat_message_impl

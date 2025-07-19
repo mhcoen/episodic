@@ -153,6 +153,7 @@ CONFIG_DOCS = {
     "muse_max_tokens": "Direct token limit for synthesis (overrides style setting if specified)",
     "muse_sources": "Source selection: first-only, top-three (default), all-relevant, selective",
     "muse_model": "Specific model for synthesis (None = use main conversation model)",
+    "muse_context_depth": "Number of previous messages to include as context in muse mode",
     
     # Provider-specific settings
     "searx_instance_url": "URL of Searx/SearxNG instance to use (default: https://searx.be)",

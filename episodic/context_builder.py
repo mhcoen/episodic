@@ -31,7 +31,7 @@ class ContextBuilder:
         context_depth: int,
         model: str,
         skip_rag: bool = False
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Optional[str], Optional[str]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]]]:
         """
         Build conversation context with optional RAG and web search.
         
@@ -193,10 +193,12 @@ class ContextBuilder:
         self,
         user_input: str,
         model: str
-    ) -> Optional[str]:
+    ) -> Optional[Dict[str, Any]]:
         """Add web search context for muse mode."""
         try:
-            from episodic.web_search import search_manager
+            from episodic.web_search import get_web_search_manager
+            search_manager = get_web_search_manager()
+            from episodic.web_extract import fetch_page_content_sync
             
             if search_manager.is_available() and search_manager.is_enabled():
                 # Perform web search
@@ -208,18 +210,54 @@ class ContextBuilder:
                 if results:
                     secho_color(f"Found {len(results)} results", fg=get_system_color())
                     
-                    # Build context from search results
-                    context_parts = []
-                    for result in results:
-                        context_parts.append(f"Title: {result.get('title', 'No title')}")
-                        context_parts.append(f"URL: {result.get('url', '')}")
-                        context_parts.append(f"Content: {result.get('content', '')[:500]}...")
-                        context_parts.append("")
+                    # Extract content from top results
+                    extracted_content = {}
+                    extract_enabled = config.get('web_search_extract_content', True)
                     
-                    web_context = "\n".join(context_parts)
+                    if extract_enabled:
+                        for i, result in enumerate(results[:3], 1):  # Top 3 results
+                            try:
+                                # Fix URL if needed
+                                extract_url = result.url
+                                if extract_url.startswith('//duckduckgo.com/l/?uddg='):
+                                    import urllib.parse
+                                    try:
+                                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(extract_url).query)
+                                        if 'uddg' in parsed:
+                                            extract_url = urllib.parse.unquote(parsed['uddg'][0])
+                                    except:
+                                        pass
+                                
+                                # Ensure URL has scheme
+                                if not extract_url.startswith(('http://', 'https://')):
+                                    extract_url = 'https://' + extract_url.lstrip('/')
+                                
+                                # Extract content
+                                content = fetch_page_content_sync(extract_url)
+                                
+                                if content and len(content) > 50:
+                                    extracted_content[result.url] = content
+                                    
+                            except Exception as e:
+                                if config.get('debug'):
+                                    debug_print(f"Extract error for {result.url}: {e}")
+                    
+                    # Build web context dictionary in the format expected by synthesize_web_response
+                    web_context = {
+                        'results': [
+                            {
+                                'title': r.title,
+                                'url': r.url,
+                                'content': r.snippet,
+                                'relevance_score': getattr(r, 'relevance_score', 0.0)
+                            }
+                            for r in results
+                        ],
+                        'extracted_content': extracted_content
+                    }
                     
                     if config.get("debug"):
-                        debug_print(f"Added web context: {len(results)} results")
+                        debug_print(f"Added web context: {len(results)} results, {len(extracted_content)} extracted")
                     
                     return web_context
                 else:

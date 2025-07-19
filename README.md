@@ -2,7 +2,7 @@
 
 A conversational memory system that creates persistent, navigable conversations with Large Language Models (LLMs). Episodic automatically organizes conversations into topics, manages context windows, and provides tools for searching both local knowledge and the web.
 
-- Episodic is unique in offering a straightforward *simple* mode, which lets them chat and intelligently search the web. This mode hides Episodic's complexity and configuration but lets users take advantage of its advanced capabilities. Simple mode handles all details of enabling chatting and searching the web. It automatically organizes conversations by topic, detects subject changes, and keeps conversational records and summaries. Conversations are easily accessible in common *markdown files*, which Episodic can both read and write.
+- Episodic is unique in offering a straightforward *simple* mode, which lets users chat and intelligently search the web. This mode hides Episodic's complexity and configuration but lets users take advantage of its advanced capabilities. Simple mode handles all details of enabling chatting and searching the web. It automatically organizes conversations by topic, detects subject changes, and keeps conversational records and summaries. Conversations are easily accessible in common *markdown files*, which Episodic can both read and write.
 
 - Episodic has also has an *advanced* mode, which is well suited to developers, academics, researchers, and anyone interested in experimenting with LLM-based applications. This unlocks a comprehensive suite of commands for multi-model orchestration, RAG, semantic detection models, prompt engineering, performance benchmarking, cost analyses, and fine-grained system control.
 

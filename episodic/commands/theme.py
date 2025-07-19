@@ -18,7 +18,6 @@ from episodic.configuration import (
     COLOR_SCHEMES, get_text_color, get_system_color, 
     get_heading_color, get_llm_color
 )
-from episodic.commands.interface_mode import is_simple_mode
 
 
 def theme_command(theme_name: Optional[str] = None):
@@ -47,22 +46,11 @@ def theme_command(theme_name: Optional[str] = None):
             traceback.print_exc()
             
     elif theme_name == "list":
-        # In simple mode, list is not available
-        if is_simple_mode():
-            typer.secho("❌ Theme arguments are not available in simple mode.", fg="red")
-            typer.secho("   Use /theme for the interactive selector", fg=get_text_color())
-            return
         # List all themes
         list_themes()
         
     else:
         # Direct theme setting
-        # In simple mode, arguments are not available
-        if is_simple_mode():
-            typer.secho("❌ Theme arguments are not available in simple mode.", fg="red")
-            typer.secho("   Use /theme for the interactive selector", fg=get_text_color())
-            return
-            
         if theme_name in COLOR_SCHEMES:
             apply_theme(theme_name)
             typer.secho(f"✅ Theme changed to: {theme_name}", fg=get_system_color())

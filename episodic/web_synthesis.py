@@ -87,7 +87,8 @@ class WebSynthesizer:
             return self._get_default_prompt_template()
     
     def synthesize_results(self, query: str, results: List[SearchResult], 
-                          extracted_content: Dict[str, str]) -> Optional[str]:
+                          extracted_content: Dict[str, str],
+                          conversation_history: Optional[List[Dict[str, str]]] = None) -> Optional[str]:
         """
         Synthesize search results and extracted content into a comprehensive answer.
         
@@ -95,6 +96,7 @@ class WebSynthesizer:
             query: The original search query
             results: List of search results
             extracted_content: Dict mapping URLs to extracted content
+            conversation_history: Optional conversation history for context
             
         Returns:
             Synthesized answer or None if synthesis fails
@@ -131,6 +133,22 @@ class WebSynthesizer:
         search_results_section = "\n\n".join(search_results_text)
         extracted_content_section = "\n\n".join(extracted_content_text) if extracted_content_text else "No detailed content extracted."
         
+        # Build conversation history section
+        conversation_section = ""
+        if conversation_history and len(conversation_history) > 0:
+            # Include conversation history for context
+            if config.get("debug"):
+                typer.secho(f"[DEBUG] WebSynthesizer: Including {len(conversation_history)} messages in context", fg="yellow")
+            conv_parts = []
+            for msg in conversation_history[-10:]:  # Last 10 messages max
+                role = msg['role'].title()
+                content = msg['content'][:200] + "..." if len(msg['content']) > 200 else msg['content']
+                conv_parts.append(f"{role}: {content}")
+            conversation_section = "Previous Conversation:\n" + "\n".join(conv_parts)
+        else:
+            if config.get("debug"):
+                typer.secho("[DEBUG] WebSynthesizer: No conversation history provided", fg="yellow")
+        
         # Get style and format instructions
         style_info = self._get_style_instructions()
         detail_instructions = self._get_detail_instructions()
@@ -144,6 +162,7 @@ class WebSynthesizer:
             query=query,
             search_results=search_results_section,
             extracted_content=extracted_content_section,
+            conversation_history=conversation_section,
             style=self.style,
             style_instructions=style_info['instructions'],
             detail=self.detail,
@@ -194,7 +213,9 @@ class WebSynthesizer:
     
     def _get_default_prompt_template(self) -> str:
         """Get the default prompt template if custom one not found."""
-        return """Based on the following web search results, provide a comprehensive answer to the user's query.
+        return """Based on the following web search results and conversation context, provide a comprehensive answer to the user's query.
+
+{conversation_history}
 
 User Query: {query}
 
@@ -219,6 +240,7 @@ Instructions:
 - Format the answer according to the format preference
 - If sources contain conflicting information, mention the discrepancy
 - Use markdown formatting appropriately (headers, bold, lists)
+- Take into account the conversation history to understand context and references
 
 {additional_requirements}
 
@@ -275,7 +297,7 @@ def synthesize_web_response(query: str, search_results: Dict[str, Any],
     extracted_content = search_results.get('extracted_content', {})
     
     # Synthesize the response
-    response = synthesizer.synthesize_results(query, results, extracted_content)
+    response = synthesizer.synthesize_results(query, results, extracted_content, conversation_history)
     
     # Handle streaming case - when streaming is enabled, synthesize_results returns a dict
     if isinstance(response, dict) and response.get('streaming'):

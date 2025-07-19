@@ -1,11 +1,12 @@
 """Web search commands for Episodic."""
 
 import typer
-from typing import Optional
+from typing import Optional, List, Dict
 
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.web_search import get_web_search_manager
+from episodic.db import insert_node
 
 
 def websearch(query: str, limit: Optional[int] = None, index: bool = None, extract: bool = None, synthesize: bool = None):

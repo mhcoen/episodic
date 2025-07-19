@@ -12,10 +12,16 @@ from episodic.configuration import (
 )
 from episodic.benchmark import benchmark_operation
 from episodic.conversation import conversation_manager, wrapped_llm_print
+from episodic.prompt_manager import load_prompt
 
 
-def summary(count: Optional[int] = None):
-    """Summarize the recent conversation or entire history."""
+def summary(count: Optional[int] = None, length: Optional[str] = None):
+    """Summarize the recent conversation or entire history.
+    
+    Args:
+        count: Number of exchanges to summarize (or 'all' or 'loaded')
+        length: Summary length style (brief/short/standard/detailed/bulleted)
+    """
     # Determine how many messages to summarize
     if count is None:
         # Default to last 10 exchanges (20 nodes)
@@ -25,6 +31,14 @@ def summary(count: Optional[int] = None):
         # Summarize everything
         num_nodes = None
         summary_type = "entire conversation"
+    elif isinstance(count, str) and count.lower() == "loaded":
+        # Summarize the last loaded conversation
+        if not conversation_manager.last_loaded_start_id:
+            typer.secho("No conversation has been loaded yet", fg="red")
+            return
+        # Will handle this case specially below
+        num_nodes = None
+        summary_type = "loaded conversation"
     else:
         try:
             # Summarize last N exchanges (2N nodes)
@@ -37,7 +51,26 @@ def summary(count: Optional[int] = None):
     
     # Get the nodes
     with benchmark_operation("Fetch nodes for summary"):
-        if num_nodes is None:
+        if summary_type == "loaded conversation":
+            # Get nodes between loaded start and end
+            from episodic.db_nodes import get_descendants, get_node
+            
+            # Get all descendants of the start node
+            descendants = get_descendants(conversation_manager.last_loaded_start_id)
+            
+            # Filter to only include nodes up to and including the end node
+            nodes = []
+            # First add the start node itself
+            start_node = get_node(conversation_manager.last_loaded_start_id)
+            if start_node:
+                nodes.append(start_node)
+            
+            # Then add descendants up to the end node
+            for node in descendants:
+                nodes.append(node)
+                if node['id'] == conversation_manager.last_loaded_end_id:
+                    break
+        elif num_nodes is None:
             nodes = get_recent_nodes(limit=1000)  # Reasonable limit for "all"
         else:
             nodes = get_recent_nodes(limit=num_nodes)
@@ -67,8 +100,25 @@ def summary(count: Optional[int] = None):
     typer.secho(f"\n📝 Summarizing {summary_type} ({len(nodes)} messages, ~{word_count} words)...", 
                fg=get_heading_color())
     
-    # Create summary prompt
-    prompt = f"""Please provide a concise summary of the following conversation. 
+    # Load appropriate prompt template based on length
+    length = length or "standard"  # Default to standard if not specified
+    valid_lengths = ["brief", "short", "standard", "detailed", "bulleted"]
+    
+    if length not in valid_lengths:
+        typer.secho(f"Invalid length '{length}'. Choose from: {', '.join(valid_lengths)}", fg="red")
+        return
+    
+    # Load the prompt template
+    prompt_data = load_prompt(f"summary_{length}")
+    if prompt_data and prompt_data.get('content'):
+        # Use the loaded template
+        prompt_template = prompt_data['content']
+        prompt = prompt_template.replace('{conversation_text}', conversation_text)
+    else:
+        # Fallback to default prompt
+        typer.secho(f"Warning: Could not load prompt template for '{length}', using default", 
+                   fg="yellow")
+        prompt = f"""Please provide a concise summary of the following conversation. 
 Focus on:
 1. Main topics discussed
 2. Key questions asked and answers provided  
@@ -92,8 +142,17 @@ Please structure the summary clearly with sections if there are multiple distinc
                 from episodic.llm import _execute_llm_query
                 model = config.get("model", "gpt-3.5-turbo")
                 
+                # Adjust system message based on length type
+                system_messages = {
+                    "brief": "You are an assistant that creates extremely concise summaries. Be as brief as possible.",
+                    "short": "You are an assistant that creates short, compact summaries. Keep it concise.",
+                    "standard": "You are an assistant that creates clear, well-structured summaries.",
+                    "detailed": "You are an assistant that creates comprehensive, detailed summaries with clear organization.",
+                    "bulleted": "You are an assistant that creates well-organized bullet-point summaries."
+                }
+                
                 messages = [
-                    {"role": "system", "content": "You are a helpful assistant that creates clear, concise summaries."},
+                    {"role": "system", "content": system_messages.get(length, "You are a helpful assistant that creates clear, concise summaries.")},
                     {"role": "user", "content": prompt}
                 ]
                 
@@ -139,10 +198,19 @@ Please structure the summary clearly with sections if there are multiple distinc
                                fg=get_text_color(), dim=True)
             else:
                 # Non-streaming response
+                # Adjust system message based on length type
+                system_messages = {
+                    "brief": "You are an assistant that creates extremely concise summaries. Be as brief as possible.",
+                    "short": "You are an assistant that creates short, compact summaries. Keep it concise.",
+                    "standard": "You are an assistant that creates clear, well-structured summaries.",
+                    "detailed": "You are an assistant that creates comprehensive, detailed summaries with clear organization.",
+                    "bulleted": "You are an assistant that creates well-organized bullet-point summaries."
+                }
+                
                 summary_text, cost_info = query_llm(
                     prompt,
                     model=config.get("model", "gpt-3.5-turbo"),
-                    system_message="You are a helpful assistant that creates clear, concise summaries."
+                    system_message=system_messages.get(length, "You are a helpful assistant that creates clear, concise summaries.")
                 )
                 
                 typer.secho("\n🤖 Summary:", fg=get_llm_color(), bold=True)

@@ -165,6 +165,7 @@ def create_nodes_from_markdown(
     # Start from current conversation position
     parent_id = conversation_manager.current_node_id
     last_node_id = parent_id
+    first_node_id = None  # Track the first node we create
     
     for topic in parsed_data['topics']:
         topic_start_node = None
@@ -176,6 +177,10 @@ def create_nodes_from_markdown(
                 parent_id=parent_id,
                 role=message['role']
             )
+            
+            # Track the very first node we create
+            if first_node_id is None:
+                first_node_id = node_id
             
             if topic_start_node is None:
                 topic_start_node = node_id
@@ -191,6 +196,11 @@ def create_nodes_from_markdown(
                 end_node_id=last_node_id,
                 confidence='imported'
             )
+    
+    # Store the loaded range in conversation manager
+    if first_node_id and conversation_manager:
+        conversation_manager.last_loaded_start_id = first_node_id
+        conversation_manager.last_loaded_end_id = last_node_id
     
     return last_node_id
 

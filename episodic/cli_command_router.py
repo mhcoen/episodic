@@ -696,21 +696,32 @@ def _handle_summary(args: List[str]):
     """Handle /summary command."""
     from episodic.commands.summary import summary
     
-    if not args:
-        summary()
-    elif len(args) == 1:
-        # Could be a number or "all"
-        arg = args[0]
-        if arg.lower() == "all":
-            summary("all")
+    # Check for length style options
+    valid_lengths = ["brief", "short", "standard", "detailed", "bulleted"]
+    length = None
+    count_arg = None
+    
+    # Parse arguments
+    for arg in args:
+        if arg.lower() in valid_lengths:
+            length = arg.lower()
         else:
-            try:
-                count = int(arg)
-                summary(count)
-            except ValueError:
-                typer.secho("Invalid argument. Use a number or 'all'", fg=get_error_color())
+            count_arg = arg
+    
+    if not count_arg:
+        # No count specified, use default
+        summary(length=length)
+    elif count_arg.lower() == "all":
+        summary("all", length=length)
+    elif count_arg.lower() == "loaded":
+        summary("loaded", length=length)
     else:
-        typer.secho("Usage: /summary [count|all]", fg=get_error_color())
+        try:
+            count = int(count_arg)
+            summary(count, length=length)
+        except ValueError:
+            typer.secho(f"Invalid argument '{count_arg}'. Use a number, 'all', or 'loaded'", fg=get_error_color())
+            typer.secho(f"Valid length options: {', '.join(valid_lengths)}", fg=get_error_color())
 
 
 def _handle_list(args: List[str]):

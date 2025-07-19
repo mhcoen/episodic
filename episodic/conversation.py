@@ -49,6 +49,8 @@ class ConversationManager:
         self.current_node_id = None
         self.current_topic = None  # Track current topic (name, start_node_id)
         self.drift_calculator = None
+        self.last_loaded_start_id = None  # Track start of last loaded conversation
+        self.last_loaded_end_id = None    # Track end of last loaded conversation
         self.session_costs = {
             "total_input_tokens": 0,
             "total_output_tokens": 0,  

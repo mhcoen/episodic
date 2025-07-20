@@ -218,8 +218,8 @@ class EpisodicCompleter(Completer):
                 'stream-rate': 'number',
                 'context-depth': 'number',
                 # String parameters
-                'color-mode': 'choice',
-                'muse-detail': 'choice'
+                'color-mode': 'choice'
+                # muse-detail removed - use /detail command instead
             }
             
             # For /mset, add model parameter options
@@ -305,15 +305,7 @@ class EpisodicCompleter(Completer):
                             start_position=-len(word),
                             display_meta='color mode'
                         )
-            elif param == 'muse-detail':
-                # Muse detail level options
-                for level in ['minimal', 'moderate', 'detailed', 'maximum']:
-                    if level.startswith(word.lower()):
-                        yield Completion(
-                            level,
-                            start_position=-len(word),
-                            display_meta='detail level'
-                        )
+            # muse-detail completion removed - use /detail command instead
     
     def _complete_subcommand(self, cmd: str, parts: List[str], word: str) -> List[Completion]:
         """Complete subcommands for unified commands."""

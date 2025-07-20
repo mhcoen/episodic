@@ -550,6 +550,30 @@ def help_reindex():
         except:
             pass  # Collection might not exist
         
+        # Clear help documents from SQLite database
+        try:
+            from episodic.db import get_connection
+            import os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
+            # Get all help document paths
+            help_docs = [
+                "USER_GUIDE.md",
+                "docs/cli-reference.md", 
+                "docs/quick-reference.md",
+                "docs/configuration.md",
+                "README.md",
+                "docs/features.md"
+            ]
+            
+            # Delete documents with these sources
+            with get_connection() as conn:
+                for doc in help_docs:
+                    doc_path = os.path.join(project_root, doc)
+                    conn.execute("DELETE FROM rag_documents WHERE source = ?", (doc_path,))
+        except:
+            pass
+        
         # Clear the global help RAG instance
         global _help_rag
         _help_rag = None

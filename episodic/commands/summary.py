@@ -97,8 +97,9 @@ def summary(count: Optional[int] = None, length: Optional[str] = None):
     # Count words/tokens
     word_count = len(conversation_text.split())
     
-    typer.secho(f"\n📝 Summarizing {summary_type} ({len(nodes)} messages, ~{word_count} words)...", 
-               fg=get_heading_color())
+    typer.secho(f"\n📝 Summary", fg=get_heading_color(), bold=True)
+    typer.secho(f"   {summary_type.capitalize()} • {len(nodes)} messages • ~{word_count} words", 
+               fg=get_text_color())
     
     # Load appropriate prompt template based on length
     length = length or "standard"  # Default to standard if not specified
@@ -136,7 +137,7 @@ Please structure the summary clearly with sections if there are multiple distinc
         with benchmark_operation("Generate summary"):
             # Use streaming for the summary
             if config.get("stream_responses", True):
-                typer.secho("\n🤖 Summary: ", fg=get_llm_color(), bold=True, nl=False)
+                typer.secho("\n🤖 Summary:\n", fg=get_llm_color(), bold=True)
                 
                 # Use the LLM with streaming
                 from episodic.llm import _execute_llm_query
@@ -165,7 +166,7 @@ Please structure the summary clearly with sections if there are multiple distinc
                 
                 # Use unified streaming for consistent formatting
                 from episodic.unified_streaming import unified_stream_response
-                display_response = unified_stream_response(stream_generator, model, prefix="📝 ")
+                display_response = unified_stream_response(stream_generator, model)
                 
                 # Calculate cost info for streaming response
                 from litellm import token_counter, cost_per_token

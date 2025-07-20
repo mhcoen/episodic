@@ -152,11 +152,22 @@ class HelpRAG:
                             'type': 'help_documentation',
                             'doc_name': doc
                         }
+                        # Use larger chunks for help documentation
+                        # Temporarily set larger chunk size for help docs
+                        original_chunk_size = config.get('rag_chunk_size', 1000)
+                        original_chunk_overlap = config.get('rag_chunk_overlap', 200)
+                        config.set('rag_chunk_size', 2000)  # Larger chunks for better context
+                        config.set('rag_chunk_overlap', 400)  # More overlap for continuity
+                        
                         doc_ids = self.rag.add_document(
                             content=content,
                             source=doc_path,
                             metadata=doc_metadata
                         )
+                        
+                        # Restore original settings
+                        config.set('rag_chunk_size', original_chunk_size)
+                        config.set('rag_chunk_overlap', original_chunk_overlap)
                         success = doc_ids is not None and len(doc_ids) > 0
                         # message = f"Indexed {len(doc_ids)} chunks" if success else "Failed to index"
                         if success:
@@ -583,11 +594,22 @@ def help_reindex():
                         'doc_name': doc
                     }
                     
+                    # Use larger chunks for help documentation
+                    # Temporarily set larger chunk size for help docs
+                    original_chunk_size = config.get('rag_chunk_size', 1000)
+                    original_chunk_overlap = config.get('rag_chunk_overlap', 200)
+                    config.set('rag_chunk_size', 2000)  # Larger chunks for better context
+                    config.set('rag_chunk_overlap', 400)  # More overlap for continuity
+                    
                     doc_ids = help_rag.rag.add_document(
                         content=content,
                         source=doc_path,
                         metadata=doc_metadata
                     )
+                    
+                    # Restore original settings
+                    config.set('rag_chunk_size', original_chunk_size)
+                    config.set('rag_chunk_overlap', original_chunk_overlap)
                     
                     if doc_ids:
                         chunks = len(doc_ids)

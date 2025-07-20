@@ -27,7 +27,8 @@ __pycache__/
 defunct/
 /episodic.db.backup
 
-# MCP Memory storage (removed - using file-based memory instead)
+# MCP configuration settings
+.mcp.json
 
 # Usage tracking and uploads
 usage_tracking*.json

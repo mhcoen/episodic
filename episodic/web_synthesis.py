@@ -63,13 +63,22 @@ class WebSynthesizer:
     
     def _get_detail_instructions(self) -> str:
         """Get instructions based on detail level."""
-        detail_map = {
-            'minimal': 'Include only essential facts without elaboration.',
-            'moderate': 'Include facts with relevant context for understanding.',
-            'detailed': 'Include facts, context, and clear explanations.',
-            'maximum': 'Include all available information, nuances, and edge cases.'
-        }
-        return detail_map.get(self.detail, detail_map['moderate'])
+        # Load detail prompt from file
+        from episodic.prompt_manager import get_prompt_manager
+        prompt_manager = get_prompt_manager()
+        
+        detail_prompt = prompt_manager.get(f"detail/{self.detail}")
+        if not detail_prompt:
+            # Fallback if file not found
+            detail_map = {
+                'minimal': 'Include only essential facts without elaboration.',
+                'moderate': 'Include facts with relevant context for understanding.',
+                'detailed': 'Include facts, context, and clear explanations.',
+                'maximum': 'Include all available information, nuances, and edge cases.'
+            }
+            detail_prompt = detail_map.get(self.detail, detail_map['moderate'])
+        
+        return detail_prompt.strip()
     
     def _get_format_instructions(self) -> str:
         """Get instructions based on format preference using global format system."""

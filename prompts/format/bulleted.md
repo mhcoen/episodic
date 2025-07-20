@@ -1,0 +1,1 @@
+Use bullet points and lists for all information with markdown headers (### Header Name) for sections.

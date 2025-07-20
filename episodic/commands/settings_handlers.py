@@ -12,6 +12,7 @@ from episodic.configuration import (
     get_system_color
 )
 from episodic.llm import enable_cache, disable_cache
+from episodic.debug_system import debug_system
 
 
 def handle_boolean_param(param: str, value: str) -> bool:
@@ -132,6 +133,26 @@ def handle_semdepth_param(value: str) -> int:
         return None
 
 
+def handle_debug_param(value: str) -> bool:
+    """Handle debug parameter with named category support."""
+    from episodic.debug_system import debug_set
+    
+    # Use centralized debug_set function
+    result = debug_set(value)
+    
+    # Check if it was an error message
+    if result.startswith("Invalid debug categories:"):
+        typer.secho(f"❌ {result}", fg="red")
+        return False
+    else:
+        typer.secho(f"✅ {result}", fg=get_system_color())
+        
+        # Update config based on current state
+        enabled = debug_system.get_enabled()
+        config.set('debug', 'all' in enabled or bool(enabled))
+        return True
+
+
 def handle_special_params(param: str, value: str, context_depth: int, semdepth: int) -> tuple:
     """
     Handle special parameters that don't follow standard patterns.
@@ -157,13 +178,16 @@ def handle_special_params(param: str, value: str, context_depth: int, semdepth: 
     elif param == "cache":
         return handle_boolean_param('use_context_cache', value), context_depth, semdepth
         
+    elif param == "debug":
+        return handle_debug_param(value), context_depth, semdepth
+        
     return False, context_depth, semdepth
 
 
 # Parameter definitions for easy lookup
 PARAM_HANDLERS = {
     # Boolean parameters
-    'debug': lambda v: handle_boolean_param('debug', v),
+    # Note: 'debug' is handled in handle_special_params for category support
     'benchmark': lambda v: handle_boolean_param('benchmark', v),
     'benchmark_display': lambda v: handle_boolean_param('benchmark_display', v),
     'wrap': lambda v: handle_boolean_param('text_wrap', v),
@@ -209,6 +233,7 @@ PARAM_HANDLERS = {
     'drift_embedding_model': lambda v: handle_string_param('drift_embedding_model', v),
     'web_search_provider': lambda v: handle_string_param('web_search_provider', v, ['duckduckgo', 'google', 'bing', 'searx']),
     'web_search_providers': lambda v: handle_list_param('web_search_providers', v, ['duckduckgo', 'google', 'bing', 'searx']),
+    'muse_detail': lambda v: handle_string_param('muse_detail', v, ['minimal', 'moderate', 'detailed', 'maximum']),
     
     # Model parameters (special handling needed)
     'compression_model': lambda v: handle_string_param('compression_model', v),

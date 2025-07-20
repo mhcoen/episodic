@@ -89,6 +89,8 @@ def handle_command(command_str: str) -> bool:
             _handle_style(args)
         elif cmd == "/format":
             _handle_format(args)
+        elif cmd == "/detail":
+            _handle_detail(args)
         elif cmd == "/theme":
             _handle_theme(args)
         elif cmd == "/reflect":
@@ -173,6 +175,8 @@ def handle_command(command_str: str) -> bool:
             _handle_list(args)
         elif cmd == "/last":
             _handle_last(args)
+        elif cmd == "/debug":
+            _handle_debug(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -303,6 +307,12 @@ def _handle_format(args: List[str]):
     """Handle /format command."""
     from episodic.commands.style import handle_format
     handle_format(args)
+
+
+def _handle_detail(args: List[str]):
+    """Handle /detail command."""
+    from episodic.commands.detail import detail
+    detail(args[0] if args else None)
 
 
 def _handle_theme(args: List[str]):
@@ -849,3 +859,36 @@ def _handle_clear():
     """Handle /clear command."""
     from episodic.commands.new_topic import clear_command
     clear_command()
+
+
+def _handle_debug(args: List[str]):
+    """Handle /debug command."""
+    from episodic.commands.debug import debug_on, debug_off, debug_only, debug_status, debug_toggle, debug_main
+    
+    if not args:
+        # No arguments, show status
+        debug_status()
+    else:
+        # Parse subcommand and arguments
+        subcommand = args[0]
+        sub_args = args[1:] if len(args) > 1 else []
+        
+        if subcommand == "on":
+            debug_on(sub_args if sub_args else None)
+        elif subcommand == "off":
+            debug_off(sub_args if sub_args else None)
+        elif subcommand == "only":
+            if sub_args:
+                debug_only(sub_args)
+            else:
+                typer.secho("Usage: /debug only <categories...>", fg=get_error_color())
+        elif subcommand == "status":
+            debug_status()
+        elif subcommand == "toggle":
+            if sub_args:
+                debug_toggle(sub_args[0])
+            else:
+                typer.secho("Usage: /debug toggle <category>", fg=get_error_color())
+        else:
+            typer.secho(f"Unknown debug subcommand: {subcommand}", fg=get_error_color())
+            typer.secho("Available: on, off, only, status, toggle", fg=get_text_color())

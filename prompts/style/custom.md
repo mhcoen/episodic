@@ -1,0 +1,1 @@
+Provide a response with the level of detail appropriate for the topic.

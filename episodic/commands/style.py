@@ -9,49 +9,42 @@ import typer
 from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color
 from episodic.color_utils import secho_color
+from episodic.prompt_manager import get_prompt_manager
 
 
 # Style definitions with token limits and descriptions
-# Format definitions with instructions
-FORMAT_DEFINITIONS = {
-    "paragraph": {
-        "description": "Flowing prose in paragraph form with markdown headers",
-        "prompt": "Use flowing prose in paragraph form with markdown headers (### Header Name) for sections."
-    },
-    "bulleted": {
-        "description": "Bullet points and lists for all information",
-        "prompt": "Use bullet points and lists for all information with markdown headers (### Header Name) for sections."
-    },
-    "mixed": {
-        "description": "Mix of paragraphs and bullet points as appropriate",
-        "prompt": "Use a natural mix of paragraphs and bullet points as appropriate. Only use markdown headers (### Header Name) for longer responses that truly need sections."
-    },
-    "academic": {
-        "description": "Formal academic style with proper citations",
-        "prompt": "Use formal academic style with proper citations [Source N] and markdown headers (### Header Name) for sections."
-    }
-}
-
 STYLE_DEFINITIONS = {
     "concise": {
         "description": "Brief, direct responses (1-2 sentences when possible)",
-        "max_tokens": 500,
-        "prompt": "Provide a brief, direct response (1-2 sentences when possible)."
+        "max_tokens": 500
     },
     "standard": {
         "description": "Clear, well-structured responses with appropriate detail",
-        "max_tokens": 1000,
-        "prompt": "Provide a clear, natural response with appropriate detail. Be conversational for simple queries and more structured for complex topics."
+        "max_tokens": 1000
     },
     "comprehensive": {
         "description": "Thorough, detailed responses with examples and context",
-        "max_tokens": 2000,
-        "prompt": "Provide a thorough, detailed response with examples and context."
+        "max_tokens": 2000
     },
     "custom": {
         "description": "Use model-specific max_tokens settings for fine control",
-        "max_tokens": None,
-        "prompt": "Provide a response with the level of detail appropriate for the topic."
+        "max_tokens": None
+    }
+}
+
+# Format definitions with descriptions
+FORMAT_DEFINITIONS = {
+    "paragraph": {
+        "description": "Flowing prose in paragraph form with markdown headers"
+    },
+    "bulleted": {
+        "description": "Bullet points and lists for all information"
+    },
+    "mixed": {
+        "description": "Mix of paragraphs and bullet points as appropriate"
+    },
+    "academic": {
+        "description": "Formal academic style with proper citations"
     }
 }
 
@@ -127,11 +120,17 @@ def get_style_prompt(has_rag=False, rag_length=0, has_web=False) -> str:
     if current_style not in STYLE_DEFINITIONS:
         current_style = "standard"
     
-    style_prompt = STYLE_DEFINITIONS[current_style]["prompt"]
+    # Load style prompt from file
+    prompt_manager = get_prompt_manager()
+    style_prompt = prompt_manager.get(f"style/{current_style}")
+    if not style_prompt:
+        # Fallback if file not found
+        style_prompt = "Provide a clear, natural response with appropriate detail."
+    
     format_prompt = get_format_prompt()
     
     # Combine style and format instructions
-    combined_prompt = f"{style_prompt} {format_prompt}"
+    combined_prompt = f"{style_prompt.strip()} {format_prompt}"
     
     # Adapt prompt based on available context
     if has_rag and rag_length < 200:  # Small RAG context
@@ -204,7 +203,14 @@ def get_format_prompt() -> str:
     if current_format not in FORMAT_DEFINITIONS:
         current_format = "mixed"
     
-    return FORMAT_DEFINITIONS[current_format]["prompt"]
+    # Load format prompt from file
+    prompt_manager = get_prompt_manager()
+    format_prompt = prompt_manager.get(f"format/{current_format}")
+    if not format_prompt:
+        # Fallback if file not found
+        format_prompt = "Use a natural mix of paragraphs and bullet points as appropriate."
+    
+    return format_prompt.strip()
 
 
 def handle_style(args: list):

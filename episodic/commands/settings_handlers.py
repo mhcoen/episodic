@@ -233,7 +233,7 @@ PARAM_HANDLERS = {
     'drift_embedding_model': lambda v: handle_string_param('drift_embedding_model', v),
     'web_search_provider': lambda v: handle_string_param('web_search_provider', v, ['duckduckgo', 'google', 'bing', 'searx']),
     'web_search_providers': lambda v: handle_list_param('web_search_providers', v, ['duckduckgo', 'google', 'bing', 'searx']),
-    'muse_detail': lambda v: handle_string_param('muse_detail', v, ['minimal', 'moderate', 'detailed', 'maximum']),
+    # muse_detail removed - use /detail command instead to avoid duplication
     
     # Model parameters (special handling needed)
     'compression_model': lambda v: handle_string_param('compression_model', v),

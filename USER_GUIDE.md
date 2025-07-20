@@ -379,14 +379,11 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 
 ### Muse Configuration
 ```bash
-# Control response detail level
+# Control response detail level (applies to both chat and muse modes)
 /detail minimal      # Facts only, concise responses
 /detail moderate     # Balanced detail with context (default)
 /detail detailed     # In-depth explanations
 /detail maximum      # Comprehensive with all nuances
-
-# Or use /set command
-/set muse-detail moderate
 
 # Configure source handling
 /set muse-sources first-only    # Use only the first search result

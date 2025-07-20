@@ -2,49 +2,66 @@
 
 This file documents debugging flags, troubleshooting steps, and development utilities for the Episodic project.
 
-## Debug Flags
+## Debug System
 
-### General Debug Mode
+### Named Debug Categories
+
+Episodic uses a category-based debug system. Enable specific debug output:
+
 ```bash
-/set debug on
+/set debug memory        # Enable memory debug output  
+/set debug topic         # Enable topic detection debug
+/set debug drift         # Enable drift detection debug
+/set debug format        # Enable formatting debug
+/set debug all           # Enable all debug output
+/set debug off           # Disable all debug output
 ```
-Enables general debugging output including:
-- Topic detection decisions
-- Configuration loading
-- Basic operation flow
-- Error details with stack traces
 
-### Specialized Debug Flags
-
-#### LLM API Debugging
+Multiple categories can be enabled:
 ```bash
-/set debug_llm_api on
+/set debug memory,topic,drift
 ```
-Shows detailed LLM API information:
-- Thread and call tracking (`[LLM API] Thread X: Call #Y`)
-- Model and streaming mode
-- Calling function location
-- Message counts
-- Cost calculations
-- Response lengths
-- API errors
 
-#### Streaming Output Debugging
+### Debug Categories
+
+- `memory` - Memory system operations (RAG, SQLite, referential detection)
+- `topic` - Topic detection and boundaries
+- `drift` - Topic drift analysis
+- `format` - Text formatting and display
+- `rag` - RAG operations and search
+- `llm` - LLM API calls and responses
+- `compression` - Topic compression operations
+- `web` - Web search operations
+- `reflection` - Reflection mode operations
+- `stream` - Response streaming
+- `prompt` - Prompt management
+- `config` - Configuration changes
+
+### Debug Command
+
+The `/debug` command provides fine-grained control:
+
 ```bash
-/set debug_streaming_verbose on
+/debug              # Show current debug status
+/debug on memory    # Enable memory debugging
+/debug off topic    # Disable topic debugging  
+/debug only rag     # Enable ONLY rag debugging
+/debug toggle web   # Toggle web debugging
 ```
-Shows word-by-word streaming details:
-- Each word with its parsing state
-- Line start, header, list detection
-- Format preservation decisions
-- Terminal width calculations
-- Streaming mode selection
 
-#### Web Search Debugging
-The regular `debug` flag shows web search fallback:
-- Provider selection
-- Fallback attempts
-- API errors (missing keys, rate limits)
+## Developer Commands
+
+Special commands for development and maintenance:
+
+```bash
+/dev                    # Show available developer commands
+/dev reindex-help       # Reindex help documentation after changes
+```
+
+The `/dev reindex-help` command should be run after:
+- Updating any documentation files (USER_GUIDE.md, docs/*.md)
+- Changing help documentation chunk sizes
+- Adding new documentation files
 
 ## Common Debugging Scenarios
 

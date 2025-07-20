@@ -60,8 +60,11 @@ def handle_command(command_str: str) -> bool:
     # Check if we're in simple mode
     from episodic.commands.interface_mode import is_simple_mode, get_simple_mode_commands
     
-    # In simple mode, restrict to allowed commands
-    if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands():
+    # Developer commands are always available
+    developer_commands = ['dev', 'debug']
+    
+    # In simple mode, restrict to allowed commands (except developer commands)
+    if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands() and cmd_without_slash not in developer_commands:
         typer.secho(f"Command {cmd} is not available in simple mode.", fg=get_error_color())
         typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /help, /exit", fg=get_warning_color())
         typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
@@ -155,8 +158,6 @@ def handle_command(command_str: str) -> bool:
             _handle_verify()
         elif cmd in ["/help", "/h"]:
             _handle_help(args)
-        elif cmd == "/help-reindex":
-            _handle_help_reindex()
         elif cmd == "/about":
             _handle_about()
         elif cmd == "/welcome":
@@ -177,6 +178,8 @@ def handle_command(command_str: str) -> bool:
             _handle_last(args)
         elif cmd == "/debug":
             _handle_debug(args)
+        elif cmd == "/dev":
+            _handle_dev(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -590,10 +593,6 @@ def _handle_help(args: List[str]):
         help()
 
 
-def _handle_help_reindex():
-    """Handle /help-reindex command."""
-    from episodic.commands.help import help_reindex
-    help_reindex()
 
 
 def _handle_deprecated_commands(cmd: str, args: List[str]):
@@ -892,3 +891,12 @@ def _handle_debug(args: List[str]):
         else:
             typer.secho(f"Unknown debug subcommand: {subcommand}", fg=get_error_color())
             typer.secho("Available: on, off, only, status, toggle", fg=get_text_color())
+
+
+def _handle_dev(args: List[str]):
+    """Handle /dev command."""
+    from episodic.commands.dev import dev
+    if args:
+        dev(args[0], *args[1:])
+    else:
+        dev()

@@ -364,73 +364,79 @@ class EpisodicCompleter(Completer):
         if len(parts) == 2:
             suggestions = []
             
-            # Get current topic for intelligent suggestions
+            # Start simple and add complexity gradually
             try:
-                from episodic.db import get_recent_topics, get_recent_nodes
+                from episodic.db import get_recent_topics
                 
                 # Get current topic
-                topics = get_recent_topics(limit=5)
+                topics = get_recent_topics(limit=1)
                 if topics:
-                    current_topic = topics[-1]  # Most recent topic
-                    topic_name = current_topic.get('name', '').lower()
+                    current_topic = topics[0]
+                    topic_name = current_topic.get('name', '')
                     
-                    # Clean up topic name for filename
-                    safe_name = ''.join(c for c in topic_name if c.isalnum() or c in ' -_')
-                    safe_name = safe_name.replace(' ', '-').strip('-')
-                    
-                    if safe_name and safe_name not in ['ongoing', 'multiline-input']:
-                        # Add topic-based suggestions
-                        suggestions.extend([
-                            safe_name,
-                            f"{safe_name}-final",
-                            f"{safe_name}-backup",
-                            f"{safe_name}-v2",
-                        ])
-                
-                # Try to get more context from recent messages
-                recent_messages = get_recent_nodes(limit=10)
-                if recent_messages:
-                    # Extract key terms from recent conversation
-                    user_messages = [m for m in recent_messages if m.get('role') == 'user']
-                    if user_messages:
-                        # Get key words from last user message
-                        last_msg = user_messages[-1].get('content', '')
-                        # Extract potential keywords (simple approach)
-                        words = last_msg.lower().split()
-                        # Filter for meaningful words (length > 3, not common words)
-                        keywords = [w for w in words 
-                                  if len(w) > 3 and w not in ['what', 'this', 'that', 'with', 'from', 'about']]
+                    # Simple suggestion based on topic
+                    if topic_name and not topic_name.startswith('ongoing-'):
+                        # Clean up topic name for filename
+                        safe_name = ''.join(c for c in topic_name.lower() if c.isalnum() or c in ' -_')
+                        safe_name = safe_name.replace(' ', '-').strip('-')
                         
-                        # Add keyword-based suggestions
-                        for keyword in keywords[:2]:  # Top 2 keywords
-                            safe_keyword = ''.join(c for c in keyword if c.isalnum())
-                            if safe_keyword:
-                                suggestions.append(safe_keyword)
-                
+                        if safe_name:
+                            suggestions.append(safe_name)
+                            suggestions.append(f"{safe_name}-final")
+                    elif topic_name.startswith('ongoing-'):
+                        # For ongoing topics, extract keywords from recent messages
+                        from episodic.db import get_recent_nodes
+                        
+                        recent_messages = get_recent_nodes(limit=10)
+                        if recent_messages:
+                            # Focus on user messages
+                            user_messages = [m for m in recent_messages if m.get('role') == 'user']
+                            if user_messages:
+                                # Common words to filter out
+                                common_words = {
+                                    'what', 'this', 'that', 'with', 'from', 'about', 'have', 'been',
+                                    'will', 'would', 'could', 'should', 'there', 'their', 'they',
+                                    'your', 'more', 'some', 'just', 'like', 'into', 'than', 'then',
+                                    'when', 'where', 'which', 'while', 'after', 'before', 'does',
+                                    'particular', 'particularly', 'specifically', 'certain', 'various'
+                                }
+                                
+                                # Extract keywords from last few messages
+                                all_words = []
+                                for msg in user_messages[-3:]:
+                                    words = msg.get('content', '').lower().split()
+                                    all_words.extend(words)
+                                
+                                # Filter for meaningful words
+                                keywords = [w for w in all_words 
+                                          if len(w) > 4 and w not in common_words and w.isalnum()]
+                                
+                                # Count frequency
+                                from collections import Counter
+                                word_counts = Counter(keywords)
+                                
+                                # Use most common keywords as suggestions
+                                for word, count in word_counts.most_common(2):
+                                    if count > 1 or len(word) > 6:
+                                        safe_word = ''.join(c for c in word if c.isalnum())[:20]
+                                        if safe_word:
+                                            suggestions.append(safe_word)
             except:
-                # If database access fails, fall back to generic suggestions
                 pass
             
-            # Add a few generic fallbacks if we have no topic-based suggestions
+            # Add some fallback suggestions
             if not suggestions:
                 suggestions = ['conversation', 'chat-export', 'notes']
             
-            # Remove duplicates while preserving order
-            seen = set()
-            unique_suggestions = []
-            for s in suggestions:
-                if s and s not in seen:
-                    seen.add(s)
-                    unique_suggestions.append(s)
-            
-            # Yield completions
-            for suggestion in unique_suggestions[:6]:  # Limit to 6 suggestions
+            # Yield completions the EXACT same way as the test version
+            for suggestion in suggestions:
                 if suggestion.startswith(word.lower()):
                     yield Completion(
                         suggestion,
                         start_position=-len(word),
                         display_meta='suggested name'
                     )
+            return  # End of function
     
     def _complete_style_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /style command arguments."""

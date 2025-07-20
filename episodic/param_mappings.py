@@ -60,6 +60,12 @@ PARAM_MAPPING = {
     'bing-api-key': 'bing_api_key',
     'searx-instance-url': 'searx_instance_url',
     
+    # Muse mode settings
+    'muse-detail': 'muse_detail',
+    'muse-sources': 'muse_sources',
+    'muse-max-tokens': 'muse_max_tokens',
+    'muse-model': 'muse_model',
+    
     # Other settings
     'benchmark-display': 'benchmark_display',
     'use-context-cache': 'use_context_cache',

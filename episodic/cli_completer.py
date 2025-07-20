@@ -102,12 +102,16 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_style_command(parts, word_before_cursor)
             elif full_cmd == 'format':
                 yield from self._complete_format_command(parts, word_before_cursor)
+            elif full_cmd == 'detail':
+                yield from self._complete_detail_command(parts, word_before_cursor)
             elif full_cmd == 'theme':
                 yield from self._complete_theme_command(parts, word_before_cursor)
             elif full_cmd == 'load':
                 yield from self._complete_load_command(parts, word_before_cursor)
             elif full_cmd == 'summary':
                 yield from self._complete_summary_command(parts, word_before_cursor)
+            elif full_cmd == 'debug':
+                yield from self._complete_debug_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
@@ -194,27 +198,28 @@ class EpisodicCompleter(Completer):
             # Define parameters with their types
             param_types = {
                 # Boolean parameters
-                'debug': 'boolean',
-                'show_cost': 'boolean',
-                'show_drift': 'boolean',
-                'show_topics': 'boolean',
-                'automatic_topic_detection': 'boolean',
-                'auto_compress_topics': 'boolean',
-                'stream_responses': 'boolean',
-                'stream_constant_rate': 'boolean',
-                'stream_natural_rhythm': 'boolean',
-                'text_wrap': 'boolean',
+                'debug': 'boolean/categories',
+                'show-cost': 'boolean',
+                'show-drift': 'boolean',
+                'show-topics': 'boolean',
+                'automatic-topic-detection': 'boolean',
+                'auto-compress-topics': 'boolean',
+                'stream-responses': 'boolean',
+                'stream-constant-rate': 'boolean',
+                'stream-natural-rhythm': 'boolean',
+                'text-wrap': 'boolean',
                 'benchmark': 'boolean',
-                'benchmark_display': 'boolean',
-                'rag_enabled': 'boolean',
-                'web_search_enabled': 'boolean',
-                'muse_mode': 'boolean',
-                'enable_tab_completion': 'boolean',
+                'benchmark-display': 'boolean',
+                'rag-enabled': 'boolean',
+                'web-search-enabled': 'boolean',
+                'muse-mode': 'boolean',
+                'enable-tab-completion': 'boolean',
                 # Number parameters
-                'stream_rate': 'number',
-                'context_depth': 'number',
+                'stream-rate': 'number',
+                'context-depth': 'number',
                 # String parameters
-                'color_mode': 'choice'
+                'color-mode': 'choice',
+                'muse-detail': 'choice'
             }
             
             # For /mset, add model parameter options
@@ -241,12 +246,48 @@ class EpisodicCompleter(Completer):
         elif len(parts) == 3:
             # Complete parameter values
             param = parts[1]
-            if param in ['debug', 'show_cost', 'show_drift', 'show_topics',
-                        'automatic_topic_detection', 'auto_compress_topics',
-                        'stream_responses', 'stream_constant_rate',
-                        'stream_natural_rhythm', 'text_wrap', 'benchmark',
-                        'benchmark_display', 'rag_enabled', 'web_search_enabled',
-                        'muse_mode', 'enable_tab_completion']:
+            if param == 'debug':
+                # Special handling for debug parameter - can be boolean or categories
+                from episodic.debug_system import debug_system
+                
+                # Check if we're in comma-separated mode
+                if ',' in parts[2]:
+                    # Complete after comma
+                    prefix = parts[2][:parts[2].rfind(',')+1]
+                    partial = parts[2][parts[2].rfind(',')+1:].strip()
+                    used_categories = set(cat.strip() for cat in parts[2].split(',')[:-1])
+                    
+                    for category in debug_system.CATEGORIES.keys():
+                        if category not in used_categories and category.startswith(partial.lower()):
+                            yield Completion(
+                                prefix + category,
+                                start_position=-len(parts[2]),
+                                display_meta='add category'
+                            )
+                else:
+                    # First, offer boolean options
+                    for value in ['true', 'false', 'on', 'off', 'all']:
+                        if value.startswith(word.lower()):
+                            yield Completion(
+                                value,
+                                start_position=-len(word),
+                                display_meta='enable/disable all'
+                            )
+                    
+                    # Then offer categories
+                    for category in debug_system.CATEGORIES.keys():
+                        if category.startswith(word.lower()):
+                            yield Completion(
+                                category,
+                                start_position=-len(word),
+                                display_meta='debug category'
+                            )
+            elif param in ['show-cost', 'show-drift', 'show-topics',
+                        'automatic-topic-detection', 'auto-compress-topics',
+                        'stream-responses', 'stream-constant-rate',
+                        'stream-natural-rhythm', 'text-wrap', 'benchmark',
+                        'benchmark-display', 'rag-enabled', 'web-search-enabled',
+                        'muse-mode', 'enable-tab-completion']:
                 # Boolean parameters
                 for value in ['true', 'false']:
                     if value.startswith(word.lower()):
@@ -255,7 +296,7 @@ class EpisodicCompleter(Completer):
                             start_position=-len(word),
                             display_meta='boolean'
                         )
-            elif param == 'color_mode':
+            elif param == 'color-mode':
                 # Color mode options
                 for mode in ['full', 'minimal', 'none']:
                     if mode.startswith(word.lower()):
@@ -263,6 +304,15 @@ class EpisodicCompleter(Completer):
                             mode,
                             start_position=-len(word),
                             display_meta='color mode'
+                        )
+            elif param == 'muse-detail':
+                # Muse detail level options
+                for level in ['minimal', 'moderate', 'detailed', 'maximum']:
+                    if level.startswith(word.lower()):
+                        yield Completion(
+                            level,
+                            start_position=-len(word),
+                            display_meta='detail level'
                         )
     
     def _complete_subcommand(self, cmd: str, parts: List[str], word: str) -> List[Completion]:
@@ -464,6 +514,19 @@ class EpisodicCompleter(Completer):
                         display_meta='response format'
                     )
     
+    def _complete_detail_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /detail command arguments."""
+        if len(parts) == 2:
+            # Complete detail level options
+            detail_levels = ['minimal', 'moderate', 'detailed', 'maximum']
+            for level in detail_levels:
+                if level.startswith(word.lower()):
+                    yield Completion(
+                        level,
+                        start_position=-len(word),
+                        display_meta='detail level'
+                    )
+    
     def _complete_theme_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /theme command arguments."""
         if len(parts) == 2:
@@ -559,3 +622,46 @@ class EpisodicCompleter(Completer):
                         start_position=-len(word),
                         display_meta=meta
                     )
+    
+    def _complete_debug_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /debug command arguments."""
+        if len(parts) == 2:
+            # Complete subcommands
+            subcommands = {
+                'on': 'Enable debug categories',
+                'off': 'Disable debug categories',
+                'only': 'Enable only specified categories',
+                'status': 'Show debug status',
+                'toggle': 'Toggle a debug category'
+            }
+            
+            for subcmd, description in subcommands.items():
+                if subcmd.startswith(word.lower()):
+                    yield Completion(
+                        subcmd,
+                        start_position=-len(word),
+                        display_meta=description
+                    )
+        
+        elif len(parts) >= 3:
+            # Complete debug categories for on/off/only/toggle commands
+            subcmd = parts[1]
+            if subcmd in ['on', 'off', 'only', 'toggle']:
+                # Import debug categories
+                from episodic.debug_system import debug_system
+                
+                # Get categories already mentioned
+                used_categories = set(parts[2:])
+                
+                # For 'toggle', only allow one category
+                if subcmd == 'toggle' and len(parts) > 3:
+                    return
+                
+                # Complete categories
+                for category, description in debug_system.CATEGORIES.items():
+                    if category not in used_categories and category.startswith(word.lower()):
+                        yield Completion(
+                            category,
+                            start_position=-len(word),
+                            display_meta=description
+                        )

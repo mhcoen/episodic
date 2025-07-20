@@ -277,7 +277,7 @@ def config_docs():
             ("depth", "Number of conversation exchanges to include in context", "5"),
             ("semdepth", "Semantic analysis depth", "2"),
             ("cache", "Enable/disable prompt caching", "true"),
-            ("debug", "Enable debug output", "false"),
+            ("debug", "Enable debug output (true/false/categories)", "false"),
             ("benchmark", "Enable performance benchmarking", "false"),
         ],
         "Display Settings": [
@@ -325,6 +325,10 @@ def config_docs():
     typer.secho("\n" + "=" * 70, fg=get_heading_color())
     typer.secho("\nUsage: /set <parameter> <value>", fg=get_system_color())
     typer.secho("Example: /set debug true", fg=get_text_color())
+    typer.secho("\nDebug Categories:", fg=get_system_color())
+    typer.secho("  /set debug memory,topic  - Enable only memory and topic debug", fg=get_text_color())
+    typer.secho("  /set debug off          - Disable all debug output", fg=get_text_color())
+    typer.secho("  /debug status           - Show debug categories", fg=get_text_color())
 
 
 def cost():

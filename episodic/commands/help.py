@@ -180,13 +180,13 @@ class HelpRAG:
         formatted_results = []
         
         # Extract data from search results
-        if results['documents'] and len(results['documents']) > 0:
+        if results['results'] and len(results['results']) > 0:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             
-            for i in range(len(results['documents'])):
-                content = results['documents'][i]
-                metadata = results['metadatas'][i] if results['metadatas'] and i < len(results['metadatas']) else {}
-                distance = results['distances'][i] if results['distances'] and i < len(results['distances']) else 0
+            for i, result in enumerate(results['results']):
+                content = result['content']
+                metadata = result.get('metadata', {})
+                score = result.get('relevance_score', 0)
                 
                 # Extract source file from metadata
                 source = metadata.get('source', 'Unknown')
@@ -195,7 +195,7 @@ class HelpRAG:
                 formatted_results.append({
                     'content': content,
                     'source': source,
-                    'score': 2.0 - distance  # Convert L2 distance to similarity-like score
+                    'score': score
                 })
         
         return formatted_results
@@ -371,6 +371,7 @@ def help_command(query: str):
     
     # Save current RAG state
     original_rag_enabled = config.get('rag_enabled', False)
+    original_web_search_enabled = config.get('web_search_enabled', False)
     original_collection = None
     
     try:
@@ -381,8 +382,9 @@ def help_command(query: str):
             original_collection = rag_system.collection
             rag_system.collection = help_rag.collection
         
-        # Enable RAG temporarily
+        # Enable RAG temporarily and disable web search for help
         config.set('rag_enabled', True)
+        config.set('web_search_enabled', False)
         
         # Create a simple, direct prompt - context will be added FIRST by RAG
         help_prompt = f"""Answer this Episodic CLI question: {query}
@@ -431,7 +433,7 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
                     enhanced_prompt = help_prompt
         except Exception:
             # Fallback to regular enhancement
-            enhanced_prompt = rag_system.enhance_with_context(help_prompt)
+            enhanced_prompt = rag_system.enhance_with_context(help_prompt, include_web=False)
         
         # sources_used is not returned by enhance_with_context
         sources_used = None
@@ -493,6 +495,7 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
     finally:
         # Restore original RAG state
         config.set('rag_enabled', original_rag_enabled)
+        config.set('web_search_enabled', original_web_search_enabled)
         if 'original_show_citations' in locals() and 'original_show_citations' in dir():
             config.set('rag_show_citations', original_show_citations)
         if rag_system and original_collection:

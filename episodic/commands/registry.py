@@ -156,6 +156,9 @@ def register_all_commands():
     # Import debug command
     from episodic.commands.debug import app as debug_app
     
+    # Import dev command
+    from episodic.commands.dev import dev
+    
     # Register navigation commands
     command_registry.register("init", init, "Initialize the database", "Navigation")
     command_registry.register("add", add, "Add a new node manually", "Navigation")
@@ -254,6 +257,9 @@ def register_all_commands():
     
     # Register debug command
     command_registry.register("debug", debug_app, "Manage debug output categories", "Configuration")
+    
+    # Developer commands - hidden from normal help
+    command_registry.register("dev", dev, "Developer maintenance commands", "Developer")
 
 
 # Don't initialize on import - will be called when needed

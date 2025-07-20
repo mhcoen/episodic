@@ -1,0 +1,1 @@
+Include only essential facts without elaboration.

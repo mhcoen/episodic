@@ -128,6 +128,9 @@ def register_all_commands():
     # Import style and format commands
     from episodic.commands.style import handle_style, handle_format
     
+    # Import detail command
+    from episodic.commands.detail import detail
+    
     # Import theme command
     from episodic.commands.theme import theme_command
     
@@ -149,6 +152,9 @@ def register_all_commands():
     
     # Import reflection command
     from episodic.commands.reflection import reflection_command
+    
+    # Import debug command
+    from episodic.commands.debug import app as debug_app
     
     # Register navigation commands
     command_registry.register("init", init, "Initialize the database", "Navigation")
@@ -187,6 +193,7 @@ def register_all_commands():
     command_registry.register("mset", mset_command, "Set model parameters (e.g., mset chat.temperature 0.7)", "Configuration")
     command_registry.register("style", handle_style, "Set global response style (concise/standard/comprehensive/custom)", "Configuration")
     command_registry.register("format", handle_format, "Set global response format (paragraph/bulleted/mixed/academic)", "Configuration")
+    command_registry.register("detail", detail, "Set response detail level (minimal/moderate/detailed/maximum)", "Configuration")
     command_registry.register("theme", theme_command, "Manage color themes", "Configuration")
     command_registry.register("prompt", prompts, "Manage system prompts", "Conversation", aliases=["prompts"])
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
@@ -244,6 +251,9 @@ def register_all_commands():
     
     # Register reflection command
     command_registry.register("reflect", reflection_command, "Enable multi-step reflection and reasoning", "Conversation")
+    
+    # Register debug command
+    command_registry.register("debug", debug_app, "Manage debug output categories", "Configuration")
 
 
 # Don't initialize on import - will be called when needed

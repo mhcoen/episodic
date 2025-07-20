@@ -1,0 +1,1 @@
+Provide a clear, natural response with appropriate detail. Be conversational for simple queries and more structured for complex topics.

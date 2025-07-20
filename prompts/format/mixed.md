@@ -1,0 +1,1 @@
+Use a natural mix of paragraphs and bullet points as appropriate. Only use markdown headers (### Header Name) for longer responses that truly need sections.

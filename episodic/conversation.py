@@ -286,8 +286,7 @@ class ConversationManager:
             
             # Need at least 2 user messages for comparison
             if len(user_messages) < 2:
-                if config.get("debug"):
-                    debug_print(f"(Need 2 user messages for drift, have {len(user_messages)})", indent=True)
+                debug_print(f"(Need 2 user messages for drift, have {len(user_messages)})", indent=True, category="drift")
                 return
             
             # Compare current user message to previous user message
@@ -416,13 +415,99 @@ class ConversationManager:
                 if not topic_changed and not self.current_topic and config.get("automatic_topic_detection"):
                     self.topic_handler.check_and_create_first_topic(user_node_id, assistant_node_id)
                 
+                # Auto-index in memory system - also for skipped responses
+                if config.get("enable_memory_poc", False):
+                    try:
+                        from episodic.rag_memory import memory_system
+                        import asyncio
+                        # Run sync version for now (we'll make it async later)
+                        loop = asyncio.new_event_loop()
+                        loop.run_until_complete(memory_system.on_message(user_input, display_response))
+                        loop.close()
+                    except Exception as e:
+                        debug_print(f"Error indexing: {e}", category="memory")
+                        if config.get("debug"):
+                            import traceback
+                            traceback.print_exc()
+                elif config.get("enable_memory_rag", False):
+                    # Index in SQLite+ChromaDB system
+                    try:
+                        from episodic.rag_memory_sqlite import memory_rag
+                        import asyncio
+                        # Create nodes for indexing
+                        user_node = {
+                            'id': user_node_id,
+                            'content': user_input,
+                            'role': 'user'
+                        }
+                        assistant_node = {
+                            'id': assistant_node_id,
+                            'content': display_response,
+                            'role': 'assistant'
+                        }
+                        loop = asyncio.new_event_loop()
+                        loop.run_until_complete(memory_rag.index_exchange(user_node, assistant_node))
+                        loop.close()
+                        
+                        if config.get("debug"):
+                            debug_print("[Memory] Indexed conversation in ChromaDB")
+                    except Exception as e:
+                        if config.get("debug"):
+                            debug_print(f"[Memory] Indexing error: {e}")
+                
                 return assistant_node_id, display_response
+            
+            # Check for memory context enhancement
+            memory_context = None
+            memory_indicator = None
+            if config.get("enable_memory_rag", False):
+                try:
+                    # Use smart detection if enabled (Milestone 2)
+                    if config.get("enable_smart_memory", False):
+                        from episodic.rag_memory_smart import enhance_with_smart_context
+                        import asyncio
+                        
+                        # Build conversation state for smart detection
+                        conv_state = {
+                            'current_topic_name': self.current_topic[0] if self.current_topic else None,
+                            'messages_since_topic_change': len(recent_nodes),
+                            'total_messages': len(get_ancestry(user_node_id)) if user_node_id else 0
+                        }
+                        
+                        loop = asyncio.new_event_loop()
+                        memory_context, memory_indicator = loop.run_until_complete(
+                            enhance_with_smart_context(user_input, conv_state)
+                        )
+                        loop.close()
+                    else:
+                        # Original referential detection (Milestone 1)
+                        from episodic.rag_memory_sqlite import enhance_with_memory_context
+                        import asyncio
+                        loop = asyncio.new_event_loop()
+                        memory_context = loop.run_until_complete(enhance_with_memory_context(user_input))
+                        loop.close()
+                    
+                    if memory_context:
+                        debug_print("Added relevant context from past conversations", category="memory")
+                except Exception as e:
+                    debug_print(f"Context enhancement error: {e}", category="memory")
             
             # Build conversation context
             messages, raw_messages, rag_context, web_context = \
                 self.context_builder.build_conversation_context(
                     user_node_id, user_input, context_depth, model
                 )
+            
+            # Insert memory context if found
+            if memory_context and messages:
+                # Find the position to insert memory context (before current user message)
+                if len(messages) >= 2 and messages[-1]["role"] == "user":
+                    # Insert as a system message before the current user message
+                    memory_msg = {
+                        "role": "system",
+                        "content": memory_context
+                    }
+                    messages.insert(-1, memory_msg)
             
             # Display topic evolution if requested
             if config.get("show_topics") and raw_messages:
@@ -432,20 +517,32 @@ class ConversationManager:
             if config.get("show_drift"):
                 self.display_semantic_drift(user_node_id)
             
-            # Add global style prompt to messages for non-muse modes
+            # Display memory indicator if enabled
+            if memory_indicator and config.get("memory_show_indicators", True):
+                typer.echo("")
+                secho_color(memory_indicator, fg=get_system_color())
+            
+            # Add global style and detail prompts to messages for non-muse modes
             if not config.get("muse_mode"):
                 from episodic.commands.style import get_style_prompt
+                from episodic.commands.detail import get_detail_prompt
+                
                 style_prompt = get_style_prompt(
                     has_rag=bool(rag_context), 
                     rag_length=len(rag_context) if rag_context else 0,
                     has_web=bool(web_context)
                 )
                 
-                # Add style prompt as a system message before the user's current message
+                detail_prompt = get_detail_prompt()
+                
+                # Combine style and detail prompts
+                combined_prompt = f"{style_prompt}\n\n{detail_prompt}"
+                
+                # Add combined prompt as a system message before the user's current message
                 if messages and messages[-1]["role"] == "user":
-                    # Insert style instruction before the latest user message
+                    # Insert combined instruction before the latest user message
                     last_user_message = messages.pop()
-                    enhanced_content = f"{style_prompt}\n\nUser: {last_user_message['content']}"
+                    enhanced_content = f"{combined_prompt}\n\nUser: {last_user_message['content']}"
                     last_user_message["content"] = enhanced_content
                     messages.append(last_user_message)
             
@@ -544,6 +641,45 @@ class ConversationManager:
             
             # Update current node
             self.set_current_node_id(assistant_node_id)
+            
+            # Auto-index in memory system
+            if config.get("enable_memory_poc", False):
+                try:
+                    from episodic.rag_memory import memory_system
+                    import asyncio
+                    # Run sync version for now (we'll make it async later)
+                    loop = asyncio.new_event_loop()
+                    loop.run_until_complete(memory_system.on_message(user_input, display_response))
+                    loop.close()
+                    # Show progress for POC only in debug mode
+                    debug_print(f"Indexed: user='{user_input[:30]}...', assistant='{display_response[:30]}...'", category="memory")
+                except Exception as e:
+                    debug_print(f"Error indexing: {e}", category="memory")
+                    import traceback
+                    traceback.print_exc()
+            elif config.get("enable_memory_rag", False):
+                # Index in SQLite+ChromaDB system
+                try:
+                    from episodic.rag_memory_sqlite import memory_rag
+                    import asyncio
+                    # Create nodes for indexing
+                    user_node = {
+                        'id': user_node_id,
+                        'content': user_input,
+                        'role': 'user'
+                    }
+                    assistant_node = {
+                        'id': assistant_node_id,
+                        'content': display_response,
+                        'role': 'assistant'
+                    }
+                    loop = asyncio.new_event_loop()
+                    loop.run_until_complete(memory_rag.index_exchange(user_node, assistant_node))
+                    loop.close()
+                    
+                    debug_print("Indexed conversation in ChromaDB", category="memory")
+                except Exception as e:
+                    debug_print(f"Indexing error: {e}", category="memory")
             
             # Track RAG usage if applicable
             if rag_context:

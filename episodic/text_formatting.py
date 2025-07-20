@@ -24,10 +24,10 @@ def get_wrap_width() -> int:
 def wrapped_text_print(text: str, **typer_kwargs) -> None:
     """Print text with automatic wrapping while preserving formatting."""
     # Debug logging
-    if config.get("debug", False):
-        import sys
-        print(f"[DEBUG wrapped_text_print] Called with text: '{text[:50]}...' (length: {len(text)})", file=sys.stderr)
-        print(f"[DEBUG wrapped_text_print] typer_kwargs: {typer_kwargs}", file=sys.stderr)
+    from episodic.debug_system import debug_enabled, debug_print
+    if debug_enabled('format'):
+        debug_print(f"wrapped_text_print called with text: '{text[:50]}...' (length: {len(text)})", category='format')
+        debug_print(f"wrapped_text_print typer_kwargs: {typer_kwargs}", category='format')
     
     # Check if wrapping is enabled (default to True)
     if config.get("text_wrap", True) == False:

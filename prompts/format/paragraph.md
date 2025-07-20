@@ -1,0 +1,1 @@
+Use flowing prose in paragraph form with markdown headers (### Header Name) for sections.

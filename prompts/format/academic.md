@@ -1,0 +1,1 @@
+Use formal academic style with proper citations [Source N] and markdown headers (### Header Name) for sections.

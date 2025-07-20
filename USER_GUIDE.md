@@ -377,6 +377,27 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 [Contextual follow-up with new search]
 ```
 
+### Muse Configuration
+```bash
+# Control response detail level
+/detail minimal      # Facts only, concise responses
+/detail moderate     # Balanced detail with context (default)
+/detail detailed     # In-depth explanations
+/detail maximum      # Comprehensive with all nuances
+
+# Or use /set command
+/set muse-detail moderate
+
+# Configure source handling
+/set muse-sources first-only    # Use only the first search result
+/set muse-sources top-three     # Use top 3 results (default)
+/set muse-sources all-relevant  # Use all relevant results
+/set muse-sources selective     # Intelligently select sources
+
+# Set context depth for follow-ups
+/set muse-context-depth 5       # Include last 5 messages for context
+```
+
 ## Saving and Loading Conversations
 
 ### Exporting Conversations

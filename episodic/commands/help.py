@@ -96,13 +96,21 @@ class HelpRAG:
         
         # Override the collection to use a help-specific one
         try:
-            with suppress_all_output():
-                self.collection = self.rag.client.get_or_create_collection(
+            # Try to get existing collection first
+            try:
+                self.collection = self.rag.client.get_collection(
                     name="episodic_help",
+                    embedding_function=self.rag.embedding_function
+                )
+            except:
+                # Create new collection if it doesn't exist
+                self.collection = self.rag.client.create_collection(
+                    name="episodic_help",
+                    embedding_function=self.rag.embedding_function,
                     metadata={"description": "Episodic documentation for help system"}
                 )
-                # Update the rag's collection reference
-                self.rag.collection = self.collection
+            # Update the rag's collection reference
+            self.rag.collection = self.collection
         except Exception as e:
             typer.secho(f"Error creating help collection: {str(e)}", fg=get_error_color())
             raise
@@ -533,24 +541,21 @@ def help_reindex():
         return
     
     try:
-        # Get or create help RAG
-        help_rag = get_help_rag()
-        
-        # Clear existing index
+        # First delete the collection if it exists
         typer.secho("\nClearing existing help index...", fg=get_text_color())
         try:
-            with suppress_all_output():
-                # Delete and recreate the collection
-                help_rag.rag.client.delete_collection(name="episodic_help")
-                help_rag.collection = help_rag.rag.client.create_collection(
-                    name="episodic_help",
-                    metadata={"description": "Episodic documentation for help system"}
-                )
-                help_rag.rag.collection = help_rag.collection
-        except Exception as e:
-            # Collection might not exist, that's okay
-            if config.get('debug', False):
-                typer.secho(f"Note: {str(e)}", fg=get_text_color(), dim=True)
+            from episodic.rag import EpisodicRAG
+            temp_rag = EpisodicRAG()
+            temp_rag.client.delete_collection(name="episodic_help")
+        except:
+            pass  # Collection might not exist
+        
+        # Clear the global help RAG instance
+        global _help_rag
+        _help_rag = None
+        
+        # Get or create help RAG (will create fresh instance)
+        help_rag = get_help_rag()
         
         # Clear the indexed docs set
         help_rag._indexed_docs.clear()

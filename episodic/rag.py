@@ -425,21 +425,21 @@ class EpisodicRAG:
             searcher = WebSearchManager()
             
             # Perform web search
-            web_results = searcher.search(message, max_results=3)
+            web_results = searcher.search(message, num_results=3)
             
-            if web_results and web_results.get('results'):
+            if web_results:
                 typer.echo("\n🌐 Augmenting with web search results...", 
                           fg=get_system_color())
                 
                 # Add web results to context
-                for i, result in enumerate(web_results['results'][:2]):
+                for i, result in enumerate(web_results[:2]):
                     # Create a synthetic document entry
                     results['results'].append({
-                        'content': result.get('snippet', ''),
+                        'content': result.snippet,
                         'metadata': {
                             'source': 'web',
-                            'title': result.get('title', ''),
-                            'url': result.get('url', '')
+                            'title': result.title,
+                            'url': result.url
                         },
                         'relevance_score': 0.8 - (i * 0.1)  # Slightly lower than local
                     })

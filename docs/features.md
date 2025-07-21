@@ -11,8 +11,7 @@ Episodic supports a wide range of LLM providers through LiteLLM:
 **Cloud Providers:**
 - **OpenAI**: GPT-4, GPT-4 Turbo, GPT-3.5 Turbo
 - **Anthropic**: Claude 3 (Opus, Sonnet, Haiku), Claude 2
-- **Google**: Gemini Pro, Gemini 1.5 Pro/Flash
-- **Groq**: Fast inference for Llama, Mixtral models
+- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini Ultra, Gemini 1.5 Pro
 - **Azure OpenAI**: Enterprise deployments
 
 **Local Providers:**

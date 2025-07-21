@@ -66,7 +66,6 @@ def load_api_keys_from_config():
         'openai_api_key': 'OPENAI_API_KEY',
         'anthropic_api_key': 'ANTHROPIC_API_KEY', 
         'google_api_key': 'GOOGLE_API_KEY',
-        'groq_api_key': 'GROQ_API_KEY',
         'together_api_key': 'TOGETHER_API_KEY',
         'mistral_api_key': 'MISTRAL_API_KEY',
         'cohere_api_key': 'COHERE_API_KEY',

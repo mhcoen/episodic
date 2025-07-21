@@ -113,9 +113,14 @@ CONFIG_DOCS = {
     "openrouter_app_name": "Your app name for OpenRouter tracking (optional)",
     "openrouter_default_models": "List of popular OpenRouter models to show when API key is set",
     
-    # RAG settings
-    "rag_enabled": "Enable RAG for enhanced responses with external knowledge",
-    "rag_auto_search": "Automatically search knowledge base for each user message",
+    # System Memory (always on, stores conversations)
+    "system_memory_enabled": "Enable automatic conversation memory (independent of user RAG)",
+    "system_memory_auto_store": "Automatically store conversations in memory",
+    "system_memory_auto_context": "Automatically use conversation memory for context",
+    
+    # User RAG settings (for user's own documents)
+    "rag_enabled": "Enable RAG for user's indexed documents",
+    "rag_auto_search": "Automatically search user's knowledge base for each message",
     "rag_search_threshold": "Minimum relevance score for including search results",
     "rag_max_results": "Maximum number of search results to include in context",
     "rag_embedding_model": "Sentence transformer model for embeddings",

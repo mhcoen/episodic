@@ -31,15 +31,16 @@ def add_document_to_db(
     source: str, 
     metadata: Dict[str, Any],
     content_hash: str,
-    chunk_count: int
+    chunk_count: int,
+    preview: str = None
 ) -> None:
     """Add document metadata to database."""
     with get_connection() as conn:
         conn.execute("""
-            INSERT INTO rag_documents (doc_id, source, metadata, indexed_at, content_hash, chunk_count)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO rag_documents (doc_id, source, metadata, indexed_at, content_hash, chunk_count, preview)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (doc_id, source, json.dumps(metadata), datetime.now().isoformat(), 
-              content_hash, chunk_count))
+              content_hash, chunk_count, preview))
 
 
 def list_documents(limit: Optional[int] = None, 

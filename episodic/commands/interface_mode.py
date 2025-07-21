@@ -17,8 +17,7 @@ def simple_mode_command():
     config.set("debug", False)
     
     # Persist only the interface_mode setting
-    config.config["interface_mode"] = "simple"
-    config._save()
+    config.save_setting("interface_mode", "simple")
     
     typer.secho("\n✨ Simple Mode", fg=get_system_color(), bold=True)
     typer.secho("Everything you need, nothing you don't.\n", fg=get_text_color())
@@ -77,8 +76,7 @@ def advanced_mode_command():
     # Don't change debug - let user control that
     
     # Persist only the interface_mode setting
-    config.config["interface_mode"] = "advanced"
-    config._save()
+    config.save_setting("interface_mode", "advanced")
     
     typer.secho("\n🔓 Advanced Mode Activated", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())

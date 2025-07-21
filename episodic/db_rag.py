@@ -25,7 +25,8 @@ def create_rag_tables():
                 metadata JSON,
                 indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 content_hash TEXT UNIQUE,
-                chunk_count INTEGER DEFAULT 1
+                chunk_count INTEGER DEFAULT 1,
+                preview TEXT
             )
         ''')
         

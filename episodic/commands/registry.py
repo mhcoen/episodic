@@ -260,6 +260,25 @@ def register_all_commands():
     
     # Developer commands - hidden from normal help
     command_registry.register("dev", dev, "Developer maintenance commands", "Developer")
+    
+    # Register memory commands if RAG is available
+    if rag_available:
+        # Use lazy loading for memory commands
+        def lazy_memory_command(*args, **kwargs):
+            from episodic.commands.memory import memory_command
+            return memory_command(*args, **kwargs)
+        
+        def lazy_forget_command(*args, **kwargs):
+            from episodic.commands.memory import forget_command
+            return forget_command(*args, **kwargs)
+        
+        def lazy_memory_stats_command(*args, **kwargs):
+            from episodic.commands.memory import memory_stats_command
+            return memory_stats_command(*args, **kwargs)
+        
+        command_registry.register("memory", lazy_memory_command, "View and search memory entries", "Knowledge Base")
+        command_registry.register("forget", lazy_forget_command, "Remove memory entries", "Knowledge Base")
+        command_registry.register("memory-stats", lazy_memory_stats_command, "Show memory system statistics", "Knowledge Base")
 
 
 # Don't initialize on import - will be called when needed

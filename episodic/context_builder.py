@@ -135,8 +135,12 @@ class ContextBuilder:
         messages: List[Dict[str, Any]],
         model: str
     ) -> Optional[str]:
-        """Add RAG context if enabled."""
-        if not config.get("rag_enabled", False):
+        """Add RAG context from both system memory and user documents."""
+        # Check if either system memory or user RAG is enabled
+        system_memory_enabled = config.get("system_memory_auto_context", True)
+        user_rag_enabled = config.get("rag_enabled", False)
+        
+        if not system_memory_enabled and not user_rag_enabled:
             return None
             
         try:

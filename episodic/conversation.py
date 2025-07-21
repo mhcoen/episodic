@@ -698,7 +698,52 @@ class ConversationManager:
                     # Update ongoing topic name if needed
                     self.topic_handler.update_ongoing_topic_name(assistant_node_id)
             
+            # Store conversation in system memory (always on, independent of user RAG)
+            self.store_conversation_to_memory(user_input, display_response, user_node_id, assistant_node_id)
+            
             return assistant_node_id, display_response
+    
+    def store_conversation_to_memory(self, user_input: str, assistant_response: str, user_node_id: str, assistant_node_id: str):
+        """Store conversation exchange in system memory (independent of user RAG)."""
+        if not config.get("system_memory_auto_store", True):
+            return
+            
+        try:
+            from episodic.rag import get_rag_system
+            rag = get_rag_system()
+            if not rag:
+                return
+                
+            # Format conversation as a single document
+            conversation_text = f"User: {user_input}\n\nAssistant: {assistant_response}"
+            
+            # Add metadata
+            from datetime import datetime
+            metadata = {
+                'source': 'conversation',
+                'user_node_id': user_node_id,
+                'assistant_node_id': assistant_node_id,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Add topic if available (ChromaDB doesn't accept None values)
+            if self.current_topic:
+                metadata['topic'] = self.current_topic[0]
+            
+            # Store in RAG system
+            doc_id, chunks = rag.add_document(
+                content=conversation_text,
+                source='conversation',
+                metadata=metadata
+            )
+            
+            debug_print(f"Stored conversation in system memory: {doc_id[:8]}", category="memory")
+            
+        except Exception as e:
+            debug_print(f"Error storing conversation to memory: {e}", category="memory")
+            if config.get("debug"):
+                import traceback
+                traceback.print_exc()
 
 
 # Create a module-level instance for backward compatibility

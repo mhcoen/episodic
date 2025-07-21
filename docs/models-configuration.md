@@ -10,25 +10,26 @@ Episodic uses a JSON-based model configuration system that allows you to:
 
 ## Configuration Files
 
-### Default Models: `episodic/models.json`
-This file contains the default model definitions shipped with Episodic. It includes:
+### Models Configuration: `~/.episodic/models.json`
+This file contains all model definitions for Episodic. It includes:
 - Provider configurations
 - Model definitions with types, parameters, and context windows
 - Type detection patterns
 - Type indicators for display
 
-### User Models: `~/.episodic/models.json`
-You can create this file to:
+When you first run Episodic, it will create this file from the built-in template (`episodic/models_template.json`).
+
+You can edit this file to:
 - Add new providers
 - Add models to existing providers
-- Override model properties
+- Modify model properties
 - Customize type detection patterns
 
-## User Model Configuration
+## Model Configuration Examples
 
 ### Adding a New Model
 
-Create `~/.episodic/models.json`:
+Edit `~/.episodic/models.json` and add to the appropriate provider:
 
 ```json
 {

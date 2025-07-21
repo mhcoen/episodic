@@ -19,85 +19,51 @@ class ModelConfig:
     def __init__(self):
         """Initialize the model configuration."""
         self._models_data = {}
-        self._user_models_data = {}
-        self._combined_data = {}
         self.load_models()
     
     def load_models(self):
         """Load model configuration from JSON files."""
-        # Load default models from package
-        package_dir = Path(__file__).parent
-        default_models_path = package_dir / "models.json"
-        
-        if default_models_path.exists():
-            try:
-                with open(default_models_path, 'r') as f:
-                    self._models_data = json.load(f)
-                    debug_print(f"Loaded default models from {default_models_path}", category="models")
-            except Exception as e:
-                debug_print(f"Error loading default models: {e}", category="models")
-                self._models_data = {"providers": {}}
-        
-        # Load user models from ~/.episodic/models.json
+        # Load models from ~/.episodic/models.json
         user_models_path = Path.home() / ".episodic" / "models.json"
+        
+        # If user models don't exist, create from template
+        if not user_models_path.exists():
+            self._create_default_models(user_models_path)
+        
+        # Load user models
         if user_models_path.exists():
             try:
                 with open(user_models_path, 'r') as f:
-                    self._user_models_data = json.load(f)
-                    debug_print(f"Loaded user models from {user_models_path}", category="models")
+                    self._models_data = json.load(f)
+                    debug_print(f"Loaded models from {user_models_path}", category="models")
             except Exception as e:
-                debug_print(f"Error loading user models: {e}", category="models")
-                self._user_models_data = {}
+                debug_print(f"Error loading models: {e}", category="models")
+                self._models_data = {"providers": {}}
+        else:
+            self._models_data = {"providers": {}}
         
-        # Combine default and user models
-        self._combine_models()
     
-    def _combine_models(self):
-        """Combine default and user model configurations."""
-        import copy
-        self._combined_data = copy.deepcopy(self._models_data)
+    def _create_default_models(self, user_models_path: Path):
+        """Create default models.json from template."""
+        package_dir = Path(__file__).parent
+        template_path = package_dir / "models_template.json"
         
-        if not self._user_models_data:
-            return
-        
-        # Merge providers
-        user_providers = self._user_models_data.get("providers", {})
-        for provider_name, provider_data in user_providers.items():
-            if provider_name in self._combined_data.get("providers", {}):
-                # Merge models for existing provider
-                existing_models = {m["name"]: m for m in self._combined_data["providers"][provider_name].get("models", [])}
+        if template_path.exists():
+            try:
+                # Ensure directory exists
+                user_models_path.parent.mkdir(parents=True, exist_ok=True)
                 
-                for model in provider_data.get("models", []):
-                    model_name = model.get("name")
-                    if model_name:
-                        # Override or add model
-                        existing_models[model_name] = model
-                
-                # Convert back to list
-                self._combined_data["providers"][provider_name]["models"] = list(existing_models.values())
-                
-                # Update other provider properties
-                for key, value in provider_data.items():
-                    if key != "models":
-                        self._combined_data["providers"][provider_name][key] = value
-            else:
-                # Add new provider
-                self._combined_data["providers"][provider_name] = provider_data
-        
-        # Merge type patterns
-        if "type_patterns" in self._user_models_data:
-            for pattern_type, patterns in self._user_models_data["type_patterns"].items():
-                if pattern_type in self._combined_data.get("type_patterns", {}):
-                    # Extend patterns (remove duplicates)
-                    existing = set(self._combined_data["type_patterns"][pattern_type])
-                    existing.update(patterns)
-                    self._combined_data["type_patterns"][pattern_type] = list(existing)
-                else:
-                    self._combined_data["type_patterns"][pattern_type] = patterns
+                # Copy template to user directory
+                import shutil
+                shutil.copy2(template_path, user_models_path)
+                debug_print(f"Created default models.json from template", category="models")
+            except Exception as e:
+                debug_print(f"Error creating default models: {e}", category="models")
+    
     
     def get_provider_config(self, provider: str) -> Dict[str, Any]:
         """Get configuration for a specific provider."""
-        return self._combined_data.get("providers", {}).get(provider, {})
+        return self._models_data.get("providers", {}).get(provider, {})
     
     def get_provider_models(self, provider: str) -> List[Dict[str, Any]]:
         """Get list of models for a provider."""
@@ -106,7 +72,7 @@ class ModelConfig:
     
     def get_all_providers(self) -> Dict[str, Any]:
         """Get all provider configurations."""
-        return self._combined_data.get("providers", {})
+        return self._models_data.get("providers", {})
     
     def get_model_info(self, provider: str, model_name: str) -> Optional[Dict[str, Any]]:
         """Get information about a specific model."""
@@ -129,13 +95,13 @@ class ModelConfig:
         model_lower = model_name.lower()
         
         # Check all known models first
-        for provider_name, provider_data in self._combined_data.get("providers", {}).items():
+        for provider_name, provider_data in self._models_data.get("providers", {}).items():
             for model in provider_data.get("models", []):
                 if model.get("name", "").lower() in model_lower:
                     return model.get("type", "unknown")
         
         # Check patterns
-        type_patterns = self._combined_data.get("type_patterns", {})
+        type_patterns = self._models_data.get("type_patterns", {})
         
         # Check instruct patterns
         for pattern in type_patterns.get("instruct", []):
@@ -168,7 +134,7 @@ class ModelConfig:
     
     def get_type_indicator(self, model_type: str) -> str:
         """Get the type indicator string for a model type."""
-        indicators = self._combined_data.get("type_indicators", {})
+        indicators = self._models_data.get("type_indicators", {})
         return indicators.get(model_type, "[?]")
     
     def get_model_parameters(self, provider: str, model_name: str) -> Optional[str]:

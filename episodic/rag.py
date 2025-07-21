@@ -233,6 +233,9 @@ class EpisodicRAG:
             "indexed_at": datetime.now().isoformat()
         })
         
+        # Generate preview text (first 200 chars, clean it up)
+        preview = self._generate_preview(content)
+        
         # Process the document
         from episodic.rag_utils import suppress_chromadb_telemetry
         
@@ -268,8 +271,8 @@ class EpisodicRAG:
                     metadatas=chunk_metadatas
                 )
             
-            # Store document metadata in SQLite
-            add_document_to_db(doc_id, source, metadata, content_hash, len(chunks))
+            # Store document metadata in SQLite with preview
+            add_document_to_db(doc_id, source, metadata, content_hash, len(chunks), preview)
             
             return doc_id, len(chunks)
         else:
@@ -281,8 +284,8 @@ class EpisodicRAG:
                     metadatas=[metadata]
                 )
             
-            # Store document metadata
-            add_document_to_db(doc_id, source, metadata, content_hash, 1)
+            # Store document metadata with preview
+            add_document_to_db(doc_id, source, metadata, content_hash, 1, preview)
             
             return doc_id, 1
     
@@ -506,6 +509,30 @@ class EpisodicRAG:
         
         # If average relevance is low, search web
         return avg_score < config.get("rag_web_search_threshold", 0.7)
+    
+    def _generate_preview(self, content: str, max_length: int = 200) -> str:
+        """Generate a preview of the content.
+        
+        Args:
+            content: The full content
+            max_length: Maximum length of preview (default: 200)
+            
+        Returns:
+            Preview text, cleaned and truncated
+        """
+        # Remove excessive whitespace
+        preview = ' '.join(content.split())
+        
+        # Truncate to max length
+        if len(preview) > max_length:
+            # Try to cut at a word boundary
+            preview = preview[:max_length]
+            last_space = preview.rfind(' ')
+            if last_space > max_length * 0.8:  # Only cut at word if we keep 80% of content
+                preview = preview[:last_space]
+            preview += '...'
+        
+        return preview
 
 
 # Global instance

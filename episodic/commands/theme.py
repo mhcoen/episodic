@@ -65,9 +65,8 @@ def apply_theme(theme_name: str):
     # Set in runtime config
     config.set("color_mode", theme_name)
     
-    # Persist to disk
-    config.config["color_mode"] = theme_name
-    config._save()
+    # Persist only the color_mode setting
+    config.save_setting("color_mode", theme_name)
 
 
 def list_themes():

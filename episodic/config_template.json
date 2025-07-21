@@ -190,8 +190,16 @@
   "_comment_export_directory": "Directory for saving exported markdown files (~ is expanded to home directory)",
   "export_directory": "~/.episodic/exports",
   
-  "_comment_rag": "// === RAG (RETRIEVAL AUGMENTED GENERATION) ===",
-  "_comment_rag_enabled": "Enable RAG for enhanced responses with external knowledge",
+  "_comment_system_memory": "// === SYSTEM MEMORY (CONVERSATION HISTORY) ===",
+  "_comment_system_memory_enabled": "Enable automatic conversation memory (always recommended)",
+  "system_memory_enabled": true,
+  "_comment_system_memory_auto_store": "Automatically store conversations in memory",
+  "system_memory_auto_store": true,
+  "_comment_system_memory_auto_context": "Automatically use conversation memory for context",
+  "system_memory_auto_context": true,
+  
+  "_comment_rag": "// === USER RAG (YOUR INDEXED DOCUMENTS) ===",
+  "_comment_rag_enabled": "Enable RAG for your own indexed documents",
   "rag_enabled": false,
   "_comment_rag_auto_search": "Automatically search knowledge base for each user message",
   "rag_auto_search": true,

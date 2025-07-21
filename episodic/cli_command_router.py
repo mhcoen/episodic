@@ -180,6 +180,12 @@ def handle_command(command_str: str) -> bool:
             _handle_debug(args)
         elif cmd == "/dev":
             _handle_dev(args)
+        elif cmd == "/memory":
+            _handle_memory(args)
+        elif cmd == "/forget":
+            _handle_forget(args)
+        elif cmd == "/memory-stats":
+            _handle_memory_stats()
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -900,3 +906,27 @@ def _handle_dev(args: List[str]):
         dev(args[0], *args[1:])
     else:
         dev()
+
+
+def _handle_memory(args: List[str]):
+    """Handle /memory command."""
+    from episodic.commands.memory import memory_command
+    if args:
+        memory_command(args[0], *args[1:])
+    else:
+        memory_command()
+
+
+def _handle_forget(args: List[str]):
+    """Handle /forget command."""
+    from episodic.commands.memory import forget_command
+    if args:
+        forget_command(args[0], *args[1:])
+    else:
+        forget_command()
+
+
+def _handle_memory_stats():
+    """Handle /memory-stats command."""
+    from episodic.commands.memory import memory_stats_command
+    memory_stats_command()

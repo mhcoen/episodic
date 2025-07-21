@@ -31,6 +31,13 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `db_compression.py` - Compression operations
 - `db_rag.py` - RAG database operations
 
+### Memory System (RAG)
+- **Automatic Memory**: Conversations automatically stored as searchable memories
+- **Smart Context**: Detects when past conversations/documents are relevant
+- **Memory Commands**: `/memory`, `/forget`, `/memory-stats` for management
+- **Document Indexing**: Index files with `/index` for persistent knowledge
+- **Preview Support**: Shows content previews in memory listings
+
 ### Command System
 - Unified commands with subactions (e.g., `/topics list|rename|compress`)
 - Command registry for better organization

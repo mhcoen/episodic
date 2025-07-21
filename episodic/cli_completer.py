@@ -112,6 +112,10 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_summary_command(parts, word_before_cursor)
             elif full_cmd == 'debug':
                 yield from self._complete_debug_command(parts, word_before_cursor)
+            elif full_cmd == 'memory':
+                yield from self._complete_memory_command(parts, word_before_cursor)
+            elif full_cmd == 'forget':
+                yield from self._complete_forget_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
@@ -657,3 +661,29 @@ class EpisodicCompleter(Completer):
                             start_position=-len(word),
                             display_meta=description
                         )
+    
+    def _complete_memory_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete memory command options."""
+        if len(parts) == 2:
+            # Complete subcommands
+            subcommands = {
+                'search': 'Search memory entries',
+                'show': 'Show specific memory entry',
+                'list': 'List memory entries'
+            }
+            for sub, desc in subcommands.items():
+                if sub.startswith(word.lower()):
+                    yield Completion(sub, start_position=-len(word), display_meta=desc)
+    
+    def _complete_forget_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete forget command options."""
+        if len(parts) == 2:
+            # Complete options
+            options = {
+                '--all': 'Clear all memories',
+                '--contains': 'Forget memories containing text',
+                '--source': 'Forget memories from source'
+            }
+            for opt, desc in options.items():
+                if opt.startswith(word):
+                    yield Completion(opt, start_position=-len(word), display_meta=desc)

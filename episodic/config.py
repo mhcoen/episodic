@@ -85,6 +85,29 @@ class Config:
         with open(self.config_file, 'w') as f:
             json.dump(self.config, f, indent=2)
     
+    def save_setting(self, key: str, value: Any) -> None:
+        """Save a specific setting to disk without affecting other runtime values.
+        
+        This method updates only the specified key in the config file,
+        preserving all other settings and avoiding saving runtime-only values.
+        """
+        # Read the current file config
+        try:
+            with open(self.config_file, 'r') as f:
+                file_config = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            file_config = self._template_defaults.copy()
+        
+        # Update only the specific key
+        file_config[key] = value
+        
+        # Write back to file
+        with open(self.config_file, 'w') as f:
+            json.dump(file_config, f, indent=2)
+        
+        # Also update runtime config
+        self.config[key] = value
+    
     def _ensure_default_config(self) -> None:
         """Ensure config.default.json exists by copying from template."""
         if not self.default_config_file.exists():

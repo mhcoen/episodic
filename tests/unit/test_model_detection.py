@@ -41,11 +41,11 @@ test_models = [
     "huggingface/EleutherAI/gpt-neox-20b",
     "huggingface/stabilityai/stablelm-tuned-alpha-7b",
     
-    # Groq
-    "groq/llama3-8b-8192",
-    "groq/llama3-70b-8192",
-    "groq/mixtral-8x7b-32768",
-    "groq/gemma-7b-it",
+    # Google
+    "google/gemini-2.5-pro",
+    "google/gemini-2.5-flash",
+    "google/gemini-ultra",
+    "google/gemini-1.5-pro",
 ]
 
 # Test and display results

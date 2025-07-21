@@ -24,13 +24,13 @@ Compression/summarization in Episodic is handled by a dedicated model that can b
    - Good at structured summaries
    - Excellent instruction following
 
-3. **Mistral-7B-Instruct** (via Groq)
+3. **Gemini 2.5 Flash** (via Google)
    ```bash
-   /model compression groq/mixtral-8x7b-32768
+   /model compression google/gemini-2.5-flash
    ```
-   - Open-source alternative
-   - Fast inference via Groq
-   - Good summarization quality
+   - Fast and efficient
+   - Good at structured summaries
+   - Excellent comprehension
 
 ### Local Models (Ollama)
 

@@ -201,7 +201,6 @@ Example:
 | `OPENAI_API_KEY` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `GOOGLE_API_KEY` | Google AI API key |
-| `GROQ_API_KEY` | Groq API key |
 | `AZURE_API_KEY` | Azure OpenAI key |
 | `AZURE_API_BASE` | Azure endpoint |
 | `GOOGLE_SEARCH_ENGINE_ID` | Google search engine ID for web search |

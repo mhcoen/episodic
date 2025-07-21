@@ -130,7 +130,6 @@
   "openai_api_key": null,
   "anthropic_api_key": null,
   "google_api_key": null,
-  "groq_api_key": null,
   "together_api_key": null,
   "mistral_api_key": null,
   "cohere_api_key": null,

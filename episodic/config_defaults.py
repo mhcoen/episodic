@@ -86,7 +86,6 @@ CONFIG_DOCS = {
     "openai_api_key": "OpenAI API key for GPT models",
     "anthropic_api_key": "Anthropic API key for Claude models",
     "google_api_key": "Google API key for Gemini models",
-    "groq_api_key": "Groq API key for fast inference",
     "together_api_key": "Together AI API key for open source models",
     "mistral_api_key": "Mistral AI API key for Mistral models",
     "cohere_api_key": "Cohere API key for Command models",

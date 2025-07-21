@@ -30,7 +30,7 @@ Episodic uses different models for different tasks. While chat models are great 
   ```bash
   /model compression gpt-3.5-turbo-instruct
   /model compression ollama/mistral:instruct
-  /model compression groq/mixtral-8x7b-32768
+  /model compression google/gemini-2.5-flash
   ```
 
 ### 4. Synthesis Context (Instruction-Following)

@@ -7,6 +7,8 @@ It does NOT manage user preferences or selected models - that's handled by episo
 import os
 from typing import Dict, Any, List
 
+from episodic.model_config import get_model_config
+
 # Map of provider names to their corresponding environment variable names
 PROVIDER_API_KEYS = {
     "openai": "OPENAI_API_KEY",
@@ -15,7 +17,6 @@ PROVIDER_API_KEYS = {
     "mistral": "MISTRAL_API_KEY",
     "cohere": "COHERE_API_KEY",
     "azure": "AZURE_API_KEY",
-    "groq": "GROQ_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
     "huggingface": "HUGGINGFACE_API_KEY"
 }
@@ -23,86 +24,30 @@ PROVIDER_API_KEYS = {
 # Local providers that don't require API keys
 LOCAL_PROVIDERS = ["ollama", "lmstudio", "local"]
 
-# Static provider configuration - what models are available
-PROVIDER_CONFIG = {
-    "openai": {
-        "models": [
-            {"name": "gpt-4o-mini", "display_name": "GPT-4o Mini"},
-            {"name": "gpt-4o", "display_name": "GPT-4o"},
-            {"name": "gpt-o3", "display_name": "GPT-o3"},
-            {"name": "gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo"},
-            {"name": "gpt-3.5-turbo-instruct", "display_name": "GPT-3.5 Turbo Instruct"},
-            {"name": "gpt-4", "display_name": "GPT-4"},
-            {"name": "gpt-4.5", "display_name": "GPT-4.5"}
-        ]
-    },
-    "anthropic": {
-        "models": [
-            {"name": "claude-opus-4-20250514", "display_name": "Claude 4 Opus"},
-            {"name": "claude-3-opus-20240229", "display_name": "Claude 3 Opus"},
-            {"name": "claude-3-sonnet-20240229", "display_name": "Claude 3 Sonnet"},
-            {"name": "claude-3-haiku-20240307", "display_name": "Claude 3 Haiku"}
-        ]
-    },
-    "groq": {
-        "models": [
-            {"name": "llama3-8b-8192", "display_name": "Llama 3 8B"},
-            {"name": "llama3-70b-8192", "display_name": "Llama 3 70B"},
-            {"name": "mixtral-8x7b-32768", "display_name": "Mixtral 8x7B"},
-            {"name": "gemma-7b-it", "display_name": "Gemma 7B"}
-        ]
-    },
-    "ollama": {
-        "api_base": "http://localhost:11434",
-        "models": ["llama3", "mistral", "codellama", "phi3"]
-    },
-    "lmstudio": {
-        "api_base": "http://localhost:1234/v1",
-        "models": ["local-model"]
-    },
-    "local": {
-        "models": []
-    },
-    "openrouter": {
-        "api_base": "https://openrouter.ai/api/v1",
-        "models": [
-            # Keep essential chat models
-            {"name": "openrouter/anthropic/claude-opus-4-20250514", "display_name": "Claude 4 Opus (OR)"},
-            {"name": "openrouter/anthropic/claude-3-sonnet", "display_name": "Claude 3 Sonnet (OR)"},
-            {"name": "openrouter/openai/gpt-4", "display_name": "GPT-4 (OR)"},
-            {"name": "openrouter/openai/gpt-3.5-turbo", "display_name": "GPT-3.5 Turbo (OR)"},
-            {"name": "openrouter/google/gemini-pro", "display_name": "Gemini Pro (OR)"},
-            # Add instruct models
-            {"name": "openrouter/mistralai/mistral-7b-instruct", "display_name": "Mistral 7B Instruct (OR)"},
-            {"name": "openrouter/meta-llama/llama-3.3-70b-instruct", "display_name": "Llama 3.3 70B Instruct (OR)"},
-            {"name": "openrouter/qwen/qwen-2-72b-instruct", "display_name": "Qwen 2 72B Instruct (OR)"},
-            {"name": "openrouter/microsoft/phi-3.5-mini-128k-instruct", "display_name": "Phi 3.5 Mini 128K (OR)"},
-            {"name": "openrouter/databricks/dbrx-instruct", "display_name": "DBRX Instruct 132B (OR)"},
-            {"name": "openrouter/nousresearch/hermes-3-405b-instruct", "display_name": "Hermes 3 405B Instruct (OR)"},
-            # Keep one existing instruct model
-            {"name": "openrouter/mistralai/mixtral-8x7b-instruct", "display_name": "Mixtral 8x7B Instruct (OR)"}
-        ]
-    },
-    "huggingface": {
-        "models": [
-            # Chat models as requested by user
-            {"name": "huggingface/meta-llama/Meta-Llama-3-8B", "display_name": "Meta Llama 3 8B"},
-            {"name": "huggingface/meta-llama/Meta-Llama-3-70B", "display_name": "Meta Llama 3 70B"},
-            {"name": "huggingface/meta-llama/Llama-2-7b-chat", "display_name": "Meta Llama 2 7B Chat"},
-            {"name": "huggingface/Qwen/Qwen-3", "display_name": "Alibaba Qwen 3"},
-            {"name": "huggingface/mistralai/Mistral-Small-3.1", "display_name": "Mistral Small 3.1"},
-            {"name": "huggingface/mistralai/Mixtral-8x7B-Instruct-v0.1", "display_name": "Mixtral 8x7B Instruct"},
-            {"name": "huggingface/deepseek-ai/DeepSeek-R1-0528", "display_name": "DeepSeek R1-0528"},
-            {"name": "huggingface/google/gemma-7b", "display_name": "Google Gemma 7B"},
-            # Keep just a few instruct models
-            {"name": "huggingface/tiiuae/falcon-40b-instruct", "display_name": "Falcon 40B Instruct"},
-            {"name": "huggingface/01-ai/Yi-1.5-34B-Chat", "display_name": "Yi 1.5 34B Chat"},
-            # Base models
-            {"name": "huggingface/bigscience/bloom", "display_name": "BLOOM 176B"},
-            {"name": "huggingface/EleutherAI/gpt-neox-20b", "display_name": "GPT-NeoX 20B"}
-        ]
-    }
-}
+# Get provider configuration from models.json
+def _get_provider_config():
+    """Get provider configuration from model config."""
+    model_config = get_model_config()
+    providers = model_config.get_all_providers()
+    
+    # Convert to the expected format
+    result = {}
+    for provider_name, provider_data in providers.items():
+        models = provider_data.get("models", [])
+        
+        # For backwards compatibility with existing code
+        if provider_name in ["ollama", "lmstudio"] and isinstance(models[0], dict) if models else False:
+            # Convert dict models to simple strings for these providers
+            simple_models = [m.get("name") for m in models if m.get("name")]
+            provider_data = provider_data.copy()
+            provider_data["models"] = simple_models
+        
+        result[provider_name] = provider_data
+    
+    return result
+
+# Dynamic provider configuration - loaded from models.json
+PROVIDER_CONFIG = _get_provider_config()
 
 def get_current_provider() -> str:
     """
@@ -126,6 +71,9 @@ def get_current_provider() -> str:
 
 def get_available_providers() -> Dict[str, Any]:
     """Get all available configured providers."""
+    # Reload to get latest config
+    global PROVIDER_CONFIG
+    PROVIDER_CONFIG = _get_provider_config()
     return PROVIDER_CONFIG.copy()
 
 def get_provider_models(provider: str) -> list:

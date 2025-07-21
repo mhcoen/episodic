@@ -18,7 +18,9 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **LLM Integration** (`llm.py`): Multi-provider interface using LiteLLM
 - **Topic Detection** (`topics/`): Modular topic detection with multiple strategies
 - **CLI Interface** (`cli_*.py`): Typer-based command-line interface
-- **RAG System** (`rag.py`): Vector search with ChromaDB for knowledge base
+- **Memory System**: Two-part system for intelligent context
+  - **System Memory**: Always-on conversation storage (like help system)
+  - **User RAG** (`rag.py`): Optional vector search for user's indexed documents
 - **Web Search** (`web_search.py`): Multi-provider web search with synthesis
 
 ### Key Design Principles
@@ -58,6 +60,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **User data location**: `~/.episodic/` not the project directory
 - **Streaming by default**: All LLM responses stream unless disabled
 - **Cost tracking**: Built-in token usage tracking for all providers
+- **Memory System**: System memory is always on by default (separate from user RAG)
+- **Config Persistence**: Only specific settings are saved to disk (use `config.save_setting()`)
 
 ## Common Tasks
 

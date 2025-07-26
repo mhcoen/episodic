@@ -9,6 +9,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Modular Design**: Split into focused modules under 600 lines each
 - **Database**: SQLite with migration system, default location `~/.episodic/episodic.db`
 - **LLM Integration**: Unified interface via LiteLLM supporting 20+ providers
+- **Model Configuration**: JSON-based model definitions in `~/.episodic/models.json`
 - **Topic Detection**: Multiple algorithms including sliding window and hybrid detection
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system with automatic fallback
@@ -22,6 +23,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `context_builder.py` - Context preparation with RAG/web (226 lines)
 - `text_formatter.py` - Text formatting and wrapping (385 lines)
 - `unified_streaming.py` - Centralized streaming output (411 lines)
+- `model_config.py` - Model configuration loader (manages models.json)
 
 ### Database Modules
 - `db_connection.py` - Connection management
@@ -60,8 +62,20 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Code Organization**: Follow established module structure
 - **Commands**: Use command registry for new commands
 - **Configuration**: Add defaults to `config_defaults.py`
+- **Model Configuration**: Models defined in `~/.episodic/models.json` (auto-created from template)
 - **Database Changes**: Create migrations in `episodic/migrations/`
 - **Debug Output**: Use `debug_utils.py` for debug functions
+
+## Recent Changes
+
+- **Model Configuration System**: Replaced hardcoded models with JSON configuration
+  - Groq provider replaced with Google (Gemini models)
+  - Models now loaded from `~/.episodic/models.json`
+  - Support for user customization and overrides
+  - Fixed OpenRouter Claude 4 Opus model ID to `openrouter/anthropic/claude-opus-4`
+- **Memory System Improvements**: System memory always on, independent of user RAG
+- **Config Persistence**: Only specific settings saved (via `save_setting()`)
+- **Assistant Message Limits**: Documented 5-hour reset blocks with start times rounded down to nearest hour
 
 ## Future Development
 

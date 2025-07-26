@@ -62,6 +62,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Cost tracking**: Built-in token usage tracking for all providers
 - **Memory System**: System memory is always on by default (separate from user RAG)
 - **Config Persistence**: Only specific settings are saved to disk (use `config.save_setting()`)
+- **Model Configuration**: Models are defined in `~/.episodic/models.json` (created from template on first run)
+- **Assistant Message Limits**: Assistant message limits reset in 5-hour blocks, with start times rounded down to the nearest hour
 
 ## Common Tasks
 

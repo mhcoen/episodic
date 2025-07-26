@@ -182,9 +182,10 @@
       "dynamic": true,
       "models": [
         {
-          "name": "openrouter/anthropic/claude-opus-4-20250514",
+          "name": "openrouter/anthropic/claude-opus-4",
           "display_name": "Claude 4 Opus (OR)",
-          "type": "chat"
+          "type": "both",
+          "context_window": 200000
         },
         {
           "name": "openrouter/anthropic/claude-3-sonnet",
@@ -209,7 +210,8 @@
         {
           "name": "openrouter/mistralai/mistral-7b-instruct",
           "display_name": "Mistral 7B Instruct (OR)",
-          "type": "instruct"
+          "type": "instruct",
+          "parameters": "7B"
         },
         {
           "name": "openrouter/meta-llama/llama-3.3-70b-instruct",

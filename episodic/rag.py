@@ -49,16 +49,27 @@ from episodic.rag_document_manager import (
 # Patch ChromaDB telemetry after import to fix the capture() argument error
 try:
     import chromadb.telemetry.posthog
-    # Replace the Posthog class with a no-op version
+    
+    # Replace the Posthog class with a no-op version that handles all signatures
     class NoOpPosthog:
         def __init__(self, *args, **kwargs):
             pass
+        
         def capture(self, *args, **kwargs):
+            # Accept any number of arguments to handle signature changes
             pass
+        
         def __getattr__(self, name):
+            # Return a function that accepts any arguments
             return lambda *args, **kwargs: None
     
+    # Replace the module's Posthog class
     chromadb.telemetry.posthog.Posthog = NoOpPosthog
+    
+    # Patch any existing instances
+    if hasattr(chromadb.telemetry, 'posthog'):
+        if hasattr(chromadb.telemetry.posthog, '_posthog'):
+            chromadb.telemetry.posthog._posthog = NoOpPosthog()
     
     # Also patch the capture function directly if it exists
     if hasattr(chromadb.telemetry.posthog, 'capture'):
@@ -69,6 +80,20 @@ try:
         import chromadb.telemetry.product
         if hasattr(chromadb.telemetry.product, '_telemetry_client'):
             chromadb.telemetry.product._telemetry_client = None
+        if hasattr(chromadb.telemetry.product, 'TelemetryClient'):
+            chromadb.telemetry.product.TelemetryClient = NoOpPosthog
+    except:
+        pass
+    
+    # Patch the telemetry event classes to prevent errors
+    try:
+        import chromadb.telemetry.events
+        for attr_name in dir(chromadb.telemetry.events):
+            if attr_name.endswith('Event'):
+                setattr(chromadb.telemetry.events, attr_name, type(attr_name, (), {
+                    '__init__': lambda self, **kwargs: None,
+                    '__dict__': {}
+                }))
     except:
         pass
     
@@ -79,7 +104,13 @@ try:
         # Skip telemetry error messages
         if args and len(args) > 0:
             first_arg = str(args[0])
-            if "Failed to send telemetry" in first_arg or "capture() takes" in first_arg:
+            if any(pattern in first_arg for pattern in [
+                "Failed to send telemetry",
+                "capture() takes",
+                "ClientStartEvent",
+                "CollectionGetEvent", 
+                "CollectionQueryEvent"
+            ]):
                 return
         _original_print(*args, **kwargs)
     builtins.print = _filtered_print

@@ -88,8 +88,21 @@ def suppress_chromadb_telemetry():
         # Only show non-telemetry errors
         try:
             error_output = captured_stderr.getvalue()
-            if error_output and "telemetry" not in error_output.lower():
-                sys.stderr.write(error_output)
+            if error_output:
+                # Filter out specific telemetry error patterns
+                filtered_lines = []
+                for line in error_output.splitlines():
+                    line_lower = line.lower()
+                    if ("telemetry" not in line_lower and 
+                        "capture() takes" not in line and
+                        "ClientStartEvent" not in line and
+                        "CollectionGetEvent" not in line and
+                        "CollectionQueryEvent" not in line):
+                        filtered_lines.append(line)
+                
+                filtered_output = '\n'.join(filtered_lines).strip()
+                if filtered_output:
+                    sys.stderr.write(filtered_output + '\n')
         except:
             pass  # Ignore errors when writing error output
 

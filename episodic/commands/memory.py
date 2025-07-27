@@ -62,8 +62,8 @@ def list_memories(limit: int = 20):
     typer.secho("\n📚 Memory Entries", fg=get_heading_color(), bold=True)
     typer.secho("─" * 50, fg=get_heading_color())
     
-    # Get recent documents
-    docs = rag.list_documents(limit=limit)
+    # Get recent documents (conversation memories only)
+    docs = rag.list_documents(limit=limit, source_filter='conversation')
     
     if not docs:
         typer.secho("\nNo memories stored yet.", fg=get_text_color())
@@ -132,17 +132,26 @@ def search_memories(query: str):
     
     typer.secho(f"\n🔍 Searching memories for: {query}", fg=get_heading_color())
     
-    # Search
-    results = rag.search(query, n_results=10)
+    # Search (conversation memories only)
+    results = rag.search(query, n_results=10, source_filter='conversation')
     
     if not results['results']:
         typer.secho("\nNo matching memories found.", fg=get_text_color())
         return
     
-    typer.secho(f"\nFound {len(results['results'])} matches:", fg=get_text_color())
+    # Filter results by relevance threshold
+    relevance_threshold = config.get('memory_relevance_threshold', 0.3)
+    filtered_results = [r for r in results['results'] if r.get('relevance_score', 0) >= relevance_threshold]
+    
+    if not filtered_results:
+        typer.secho(f"\nNo memories found with relevance >= {relevance_threshold}.", fg=get_text_color())
+        typer.secho("Try a different search term or adjust the threshold with '/set memory_relevance_threshold'", fg=get_text_color(), dim=True)
+        return
+    
+    typer.secho(f"\nFound {len(filtered_results)} relevant matches:", fg=get_text_color())
     typer.secho("─" * 50, fg=get_heading_color())
     
-    for i, result in enumerate(results['results']):
+    for i, result in enumerate(filtered_results):
         metadata = result.get('metadata', {})
         doc_id = metadata.get('doc_id', 'unknown')
         source = metadata.get('source', 'unknown')
@@ -260,8 +269,9 @@ def forget_command(target: Optional[str] = None, *args):
             typer.secho("Cancelled.", fg=get_text_color())
             return
         
-        count = rag.clear_documents()
-        typer.secho(f"\n✅ Removed {count} memories", fg=get_success_color())
+        # Clear only conversation memories (not user documents)
+        count = rag.clear_documents(source_filter='conversation')
+        typer.secho(f"\n✅ Removed {count} conversation memories", fg=get_success_color())
         
     elif target == "--contains":
         # Forget memories containing text

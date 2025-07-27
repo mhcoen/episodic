@@ -332,8 +332,21 @@ def show_available_models():
 
 def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optional[int] = None) -> str:
     """Get pricing information for a model."""
-    # Try to get pricing information using cost_per_token
-    if cost_per_token:
+    # Check if this is an OpenRouter model
+    if model_name.startswith("openrouter/"):
+        # Get pricing from OpenRouter API
+        from episodic.openrouter_pricing import get_openrouter_pricing
+        or_pricing = get_openrouter_pricing()
+        
+        # Strip the openrouter/ prefix
+        model_id = model_name.replace("openrouter/", "")
+        pricing_info = or_pricing.get_pricing(model_id)
+        
+        if pricing_info and (pricing_info[0] > 0 or pricing_info[1] > 0):
+            return f"${pricing_info[0]:.6f}/1K in, ${pricing_info[1]:.6f}/1K out"
+    
+    # Try to get pricing information using cost_per_token for non-OpenRouter models
+    if cost_per_token and not model_name.startswith("openrouter/"):
         try:
             # Suppress both warnings and stdout/stderr output from LiteLLM during pricing lookup
             with warnings.catch_warnings(), \

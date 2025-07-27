@@ -226,10 +226,11 @@
           "parameters": "72B"
         },
         {
-          "name": "openrouter/microsoft/phi-3.5-mini-128k-instruct",
-          "display_name": "Phi 3.5 Mini 128K (OR)",
-          "type": "instruct",
-          "parameters": "3.8B"
+          "name": "openrouter/moonshotai/kimi-k2",
+          "display_name": "Kimi K2 (OR)",
+          "type": "chat",
+          "parameters": null,
+          "context_window": 128000
         },
         {
           "name": "openrouter/databricks/dbrx-instruct",

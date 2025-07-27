@@ -15,7 +15,7 @@ force_color_output()
 
 from episodic.db import (
     insert_node, get_ancestry, get_head, get_recent_nodes,
-    get_recent_topics, update_topic_name
+    get_recent_topics, update_topic_name, update_topic_end_node
 )
 # Lazy import _execute_llm_query to avoid loading litellm at startup
 # from episodic.llm import _execute_llm_query
@@ -103,7 +103,9 @@ class ConversationManager:
     
     def finalize_current_topic(self) -> None:
         """
-        Finalize the current topic by giving it a proper name if it has a placeholder name.
+        Finalize the current topic by:
+        1. Closing it if still open
+        2. Giving it a proper name if it has a placeholder name
         This is called when the conversation ends or when explicitly requested.
         """
         # Only finalize topics if automatic topic detection is enabled
@@ -114,69 +116,79 @@ class ConversationManager:
         if not self.current_node_id:
             self.current_node_id = get_head()
             
-        # Get all topics to find the actual last one (get_recent_topics returns oldest first)
+        # Get all topics to find open ones
         all_topics = get_recent_topics(limit=100)
         if not all_topics:
             return
             
-        # The last topic in the list is the most recent one
-        current_topic = all_topics[-1]
+        # Find any topics that are still open (no end_node_id)
+        open_topics = [t for t in all_topics if not t.get('end_node_id')]
         
-        # Check if it has a placeholder name
-        if not current_topic['name'].startswith('ongoing-'):
-            return  # Already has a proper name
+        if not open_topics:
+            return  # No open topics to finalize
             
-        # Extract topic name from the conversation
-        if config.get("debug"):
-            typer.echo("")
-            debug_print(f"Finalizing topic '{current_topic['name']}'")
-            
-        # Get nodes in the topic
-        topic_nodes = []
-        # For ongoing topics (end_node_id is NULL), use the current head
-        if current_topic['end_node_id']:
-            ancestry = get_ancestry(current_topic['end_node_id'])
-        else:
-            # Use current head for ongoing topics
-            current_head = get_head()
-            if current_head:
-                ancestry = get_ancestry(current_head)
-            else:
-                ancestry = []
-        
-        if ancestry:
-            # Collect nodes from topic start to end (or current for ongoing)
-            found_start = False
-            for node in ancestry:
-                if node['id'] == current_topic['start_node_id']:
-                    found_start = True
-                if found_start:
-                    topic_nodes.append(node)
-                # For topics with an end, stop at the end node
-                if current_topic['end_node_id'] and node['id'] == current_topic['end_node_id']:
-                    break
-                    
-        if topic_nodes:
-            # Build conversation segment
-            segment = build_conversation_segment(topic_nodes, max_length=2000)
-            
-            # Extract topic name
-            topic_name, _ = extract_topic_ollama(segment)
-            
-            if topic_name and topic_name != current_topic['name']:
-                # Update the topic name
-                rows_updated = update_topic_name(
+        for current_topic in open_topics:
+            # Close the topic at current head
+            if self.current_node_id:
+                update_topic_end_node(
                     current_topic['name'], 
                     current_topic['start_node_id'], 
-                    topic_name
+                    self.current_node_id
                 )
                 
                 if config.get("debug"):
-                    secho_color(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)", fg=get_success_color(), bold=True)
+                    debug_print(f"Closed open topic '{current_topic['name']}' at session end")
+            
+            # Check if it needs a proper name
+            if not current_topic['name'].startswith('ongoing-'):
+                continue  # Already has a proper name
+            
+            # Extract topic name from the conversation
+            if config.get("debug"):
+                typer.echo("")
+                debug_print(f"Finalizing topic '{current_topic['name']}'")
+                
+            # Get nodes in the topic
+            topic_nodes = []
+            # Use the end_node_id we just set, or current head
+            end_node = current_topic.get('end_node_id') or self.current_node_id
+            if end_node:
+                ancestry = get_ancestry(end_node)
+            else:
+                ancestry = []
+            
+            if ancestry:
+                # Collect nodes from topic start to end
+                found_start = False
+                for node in ancestry:
+                    if node['id'] == current_topic['start_node_id']:
+                        found_start = True
+                    if found_start:
+                        topic_nodes.append(node)
+                    if node['id'] == end_node:
+                        break
                     
-                # Update current topic reference
-                if self.current_topic and self.current_topic[0] == current_topic['name']:
-                    self.set_current_topic(topic_name, self.current_topic[1])
+            if topic_nodes:
+                # Build conversation segment
+                segment = build_conversation_segment(topic_nodes, max_length=2000)
+                
+                # Extract topic name
+                topic_name, _ = extract_topic_ollama(segment)
+                
+                if topic_name and topic_name != current_topic['name']:
+                    # Update the topic name
+                    rows_updated = update_topic_name(
+                        current_topic['name'], 
+                        current_topic['start_node_id'], 
+                        topic_name
+                    )
+                    
+                    if config.get("debug"):
+                        secho_color(f"   ✅ Finalized topic: '{current_topic['name']}' → '{topic_name}' ({rows_updated} rows)", fg=get_success_color(), bold=True)
+                        
+                    # Update current topic reference if this was the current topic
+                    if self.current_topic and self.current_topic[0] == current_topic['name']:
+                        self.set_current_topic(topic_name, self.current_topic[1])
     
     def initialize_conversation(self) -> None:
         """Initialize the conversation state from the database."""
@@ -408,7 +420,7 @@ class ConversationManager:
                 
                 # Handle topic boundaries
                 self.topic_handler.handle_topic_boundaries(
-                    topic_changed, user_node_id, assistant_node_id, topic_change_info
+                    topic_changed, user_node_id, assistant_node_id, topic_change_info, new_topic_name
                 )
                 
                 # Check for first topic creation
@@ -687,7 +699,7 @@ class ConversationManager:
             
             # Handle topic boundaries
             self.topic_handler.handle_topic_boundaries(
-                topic_changed, user_node_id, assistant_node_id, topic_change_info
+                topic_changed, user_node_id, assistant_node_id, topic_change_info, new_topic_name
             )
             
             # Check for first topic creation or update ongoing topic

@@ -64,6 +64,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Config Persistence**: Only specific settings are saved to disk (use `config.save_setting()`)
 - **Model Configuration**: Models are defined in `~/.episodic/models.json` (created from template on first run)
 - **Assistant Message Limits**: Assistant message limits reset in 5-hour blocks, with start times rounded down to the nearest hour
+- **Topic Detection**: Topics must be properly closed when new ones start - check database for open topics, not just memory state
+- **Topic Names**: New topics should use detected names immediately, not placeholder names
 
 ## Common Tasks
 

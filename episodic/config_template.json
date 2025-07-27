@@ -210,6 +210,8 @@
   "expansion_max_terms": 10,
   "_comment_conceptual_boost_factor": "How much to boost conceptually related results (0.0-1.0)",
   "conceptual_boost_factor": 0.3,
+  "_comment_wordnet_expansion_mode": "Expansion mode: narrow (parents only), balanced (both), broad (aggressive), children_only (children only)",
+  "wordnet_expansion_mode": "balanced",
   
   "_comment_rag": "// === USER RAG (YOUR INDEXED DOCUMENTS) ===",
   "_comment_rag_enabled": "Enable RAG for your own indexed documents",

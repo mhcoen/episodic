@@ -345,7 +345,11 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
                     input_cost = pricing.get('input', 0)
                     output_cost = pricing.get('output', 0)
                     if input_cost > 0 or output_cost > 0:
-                        return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
+                        unit = pricing.get('unit', 'per_1k_tokens')
+                        if unit == 'per_1m_tokens':
+                            return f"${input_cost:.2f}/1M in, ${output_cost:.2f}/1M out"
+                        else:  # per_1k_tokens
+                            return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
     
     # Check if this is an OpenRouter model
     if model_name.startswith("openrouter/"):
@@ -358,6 +362,7 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
         pricing_info = or_pricing.get_pricing(model_id)
         
         if pricing_info and (pricing_info[0] > 0 or pricing_info[1] > 0):
+            # OpenRouter pricing is per 1K tokens
             return f"${pricing_info[0]*1000:.2f}/1M in, ${pricing_info[1]*1000:.2f}/1M out"
     
     # Try to get pricing information using cost_per_token for non-OpenRouter models
@@ -377,7 +382,10 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
             output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
 
             if input_cost or output_cost:
-                return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
+                # LiteLLM returns cost for PRICING_TOKEN_COUNT tokens
+                # Convert to per 1M tokens
+                multiplier = 1000000 / PRICING_TOKEN_COUNT
+                return f"${input_cost*multiplier:.2f}/1M in, ${output_cost*multiplier:.2f}/1M out"
         except Exception:
             pass
     

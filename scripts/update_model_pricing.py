@@ -58,9 +58,9 @@ def fetch_openrouter_pricing() -> Dict[str, Tuple[float, float]]:
             model_id = model.get('id', '')
             model_pricing = model.get('pricing', {})
             
-            # Convert to cost per 1K tokens
-            prompt_cost = float(model_pricing.get('prompt', 0)) * 1000
-            completion_cost = float(model_pricing.get('completion', 0)) * 1000
+            # Convert to cost per 1M tokens
+            prompt_cost = float(model_pricing.get('prompt', 0)) * 1000000
+            completion_cost = float(model_pricing.get('completion', 0)) * 1000000
             
             if prompt_cost > 0 or completion_cost > 0:
                 pricing[model_id] = (prompt_cost, completion_cost)
@@ -140,9 +140,8 @@ def fetch_aimultiple_pricing() -> Dict[str, Dict[str, Dict[str, float]]]:
                         input_cost = float(input_price.replace('$', '').replace(',', ''))
                         output_cost = float(output_price.replace('$', '').replace(',', ''))
                         
-                        # Convert to per 1K tokens (AIMultiple shows per 1M)
-                        input_cost = input_cost / 1000
-                        output_cost = output_cost / 1000
+                        # AIMultiple already shows per 1M tokens
+                        # input_cost and output_cost are already in per 1M format
                         
                         if provider not in pricing_data:
                             pricing_data[provider] = {}
@@ -296,9 +295,9 @@ def fetch_litellm_pricing(provider: str, model_name: str) -> Optional[Tuple[floa
     try:
         from litellm import cost_per_token
         
-        # Calculate cost for 1000 tokens
-        input_cost = cost_per_token(model=model_name, prompt_tokens=1000, completion_tokens=0)
-        output_cost = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=1000)
+        # Calculate cost for 1M tokens
+        input_cost = cost_per_token(model=model_name, prompt_tokens=1000000, completion_tokens=0)
+        output_cost = cost_per_token(model=model_name, prompt_tokens=0, completion_tokens=1000000)
         
         # Handle tuple results
         if isinstance(input_cost, tuple):
@@ -350,7 +349,7 @@ def update_openrouter_pricing(models_data: Dict[str, Any], dry_run: bool = False
             new_pricing = {
                 "input": input_price,
                 "output": output_price,
-                "unit": "per_1k_tokens",
+                "unit": "per_1m_tokens",
                 "last_updated": today
             }
             
@@ -361,12 +360,12 @@ def update_openrouter_pricing(models_data: Dict[str, Any], dry_run: bool = False
                 if dry_run:
                     print(f"  Would update {model['display_name']}:")
                     if current_pricing:
-                        print(f"    Current: ${current_pricing.get('input', 0)*1000:.2f}/1M in, "
-                              f"${current_pricing.get('output', 0)*1000:.2f}/1M out")
+                        print(f"    Current: ${current_pricing.get('input', 0):.2f}/1M in, "
+                              f"${current_pricing.get('output', 0):.2f}/1M out")
                     else:
                         print(f"    Current: No pricing")
-                    print(f"    New:     ${new_pricing['input']*1000:.2f}/1M in, "
-                          f"${new_pricing['output']*1000:.2f}/1M out")
+                    print(f"    New:     ${new_pricing['input']:.2f}/1M in, "
+                          f"${new_pricing['output']:.2f}/1M out")
                 else:
                     model['pricing'] = new_pricing
                     print(f"  ✅ Updated {model['display_name']}")
@@ -404,7 +403,7 @@ def update_anthropic_pricing(models_data: Dict[str, Any], dry_run: bool = False)
                 new_pricing = {
                     "input": pricing_info['input'],
                     "output": pricing_info['output'],
-                    "unit": "per_1k_tokens",
+                    "unit": "per_1m_tokens",
                     "last_updated": today
                 }
                 
@@ -415,12 +414,12 @@ def update_anthropic_pricing(models_data: Dict[str, Any], dry_run: bool = False)
                     if dry_run:
                         print(f"  Would update {model['display_name']}:")
                         if current_pricing:
-                            print(f"    Current: ${current_pricing.get('input', 0):.6f}/1K in, "
-                                  f"${current_pricing.get('output', 0):.6f}/1K out")
+                            print(f"    Current: ${current_pricing.get('input', 0):.2f}/1M in, "
+                                  f"${current_pricing.get('output', 0):.2f}/1M out")
                         else:
                             print(f"    Current: No pricing")
-                        print(f"    New:     ${new_pricing['input']:.6f}/1K in, "
-                              f"${new_pricing['output']:.6f}/1K out")
+                        print(f"    New:     ${new_pricing['input']:.2f}/1M in, "
+                              f"${new_pricing['output']:.2f}/1M out")
                     else:
                         model['pricing'] = new_pricing
                         print(f"  ✅ Updated {model['display_name']}")
@@ -468,7 +467,7 @@ def update_openai_pricing(models_data: Dict[str, Any], dry_run: bool = False) ->
             new_pricing = {
                 "input": pricing_info['input'],
                 "output": pricing_info['output'],
-                "unit": "per_1k_tokens",
+                "unit": "per_1m_tokens",
                 "last_updated": today
             }
             
@@ -479,12 +478,12 @@ def update_openai_pricing(models_data: Dict[str, Any], dry_run: bool = False) ->
                 if dry_run:
                     print(f"  Would update {model['display_name']}:")
                     if current_pricing:
-                        print(f"    Current: ${current_pricing.get('input', 0)*1000:.2f}/1M in, "
-                              f"${current_pricing.get('output', 0)*1000:.2f}/1M out")
+                        print(f"    Current: ${current_pricing.get('input', 0):.2f}/1M in, "
+                              f"${current_pricing.get('output', 0):.2f}/1M out")
                     else:
                         print(f"    Current: No pricing")
-                    print(f"    New:     ${new_pricing['input']*1000:.2f}/1M in, "
-                          f"${new_pricing['output']*1000:.2f}/1M out")
+                    print(f"    New:     ${new_pricing['input']:.2f}/1M in, "
+                          f"${new_pricing['output']:.2f}/1M out")
                 else:
                     model['pricing'] = new_pricing
                     print(f"  ✅ Updated {model['display_name']}")
@@ -526,7 +525,7 @@ def update_other_providers(models_data: Dict[str, Any], provider: str, dry_run: 
             new_pricing = {
                 "input": input_price,
                 "output": output_price,
-                "unit": "per_1k_tokens",
+                "unit": "per_1m_tokens",
                 "last_updated": today
             }
             
@@ -538,12 +537,12 @@ def update_other_providers(models_data: Dict[str, Any], provider: str, dry_run: 
                 if dry_run:
                     print(f"  Would update {model['display_name']}:")
                     if current_pricing:
-                        print(f"    Current: ${current_pricing.get('input', 0)*1000:.2f}/1M in, "
-                              f"${current_pricing.get('output', 0)*1000:.2f}/1M out")
+                        print(f"    Current: ${current_pricing.get('input', 0):.2f}/1M in, "
+                              f"${current_pricing.get('output', 0):.2f}/1M out")
                     else:
                         print(f"    Current: No pricing")
-                    print(f"    New:     ${new_pricing['input']*1000:.2f}/1M in, "
-                          f"${new_pricing['output']*1000:.2f}/1M out")
+                    print(f"    New:     ${new_pricing['input']:.2f}/1M in, "
+                          f"${new_pricing['output']:.2f}/1M out")
                 else:
                     model['pricing'] = new_pricing
                     print(f"  ✅ Updated {model['display_name']}")

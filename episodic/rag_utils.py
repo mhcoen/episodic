@@ -97,7 +97,9 @@ def suppress_chromadb_telemetry():
                         "capture() takes" not in line and
                         "ClientStartEvent" not in line and
                         "CollectionGetEvent" not in line and
-                        "CollectionQueryEvent" not in line):
+                        "CollectionQueryEvent" not in line and
+                        "CollectionAddEvent" not in line and
+                        "Failed to send telemetry event" not in line):
                         filtered_lines.append(line)
                 
                 filtered_output = '\n'.join(filtered_lines).strip()

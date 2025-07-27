@@ -265,103 +265,135 @@ class TopicHandler:
         topic_changed: bool,
         user_node_id: str,
         assistant_node_id: str,
-        topic_change_info: Optional[Dict[str, Any]]
+        topic_change_info: Optional[Dict[str, Any]],
+        new_topic_name: Optional[str] = None
     ) -> None:
         """Handle topic boundary detection and management."""
         # Import at function level to ensure availability throughout
         from episodic.db import get_node, get_ancestry
         
-        if topic_changed and self.conversation_manager.current_topic:
-            # A topic change was detected - close the previous topic
-            topic_name, start_node_id = self.conversation_manager.current_topic
-            
-            # Analyze where the actual topic boundary should be
-            if config.get("analyze_topic_boundaries", True):
-                actual_boundary = analyze_topic_boundary(start_node_id, assistant_node_id, user_node_id)
+        if topic_changed:
+            # A topic change was detected - close any open topics
+            # First check if we have a current topic in memory
+            if self.conversation_manager.current_topic:
+                topic_name, start_node_id = self.conversation_manager.current_topic
             else:
-                # Use simple heuristic - topic ends at last assistant response before change
-                # If no assistant response exists, find the previous node
-                if assistant_node_id:
-                    actual_boundary = assistant_node_id
-                else:
-                    # Find the node before user_node_id to avoid overlap
-                    ancestry = get_ancestry(user_node_id)
-                    if len(ancestry) >= 2:
-                        # Get the node just before user_node_id
-                        actual_boundary = ancestry[-2]['id']
-                    else:
-                        # Edge case: this is the very first exchange
-                        actual_boundary = None
-            
-            # Close the previous topic at the determined boundary
-            if actual_boundary:
-                update_topic_end_node(topic_name, start_node_id, actual_boundary)
-            else:
-                # Cannot determine a clean boundary - log warning
-                if config.get("debug"):
-                    debug_print(f"Warning: Could not determine topic boundary for {topic_name}", indent=True)
-            
-            # Extract a proper name for the topic now that it's complete
-            if topic_name.startswith('ongoing-'):
-                # Get nodes in the completed topic
-                topic_nodes = []
-                ancestry = get_ancestry(actual_boundary)
+                # No current topic in memory - check database for open topics
+                from episodic.db import get_recent_topics
+                all_topics = get_recent_topics(limit=100)
+                open_topics = [t for t in all_topics if not t.get('end_node_id')]
                 
-                # Collect nodes from topic start to boundary
-                found_start = False
-                for node in ancestry:
-                    if node['id'] == start_node_id:
-                        found_start = True
-                    if found_start:
-                        topic_nodes.append(node)
-                    if node['id'] == actual_boundary:
-                        break
-                
-                if topic_nodes and len(topic_nodes) >= 4:  # At least 2 exchanges
-                    # Build segment and extract name
-                    segment = build_conversation_segment(topic_nodes, max_length=1500)
+                if open_topics:
+                    # Use the most recent open topic
+                    current_db_topic = open_topics[-1]
+                    topic_name = current_db_topic['name']
+                    start_node_id = current_db_topic['start_node_id']
                     
                     if config.get("debug"):
-                        secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
-                        secho_color(f" Extracting name for completed topic '{topic_name}'")
-                    
-                    topic_extracted, extract_cost_info = extract_topic_ollama(segment)
-                    
-                    if topic_extracted and topic_extracted != topic_name:
-                        # Update the topic name
-                        rows = update_topic_name(topic_name, start_node_id, topic_extracted)
-                        if rows > 0:
-                            if config.get("debug"):
-                                typer.echo(f"   ✅ Renamed completed topic: '{topic_name}' → '{topic_extracted}'")
-                            topic_name = topic_extracted
+                        debug_print(f"Found open topic in database: '{topic_name}'", indent=True)
+                else:
+                    # No open topics found - nothing to close
+                    topic_name = None
+                    start_node_id = None
+            
+            if topic_name and start_node_id:
+                # Analyze where the actual topic boundary should be
+                if config.get("analyze_topic_boundaries", True):
+                    actual_boundary = analyze_topic_boundary(start_node_id, assistant_node_id, user_node_id)
+                else:
+                    # Use simple heuristic - topic ends at last assistant response before change
+                    # If no assistant response exists, find the previous node
+                    if assistant_node_id:
+                        actual_boundary = assistant_node_id
+                    else:
+                        # Find the node before user_node_id to avoid overlap
+                        ancestry = get_ancestry(user_node_id)
+                        if len(ancestry) >= 2:
+                            # Get the node just before user_node_id
+                            actual_boundary = ancestry[-2]['id']
                         else:
-                            if config.get("debug"):
-                                typer.echo(f"   ⚠️  Failed to rename topic")
-            
-            # Queue the closed topic for compression
-            if config.get("auto_compress_topics", True):
-                from episodic.compression import queue_topic_for_compression
-                queue_topic_for_compression(start_node_id, actual_boundary, topic_name)
-            
-            # Clear current topic since it's closed
-            self.conversation_manager.current_topic = None
+                            # Edge case: this is the very first exchange
+                            actual_boundary = None
+                
+                # Close the previous topic at the determined boundary
+                if actual_boundary:
+                    update_topic_end_node(topic_name, start_node_id, actual_boundary)
+                else:
+                    # Cannot determine a clean boundary - log warning
+                    if config.get("debug"):
+                        debug_print(f"Warning: Could not determine topic boundary for {topic_name}", indent=True)
+                
+                # Extract a proper name for the topic now that it's complete
+                if topic_name.startswith('ongoing-'):
+                    # Get nodes in the completed topic
+                    topic_nodes = []
+                    ancestry = get_ancestry(actual_boundary)
+                    
+                    # Collect nodes from topic start to boundary
+                    found_start = False
+                    for node in ancestry:
+                        if node['id'] == start_node_id:
+                            found_start = True
+                        if found_start:
+                            topic_nodes.append(node)
+                        if node['id'] == actual_boundary:
+                            break
+                    
+                    if topic_nodes and len(topic_nodes) >= 4:  # At least 2 exchanges
+                        # Build segment and extract name
+                        segment = build_conversation_segment(topic_nodes, max_length=1500)
+                        
+                        if config.get("debug"):
+                            secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
+                            secho_color(f" Extracting name for completed topic '{topic_name}'")
+                        
+                        topic_extracted, extract_cost_info = extract_topic_ollama(segment)
+                        
+                        if topic_extracted and topic_extracted != topic_name:
+                            # Update the topic name
+                            rows = update_topic_name(topic_name, start_node_id, topic_extracted)
+                            if rows > 0:
+                                if config.get("debug"):
+                                    typer.echo(f"   ✅ Renamed completed topic: '{topic_name}' → '{topic_extracted}'")
+                                topic_name = topic_extracted
+                            else:
+                                if config.get("debug"):
+                                    typer.echo(f"   ⚠️  Failed to rename topic")
+                
+                # Queue the closed topic for compression
+                if config.get("auto_compress_topics", True) and actual_boundary:
+                    from episodic.compression import queue_topic_for_compression
+                    queue_topic_for_compression(start_node_id, actual_boundary, topic_name)
+                
+                # Clear current topic since it's closed
+                self.conversation_manager.current_topic = None
         
         # Always create new topic if topic_changed is True
         if topic_changed:
             # Create a new topic starting from this user message
-            # Use a placeholder name that will be updated when this topic ends
-            timestamp = int(time.time())
-            placeholder_topic_name = f"ongoing-{timestamp}"
+            # Use the detected topic name if available, otherwise use placeholder
+            if new_topic_name and not new_topic_name.startswith('ongoing-'):
+                # We have a proper name from detection
+                topic_name_to_use = new_topic_name
+            else:
+                # Fallback to placeholder name that will be updated later
+                timestamp = int(time.time())
+                topic_name_to_use = f"ongoing-{timestamp}"
+                if config.get("debug"):
+                    debug_print(f"Warning: No topic name from detection, using placeholder: {topic_name_to_use}", indent=True)
             
-            # Create the topic with placeholder name - keep it open!
-            store_topic(placeholder_topic_name, user_node_id, None, 'detected')
+            # Create the topic - keep it open!
+            store_topic(topic_name_to_use, user_node_id, None, 'detected')
             
             # Set as current topic
-            self.conversation_manager.set_current_topic(placeholder_topic_name, user_node_id)
+            self.conversation_manager.set_current_topic(topic_name_to_use, user_node_id)
             
             if config.get("topic_change_info", True):
                 typer.echo("")
-                secho_color(f"📌 Topic change detected", fg=get_system_color())
+                if new_topic_name and not new_topic_name.startswith('ongoing-'):
+                    secho_color(f"📌 Topic changed to: {topic_name_to_use}", fg=get_system_color())
+                else:
+                    secho_color(f"📌 Topic change detected", fg=get_system_color())
     
     def check_and_create_first_topic(
         self,

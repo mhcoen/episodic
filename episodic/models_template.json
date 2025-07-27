@@ -1,7 +1,7 @@
 {
   "_comment": "Model configuration for Episodic. This file defines available models, their types, and parameters.",
   "_version": "1.0",
-  "_pricing_note": "Optional pricing can be added to any model. Format: {\"input\": 0.003, \"output\": 0.015, \"unit\": \"per_1k_tokens\", \"last_updated\": \"YYYY-MM-DD\"}",
+  "_pricing_note": "Optional pricing can be added to any model. Format: {\"input\": 3.0, \"output\": 15.0, \"unit\": \"per_1m_tokens\", \"last_updated\": \"YYYY-MM-DD\"}",
   
   "providers": {
     "openai": {

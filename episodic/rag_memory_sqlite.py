@@ -2,6 +2,10 @@
 RAG-based Memory System for Episodic - SQLite Integration
 Uses existing SQLite messages with ChromaDB for vector search
 """
+import os
+# Disable ChromaDB telemetry to avoid errors
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 import asyncio
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone

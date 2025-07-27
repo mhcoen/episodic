@@ -21,7 +21,7 @@ def enhanced_search(
     n_results: int = None,
     source_filter: Optional[str] = None,
     enable_expansion: Optional[bool] = None,
-    expansion_mode: str = "balanced"
+    expansion_mode: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Enhanced search with conceptual query expansion.
@@ -44,6 +44,10 @@ def enhanced_search(
     if not enable_expansion:
         # Just use original search
         return rag_search_func(query, n_results, source_filter)
+    
+    # Get expansion mode from config if not specified
+    if expansion_mode is None:
+        expansion_mode = config.get("wordnet_expansion_mode", "balanced")
     
     # Expand the query
     expanded_query = expand_search_query(query, mode=expansion_mode)

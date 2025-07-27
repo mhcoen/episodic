@@ -68,6 +68,17 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Recent Changes
 
+- **Topic Detection Fixes (January 2025)**:
+  - Fixed critical bug where topics weren't closed when `current_topic` was None in memory
+  - Topics now properly closed by checking database for open topics, not just memory state
+  - New topics created with proper names from detection instead of placeholders
+  - Added `finalize_current_topic()` to close all open topics at session end
+  - Ensures only one topic can be open at a time
+- **Memory System Architecture Analysis**:
+  - Identified mismatch between fine-grained per-message indexing and intended topic-based approach
+  - WordNet expansion creates noise by expanding stop words (44% of expansions)
+  - Long conversational queries (20+ words) get diluted when expanded
+  - Topic-based indexing would better match original vision
 - **Memory Collection Separation (January 2025)**:
   - Implemented multi-collection RAG architecture
   - Created separate collections for conversation memories and user documents
@@ -79,6 +90,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
   - Models now loaded from `~/.episodic/models.json`
   - Support for user customization and overrides
   - Fixed OpenRouter Claude 4 Opus model ID to `openrouter/anthropic/claude-opus-4`
+  - Changed pricing display from "per 1K tokens" to "per 1M tokens" for cleaner display
 - **Memory System Improvements**: System memory always on, independent of user RAG
 - **Config Persistence**: Only specific settings saved (via `save_setting()`)
 - **Assistant Message Limits**: Documented 5-hour reset blocks with start times rounded down to nearest hour

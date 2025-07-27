@@ -8,6 +8,9 @@ This script fetches current pricing from:
 - Other providers (from LiteLLM if available)
 
 Updates the models.json file in the user's .episodic directory.
+
+IMPORTANT: Never blindly copy pricing from LiteLLM as it's often outdated!
+Always verify prices against official provider websites.
 """
 
 import json
@@ -120,17 +123,22 @@ def fetch_openai_pricing() -> Dict[str, Dict[str, float]]:
     
     # Known pricing as of 2025-07-27
     # Source: https://openai.com/api/pricing/
+    # WARNING: These prices must be manually verified from OpenAI's website
+    # DO NOT copy from LiteLLM as their data is often outdated!
     pricing = {
-        "gpt-4o": {"input": 0.0025, "output": 0.01},
-        "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
+        # GPT-4o: Current pricing as shown on OpenAI website
+        "gpt-4o": {"input": 0.005, "output": 0.02},  # $5.00/1M in, $20.00/1M out
+        "gpt-4o-mini": {"input": 0.0006, "output": 0.0024},  # $0.60/1M in, $2.40/1M out
+        
+        # Older models - verify these are still current
         "gpt-4-turbo": {"input": 0.01, "output": 0.03},
         "gpt-4": {"input": 0.03, "output": 0.06},
         "gpt-3.5-turbo": {"input": 0.0015, "output": 0.002},
         "gpt-3.5-turbo-instruct": {"input": 0.0015, "output": 0.002},
-        # o-series reasoning models
-        # Note: OpenAI hasn't published official pricing for o3 yet
-        # "o3": {"input": 0.015, "output": 0.06},  # Pricing TBD
-        # o4-mini pricing is available from LiteLLM
+        
+        # o-series reasoning models - pricing not yet published
+        # "o3": {"input": None, "output": None},  # Pricing TBD
+        # o4-mini: $1.10/1M in, $4.40/1M out (from LiteLLM, needs verification)
     }
     
     print(f"  ✅ Found pricing for {len(pricing)} OpenAI models")

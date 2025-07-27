@@ -176,6 +176,12 @@ class MultiCollectionRAG:
             metadatas=[metadata]
         )
         
+        # Also store in SQLite for list/stats commands
+        from episodic.rag_document_manager import add_document_to_db, calculate_content_hash
+        content_hash = calculate_content_hash(content)
+        preview = content[:500] if len(content) > 500 else content
+        add_document_to_db(doc_id, source, metadata, content_hash, 1, preview)
+        
         debug_print(f"Added document to {collection_type}: {doc_id[:8]}", category="rag")
         return doc_id, 1
     

@@ -91,6 +91,17 @@ class EpisodicRAGAdapter:
         if n_results is None:
             n_results = config.get("rag_search_results", 5)
         
+        # Check if conceptual search is enabled
+        if config.get("enable_conceptual_search", False):
+            from episodic.rag_enhanced_search import search_with_fallback
+            # Create a lambda for the original search method
+            original_search = lambda q, n, s: self._original_search(q, n, s)
+            return search_with_fallback(original_search, query, n_results, source_filter)
+        else:
+            return self._original_search(query, n_results, source_filter)
+    
+    def _original_search(self, query: str, n_results: int, source_filter: Optional[str]) -> Dict[str, Any]:
+        """Original search implementation."""
         # Determine which collection(s) to search based on source_filter
         collection_type = None
         if source_filter == 'conversation':

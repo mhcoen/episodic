@@ -1,6 +1,7 @@
 {
   "_comment": "Model configuration for Episodic. This file defines available models, their types, and parameters.",
   "_version": "1.0",
+  "_pricing_note": "Optional pricing can be added to any model. Format: {\"input\": 0.003, \"output\": 0.015, \"unit\": \"per_1k_tokens\", \"last_updated\": \"YYYY-MM-DD\"}",
   
   "providers": {
     "openai": {
@@ -69,6 +70,13 @@
           "context_window": 200000
         },
         {
+          "name": "claude-sonnet-4-20250522",
+          "display_name": "Claude 4 Sonnet",
+          "type": "both",
+          "parameters": "~300B",
+          "context_window": 200000
+        },
+        {
           "name": "claude-3-opus-20240229",
           "display_name": "Claude 3 Opus",
           "type": "both",
@@ -76,15 +84,22 @@
           "context_window": 200000
         },
         {
-          "name": "claude-3-sonnet-20240229",
-          "display_name": "Claude 3 Sonnet",
+          "name": "claude-3.7-sonnet-20250219",
+          "display_name": "Claude 3.7 Sonnet",
           "type": "both",
           "parameters": "~300B",
           "context_window": 200000
         },
         {
-          "name": "claude-3-haiku-20240307",
-          "display_name": "Claude 3 Haiku",
+          "name": "claude-3.5-sonnet-20241022",
+          "display_name": "Claude 3.5 Sonnet",
+          "type": "both",
+          "parameters": "~300B",
+          "context_window": 200000
+        },
+        {
+          "name": "claude-3.5-haiku-20241022",
+          "display_name": "Claude 3.5 Haiku",
           "type": "both",
           "parameters": "~70B",
           "context_window": 200000

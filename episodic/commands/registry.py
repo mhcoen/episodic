@@ -279,6 +279,13 @@ def register_all_commands():
         command_registry.register("memory", lazy_memory_command, "View and search memory entries", "Knowledge Base")
         command_registry.register("forget", lazy_forget_command, "Remove memory entries", "Knowledge Base")
         command_registry.register("memory-stats", lazy_memory_stats_command, "Show memory system statistics", "Knowledge Base")
+        
+        # Migration command
+        def lazy_migrate_command(*args, **kwargs):
+            from episodic.commands.migrate import migrate_command
+            return migrate_command(*args, **kwargs)
+        
+        command_registry.register("migrate", lazy_migrate_command, "Migrate RAG data to multi-collection system", "Utility")
 
 
 # Don't initialize on import - will be called when needed

@@ -576,7 +576,14 @@ def get_rag_system() -> Optional[EpisodicRAG]:
     
     if _rag_system is None:
         try:
-            _rag_system = EpisodicRAG()
+            # Check if we should use the multi-collection system
+            if config.get("collection_migration_completed", False):
+                # Use the adapter for multi-collection system
+                from episodic.rag_adapter import EpisodicRAGAdapter
+                _rag_system = EpisodicRAGAdapter()
+            else:
+                # Use the original single-collection system
+                _rag_system = EpisodicRAG()
         except Exception as e:
             if config.get("debug"):
                 typer.secho(f"Failed to initialize RAG system: {e}", fg="red")

@@ -3,9 +3,19 @@ Utilities for model information and type detection.
 """
 import subprocess
 import re
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Any
 
 from episodic.model_config import get_model_config
+
+
+def get_models_config() -> Dict[str, Any]:
+    """
+    Get the raw models configuration data.
+    
+    Returns the complete models.json data structure.
+    """
+    model_config = get_model_config()
+    return model_config._models_data
 
 
 def detect_model_type(model_name: str) -> str:

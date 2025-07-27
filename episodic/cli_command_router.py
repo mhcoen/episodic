@@ -186,6 +186,8 @@ def handle_command(command_str: str) -> bool:
             _handle_forget(args)
         elif cmd == "/memory-stats":
             _handle_memory_stats()
+        elif cmd == "/migrate":
+            _handle_migrate(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -930,3 +932,9 @@ def _handle_memory_stats():
     """Handle /memory-stats command."""
     from episodic.commands.memory import memory_stats_command
     memory_stats_command()
+
+
+def _handle_migrate(args: List[str]):
+    """Handle /migrate command."""
+    from episodic.commands.migrate import migrate_command
+    migrate_command(*args)

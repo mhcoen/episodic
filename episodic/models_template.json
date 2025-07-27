@@ -23,15 +23,15 @@
         },
         {
           "name": "o3-mini",
-          "display_name": "o3-mini",
-          "type": "chat",
+          "display_name": "o3-mini (Reasoning)",
+          "type": "both",
           "parameters": null,
           "context_window": 128000
         },
         {
           "name": "o4-mini", 
-          "display_name": "o4-mini",
-          "type": "chat",
+          "display_name": "o4-mini (Reasoning)",
+          "type": "both",
           "parameters": null,
           "context_window": 128000
         },

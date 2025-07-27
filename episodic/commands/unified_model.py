@@ -345,7 +345,7 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
                     input_cost = pricing.get('input', 0)
                     output_cost = pricing.get('output', 0)
                     if input_cost > 0 or output_cost > 0:
-                        return f"${input_cost:.6f}/1K in, ${output_cost:.6f}/1K out"
+                        return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
     
     # Check if this is an OpenRouter model
     if model_name.startswith("openrouter/"):
@@ -358,7 +358,7 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
         pricing_info = or_pricing.get_pricing(model_id)
         
         if pricing_info and (pricing_info[0] > 0 or pricing_info[1] > 0):
-            return f"${pricing_info[0]:.6f}/1K in, ${pricing_info[1]:.6f}/1K out"
+            return f"${pricing_info[0]*1000:.2f}/1M in, ${pricing_info[1]*1000:.2f}/1M out"
     
     # Try to get pricing information using cost_per_token for non-OpenRouter models
     if cost_per_token and not model_name.startswith("openrouter/"):
@@ -377,7 +377,7 @@ def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optiona
             output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
 
             if input_cost or output_cost:
-                return f"${input_cost:.6f}/1K in, ${output_cost:.6f}/1K out"
+                return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
         except Exception:
             pass
     

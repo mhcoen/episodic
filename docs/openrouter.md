@@ -61,7 +61,7 @@ Optional settings for OpenRouter:
 
 ## Pricing
 
-OpenRouter shows transparent pricing for each model. Use `/model list` to see current prices per 1K tokens for each model.
+OpenRouter shows transparent pricing for each model. Use `/model list` to see current prices per 1M tokens for each model.
 
 ## Tips
 

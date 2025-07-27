@@ -73,105 +73,217 @@ def fetch_openrouter_pricing() -> Dict[str, Tuple[float, float]]:
         return {}
 
 
+def fetch_aimultiple_pricing() -> Dict[str, Dict[str, Dict[str, float]]]:
+    """
+    Fetch pricing data from AIMultiple's LLM pricing comparison.
+    
+    Returns:
+        Dict mapping provider -> model -> pricing info
+    """
+    print("🔍 Fetching pricing from AIMultiple...")
+    
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print(f"  ⚠️  BeautifulSoup not installed, skipping AIMultiple")
+        return {}
+    
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get("https://research.aimultiple.com/llm-pricing/", headers=headers, timeout=10)
+        if response.status_code != 200:
+            print(f"  ❌ Error: Site returned status {response.status_code}")
+            return {}
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        pricing_data = {}
+        
+        # Find the pricing table (first table with Model, InputPrice, OutputPrice headers)
+        tables = soup.find_all('table')
+        pricing_table = None
+        
+        for table in tables:
+            header_row = table.find('thead')
+            if header_row:
+                headers = [th.text.strip() for th in header_row.find_all('th')]
+                if 'Model' in headers and 'InputPrice' in headers and 'OutputPrice' in headers:
+                    pricing_table = table
+                    break
+        
+        if not pricing_table:
+            print(f"  ⚠️  Could not find pricing table on AIMultiple")
+            return {}
+        
+        # Parse the pricing table
+        tbody = pricing_table.find('tbody')
+        if tbody:
+            for row in tbody.find_all('tr'):
+                cells = row.find_all('td')
+                if len(cells) >= 3:
+                    model_full = cells[0].text.strip()
+                    input_price = cells[1].text.strip()
+                    output_price = cells[2].text.strip()
+                    
+                    # Parse provider and model name
+                    # Format is usually "Provider ModelName" e.g., "OpenAI gpt-4o"
+                    parts = model_full.split(' ', 1)
+                    if len(parts) == 2:
+                        provider = parts[0].lower()
+                        model = parts[1]
+                    else:
+                        continue
+                    
+                    # Clean price strings (remove $, commas, etc)
+                    try:
+                        input_cost = float(input_price.replace('$', '').replace(',', ''))
+                        output_cost = float(output_price.replace('$', '').replace(',', ''))
+                        
+                        # Convert to per 1K tokens (AIMultiple shows per 1M)
+                        input_cost = input_cost / 1000
+                        output_cost = output_cost / 1000
+                        
+                        if provider not in pricing_data:
+                            pricing_data[provider] = {}
+                        
+                        pricing_data[provider][model] = {
+                            "input": input_cost,
+                            "output": output_cost
+                        }
+                    except ValueError:
+                        continue
+        
+        total_models = sum(len(models) for models in pricing_data.values())
+        print(f"  ✅ Found pricing for {total_models} models from {len(pricing_data)} providers")
+        return pricing_data
+        
+    except Exception as e:
+        print(f"  ❌ Error fetching AIMultiple pricing: {e}")
+        return {}
+
+
+def fetch_pricepertoken_pricing() -> Dict[str, Dict[str, Dict[str, float]]]:
+    """
+    Fetch pricing data from pricepertoken.com.
+    
+    Returns:
+        Dict mapping provider -> model -> pricing info
+    """
+    print("🔍 Fetching pricing from pricepertoken.com...")
+    
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print(f"  ⚠️  BeautifulSoup not installed, skipping pricepertoken.com")
+        return {}
+    
+    try:
+        # Note: pricepertoken.com is a client-side rendered JavaScript app
+        # Direct HTML scraping won't work without a headless browser
+        # TODO: Implement Selenium or Playwright for dynamic content scraping
+        
+        print(f"  ⚠️  pricepertoken.com requires JavaScript rendering")
+        print(f"  💡 Consider using Selenium or manual updates from https://pricepertoken.com/")
+        
+        # For now, return empty and fall back to other sources
+        return {}
+        
+    except Exception as e:
+        print(f"  ❌ Error fetching pricepertoken.com pricing: {e}")
+        return {}
+
+
 def fetch_openai_pricing() -> Dict[str, Dict[str, float]]:
     """
-    Fetch OpenAI pricing from their website.
+    Fetch OpenAI pricing from pricepertoken.com or their website.
     
     Returns:
         Dict mapping model names to pricing info
     """
     print("🔍 Fetching OpenAI pricing...")
     
+    # First try AIMultiple
+    aimultiple_data = fetch_aimultiple_pricing()
+    if aimultiple_data and 'openai' in aimultiple_data:
+        pricing = aimultiple_data['openai']
+        print(f"  ✅ Found pricing for {len(pricing)} OpenAI models from AIMultiple")
+        return pricing
+    
+    # Then try pricepertoken.com
+    pricepertoken_data = fetch_pricepertoken_pricing()
+    if pricepertoken_data and 'openai' in pricepertoken_data:
+        pricing = pricepertoken_data['openai']
+        print(f"  ✅ Found pricing for {len(pricing)} OpenAI models from pricepertoken.com")
+        return pricing
+    
+    # Then try direct scraping from OpenAI
     try:
-        # Try to scrape from OpenAI pricing page
-        try:
-            from bs4 import BeautifulSoup
-        except ImportError:
-            print(f"  ℹ️  BeautifulSoup not installed, using known pricing data")
-            print(f"  💡 Install with: pip install beautifulsoup4")
-            raise ImportError("BeautifulSoup required for web scraping")
-        
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print(f"  ⚠️  BeautifulSoup not installed, cannot scrape pricing")
+        return {}
+    
+    try:
         response = requests.get("https://openai.com/api/pricing/", timeout=10)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Note: OpenAI's pricing page structure changes frequently
-            # This is a basic scraper that may need updates
-            pricing = {}
-            
-            # Common patterns for OpenAI's pricing page:
-            # - Look for pricing tables with model names and prices
-            # - Prices often in format "$X.XX / 1M tokens"
-            # - Models grouped by capability (GPT-4, GPT-3.5, etc)
-            
-            # Example scraping logic (needs adjustment based on actual page structure):
-            # pricing_sections = soup.find_all('div', class_='pricing-table')
-            # for section in pricing_sections:
-            #     model_name = section.find('h3').text.strip().lower()
-            #     input_price = section.find('span', class_='input-price').text
-            #     output_price = section.find('span', class_='output-price').text
-            #     # Parse prices and convert to per 1K tokens...
-            
-            # For now, fall back to known prices
-            raise NotImplementedError("Web scraping implementation pending page structure analysis")
-            
+            # Actual scraping implementation would go here
+            print(f"  ⚠️  OpenAI page structure needs analysis for scraping")
+        else:
+            print(f"  ⚠️  OpenAI pricing page returned status {response.status_code}")
     except Exception as e:
-        # Fall back to known pricing
-        if "BeautifulSoup" not in str(e) and "NotImplementedError" not in str(e):
-            print(f"  ⚠️  Could not scrape OpenAI pricing: {e}")
-        print(f"  ℹ️  Using known pricing data")
+        print(f"  ⚠️  Could not scrape OpenAI pricing: {e}")
     
-    # Known pricing as of 2025-07-27
-    # Source: https://openai.com/api/pricing/
-    # WARNING: These prices must be manually verified from OpenAI's website
-    # DO NOT copy from LiteLLM as their data is often outdated!
-    pricing = {
-        # GPT-4o: Current pricing as shown on OpenAI website
-        "gpt-4o": {"input": 0.005, "output": 0.02},  # $5.00/1M in, $20.00/1M out
-        "gpt-4o-mini": {"input": 0.0006, "output": 0.0024},  # $0.60/1M in, $2.40/1M out
-        
-        # Older models - verify these are still current
-        "gpt-4-turbo": {"input": 0.01, "output": 0.03},
-        "gpt-4": {"input": 0.03, "output": 0.06},
-        "gpt-3.5-turbo": {"input": 0.0015, "output": 0.002},
-        "gpt-3.5-turbo-instruct": {"input": 0.0015, "output": 0.002},
-        
-        # o-series reasoning models - pricing not yet published
-        # "o3": {"input": None, "output": None},  # Pricing TBD
-        # o4-mini: $1.10/1M in, $4.40/1M out (from LiteLLM, needs verification)
-    }
-    
-    print(f"  ✅ Found pricing for {len(pricing)} OpenAI models")
-    print(f"  💡 Check https://openai.com/api/pricing/ for updates")
-    return pricing
+    # No hardcoded fallback - return empty if scraping fails
+    print(f"  ℹ️  No pricing data available - will use LiteLLM at runtime")
+    return {}
 
 
 def fetch_anthropic_pricing() -> Dict[str, Dict[str, float]]:
     """
-    Fetch Anthropic pricing from their website.
-    
-    Note: Since Anthropic doesn't provide a pricing API, this uses
-    hardcoded values that should be updated manually when prices change.
+    Fetch Anthropic pricing from pricepertoken.com or their website.
     
     Returns:
         Dict mapping model names to pricing info
     """
-    print("🔍 Checking Anthropic pricing...")
+    print("🔍 Fetching Anthropic pricing...")
     
-    # Known pricing as of 2025-07-27
-    # TODO: Implement web scraping from https://www.anthropic.com/pricing
-    pricing = {
-        "claude-opus-4": {"input": 0.015, "output": 0.075},
-        "claude-sonnet-4": {"input": 0.003, "output": 0.015},
-        "claude-3-opus": {"input": 0.015, "output": 0.075},
-        "claude-3.7-sonnet": {"input": 0.003, "output": 0.015},
-        "claude-3.5-sonnet": {"input": 0.003, "output": 0.015},
-        "claude-3.5-haiku": {"input": 0.00025, "output": 0.00125},
-    }
+    # First try AIMultiple
+    aimultiple_data = fetch_aimultiple_pricing()
+    if aimultiple_data and 'anthropic' in aimultiple_data:
+        pricing = aimultiple_data['anthropic']
+        print(f"  ✅ Found pricing for {len(pricing)} Anthropic models from AIMultiple")
+        return pricing
     
-    print(f"  ℹ️  Using hardcoded pricing for {len(pricing)} Anthropic models")
-    print(f"  💡 Check https://www.anthropic.com/pricing for updates")
-    return pricing
+    # Then try pricepertoken.com
+    pricepertoken_data = fetch_pricepertoken_pricing()
+    if pricepertoken_data and 'anthropic' in pricepertoken_data:
+        pricing = pricepertoken_data['anthropic']
+        print(f"  ✅ Found pricing for {len(pricing)} Anthropic models from pricepertoken.com")
+        return pricing
+    
+    # Then try direct scraping from Anthropic
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print(f"  ⚠️  BeautifulSoup not installed, cannot scrape pricing")
+        return {}
+    
+    try:
+        response = requests.get("https://www.anthropic.com/pricing", timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Actual scraping implementation would go here
+            print(f"  ⚠️  Anthropic page structure needs analysis for scraping")
+        else:
+            print(f"  ⚠️  Anthropic pricing page returned status {response.status_code}")
+    except Exception as e:
+        print(f"  ⚠️  Could not scrape Anthropic pricing: {e}")
+    
+    # No hardcoded fallback - return empty if scraping fails
+    print(f"  ℹ️  No pricing data available - will use LiteLLM at runtime")
+    return {}
 
 
 def fetch_litellm_pricing(provider: str, model_name: str) -> Optional[Tuple[float, float]]:
@@ -249,12 +361,12 @@ def update_openrouter_pricing(models_data: Dict[str, Any], dry_run: bool = False
                 if dry_run:
                     print(f"  Would update {model['display_name']}:")
                     if current_pricing:
-                        print(f"    Current: ${current_pricing.get('input', 0):.6f}/1K in, "
-                              f"${current_pricing.get('output', 0):.6f}/1K out")
+                        print(f"    Current: ${current_pricing.get('input', 0)*1000:.2f}/1M in, "
+                              f"${current_pricing.get('output', 0)*1000:.2f}/1M out")
                     else:
                         print(f"    Current: No pricing")
-                    print(f"    New:     ${new_pricing['input']:.6f}/1K in, "
-                          f"${new_pricing['output']:.6f}/1K out")
+                    print(f"    New:     ${new_pricing['input']*1000:.2f}/1M in, "
+                          f"${new_pricing['output']*1000:.2f}/1M out")
                 else:
                     model['pricing'] = new_pricing
                     print(f"  ✅ Updated {model['display_name']}")
@@ -367,12 +479,12 @@ def update_openai_pricing(models_data: Dict[str, Any], dry_run: bool = False) ->
                 if dry_run:
                     print(f"  Would update {model['display_name']}:")
                     if current_pricing:
-                        print(f"    Current: ${current_pricing.get('input', 0):.6f}/1K in, "
-                              f"${current_pricing.get('output', 0):.6f}/1K out")
+                        print(f"    Current: ${current_pricing.get('input', 0)*1000:.2f}/1M in, "
+                              f"${current_pricing.get('output', 0)*1000:.2f}/1M out")
                     else:
                         print(f"    Current: No pricing")
-                    print(f"    New:     ${new_pricing['input']:.6f}/1K in, "
-                          f"${new_pricing['output']:.6f}/1K out")
+                    print(f"    New:     ${new_pricing['input']*1000:.2f}/1M in, "
+                          f"${new_pricing['output']*1000:.2f}/1M out")
                 else:
                     model['pricing'] = new_pricing
                     print(f"  ✅ Updated {model['display_name']}")
@@ -426,12 +538,12 @@ def update_other_providers(models_data: Dict[str, Any], provider: str, dry_run: 
                 if dry_run:
                     print(f"  Would update {model['display_name']}:")
                     if current_pricing:
-                        print(f"    Current: ${current_pricing.get('input', 0):.6f}/1K in, "
-                              f"${current_pricing.get('output', 0):.6f}/1K out")
+                        print(f"    Current: ${current_pricing.get('input', 0)*1000:.2f}/1M in, "
+                              f"${current_pricing.get('output', 0)*1000:.2f}/1M out")
                     else:
                         print(f"    Current: No pricing")
-                    print(f"    New:     ${new_pricing['input']:.6f}/1K in, "
-                          f"${new_pricing['output']:.6f}/1K out")
+                    print(f"    New:     ${new_pricing['input']*1000:.2f}/1M in, "
+                          f"${new_pricing['output']*1000:.2f}/1M out")
                 else:
                     model['pricing'] = new_pricing
                     print(f"  ✅ Updated {model['display_name']}")

@@ -230,6 +230,7 @@ def expand_search_query(query: str, mode: str = "balanced") -> str:
             - "narrow": Only include hypernyms (broader terms)
             - "broad": Include hypernyms and hyponyms
             - "balanced": Include hypernyms and limited hyponyms
+            - "children_only": Only include hyponyms (more specific terms)
             
     Returns:
         Expanded query string
@@ -239,6 +240,13 @@ def expand_search_query(query: str, mode: str = "balanced") -> str:
             query, 
             include_hypernyms=True,
             include_hyponyms=False,
+            include_synonyms=True
+        )
+    elif mode == "children_only":
+        terms = concept_expander.expand_query(
+            query,
+            include_hypernyms=False,
+            include_hyponyms=True,
             include_synonyms=True
         )
     elif mode == "broad":

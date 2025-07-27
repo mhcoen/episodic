@@ -68,6 +68,12 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Recent Changes
 
+- **Memory Collection Separation (January 2025)**:
+  - Implemented multi-collection RAG architecture
+  - Created separate collections for conversation memories and user documents
+  - Added `/migrate` command for user-controlled migration
+  - Maintains full backward compatibility with automatic detection
+  - See `MEMORY_COLLECTION_SEPARATION.md` for implementation details
 - **Model Configuration System**: Replaced hardcoded models with JSON configuration
   - Groq provider replaced with Google (Gemini models)
   - Models now loaded from `~/.episodic/models.json`

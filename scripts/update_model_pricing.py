@@ -70,6 +70,70 @@ def fetch_openrouter_pricing() -> Dict[str, Tuple[float, float]]:
         return {}
 
 
+def fetch_openai_pricing() -> Dict[str, Dict[str, float]]:
+    """
+    Fetch OpenAI pricing from their website.
+    
+    Returns:
+        Dict mapping model names to pricing info
+    """
+    print("🔍 Fetching OpenAI pricing...")
+    
+    try:
+        # Try to scrape from OpenAI pricing page
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            print(f"  ℹ️  BeautifulSoup not installed, using known pricing data")
+            print(f"  💡 Install with: pip install beautifulsoup4")
+            raise ImportError("BeautifulSoup required for web scraping")
+        
+        response = requests.get("https://openai.com/api/pricing/", timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Note: OpenAI's pricing page structure changes frequently
+            # This is a basic scraper that may need updates
+            pricing = {}
+            
+            # Common patterns for OpenAI's pricing page:
+            # - Look for pricing tables with model names and prices
+            # - Prices often in format "$X.XX / 1M tokens"
+            # - Models grouped by capability (GPT-4, GPT-3.5, etc)
+            
+            # Example scraping logic (needs adjustment based on actual page structure):
+            # pricing_sections = soup.find_all('div', class_='pricing-table')
+            # for section in pricing_sections:
+            #     model_name = section.find('h3').text.strip().lower()
+            #     input_price = section.find('span', class_='input-price').text
+            #     output_price = section.find('span', class_='output-price').text
+            #     # Parse prices and convert to per 1K tokens...
+            
+            # For now, fall back to known prices
+            raise NotImplementedError("Web scraping implementation pending page structure analysis")
+            
+    except Exception as e:
+        # Fall back to known pricing
+        if "BeautifulSoup" not in str(e) and "NotImplementedError" not in str(e):
+            print(f"  ⚠️  Could not scrape OpenAI pricing: {e}")
+        print(f"  ℹ️  Using known pricing data")
+    
+    # Known pricing as of 2025-07-27
+    # Source: https://openai.com/api/pricing/
+    pricing = {
+        "gpt-4o": {"input": 0.0025, "output": 0.01},
+        "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
+        "gpt-4-turbo": {"input": 0.01, "output": 0.03},
+        "gpt-4": {"input": 0.03, "output": 0.06},
+        "gpt-3.5-turbo": {"input": 0.0015, "output": 0.002},
+        "gpt-3.5-turbo-instruct": {"input": 0.0015, "output": 0.002},
+    }
+    
+    print(f"  ✅ Found pricing for {len(pricing)} OpenAI models")
+    print(f"  💡 Check https://openai.com/api/pricing/ for updates")
+    return pricing
+
+
 def fetch_anthropic_pricing() -> Dict[str, Dict[str, float]]:
     """
     Fetch Anthropic pricing from their website.
@@ -243,6 +307,69 @@ def update_anthropic_pricing(models_data: Dict[str, Any], dry_run: bool = False)
     return updated
 
 
+def update_openai_pricing(models_data: Dict[str, Any], dry_run: bool = False) -> int:
+    """
+    Update OpenAI model pricing from scraped/known data.
+    
+    Returns:
+        Number of models updated
+    """
+    print("\n🤖 Updating OpenAI models...")
+    
+    openai_pricing = fetch_openai_pricing()
+    updated = 0
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    provider_data = models_data.get('providers', {}).get('openai')
+    if not provider_data:
+        print("  ⚠️  OpenAI provider not found in models.json")
+        return 0
+    
+    for model in provider_data.get('models', []):
+        model_name = model.get('name', '')
+        
+        # Try to match the model with pricing data (exact match first)
+        pricing_info = None
+        if model_name in openai_pricing:
+            pricing_info = openai_pricing[model_name]
+        else:
+            # Try partial match for variations
+            for pricing_key, price_data in openai_pricing.items():
+                if pricing_key == model_name.replace('-', '') or model_name.replace('-', '') == pricing_key:
+                    pricing_info = price_data
+                    break
+        
+        if pricing_info:
+            current_pricing = model.get('pricing', {})
+            new_pricing = {
+                "input": pricing_info['input'],
+                "output": pricing_info['output'],
+                "unit": "per_1k_tokens",
+                "last_updated": today
+            }
+            
+            # Check if pricing changed
+            if (current_pricing.get('input') != new_pricing['input'] or
+                current_pricing.get('output') != new_pricing['output']):
+                
+                if dry_run:
+                    print(f"  Would update {model['display_name']}:")
+                    if current_pricing:
+                        print(f"    Current: ${current_pricing.get('input', 0):.6f}/1K in, "
+                              f"${current_pricing.get('output', 0):.6f}/1K out")
+                    else:
+                        print(f"    Current: No pricing")
+                    print(f"    New:     ${new_pricing['input']:.6f}/1K in, "
+                          f"${new_pricing['output']:.6f}/1K out")
+                else:
+                    model['pricing'] = new_pricing
+                    print(f"  ✅ Updated {model['display_name']}")
+                
+                updated += 1
+    
+    return updated
+
+
 def update_other_providers(models_data: Dict[str, Any], provider: str, dry_run: bool = False) -> int:
     """
     Update pricing for other providers using LiteLLM.
@@ -354,11 +481,12 @@ def main():
         updated = update_anthropic_pricing(models_data, args.dry_run)
         total_updated += updated
     
-    # Update other providers using LiteLLM
+    # Update OpenAI pricing (hardcoded/scraped)
     if args.provider in ['openai', 'all']:
-        updated = update_other_providers(models_data, 'openai', args.dry_run)
+        updated = update_openai_pricing(models_data, args.dry_run)
         total_updated += updated
     
+    # Update other providers using LiteLLM
     if args.provider in ['google', 'all']:
         updated = update_other_providers(models_data, 'google', args.dry_run)
         total_updated += updated

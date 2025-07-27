@@ -128,9 +128,9 @@ def fetch_openai_pricing() -> Dict[str, Dict[str, float]]:
         "gpt-3.5-turbo": {"input": 0.0015, "output": 0.002},
         "gpt-3.5-turbo-instruct": {"input": 0.0015, "output": 0.002},
         # o-series reasoning models
-        # Note: These prices are estimates as OpenAI hasn't published official pricing
-        # "o3-mini": {"input": 0.015, "output": 0.06},  # Pricing TBD
-        # "o4-mini": {"input": 0.020, "output": 0.080},  # Pricing TBD
+        # Note: OpenAI hasn't published official pricing for o3 yet
+        # "o3": {"input": 0.015, "output": 0.06},  # Pricing TBD
+        # o4-mini pricing is available from LiteLLM
     }
     
     print(f"  ✅ Found pricing for {len(pricing)} OpenAI models")

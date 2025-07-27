@@ -22,8 +22,15 @@
           "context_window": 128000
         },
         {
-          "name": "gpt-o3",
-          "display_name": "GPT-o3",
+          "name": "o3-mini",
+          "display_name": "o3-mini",
+          "type": "chat",
+          "parameters": null,
+          "context_window": 128000
+        },
+        {
+          "name": "o4-mini", 
+          "display_name": "o4-mini",
           "type": "chat",
           "parameters": null,
           "context_window": 128000

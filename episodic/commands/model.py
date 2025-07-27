@@ -91,7 +91,7 @@ def handle_model(name: Optional[str] = None):
                                 output_cost = sum(output_cost_raw) if isinstance(output_cost_raw, tuple) else output_cost_raw
 
                                 if input_cost or output_cost:
-                                    pricing = f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output"
+                                    pricing = f"${input_cost*1000:.2f}/1M input, ${output_cost*1000:.2f}/1M output"
                                 else:
                                     # For local providers, show "Local model" instead of "Pricing not available"
                                     if provider_name in LOCAL_PROVIDERS:
@@ -193,7 +193,7 @@ def handle_model(name: Optional[str] = None):
                     typer.secho(f"{provider}", nl=False, fg=typer.colors.BRIGHT_YELLOW, bold=True)
                     typer.secho(")", fg=get_text_color())
                     typer.secho(f"Pricing: ", nl=False, fg=get_text_color(), bold=True)
-                    typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+                    typer.secho(f"${input_cost*1000:.2f}/1M input, ${output_cost*1000:.2f}/1M output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
                 else:
                     typer.secho(f"Switched to model: ", nl=False, fg=get_text_color(), bold=True)
                     typer.secho(f"{name}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)

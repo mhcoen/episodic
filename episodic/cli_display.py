@@ -74,7 +74,7 @@ def display_model_info():
         try:
             input_cost, output_cost = cost_per_token(model=current_model, prompt_tokens=1000, completion_tokens=1000)
             typer.secho("Pricing: ", nl=False, fg=get_text_color())
-            typer.secho(f"${input_cost:.6f}/1K input, ${output_cost:.6f}/1K output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+            typer.secho(f"${input_cost*1000:.2f}/1M input, ${output_cost*1000:.2f}/1M output", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
         except Exception:
             typer.secho("Pricing: ", nl=False, fg=get_text_color())
             typer.secho("Not available", fg=typer.colors.YELLOW)

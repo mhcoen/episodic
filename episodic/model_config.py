@@ -94,10 +94,10 @@ class ModelConfig:
         """Detect model type using patterns and known models."""
         model_lower = model_name.lower()
         
-        # Check all known models first
+        # Check all known models first (exact match)
         for provider_name, provider_data in self._models_data.get("providers", {}).items():
             for model in provider_data.get("models", []):
-                if model.get("name", "").lower() in model_lower:
+                if model.get("name", "").lower() == model_lower:
                     return model.get("type", "unknown")
         
         # Check patterns

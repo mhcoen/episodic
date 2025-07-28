@@ -1,0 +1,54 @@
+{
+  "texts": [
+    {
+      "topic_shift": [2],
+      "topics": ["Band History", "Concert Venues"],
+      "passage": "Sample passage about a band and their concert venues.",
+      "dialog": [
+        {
+          "question": "What is the band known for?",
+          "answer": "The band is known for their punk rock music."
+        },
+        {
+          "question": "Where did they perform?",
+          "answer": "They performed at various venues in California."
+        },
+        {
+          "question": "What makes their concerts special?",
+          "answer": "Their concerts feature high energy performances."
+        },
+        {
+          "question": "Which venues do they prefer?",
+          "answer": "They prefer smaller, intimate venues where they can connect with fans."
+        }
+      ]
+    },
+    {
+      "topic_shift": [1, 3],
+      "topics": ["Introduction", "Technical Details", "Applications"],
+      "passage": "A technical discussion with multiple topic changes.",
+      "dialog": [
+        {
+          "question": "What is this technology?",
+          "answer": "This is a new machine learning approach."
+        },
+        {
+          "question": "How does it work?",
+          "answer": "It uses neural networks to process data."
+        },
+        {
+          "question": "What are the technical specifications?",
+          "answer": "It requires specific hardware and software configurations."
+        },
+        {
+          "question": "Where can it be applied?",
+          "answer": "It can be applied in healthcare, finance, and education."
+        },
+        {
+          "question": "What are the benefits?",
+          "answer": "The main benefits include improved accuracy and efficiency."
+        }
+      ]
+    }
+  ]
+}

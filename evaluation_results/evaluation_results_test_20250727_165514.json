@@ -1,0 +1,457 @@
+{
+  "sliding_window_w3": {
+    "summary": {
+      "num_dialogues": 100,
+      "metrics": {
+        "precision": 0.03,
+        "recall": 0.01583333333333333,
+        "f1": 0.019,
+        "window_diff": 0.519050283050283,
+        "pk": 0.5435706238206238
+      },
+      "detailed_aggregates": {
+        "precision": {
+          "mean": 0.03,
+          "std": 0.17058722109231983,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall": {
+          "mean": 0.01583333333333333,
+          "std": 0.10717003623525874,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1": {
+          "mean": 0.019,
+          "std": 0.11721348045340177,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "true_positives": {
+          "mean": 0.03,
+          "std": 0.17058722109231983,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "false_positives": {
+          "mean": 0.24,
+          "std": 0.4715930449020639,
+          "min": 0.0,
+          "max": 2.0,
+          "median": 0.0
+        },
+        "false_negatives": {
+          "mean": 2.71,
+          "std": 1.380543371285379,
+          "min": 0.0,
+          "max": 5.0,
+          "median": 3.0
+        },
+        "precision_w1": {
+          "mean": 0.08,
+          "std": 0.2712931993250107,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall_w1": {
+          "mean": 0.03333333333333333,
+          "std": 0.13070322617798433,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1_w1": {
+          "mean": 0.04466666666666667,
+          "std": 0.16015409246514223,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "matched_boundaries": {
+          "mean": 0.24,
+          "std": 0.4715930449020639,
+          "min": 0.0,
+          "max": 2.0,
+          "median": 0.0
+        },
+        "precision_w3": {
+          "mean": 0.21,
+          "std": 0.40112342240263155,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall_w3": {
+          "mean": 0.08866666666666667,
+          "std": 0.1930296465428159,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1_w3": {
+          "mean": 0.11933333333333333,
+          "std": 0.23908064655165118,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "precision_w5": {
+          "mean": 0.22,
+          "std": 0.4142463035441596,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall_w5": {
+          "mean": 0.09450000000000001,
+          "std": 0.20347065035418632,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1_w5": {
+          "mean": 0.12666666666666665,
+          "std": 0.2519700158528568,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "window_diff": {
+          "mean": 0.519050283050283,
+          "std": 0.2446808685330739,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.5454545454545454
+        },
+        "pk": {
+          "mean": 0.5435706238206238,
+          "std": 0.23482674591233868,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.5555555555555556
+        }
+      },
+      "elapsed_time": 16.025225162506104,
+      "detector_config": {
+        "window_size": 3,
+        "threshold": 0.9
+      }
+    },
+    "dialogue_results": []
+  },
+  "sliding_window_w5": {
+    "summary": {
+      "num_dialogues": 100,
+      "metrics": {
+        "precision": 0.03,
+        "recall": 0.01583333333333333,
+        "f1": 0.019,
+        "window_diff": 0.5071209901209902,
+        "pk": 0.5144714174714174
+      },
+      "detailed_aggregates": {
+        "precision": {
+          "mean": 0.03,
+          "std": 0.17058722109231983,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall": {
+          "mean": 0.01583333333333333,
+          "std": 0.10717003623525874,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1": {
+          "mean": 0.019,
+          "std": 0.11721348045340177,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "true_positives": {
+          "mean": 0.03,
+          "std": 0.17058722109231983,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "false_positives": {
+          "mean": 0.13,
+          "std": 0.39127995093027707,
+          "min": 0.0,
+          "max": 2.0,
+          "median": 0.0
+        },
+        "false_negatives": {
+          "mean": 2.71,
+          "std": 1.380543371285379,
+          "min": 0.0,
+          "max": 5.0,
+          "median": 3.0
+        },
+        "precision_w1": {
+          "mean": 0.03,
+          "std": 0.17058722109231983,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall_w1": {
+          "mean": 0.01583333333333333,
+          "std": 0.10717003623525874,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1_w1": {
+          "mean": 0.019,
+          "std": 0.11721348045340177,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "matched_boundaries": {
+          "mean": 0.15,
+          "std": 0.40926763859362253,
+          "min": 0.0,
+          "max": 2.0,
+          "median": 0.0
+        },
+        "precision_w3": {
+          "mean": 0.12,
+          "std": 0.3171750305430741,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall_w3": {
+          "mean": 0.055,
+          "std": 0.16923849049984663,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1_w3": {
+          "mean": 0.071,
+          "std": 0.19853099394189194,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "precision_w5": {
+          "mean": 0.13,
+          "std": 0.33630343441600474,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "recall_w5": {
+          "mean": 0.06083333333333332,
+          "std": 0.18213814964349329,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "f1_w5": {
+          "mean": 0.07833333333333332,
+          "std": 0.21552906480977868,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "window_diff": {
+          "mean": 0.5071209901209902,
+          "std": 0.2473352145477537,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.5454545454545454
+        },
+        "pk": {
+          "mean": 0.5144714174714174,
+          "std": 0.23995668940438206,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.5454545454545454
+        }
+      },
+      "elapsed_time": 6.90746808052063,
+      "detector_config": {
+        "window_size": 5,
+        "threshold": 0.9
+      }
+    },
+    "dialogue_results": []
+  },
+  "keywords": {
+    "summary": {
+      "num_dialogues": 100,
+      "metrics": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "window_diff": 0.4930774780774781,
+        "pk": 0.5012087912087912
+      },
+      "detailed_aggregates": {
+        "precision": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "recall": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "f1": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "true_positives": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "false_positives": {
+          "mean": 0.01,
+          "std": 0.09949874371066199,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.0
+        },
+        "false_negatives": {
+          "mean": 2.74,
+          "std": 1.3683566786477857,
+          "min": 0.0,
+          "max": 5.0,
+          "median": 3.0
+        },
+        "precision_w1": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "recall_w1": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "f1_w1": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "matched_boundaries": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "precision_w3": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "recall_w3": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "f1_w3": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "precision_w5": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "recall_w5": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "f1_w5": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "median": 0.0
+        },
+        "window_diff": {
+          "mean": 0.4930774780774781,
+          "std": 0.23572880128523144,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.5
+        },
+        "pk": {
+          "mean": 0.5012087912087912,
+          "std": 0.22724087045859107,
+          "min": 0.0,
+          "max": 1.0,
+          "median": 0.5
+        }
+      },
+      "elapsed_time": 0.07124781608581543,
+      "detector_config": {
+        "threshold": 0.5
+      }
+    },
+    "dialogue_results": []
+  },
+  "hybrid": {
+    "summary": {
+      "num_dialogues": 0,
+      "metrics": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "window_diff": 0.0,
+        "pk": 0.0
+      },
+      "detailed_aggregates": {},
+      "elapsed_time": 0.033354997634887695,
+      "detector_config": {
+        "threshold": 0.6
+      }
+    },
+    "dialogue_results": []
+  }
+}

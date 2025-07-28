@@ -1,0 +1,22 @@
+# Modelfile for fine-tuned topic detection model
+# Based on TinyLlama fine-tuned for binary classification
+
+FROM tinyllama
+
+# Set temperature low for consistent outputs
+PARAMETER temperature 0.1
+PARAMETER num_predict 10
+PARAMETER stop "</s>"
+PARAMETER stop "<|assistant|>"
+
+# System prompt for topic detection
+SYSTEM """You are a topic boundary detector. Given two messages or windows of messages, determine if there is a topic change.
+Output only '1' for topic change or '0' for same topic. Do not provide any explanation."""
+
+# Example template
+TEMPLATE """<|system|>
+{{ .System }}</s>
+<|user|>
+{{ .Prompt }}</s>
+<|assistant|>
+"""

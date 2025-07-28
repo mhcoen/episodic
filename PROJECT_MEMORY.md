@@ -68,6 +68,14 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Recent Changes
 
+- **Topic Detection Evaluation & Fine-Tuning (January 2025)**:
+  - Comprehensive evaluation of topic detection methods on 4 datasets
+  - Discovered small LLMs (<1B params) cannot handle complex window-based prompts
+  - Fine-tuned XtremDistil model (13M params) achieving F1=0.667
+  - Model processes 197 messages/second, suitable for real-time use
+  - Training on 55,657 examples from SuperDialseg, TIAGE, DialSeg711, and MP2D
+  - Full documentation in `evaluation/TOPIC_DETECTION_SUMMARY.md`
+  - Production model at `evaluation/finetuned_models/topic_detector_full.pt`
 - **Topic Detection Fixes (January 2025)**:
   - Fixed critical bug where topics weren't closed when `current_topic` was None in memory
   - Topics now properly closed by checking database for open topics, not just memory state

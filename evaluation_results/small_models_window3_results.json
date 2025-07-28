@@ -1,0 +1,128 @@
+[
+  {
+    "model": "qwen2:0.5b",
+    "size_mb": 352,
+    "threshold": 0.5,
+    "window_size": 3,
+    "results": {
+      "TIAGE": {
+        "dataset": "TIAGE",
+        "num_dialogues": 10,
+        "metrics": {
+          "precision": 0.19023809523809523,
+          "recall": 0.9,
+          "f1": 0.30481596147230827,
+          "window_diff": 0.95,
+          "pk": 0.5988095238095238
+        },
+        "time": 17.702157020568848,
+        "time_per_dialogue": 1.7702157020568847
+      }
+    }
+  },
+  {
+    "model": "qwen2:0.5b",
+    "size_mb": 352,
+    "threshold": 0.3,
+    "window_size": 3,
+    "results": {
+      "TIAGE": {
+        "dataset": "TIAGE",
+        "num_dialogues": 10,
+        "metrics": {
+          "precision": 0.18047619047619048,
+          "recall": 0.9,
+          "f1": 0.29234520123839014,
+          "window_diff": 0.9857142857142858,
+          "pk": 0.6059523809523809
+        },
+        "time": 17.01401400566101,
+        "time_per_dialogue": 1.7014014005661011
+      }
+    }
+  },
+  {
+    "model": "tinyllama:latest",
+    "size_mb": 637,
+    "threshold": 0.7,
+    "window_size": 3,
+    "results": {
+      "TIAGE": {
+        "dataset": "TIAGE",
+        "num_dialogues": 10,
+        "metrics": {
+          "precision": 0.30166666666666664,
+          "recall": 0.44833333333333336,
+          "f1": 0.3084920634920635,
+          "window_diff": 0.5369047619047619,
+          "pk": 0.5357142857142857
+        },
+        "time": 268.59952688217163,
+        "time_per_dialogue": 26.859952688217163
+      }
+    }
+  },
+  {
+    "model": "tinyllama:latest",
+    "size_mb": 637,
+    "threshold": 0.5,
+    "window_size": 3,
+    "results": {
+      "TIAGE": {
+        "dataset": "TIAGE",
+        "num_dialogues": 10,
+        "metrics": {
+          "precision": 0.18009379509379508,
+          "recall": 0.6316666666666666,
+          "f1": 0.26622821622821624,
+          "window_diff": 0.7476190476190476,
+          "pk": 0.6059523809523809
+        },
+        "time": 224.52132081985474,
+        "time_per_dialogue": 22.452132081985475
+      }
+    }
+  },
+  {
+    "model": "qwen2:1.5b",
+    "size_mb": 934,
+    "threshold": 0.6,
+    "window_size": 3,
+    "results": {
+      "TIAGE": {
+        "dataset": "TIAGE",
+        "num_dialogues": 10,
+        "metrics": {
+          "precision": 0.19735625485625485,
+          "recall": 0.7133333333333333,
+          "f1": 0.2971026359261653,
+          "window_diff": 0.7857142857142857,
+          "pk": 0.569047619047619
+        },
+        "time": 25.051865816116333,
+        "time_per_dialogue": 2.505186581611633
+      }
+    }
+  },
+  {
+    "model": "qwen2:1.5b",
+    "size_mb": 934,
+    "threshold": 0.4,
+    "window_size": 3,
+    "results": {
+      "TIAGE": {
+        "dataset": "TIAGE",
+        "num_dialogues": 10,
+        "metrics": {
+          "precision": 0.17818847818847816,
+          "recall": 0.8216666666666667,
+          "f1": 0.2823176814585483,
+          "window_diff": 0.9214285714285714,
+          "pk": 0.5916666666666667
+        },
+        "time": 25.74854302406311,
+        "time_per_dialogue": 2.574854302406311
+      }
+    }
+  }
+]

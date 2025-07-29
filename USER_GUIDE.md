@@ -162,8 +162,8 @@ When you interrupt a response:
 | `/show <node_id>` | Show details of a specific node |
 | `/head` | Show current conversation head |
 | `/ancestry` | Show the conversation history |
-| `/export` or `/ex` | Export current topic to markdown |
-| `/import <file>` or `/im <file>` | Import markdown conversation |
+| `/save` | Save current topic to markdown |
+| `/load <file>` | Load markdown conversation |
 | `/files [dir]` or `/ls [dir]` | List markdown files in directory |
 
 ### Model Selection
@@ -397,18 +397,25 @@ Muse mode transforms Episodic into a Perplexity-like conversational web search t
 
 ## Saving and Loading Conversations
 
-### Exporting Conversations
+### Saving and Exporting Conversations
 
-Episodic can export your conversations to markdown files for sharing, backup, or later continuation:
+Episodic provides two commands for saving conversations to markdown files:
 
+#### Simple Save (Current Topic Only)
 ```bash
-/export                      # Export current topic with auto-generated filename
-/ex 1-3                      # Export topics 1 through 3 (using alias)
-/export all conversation.md  # Export entire conversation to specific file
-/ex 2,4,6 selected.md        # Export specific topics (using alias)
+/save                        # Save current topic with auto-generated filename
+/save conversation.md        # Save current topic to specific file
 ```
 
-#### Topic Specifications
+#### Advanced Export (Multiple Topics)
+```bash
+/out                         # Export current topic with auto-generated filename
+/out 1-3                     # Export topics 1 through 3
+/out all conversation.md     # Export entire conversation to specific file
+/out 2,4,6 selected.md       # Export specific topics
+```
+
+##### Topic Specifications for /out:
 - `current` - Export the current/ongoing topic (default)
 - `3` - Export topic number 3
 - `1-5` - Export topics 1 through 5 (range)
@@ -416,24 +423,26 @@ Episodic can export your conversations to markdown files for sharing, backup, or
 - `all` - Export all topics
 
 #### Export Format
-Exported files include:
+Saved files include:
 - Date and time at the top
 - Conversation exchanges with **You:** and **LLM:** prefixes
 - Model information and changes
 - Topic boundaries and detection notes
 - Node IDs for reference (cannot be reused)
 
-### Importing Conversations
+### Loading Conversations
 
-Load previously exported conversations or markdown files from other sources:
+Load previously saved conversations or markdown files from other sources:
 
 ```bash
-/import conversation.md      # Load a conversation file
-/im exports/meeting.md       # Load from specific directory (using alias)
+/load conversation.md        # Load a conversation file (simple mode)
+/load exports/meeting.md     # Load from specific directory
+
+/in conversation.md          # Alternative command (same functionality)
 ```
 
-**Note**: Imported conversations create new nodes in your conversation DAG. The system can parse various markdown dialogue formats including:
-- Episodic's export format
+**Note**: Loaded conversations create new nodes in your conversation DAG. The system can parse various markdown dialogue formats including:
+- Episodic's save format
 - ChatGPT exports
 - Claude conversation exports
 - Generic markdown with dialogue patterns
@@ -455,21 +464,39 @@ The listing shows:
 
 ### Example Workflow
 
+#### Simple Workflow
 ```bash
 # Have a conversation about a project
 > Let's design a REST API for a task management system
 🤖 I'll help you design a REST API for task management...
 
-# Export for team review
-> /export api-design.md
-✅ Exported to: exports/api-design.md
+# Save current topic for team review
+> /save api-design.md
+✅ Saved to: exports/api-design.md
 
 # Later, continue the conversation
-> /import exports/api-design.md
+> /load exports/api-design.md
 ✅ Loaded conversation from exports/api-design.md
 
 > What about authentication for this API?
 🤖 Building on our API design, here are authentication options...
+```
+
+#### Advanced Workflow
+```bash
+# Work on multiple topics
+> /topics
+[1] ✓ API Design Discussion
+[2] ✓ Database Schema Planning
+[3] ○ Authentication Strategy (ongoing)
+
+# Export specific topics
+> /out 1-2 api-and-database.md
+✅ Exported topics 1-2 to: exports/api-and-database.md
+
+# Export everything
+> /out all complete-project.md
+✅ Exported all topics to: exports/complete-project.md
 ```
 
 ## Configuration
@@ -670,11 +697,11 @@ What are the latest developments in quantum computing?
 # Morning standup discussion
 What are the key points from yesterday's API review?
 
-# Export for team sharing
-/export standup-2024-01-15.md
+# Save for team sharing
+/save standup-2024-01-15.md
 
 # Team member loads and continues
-/import standup-2024-01-15.md
+/load standup-2024-01-15.md
 Based on the API review, I suggest we add rate limiting...
 ```
 
@@ -749,8 +776,8 @@ Automate your common setup:
 
 **scripts/backup-conversations.txt:**
 ```bash
-# Export all topics for backup
-/export all backup-{date}.md
+# Save current topic for backup
+/save backup-{date}.md
 /topics
 ```
 

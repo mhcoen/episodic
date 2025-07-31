@@ -183,6 +183,13 @@ class EpisodicRAGAdapter:
         """For backward compatibility - returns user docs collection."""
         return self.multi_rag.get_collection(CollectionType.USER_DOCS)
     
+    @collection.setter
+    def collection(self, value):
+        """For backward compatibility - allows temporary collection switching."""
+        # Store the temporary collection reference
+        # Note: This is a workaround for help system compatibility
+        self._temp_collection = value
+    
     @property
     def embedding_function(self):
         """For backward compatibility."""

@@ -94,26 +94,10 @@ class HelpRAG:
         # Mark this as a help RAG to skip retrieval tracking
         self.rag._is_help_rag = True
         
-        # Override the collection to use a help-specific one
-        try:
-            # Try to get existing collection first
-            try:
-                self.collection = self.rag.client.get_collection(
-                    name="episodic_help",
-                    embedding_function=self.rag.embedding_function
-                )
-            except:
-                # Create new collection if it doesn't exist
-                self.collection = self.rag.client.create_collection(
-                    name="episodic_help",
-                    embedding_function=self.rag.embedding_function,
-                    metadata={"description": "Episodic documentation for help system"}
-                )
-            # Update the rag's collection reference
-            self.rag.collection = self.collection
-        except Exception as e:
-            typer.secho(f"Error creating help collection: {str(e)}", fg=get_error_color())
-            raise
+        # Skip collection override for now - the adapter doesn't support it
+        # The help documents will be stored in the main user docs collection
+        # This is a temporary fix until we implement proper help collection support
+        self.collection = None
             
         self._indexed_docs = set()
     
@@ -394,12 +378,11 @@ def help_command(query: str):
     original_collection = None
     
     try:
-        # Temporarily use help collection for RAG
+        # Skip collection switching - help docs go to main collection
         from episodic.rag import get_rag_system
         rag_system = get_rag_system()
-        if rag_system:
-            original_collection = rag_system.collection
-            rag_system.collection = help_rag.collection
+        # Note: We're using the main collection for help docs now
+        # This is a temporary fix until proper help collection support is added
         
         # Enable RAG temporarily and disable web search for help
         config.set('rag_enabled', True)
@@ -517,8 +500,7 @@ Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
         config.set('web_search_enabled', original_web_search_enabled)
         if 'original_show_citations' in locals() and 'original_show_citations' in dir():
             config.set('rag_show_citations', original_show_citations)
-        if rag_system and original_collection:
-            rag_system.collection = original_collection
+        # Skip collection restoration - we didn't switch collections
 
 
 def help_reindex():
@@ -541,14 +523,8 @@ def help_reindex():
         return
     
     try:
-        # First delete the collection if it exists
-        typer.secho("\nClearing existing help index...", fg=get_text_color())
-        try:
-            from episodic.rag import EpisodicRAG
-            temp_rag = EpisodicRAG()
-            temp_rag.client.delete_collection(name="episodic_help")
-        except:
-            pass  # Collection might not exist
+        # Skip collection deletion - we're using the main collection now
+        typer.secho("\nPreparing to reindex help documentation...", fg=get_text_color())
         
         # Clear help documents from SQLite database
         try:

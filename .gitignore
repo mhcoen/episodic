@@ -67,3 +67,6 @@ config.json
 ~/.episodic/
 *.swp
 *.swo
+
+# Evaluation directory (training and testing)
+evaluation/

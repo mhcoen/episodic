@@ -70,3 +70,4 @@ config.json
 
 # Evaluation directory (training and testing)
 evaluation/
+.cache/

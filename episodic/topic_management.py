@@ -81,6 +81,17 @@ class TopicHandler:
                             user_input,
                             current_topic=self.conversation_manager.current_topic
                         )
+                    elif config.get("use_dual_window_detection"):
+                        if config.get("debug"):
+                            debug_print("Using DUAL WINDOW detection", indent=True)
+                        # Use dual-window detection ((4,1) + (4,2))
+                        from episodic.topics.dual_window_detector import DualWindowDetector
+                        detector = DualWindowDetector()
+                        topic_changed, new_topic_name, topic_cost_info = detector.detect_topic_change(
+                            recent_nodes,
+                            user_input,
+                            current_topic=self.conversation_manager.current_topic
+                        )
                     elif config.get("use_sliding_window_detection"):
                         if config.get("debug"):
                             debug_print("Using SLIDING WINDOW detection", indent=True)
@@ -136,7 +147,8 @@ class TopicHandler:
             return
             
         # Store window-based detection scores in the window detection table
-        if config.get("use_sliding_window_detection") and topic_cost_info and topic_cost_info.get("method") == "sliding_window":
+        if ((config.get("use_sliding_window_detection") and topic_cost_info and topic_cost_info.get("method") == "sliding_window") or
+            (config.get("use_dual_window_detection") and topic_cost_info and topic_cost_info.get("method") == "dual_window")):
             try:
                 # Import get_node locally to avoid scope issues
                 from episodic.db import get_node as get_node_info

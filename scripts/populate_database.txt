@@ -1,0 +1,55 @@
+# Episodic Database Population Script
+# This script creates conversations across 6 different topics
+# Each topic has 3-6 user interactions to test topic detection
+
+# Topic 1: Python Programming (5 interactions)
+How do I read a CSV file in Python?
+Can you show me how to handle missing values in pandas?
+What's the difference between loc and iloc?
+How do I merge two dataframes?
+Can you explain list comprehensions with an example?
+
+# Topic 2: Cooking Italian Food (4 interactions)
+What's the secret to making perfect carbonara?
+How much pasta water should I save for the sauce?
+What type of cheese is best - pecorino or parmesan?
+Should I add cream to carbonara?
+
+# Topic 3: Machine Learning Basics (6 interactions)
+What's the difference between supervised and unsupervised learning?
+Can you explain what overfitting means?
+How do I split data into training and test sets?
+What's cross-validation and why is it important?
+Which algorithm should I use for classification?
+How do I evaluate my model's performance?
+
+# Topic 4: Travel Planning (3 interactions)
+I'm planning a trip to Japan. When is the best time to visit?
+What are the must-see places in Tokyo?
+How much should I budget for a 2-week trip?
+
+# Topic 5: Web Development (5 interactions)
+What's the difference between React and Vue?
+How do I make an API call in JavaScript?
+Can you explain async/await syntax?
+What's CORS and how do I fix CORS errors?
+Should I use REST or GraphQL for my API?
+
+# Topic 6: Fitness and Exercise (4 interactions)
+What's a good beginner workout routine?
+How many days per week should I exercise?
+Is it better to do cardio before or after weights?
+What should I eat before and after working out?
+
+# Topic 7: Home Gardening (5 interactions)
+I want to start a vegetable garden. What are easy vegetables for beginners?
+How often should I water tomato plants?
+My basil leaves are turning yellow. What's wrong?
+When should I harvest my lettuce?
+How do I prevent pests without using chemicals?
+
+# Topic 8: Personal Finance (4 interactions)
+What's the 50/30/20 budget rule?
+Should I pay off debt or invest first?
+How much should I have in my emergency fund?
+What's the difference between a Roth and traditional IRA?

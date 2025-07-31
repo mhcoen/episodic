@@ -1,0 +1,14 @@
+# Fix topic detection sensitivity
+# Lower the threshold to detect more topic changes
+
+# Set a more reasonable drift threshold
+/set drift_threshold 0.6
+
+# Also set the sliding window threshold
+/set sliding_window_topic_threshold 0.6
+
+# Force topic finalization to close the current topic
+/finalize-topics
+
+# Show current settings
+/set

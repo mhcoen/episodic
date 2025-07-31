@@ -71,3 +71,12 @@ config.json
 # Evaluation directory (training and testing)
 evaluation/
 .cache/
+
+# Large model files
+*.pt
+*.safetensors
+*.bin
+
+# Large dataset files
+datasets/superseg/topic_segmentation_cr_train.txt
+datasets/tiage/topic_segmentation_cr_train.txt

@@ -17,6 +17,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Database Layer** (`db_*.py`): Modularized SQLite persistence with specialized modules
 - **LLM Integration** (`llm.py`): Multi-provider interface using LiteLLM
 - **Topic Detection** (`topics/`): Modular topic detection with multiple strategies
+  - Default: Dual-window detector using (4,1) and (4,2) windows
+  - Alternative: Sliding window, hybrid, LLM-based detectors
 - **CLI Interface** (`cli_*.py`): Typer-based command-line interface
 - **Memory System**: Two-part system for intelligent context
   - **System Memory**: Always-on conversation storage (like help system)
@@ -66,6 +68,9 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Assistant Message Limits**: Assistant message limits reset in 5-hour blocks, with start times rounded down to the nearest hour
 - **Topic Detection**: Topics must be properly closed when new ones start - check database for open topics, not just memory state
 - **Topic Names**: New topics should use detected names immediately, not placeholder names
+- **Dual-Window Detection**: Default topic detection uses (4,1) + (4,2) windows for optimal accuracy
+  - High precision (4,1) runs first, safety net (4,2) only runs if needed
+  - Debug with `/debug on topic` to see detection details
 
 ## Common Tasks
 

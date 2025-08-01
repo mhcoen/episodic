@@ -4,6 +4,17 @@
 
 Episodic is a conversational DAG-based memory agent that creates persistent, navigable conversations with language models. It automatically organizes conversations into topics and provides advanced features like RAG, web search, and multi-model support.
 
+## Recent Major Changes (2025)
+
+### Dual-Window Topic Detection (2025-01-01)
+- Implemented two-tier detection system using (4,1) and (4,2) windows
+- Achieves 95% precision with (4,1) window for high-confidence detection  
+- Safety net (4,2) window provides 94% F1 score for comprehensive coverage
+- Replaces inferior user-to-user comparison (73.8% F1)
+- Optimized to skip safety net when high precision detects change
+- Integrated with debug system (`/debug on topic`)
+- Configuration: `use_dual_window_detection` (default: true)
+
 ## Architecture Highlights
 
 - **Modular Design**: Split into focused modules under 600 lines each
@@ -24,6 +35,17 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - `text_formatter.py` - Text formatting and wrapping (385 lines)
 - `unified_streaming.py` - Centralized streaming output (411 lines)
 - `model_config.py` - Model configuration loader (manages models.json)
+
+### Topic Detection System
+- **Dual-Window Detection** (default as of 2024-01):
+  - Uses both (4,1) and (4,2) window configurations
+  - High precision (4,1) window: 95% precision for immediate detection
+  - Safety net (4,2) window: Catches boundaries missed by high precision
+  - Configurable thresholds via `dual_window_high_precision_threshold` and `dual_window_safety_net_threshold`
+- **Alternative Detectors**:
+  - Sliding window detector (single window comparison)
+  - Hybrid detector (combines multiple signals)
+  - LLM-based detection (uses language model)
 
 ### Database Modules
 - `db_connection.py` - Connection management

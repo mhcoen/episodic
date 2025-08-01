@@ -95,25 +95,26 @@ class DualWindowDetector:
                 all_messages, new_message, self.high_precision_window
             )
             
-            # Run (4,2) detection - safety net
-            safety_net_result = None
-            if len(all_messages) >= 6:  # Need 6 messages for (4,2)
-                safety_net_result = self._detect_with_window(
-                    all_messages, new_message, self.safety_net_window
-                )
-            
             # Decision logic
             topic_changed = False
             detection_type = None
+            safety_net_result = None
             
             if high_precision_result and high_precision_result['is_boundary']:
-                # High confidence boundary detected
+                # High confidence boundary detected - no need to check safety net
                 topic_changed = True
                 detection_type = "high_precision"
-            elif safety_net_result and safety_net_result['is_boundary']:
-                # Safety net caught a boundary
-                topic_changed = True 
-                detection_type = "safety_net"
+            else:
+                # High precision didn't detect change, check safety net
+                if len(all_messages) >= 6:  # Need 6 messages for (4,2)
+                    safety_net_result = self._detect_with_window(
+                        all_messages, new_message, self.safety_net_window
+                    )
+                    
+                    if safety_net_result and safety_net_result['is_boundary']:
+                        # Safety net caught a boundary that high precision missed
+                        topic_changed = True 
+                        detection_type = "safety_net"
             
             # Prepare combined detection info
             detection_info = {
@@ -128,8 +129,14 @@ class DualWindowDetector:
                 typer.echo(f"\n🔍 DEBUG: Dual-window detection results")
                 if high_precision_result:
                     typer.echo(f"   High precision (4,1): score={high_precision_result['drift_score']:.3f}, boundary={high_precision_result['is_boundary']}")
-                if safety_net_result:
+                
+                if detection_type == "high_precision":
+                    typer.echo(f"   Safety net (4,2): SKIPPED - high precision already detected change")
+                elif safety_net_result:
                     typer.echo(f"   Safety net (4,2): score={safety_net_result['drift_score']:.3f}, boundary={safety_net_result['is_boundary']}")
+                else:
+                    typer.echo(f"   Safety net (4,2): Not enough messages (need 6)")
+                    
                 typer.echo(f"   Final decision: {'TOPIC CHANGED' if topic_changed else 'SAME TOPIC'} ({detection_type or 'no boundary'})")
             
             return topic_changed, None, detection_info

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from episodic.ml.drift import ConversationalDrift
 from episodic.config import config
+from episodic.debug_utils import debug_print
 import typer
 
 logger = logging.getLogger(__name__)
@@ -81,13 +82,11 @@ class DualWindowDetector:
             # Extract all messages (recent_messages is newest-first)
             all_messages = [msg for msg in recent_messages]
             
-            if config.get("debug"):
-                typer.echo(f"   Dual-window: Found {len(all_messages)} messages in history")
+            debug_print(f"Dual-window: Found {len(all_messages)} messages in history", category="topic")
             
             # Need at least 5 messages for (4,1) window
             if len(all_messages) < 5:
-                if config.get("debug"):
-                    typer.echo(f"   Not enough history for dual-window detection")
+                debug_print("Not enough history for dual-window detection", category="topic")
                 return False, None, None
             
             # Run (4,1) detection - high precision
@@ -95,25 +94,26 @@ class DualWindowDetector:
                 all_messages, new_message, self.high_precision_window
             )
             
-            # Run (4,2) detection - safety net
-            safety_net_result = None
-            if len(all_messages) >= 6:  # Need 6 messages for (4,2)
-                safety_net_result = self._detect_with_window(
-                    all_messages, new_message, self.safety_net_window
-                )
-            
             # Decision logic
             topic_changed = False
             detection_type = None
+            safety_net_result = None
             
             if high_precision_result and high_precision_result['is_boundary']:
-                # High confidence boundary detected
+                # High confidence boundary detected - no need to check safety net
                 topic_changed = True
                 detection_type = "high_precision"
-            elif safety_net_result and safety_net_result['is_boundary']:
-                # Safety net caught a boundary
-                topic_changed = True 
-                detection_type = "safety_net"
+            else:
+                # High precision didn't detect change, check safety net
+                if len(all_messages) >= 6:  # Need 6 messages for (4,2)
+                    safety_net_result = self._detect_with_window(
+                        all_messages, new_message, self.safety_net_window
+                    )
+                    
+                    if safety_net_result and safety_net_result['is_boundary']:
+                        # Safety net caught a boundary that high precision missed
+                        topic_changed = True 
+                        detection_type = "safety_net"
             
             # Prepare combined detection info
             detection_info = {
@@ -124,20 +124,25 @@ class DualWindowDetector:
                 "is_boundary": topic_changed
             }
             
-            if config.get("debug"):
-                typer.echo(f"\n🔍 DEBUG: Dual-window detection results")
-                if high_precision_result:
-                    typer.echo(f"   High precision (4,1): score={high_precision_result['drift_score']:.3f}, boundary={high_precision_result['is_boundary']}")
-                if safety_net_result:
-                    typer.echo(f"   Safety net (4,2): score={safety_net_result['drift_score']:.3f}, boundary={safety_net_result['is_boundary']}")
-                typer.echo(f"   Final decision: {'TOPIC CHANGED' if topic_changed else 'SAME TOPIC'} ({detection_type or 'no boundary'})")
+            # Debug output
+            debug_print("Dual-window detection results:", category="topic")
+            if high_precision_result:
+                debug_print(f"High precision (4,1): score={high_precision_result['drift_score']:.3f}, boundary={high_precision_result['is_boundary']}", category="topic", indent=True)
+            
+            if detection_type == "high_precision":
+                debug_print("Safety net (4,2): SKIPPED - high precision already detected change", category="topic", indent=True)
+            elif safety_net_result:
+                debug_print(f"Safety net (4,2): score={safety_net_result['drift_score']:.3f}, boundary={safety_net_result['is_boundary']}", category="topic", indent=True)
+            else:
+                debug_print("Safety net (4,2): Not enough messages (need 6)", category="topic", indent=True)
+                
+            debug_print(f"Final decision: {'TOPIC CHANGED' if topic_changed else 'SAME TOPIC'} ({detection_type or 'no boundary'})", category="topic", indent=True)
             
             return topic_changed, None, detection_info
             
         except Exception as e:
             logger.error(f"Dual-window detection error: {e}")
-            if config.get("debug"):
-                typer.echo(f"   ❌ Dual-window detection error: {e}")
+            debug_print(f"❌ Dual-window detection error: {e}", category="topic")
             return False, None, None
     
     def _detect_with_window(

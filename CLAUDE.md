@@ -17,6 +17,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Database Layer** (`db_*.py`): Modularized SQLite persistence with specialized modules
 - **LLM Integration** (`llm.py`): Multi-provider interface using LiteLLM
 - **Topic Detection** (`topics/`): Modular topic detection with multiple strategies
+  - Default: Dual-window detector using (4,1) and (4,2) windows
+  - Alternative: Sliding window, hybrid, LLM-based detectors
 - **CLI Interface** (`cli_*.py`): Typer-based command-line interface
 - **Memory System**: Two-part system for intelligent context
   - **System Memory**: Always-on conversation storage (like help system)
@@ -37,6 +39,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - Use type hints for all function signatures
 - Follow existing patterns in the codebase
 - Keep imports organized and minimal
+- No comments unless explicitly requested
+- Prefer editing existing files over creating new ones
 
 ### Database
 - Default location: `~/.episodic/episodic.db`
@@ -63,9 +67,15 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Memory System**: System memory is always on by default (separate from user RAG)
 - **Config Persistence**: Only specific settings are saved to disk (use `config.save_setting()`)
 - **Model Configuration**: Models are defined in `~/.episodic/models.json` (created from template on first run)
+- **Model Pricing**: Update with `scripts/update_model_pricing.py` - never guess pricing
 - **Assistant Message Limits**: Assistant message limits reset in 5-hour blocks, with start times rounded down to the nearest hour
 - **Topic Detection**: Topics must be properly closed when new ones start - check database for open topics, not just memory state
 - **Topic Names**: New topics should use detected names immediately, not placeholder names
+- **Dual-Window Detection**: Default topic detection uses (4,1) + (4,2) windows for optimal accuracy
+  - High precision (4,1) runs first, safety net (4,2) only runs if needed
+  - Debug with `/debug on topic` to see detection details
+- **API Keys**: Load from environment or config, never hardcode
+- **File Size Violations**: Several files exceed 600 lines and need refactoring
 
 ## Common Tasks
 
@@ -85,5 +95,24 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 2. Check `DEBUG.md` for specific debugging guides
 3. Use `debug_utils.py` for debug output
 4. Review logs for detailed error traces
+
+## Current State & Known Issues
+
+### Performance
+- **Startup Time**: Heavy imports (ChromaDB, sentence-transformers) loaded eagerly
+- **Lazy Loading**: Partially implemented for LiteLLM, needs expansion
+- **Caching**: Limited use of @lru_cache decorators
+
+### Code Organization  
+- **Large Files Needing Split**:
+  - `visualization.py` (1278 lines)
+  - `cli_command_router.py` (939 lines)
+  - `conversation.py` (787 lines)
+  - `web_search.py` (905 lines)
+
+### Testing
+- **Test Files**: 39 test files in `tests/` directory
+- **Coverage**: Core functionality tested but edge cases need work
+- **Run Tests**: `python tests/run_all_tests.py`
 
 Remember: The codebase is designed to be clean, modular, and maintainable. When in doubt, follow the existing patterns.

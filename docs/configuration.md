@@ -23,8 +23,8 @@ This document describes all configuration options available in Episodic.
 > /model list
 
 # Set models for different contexts
-> /model chat gpt-4
-> /model detection ollama/llama3
+> /model chat gpt-4.1-2025-04-14
+> /model detection ollama/phi3      # Use instruct model
 > /model compression gpt-3.5-turbo
 > /model synthesis claude-3-haiku
 ```
@@ -66,12 +66,13 @@ This document describes all configuration options available in Episodic.
 | `debug` | false | Enable debug output |
 | `show_cost` | false | Show cost after each response |
 | `show_drift` | true | Show drift scores in debug |
-| `model` | "gpt-3.5-turbo" | Chat (main conversation) model |
-| `topic_detection_model` | "ollama/llama3" | Topic detection model |
-| `compression_model` | "ollama/llama3" | Compression model |
+| `model` | "gpt-4o-mini" | Chat (main conversation) model |
+| `topic_detection_model` | "ollama/phi3" | Topic detection model (use instruct models) |
+| `compression_model` | "gpt-3.5-turbo" | Compression model |
 | `synthesis_model` | "gpt-3.5-turbo" | Web search synthesis model |
 | `context_depth` | 5 | Number of previous messages to include |
-| `cache_prompts` | true | Enable prompt caching |
+| `use_context_cache` | true | Enable prompt caching for supported models |
+| `use_dual_window_detection` | true | Use dual-window topic detection system |
 
 ### Display Settings
 
@@ -79,7 +80,10 @@ This document describes all configuration options available in Episodic.
 |-----------|---------|-------------|
 | `color_mode` | full | Color display mode (full/basic/none) |
 | `text_wrap` | true | Enable text wrapping for long lines |
-| `context_depth` | 5 | Default context depth for conversation history |
+| `stream_responses` | true | Stream LLM responses as they arrive |
+| `stream_rate` | 15 | Words per second for streaming display |
+| `show_input_box` | true | Display user input in styled box |
+| `use_unicode_boxes` | true | Use Unicode box characters (false for ASCII) |
 | `enable_tab_completion` | true | Enable tab completion for commands and parameters |
 
 #### Color Mode Options
@@ -117,9 +121,12 @@ Set with: `/set color-mode full`, `/set color-mode basic`, or `/set color-mode n
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `automatic_topic_detection` | true | Enable automatic detection |
-| `topic_detection_model` | "ollama/llama3" | Model for detection |
+| `topic_detection_model` | "ollama/phi3" | Model for detection (use instruct models) |
 | `min_messages_before_topic_change` | 8 | Minimum messages per topic |
 | `show_topics` | false | Show topic info in responses |
+| `use_dual_window_detection` | true | Use dual-window detection system |
+| `dual_window_high_precision_threshold` | 0.65 | Threshold for (4,1) high precision window |
+| `dual_window_safety_net_threshold` | 0.75 | Threshold for (4,2) safety net window |
 | `analyze_topic_boundaries` | true | Refine topic boundaries |
 | `use_llm_boundary_analysis` | true | Use LLM for boundary analysis |
 | `show_hybrid_topics` | true | Show topic info with hybrid detector |
@@ -226,8 +233,9 @@ This memory is specific to Claude Code sessions and persists across conversation
 ### For Better Topic Detection
 ```bash
 /set min_messages_before_topic_change 6
-/set topic_window_size 4
-/model detection ollama/llama3
+/set use_dual_window_detection true
+/debug on topic  # See detection details
+/model detection ollama/phi3  # Use instruct model
 /mset detection.temperature 0.0
 ```
 

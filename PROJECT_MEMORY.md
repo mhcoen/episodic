@@ -17,24 +17,26 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Architecture Highlights
 
-- **Modular Design**: Split into focused modules under 600 lines each
+- **Modular Design**: Split into focused modules (target: 500 lines, hard cap: 600)
 - **Database**: SQLite with migration system, default location `~/.episodic/episodic.db`
 - **LLM Integration**: Unified interface via LiteLLM supporting 20+ providers
 - **Model Configuration**: JSON-based model definitions in `~/.episodic/models.json`
-- **Topic Detection**: Multiple algorithms including sliding window and hybrid detection
+- **Topic Detection**: Dual-window detection system with multiple fallback strategies
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system with automatic fallback
+- **Command System**: 47 command modules with unified routing and registry
+- **Performance**: Connection pooling for database, prompt caching for LLMs
 
 ## Key Components
 
 ### Core Modules
-- `conversation.py` - Core conversation management (545 lines)
-- `topic_management.py` - Topic detection and handling (508 lines)
-- `response_streaming.py` - Streaming implementations (410 lines)
+- `conversation.py` - Core conversation management (787 lines - needs splitting)
+- `topic_management.py` - Topic detection and handling (584 lines)
+- `llm.py` - LLM integration and API management (492 lines)
 - `context_builder.py` - Context preparation with RAG/web (226 lines)
-- `text_formatter.py` - Text formatting and wrapping (385 lines)
-- `unified_streaming.py` - Centralized streaming output (411 lines)
+- `unified_streaming.py` - Centralized streaming output (437 lines)
 - `model_config.py` - Model configuration loader (manages models.json)
+- `cli_command_router.py` - Command routing logic (939 lines - needs splitting)
 
 ### Topic Detection System
 - **Dual-Window Detection** (default as of 2024-01):
@@ -125,8 +127,39 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Config Persistence**: Only specific settings saved (via `save_setting()`)
 - **Assistant Message Limits**: Documented 5-hour reset blocks with start times rounded down to nearest hour
 
+## Code Quality & Known Issues
+
+### Technical Debt
+- **Large Files**: Several files exceed 600-line target:
+  - `visualization.py` (1278 lines)
+  - `cli_command_router.py` (939 lines)
+  - `conversation.py` (787 lines)
+  - `web_search.py` (905 lines)
+- **Performance**: Startup time impacted by eager loading of ChromaDB and ML models
+- **Test Coverage**: 39 test files but edge cases need more coverage
+- **Error Handling**: Inconsistent patterns across modules
+
+### Security & Configuration
+- **API Keys**: Properly managed through environment variables
+- **Database Safeguards**: Validation prevents project directory placement
+- **Model Pricing**: Automatically updated via `scripts/update_model_pricing.py`
+- **Telemetry**: Disabled for ChromaDB to protect privacy
+
 ## Future Development
 
+### High Priority
+- **Performance Optimization**: Implement lazy loading for heavy dependencies
+- **Code Refactoring**: Split large files into focused modules
+- **Async Support**: Convert blocking operations to async/await
+- **Error Standardization**: Unified error handling patterns
+
+### Medium Priority
+- **Caching Layer**: Add @lru_cache for expensive computations
+- **Command Deduplication**: Refactor similar patterns in command files
+- **Integration Testing**: Enhance test coverage for critical paths
+- **Documentation**: Complete API documentation with type hints
+
+### Long Term
 - **Adaptive Topic Detection**: Dynamic context management for non-linear conversations
 - **DAG Branching**: Support for conversation trees and topic returns
 - **Enhanced Embeddings**: Multiple embedding providers for different use cases

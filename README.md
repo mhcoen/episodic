@@ -331,9 +331,9 @@ Use '/mset <context>.<param> default' to reset to default value
 
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────
-Chat:        gpt-4
+Chat:        gpt-4.1-2025-04-14
 Detection:   huggingface/tiiuae/falcon-7b-instruct  
-Compression: gpt-3.5-turbo-instruct
+Compression: gpt-3.5-turbo
 Synthesis:   huggingface/tiiuae/falcon-7b-instruct
 ```
 

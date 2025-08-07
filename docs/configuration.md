@@ -226,7 +226,7 @@ Project-specific memory is stored in `PROJECT_MEMORY.md` file in the project roo
 - User preferences
 - Architecture notes
 
-This memory is specific to Claude Code sessions and persists across conversations.
+This memory persists across sessions and helps maintain context for development.
 
 ## Common Configuration Patterns
 

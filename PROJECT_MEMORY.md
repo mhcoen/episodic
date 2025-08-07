@@ -125,7 +125,6 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
   - Changed pricing display from "per 1K tokens" to "per 1M tokens" for cleaner display
 - **Memory System Improvements**: System memory always on, independent of user RAG
 - **Config Persistence**: Only specific settings saved (via `save_setting()`)
-- **Assistant Message Limits**: Documented 5-hour reset blocks with start times rounded down to nearest hour
 
 ## Code Quality & Known Issues
 

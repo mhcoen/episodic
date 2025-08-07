@@ -224,7 +224,7 @@ Export conversations to markdown for sharing, backup, or continuing later:
 ✅ Conversation saved to: exports/history-of-computing-2025-01-15.md
 
 # Later, or on another machine:
-> /ls exports
+> /files exports
 📁 Markdown files in exports
 📄 history-of-computing-2025-01-15.md
    Size: 3.2 KB • Modified: 2 hours ago
@@ -331,9 +331,9 @@ Use '/mset <context>.<param> default' to reset to default value
 
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────
-Chat:        gpt-4
+Chat:        gpt-4.1-2025-04-14
 Detection:   huggingface/tiiuae/falcon-7b-instruct  
-Compression: gpt-3.5-turbo-instruct
+Compression: gpt-3.5-turbo
 Synthesis:   huggingface/tiiuae/falcon-7b-instruct
 ```
 

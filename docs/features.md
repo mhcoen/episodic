@@ -8,14 +8,17 @@ This guide covers the key features and capabilities of Episodic, from basic LLM 
 
 Episodic supports a wide range of LLM providers through LiteLLM:
 
-**Cloud Providers:**
-- **OpenAI**: GPT-4, GPT-4 Turbo, GPT-3.5 Turbo
-- **Anthropic**: Claude 3 (Opus, Sonnet, Haiku), Claude 2
-- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini Ultra, Gemini 1.5 Pro
+**Cloud Providers (20+ supported via LiteLLM):**
+- **OpenAI**: GPT-4.1, GPT-4o, GPT-3.5 Turbo
+- **Anthropic**: Claude 4 (Opus, Sonnet), Claude 3.5 Sonnet, Claude 3 Haiku
+- **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 1.5 Pro
 - **Azure OpenAI**: Enterprise deployments
+- **Hugging Face**: Free tier models available
+- **Together AI, Mistral, Cohere**: Additional options
+- **OpenRouter**: Access to multiple providers
 
 **Local Providers:**
-- **Ollama**: Run models locally (Llama 3, Mistral, etc.)
+- **Ollama**: Run models locally (Llama 3, Mistral, Phi3, etc.)
 - **LM Studio**: Local model inference
 
 ### Model Configuration
@@ -26,9 +29,12 @@ Episodic uses different models for different tasks:
 # View all current models
 /model
 
+# List available models with pricing (per 1M tokens)
+/model list
+
 # Set models for specific contexts
-/model chat gpt-4o              # Main conversation
-/model detection ollama/llama3   # Topic detection
+/model chat gpt-4.1-2025-04-14  # Main conversation
+/model detection ollama/phi3     # Topic detection (use instruct model)
 /model compression gpt-3.5-turbo # Compression/summarization
 /model synthesis claude-3-haiku  # Web search synthesis
 ```
@@ -93,10 +99,12 @@ quantum computing news
 ### What is Muse Mode?
 
 Muse mode transforms Episodic into a Perplexity-like AI research assistant that:
-- Searches multiple web sources
-- Extracts and reads full content
-- Synthesizes comprehensive answers
-- Provides source attribution
+- Treats all input as web search queries (no commands needed)
+- Searches multiple web sources automatically
+- Extracts and reads full content from pages
+- Synthesizes comprehensive answers with citations
+- Maintains context for follow-up questions
+- Provides source attribution and links
 
 ### How to Use
 
@@ -114,19 +122,31 @@ What are the latest breakthroughs in fusion energy?
 Configure how muse presents information:
 
 ```bash
-/set synthesis_style comprehensive  # Default
-# Options: concise, standard, comprehensive, exhaustive
+# Response styles (affect length and detail level)
+/style concise        # Brief, direct responses
+/style standard       # Clear, well-structured responses  
+/style comprehensive  # Thorough, detailed responses (default)
+/style custom         # Use model-specific max_tokens
 
-/set synthesis_detail balanced     # Default  
-# Options: minimal, low, balanced, high, maximum
+# Response formats (affect presentation structure)
+/format paragraph     # Flowing prose with markdown headers
+/format bulleted      # Bullet points and lists
+/format mixed         # Mix of paragraphs and bullets (default)
+/format academic      # Formal academic style with citations
 ```
 
-### Output Formats
+### Memory System
+
+Episodic includes an always-on conversation memory system:
 
 ```bash
-/set synthesis_format mixed        # Default
-# Options: paragraph, bullet_points, numbered_list, mixed, academic
+/memory               # Search conversation memories
+/memory <query>       # Search for specific memories
+/memory-stats         # Show memory system statistics
+/forget <query>       # Remove specific memories
 ```
+
+**Note**: This is separate from the user RAG system and automatically indexes all conversations for intelligent context recall.
 
 ## 4. Visualization
 
@@ -154,7 +174,7 @@ View your conversation as an interactive directed graph:
 
 ### Automatic Organization
 
-Episodic automatically detects when conversation topics change and creates boundaries:
+Episodic uses a dual-window detection system with 95% precision to automatically detect topic changes:
 
 ```bash
 # View all topics
@@ -163,9 +183,22 @@ Episodic automatically detects when conversation topics change and creates bound
 # See topic info in responses
 /set show_topics true
 
-# Configure detection sensitivity
+# Enable debug mode to see detection details
+/debug on topic
+
+# Configure dual-window detection (default: enabled)
+/set use_dual_window_detection true
+/set dual_window_high_precision_threshold 0.65  # (4,1) window
+/set dual_window_safety_net_threshold 0.75      # (4,2) window
+
+# Configure minimum messages before topic change
 /set min_messages_before_topic_change 8
 ```
+
+The dual-window system uses:
+- **(4,1) window**: High precision detection (95% precision)
+- **(4,2) window**: Safety net for boundaries (94% F1 score)
+- Optimized to skip safety net when high precision detects change
 
 ### Topic Management
 

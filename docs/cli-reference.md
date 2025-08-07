@@ -7,20 +7,21 @@ This document provides a comprehensive reference for all Episodic CLI commands.
 ```bash
 # Interactive mode (default)
 python -m episodic
+# Database automatically created at ~/.episodic/episodic.db on first run
 
 # Execute a script non-interactively
 python -m episodic --execute scripts/my-script.txt
 python -m episodic -e scripts/my-script.txt
 
 # Specify a model at startup
-python -m episodic --model gpt-4
+python -m episodic --model gpt-4.1-2025-04-14
 python -m episodic -m ollama/llama3
 
 # Disable streaming output
 python -m episodic --no-stream
 
 # Combine options
-python -m episodic -m gpt-4 -e scripts/test.txt
+python -m episodic -m gpt-4.1-2025-04-14 -e scripts/test.txt
 ```
 
 ## Command Structure
@@ -74,9 +75,9 @@ Switch to advanced mode - full access to all 50+ commands
 ## Navigation Commands
 
 ### /init
-Initialize or reset the database
+Initialize or reset the database (rarely needed - database auto-initializes)
 ```bash
-/init              # Initialize database
+/init              # Initialize database (if not already initialized)
 /init --erase      # Erase existing database and reset
 ```
 
@@ -289,8 +290,8 @@ Manage documents
 Enable muse mode for synthesized web search answers (like Perplexity)
 ```bash
 /muse                       # Switch to muse mode - all input becomes web searches
-/chat                       # Switch to chat mode - return to normal conversation
-/muse                       # Show current mode status
+                           # In this mode, everything you type is treated as a search query
+                           # Results are fetched from the web and synthesized into answers
 ```
 
 ### /web
@@ -396,10 +397,13 @@ Manage language models for all contexts
 ```bash
 /model                      # Show all four models in use
 /model list                 # Show available models with pricing
-/model chat gpt-4           # Set chat (main) model
-/model detection ollama/llama3  # Set topic detection model
-/model compression gpt-3.5-turbo  # Set compression model
+/model chat gpt-4.1-2025-04-14  # Set chat (main) model
+/model detection ollama/phi3     # Set topic detection model (use instruct model)
+/model compression gpt-3.5-turbo # Set compression model
 /model synthesis claude-3-haiku  # Set web synthesis model
+
+# Model pricing is shown per 1M tokens (not 1K)
+# Pricing info comes from models.json or litellm database
 ```
 
 ### /prompt, /prompts
@@ -433,17 +437,33 @@ Summarize conversation
 ### /muse
 Enable Perplexity-like web search mode
 ```bash
-/muse                       # Enable muse mode (all input → web search)
-/muse                       # Switch to muse mode
-/chat                       # Switch to chat mode
+/muse                       # Switch to muse mode (all input → web search)
+                           # Web results are synthesized into comprehensive answers
 ```
 
 ### /chat
 Return to normal chat mode
 ```bash
-/chat                       # Enable chat mode (normal LLM conversation)
-/chat                       # Switch to chat mode
-/muse                       # Switch to muse mode
+/chat                       # Switch to chat mode (normal LLM conversation)
+                           # This is the default mode when starting Episodic
+```
+
+### /memory
+Manage the conversation memory system (always on by default)
+```bash
+/memory                     # Search your conversation memories
+/memory <query>             # Search for specific memories
+/memory-stats               # Show memory system statistics
+/forget <query>             # Remove specific memories from the system
+```
+
+### /debug
+Toggle debug mode for troubleshooting
+```bash
+/debug                      # Toggle debug mode on/off
+/debug on                   # Enable debug mode
+/debug off                  # Disable debug mode
+/debug on topic             # Enable debug for topic detection specifically
 ```
 
 ## Utility Commands
@@ -520,9 +540,9 @@ Use /mset command to manage model-specific parameters:
 ### Offline Mode
 ```bash
 /model chat ollama/llama3
-/model detection ollama/llama3
-/model compression ollama/llama3
-/model synthesis ollama/llama3
+/model detection ollama/phi3     # Use instruct model for detection
+/model compression ollama/mistral # Use instruct model for compression
+/model synthesis ollama/phi3      # Use instruct model for synthesis
 /rag off
 /chat
 ```
@@ -542,7 +562,7 @@ Scripts can contain both messages and commands:
 ```bash
 # Create a script file (example.txt):
 /init
-/model gpt-4
+/model chat gpt-4.1-2025-04-14
 What is quantum computing?
 /topics
 /cost

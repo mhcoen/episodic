@@ -320,24 +320,33 @@ def _execute_llm_query(
             logger.debug(f"[{msg['role']}]: {msg.get('content', msg)}")
         logger.debug("===================================")
 
+    # Handle GPT-5 specific parameters
+    if "gpt-5" in full_model.lower():
+        # GPT-5 supports verbosity and reasoning_effort parameters
+        # These are passed through if set in config
+        # GPT-5 only supports default temperature (1.0) and doesn't support stop sequences
+        unsupported_gpt5_params = ['temperature', 'stop', 'top_p', 'presence_penalty', 'frequency_penalty']
+        for param in unsupported_gpt5_params:
+            api_params.pop(param, None)
+    
     # Filter out unsupported parameters for Google/Gemini models
     if provider == "google":
         # Gemini doesn't support presence_penalty or frequency_penalty
-        unsupported_params = ['presence_penalty', 'frequency_penalty']
+        unsupported_params = ['presence_penalty', 'frequency_penalty', 'verbosity', 'reasoning_effort']
         for param in unsupported_params:
             api_params.pop(param, None)
     
     # Filter out unsupported parameters for Ollama models
     if provider == "ollama" or "ollama/" in full_model.lower():
-        # Ollama doesn't support presence_penalty or frequency_penalty
-        unsupported_params = ['presence_penalty', 'frequency_penalty']
+        # Ollama doesn't support presence_penalty, frequency_penalty, or GPT-5 specific params
+        unsupported_params = ['presence_penalty', 'frequency_penalty', 'verbosity', 'reasoning_effort']
         for param in unsupported_params:
             api_params.pop(param, None)
     
     # Filter out unsupported parameters for Anthropic models
     if provider == "anthropic" or "claude" in full_model.lower() or "anthropic" in full_model.lower():
-        # Anthropic doesn't support presence_penalty or frequency_penalty
-        unsupported_params = ['presence_penalty', 'frequency_penalty']
+        # Anthropic doesn't support presence_penalty, frequency_penalty, or GPT-5 specific params
+        unsupported_params = ['presence_penalty', 'frequency_penalty', 'verbosity', 'reasoning_effort']
         for param in unsupported_params:
             api_params.pop(param, None)
     

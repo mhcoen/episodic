@@ -89,7 +89,11 @@
     "top_p": 1.0,
     "presence_penalty": 0.0,
     "frequency_penalty": 0.0,
-    "stop": []
+    "stop": [],
+    "_comment_gpt5_verbosity": "GPT-5 verbosity: 'low' for concise, 'medium' (default), 'high' for detailed",
+    "verbosity": "medium",
+    "_comment_gpt5_reasoning": "GPT-5 reasoning effort: 'minimal', 'low', 'medium' (default), 'high'",
+    "reasoning_effort": "medium"
   },
   "_comment_topic_params": "Parameters for topic detection (lower temp for consistency)",
   "topic_params": {

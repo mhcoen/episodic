@@ -85,6 +85,10 @@ CONFIG_DOCS = {
     "topic_params": "Model parameters for topic detection",
     "compression_params": "Model parameters for topic compression",
     
+    # GPT-5 specific parameters
+    "verbosity": "GPT-5 verbosity control: 'low' for concise, 'medium' (default), 'high' for detailed explanations",
+    "reasoning_effort": "GPT-5 reasoning effort: 'minimal' (fastest), 'low', 'medium' (default), 'high' (thorough)",
+    
     # LLM Provider API Keys
     "openai_api_key": "OpenAI API key for GPT models",
     "anthropic_api_key": "Anthropic API key for Claude models",

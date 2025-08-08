@@ -196,7 +196,10 @@ class Config:
                 'max': 'max_tokens',
                 'top': 'top_p',
                 'presence': 'presence_penalty',
-                'freq': 'frequency_penalty'
+                'freq': 'frequency_penalty',
+                'verbosity': 'verbosity',
+                'reasoning': 'reasoning_effort',
+                'reasoning_effort': 'reasoning_effort'
             }
             
             # Get the actual parameter set name
@@ -225,6 +228,10 @@ class Config:
                 raise ValueError(f"{actual_param_name} must be between -2 and 2")
             elif actual_param_name == 'max_tokens' and value is not None and int(value) < 1:
                 raise ValueError("max_tokens must be positive or None")
+            elif actual_param_name == 'verbosity' and value not in ['low', 'medium', 'high']:
+                raise ValueError("verbosity must be 'low', 'medium', or 'high'")
+            elif actual_param_name == 'reasoning_effort' and value not in ['minimal', 'low', 'medium', 'high']:
+                raise ValueError("reasoning_effort must be 'minimal', 'low', 'medium', or 'high'")
             elif actual_param_name == 'stop':
                 if isinstance(value, str):
                     if value == '[]' or value == '':
@@ -239,6 +246,9 @@ class Config:
                 value = float(value)
             elif actual_param_name == 'max_tokens' and value is not None:
                 value = int(value)
+            # GPT-5 parameters remain as strings
+            elif actual_param_name in ['verbosity', 'reasoning_effort']:
+                value = str(value)
             
             # Set the parameter in memory only
             self.config[actual_param_set][actual_param_name] = value

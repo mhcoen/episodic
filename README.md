@@ -61,7 +61,7 @@ python -m episodic
 
 Episodic automatically configures itself based on available providers:
 - **With Hugging Face**: Uses Falcon-7B-Instruct for background tasks (free tier compatible)
-- **With OpenAI**: Uses GPT-4 for chat, GPT-3.5-Turbo-Instruct for analysis
+- **With OpenAI**: Uses GPT-5 for chat, GPT-3.5-Turbo-Instruct for analysis
 - **With Ollama**: Uses local models for complete privacy
 
 ```text
@@ -164,12 +164,30 @@ Index your papers and documents, then ask questions that search both your knowle
 /set rag-threshold 0.7          # Adjust relevance sensitivity (0.0-1.0)
 ```
 
+### 🚀 GPT-5 Advanced Features
+GPT-5 introduces unique controls for output generation:
+
+**Verbosity Control** - Adjust response length and detail:
+```text
+> /set main.verbosity low      # Concise answers, code generation
+> /set main.verbosity medium   # Standard responses (default)
+> /set main.verbosity high     # Detailed explanations, analysis
+```
+
+**Reasoning Effort** - Control reasoning depth:
+```text
+> /set main.reasoning_effort minimal  # Fastest responses
+> /set main.reasoning_effort low      # Quick with good quality
+> /set main.reasoning_effort medium   # Balanced (default)
+> /set main.reasoning_effort high     # Thorough reasoning
+```
+
 ### 🧩 Multi-Model Workflows
 Use different models for different tasks to optimize performance and cost:
 
 ```text
-# Use GPT-4 for complex reasoning
-> /model chat gpt-4o
+# Use GPT-5 for complex reasoning
+> /model chat gpt-5
 
 # Use instruct models for background tasks
 > /model detection huggingface/tiiuae/falcon-7b-instruct
@@ -182,7 +200,7 @@ Use different models for different tasks to optimize performance and cost:
 > /mset compression.max_tokens 500
 
 > Explain the halting problem
-🤖 [GPT-4 provides detailed explanation while Falcon-7B manages topics]
+🤖 [GPT-5 provides detailed explanation while Falcon-7B manages topics]
 ```
 
 ### 💾 Long Conversation Management
@@ -331,7 +349,7 @@ Use '/mset <context>.<param> default' to reset to default value
 
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────
-Chat:        gpt-4.1-2025-04-14
+Chat:        gpt-5
 Detection:   huggingface/tiiuae/falcon-7b-instruct  
 Compression: gpt-3.5-turbo
 Synthesis:   huggingface/tiiuae/falcon-7b-instruct
@@ -433,7 +451,7 @@ Built with:
 📚 Found 12 relevant sources
 ✨ Based on recent developments, here are the major ML breakthroughs in 2024:
 
-1. **OpenAI's GPT-4o with Advanced Reasoning** - Significant improvements in complex problem solving...
+1. **OpenAI's GPT-5 with Configurable Reasoning** - Advanced reasoning with verbosity and effort controls...
 2. **Google's Gemini Ultra 1.5** - Extended context windows up to 2M tokens...
 3. **Meta's Llama 3.1 405B** - Open-source model rivaling proprietary systems...
 
@@ -446,10 +464,10 @@ Built with:
 📚 Conversation Topics
 ══════════════════════════════════════════════════════════════
 📌 machine-learning-breakthroughs-2024 (ongoing)
-   Started: d4 | Messages: 6 | Model: gpt-4
+   Started: d4 | Messages: 6 | Model: gpt-5
 
 📦 quantum-computing-basics (compressed)  
-   Started: a1 | Ended: d3 | Messages: 12 | Model: gpt-4
+   Started: a1 | Ended: d3 | Messages: 12 | Model: gpt-5
    💾 Compressed to 420 tokens (95% reduction)
 
 📑 initial-conversation
@@ -497,7 +515,8 @@ The latest methods build directly on the foundations you documented, with notabl
 🤖 Available Models by Provider
 ══════════════════════════════════════════════════════════════
 OpenAI:
-  • gpt-4o                    Most capable model
+  • gpt-5                     Latest model with verbosity control
+  • gpt-4o                    Previous generation model
   • gpt-4o-mini               Fast and cost-effective  
   • gpt-3.5-turbo             Legacy but reliable
 
@@ -514,7 +533,7 @@ Local (Ollama):
 ──────────────────────────────────────────────────────────────
 Context      Model               Temperature  Max Tokens  Cost/1K
 ──────────────────────────────────────────────────────────────
-Chat         gpt-4o              0.7         2000        $0.015
+Chat         gpt-5               1.0         None        $0.011
 Detection    ollama/llama3       0.0         50          $0.000  
 Compression  gpt-3.5-turbo       0.3         500         $0.002
 Synthesis    claude-3-haiku      0.3         1500        $0.001

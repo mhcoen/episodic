@@ -27,6 +27,7 @@ class SearchResult:
     title: str
     url: str
     snippet: str
+    relevance_score: float = 0.0  # Added relevance score field
     timestamp: datetime = None
     
     def __post_init__(self):

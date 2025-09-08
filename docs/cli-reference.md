@@ -72,6 +72,25 @@ Switch to advanced mode - full access to all 50+ commands
 /advanced          # Switch to advanced mode
 ```
 
+### /theme
+Change the color theme for the interface
+```bash
+/theme             # Show available themes and current theme
+/theme dark        # Switch to dark theme
+/theme light       # Switch to light theme
+/theme ocean       # Switch to ocean theme
+```
+
+### /detail
+Set the detail level for responses (affects all modes)
+```bash
+/detail            # Show current detail level
+/detail minimal    # Brief, concise responses
+/detail moderate   # Standard balanced responses
+/detail detailed   # Comprehensive responses
+/detail maximum    # Most detailed responses
+```
+
 ## Navigation Commands
 
 ### /init
@@ -451,10 +470,24 @@ Return to normal chat mode
 ### /memory
 Manage the conversation memory system (always on by default)
 ```bash
-/memory                     # Search your conversation memories
+/memory                     # Show memory system status and search interface
 /memory <query>             # Search for specific memories
 /memory-stats               # Show memory system statistics
 /forget <query>             # Remove specific memories from the system
+```
+
+### /new
+Start a new conversation branch
+```bash
+/new                        # Create a new conversation branch from current node
+/new --from <node_id>       # Branch from a specific node
+```
+
+### /clear
+Clear current conversation context
+```bash
+/clear                      # Clear the current conversation context
+/clear --confirm            # Clear without confirmation prompt
 ```
 
 ### /debug
@@ -464,6 +497,28 @@ Toggle debug mode for troubleshooting
 /debug on                   # Enable debug mode
 /debug off                  # Disable debug mode
 /debug on topic             # Enable debug for topic detection specifically
+/debug on memory            # Enable debug for memory system
+/debug on rag               # Enable debug for RAG operations
+/debug on web               # Enable debug for web search
+```
+
+### /dev
+Development and testing commands (advanced users)
+```bash
+/dev                        # Show development commands
+/dev inspect <node_id>      # Inspect node internals
+/dev graph                  # Show conversation graph statistics
+/dev cache                  # Show cache statistics
+/dev reload                 # Reload configuration
+```
+
+### /migrate
+Database migration utilities
+```bash
+/migrate                    # Check migration status
+/migrate latest             # Migrate to latest version
+/migrate check              # Check for pending migrations
+/migrate backup             # Backup before migration
 ```
 
 ## Utility Commands

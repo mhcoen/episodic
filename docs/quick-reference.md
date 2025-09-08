@@ -20,6 +20,9 @@ Just type to chat! No prefix needed.
 | `/topics` | List conversation topics |
 | `/muse` | Enable web search mode |
 | `/reflect` | Enable multi-step reflection |
+| `/memory` | Search conversation memories |
+| `/new` | Start new conversation branch |
+| `/clear` | Clear conversation context |
 | `/help` | Show all commands |
 
 ### Knowledge & Search
@@ -41,7 +44,10 @@ Just type to chat! No prefix needed.
 | `/mset chat.temp 0.7` | Set model parameter |
 | `/style standard` | Set response style (concise/standard/comprehensive/custom) |
 | `/format mixed` | Set response format (paragraph/bulleted/mixed/academic) |
+| `/theme` | Change color theme |
+| `/detail moderate` | Set detail level |
 | `/reset all` | Reset to defaults |
+| `/migrate` | Database migration |
 
 ### Common Settings
 ```bash
@@ -50,6 +56,8 @@ Just type to chat! No prefix needed.
 /set cost true                # Show costs
 /set topics true              # Show topic info
 /set color-mode basic         # Switch color mode
+/debug on topic               # Debug topic detection
+/debug on memory              # Debug memory system
 ```
 
 ### Web Search Settings (New)
@@ -115,3 +123,6 @@ Just type to chat! No prefix needed.
 - Node IDs are 2 characters (e.g., `a1`, `b2`)
 - Settings persist in the database
 - Use `/muse` for Perplexity-like web search mode
+- Use `/memory` to search past conversations
+- Use `/theme` to customize the interface appearance
+- Use `/dev` for advanced debugging and inspection

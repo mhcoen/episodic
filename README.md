@@ -61,7 +61,7 @@ python -m episodic
 
 Episodic automatically configures itself based on available providers:
 - **With Hugging Face**: Uses Falcon-7B-Instruct for background tasks (free tier compatible)
-- **With OpenAI**: Uses GPT-5 for chat, GPT-3.5-Turbo-Instruct for analysis
+- **With OpenAI**: Uses GPT-4o-mini by default for chat, GPT-3.5-Turbo-Instruct for analysis
 - **With Ollama**: Uses local models for complete privacy
 
 ```text
@@ -89,17 +89,39 @@ Episodic automatically configures itself based on available providers:
 ### Essential Commands
 
 ```bash
+# Interface Modes
+/simple          # Switch to simple mode (hides advanced features)
+/advanced        # Switch to advanced mode (all features available)
+
+# Core Commands  
 /topics          # See how your conversation is organized
 /out             # Save current topic to markdown
 /in file.md      # Load a markdown conversation
 /files           # List markdown files in directory (alias: /ls)
+
+# Knowledge & Search
 /search query    # Search your indexed documents (alias: /s) 
 /index file      # Add file to knowledge base (alias: /i)
 /muse            # Switch to Perplexity-like web search mode
+/web             # Show current web search provider
+
+# Customization
 /style           # Set global response style (concise/standard/comprehensive/custom)
 /format          # Set global response format (paragraph/bulleted/mixed/academic)
-/web             # Show current web search provider
+/theme           # Change color theme for the interface
+
+# Memory & Context
+/memory          # Show memory system status
+/forget          # Clear memory of specific topics
+/new             # Start a new conversation branch
+/clear           # Clear current conversation context
+
+# Configuration
 /model           # Show current AI models
+/config          # Manage configuration settings
+/migrate         # Migrate database to latest version
+
+# Help
 /help            # See all commands
 /help <query>    # Search documentation (e.g., /help How do I use muse mode?)
 

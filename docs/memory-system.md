@@ -2,37 +2,67 @@
 
 ## Overview
 
-The Episodic memory system provides intelligent context enhancement using Retrieval Augmented Generation (RAG). It automatically stores conversation history and relevant documents, then retrieves them to provide context when needed.
+Episodic has a dual-memory architecture that provides both persistent conversation history and optional document-based knowledge enhancement:
+
+1. **System Memory** (Always On): Automatically stores and retrieves your conversation history
+2. **User RAG** (Optional): Indexes your documents for knowledge-base queries
+
+This separation ensures conversations are always remembered while keeping document search optional.
+
+## Understanding the Dual-Memory System
+
+### System Memory (Always On)
+Think of this as Episodic's "conversation memory" - it remembers everything you've discussed:
+- **What it stores**: All your conversations, organized by topic
+- **When it's used**: Automatically provides context from past discussions
+- **Why it's always on**: Ensures continuity across sessions
+- **Example**: "Remember when we discussed that Python bug?" - Episodic will find it
+
+### User RAG (Optional)
+Think of this as your "personal knowledge base" - for your documents and files:
+- **What it stores**: Documents you explicitly index (PDFs, markdown, code)
+- **When it's used**: When you enable it and index documents
+- **Why it's optional**: Not everyone needs document search
+- **Example**: Index your project docs, then ask questions about them
 
 ## Key Features
 
-### 1. Automatic Memory Storage
-- Conversations are automatically stored as memories after each exchange
-- Web search results are preserved for future reference
-- Documents and files can be manually indexed
+### System Memory (Conversation History)
+- **Always Active**: Cannot be disabled - ensures continuity
+- **Automatic Storage**: Every conversation is preserved
+- **Smart Retrieval**: Finds relevant past discussions
+- **Topic-Aware**: Organized by detected conversation topics
+- **Persistent**: Survives application restarts
 
-### 2. Smart Context Injection
-- Detects when stored memories are relevant to current queries
-- Automatically includes context without explicit requests
-- Preserves conversation flow while adding helpful background
-
-### 3. Memory Management
-- View, search, and manage stored memories
-- Remove outdated or irrelevant information
-- Monitor memory usage and statistics
+### User RAG (Document Knowledge Base)
+- **Optional**: Enable with `/rag on`
+- **Document Indexing**: Add PDFs, markdown, text files
+- **Semantic Search**: Find information across documents
+- **Web Integration**: Index web search results
+- **Privacy-First**: All data stays local
 
 ## Configuration
 
-### Enable/Disable Automatic Context Enhancement
+### System Memory Configuration
 ```bash
-# Enable automatic context enhancement (default)
-/set rag-enabled true
-
-# Disable automatic context enhancement
-/set rag-enabled false
+# System memory is always on by default
+/set system_memory_enabled true        # Cannot be disabled in normal use
+/set system_memory_auto_store true     # Auto-store conversations
+/set system_memory_auto_context true   # Auto-use in responses
+/set memory_relevance_threshold 0.3    # Minimum relevance (0.0-1.0)
 ```
 
-**Note**: Memory commands (`/memory`, `/forget`, `/memory-stats`) always work regardless of this setting. This setting only controls whether memories are automatically used to enhance responses.
+### User RAG Configuration
+```bash
+# Enable/disable document RAG
+/rag on                                # Enable document search
+/rag off                               # Disable document search
+
+# Configure RAG behavior
+/set rag_auto_search true              # Auto-search on queries
+/set rag_search_threshold 0.7          # Relevance threshold
+/set rag_max_results 5                 # Max results to include
+```
 
 ### Configure Auto-Enhancement
 ```bash
@@ -57,7 +87,9 @@ The Episodic memory system provides intelligent context enhancement using Retrie
 
 ## Memory Commands
 
-### `/memory` - View and Search Memories
+### System Memory Commands
+
+#### `/memory` - Search Conversation History
 
 List recent memories:
 ```bash
@@ -83,7 +115,7 @@ List more memories:
 # Shows 25 most recent memories
 ```
 
-### `/forget` - Remove Memories
+#### `/forget` - Remove Conversation Memories
 
 Remove specific memory:
 ```bash
@@ -109,7 +141,7 @@ Clear all memories (with confirmation):
 # Removes all memories after confirmation
 ```
 
-### `/memory-stats` - View Statistics
+#### `/memory-stats` - View Memory Statistics
 
 ```bash
 /memory-stats
@@ -270,12 +302,37 @@ Documents by Source:
 /forget --source web  # If web results accumulate
 ```
 
+### Document RAG Commands
+
+#### `/index` or `/i` - Index Documents
+```bash
+/index document.pdf              # Index a PDF
+/i research_paper.md             # Index markdown (short form)
+/index ~/Documents/notes.txt     # Index from path
+```
+
+#### `/search` or `/s` - Search Documents
+```bash
+/search quantum computing        # Search indexed documents
+/s API authentication           # Short form search
+```
+
+#### `/docs` - Manage Documents
+```bash
+/docs                           # List all indexed documents
+/docs show 1                    # Show document details
+/docs remove 1                  # Remove a document
+/docs clear                     # Remove all documents
+```
+
 ## Privacy and Security
 
-- All memories are stored locally in `~/.episodic/`
-- No data is sent to external services (except configured LLM providers)
-- Memories can be completely cleared with `/forget --all`
-- Disable memory system entirely with `/set rag-enabled false`
+- All data stored locally in `~/.episodic/`
+- System memory in SQLite database
+- User RAG in ChromaDB vector store
+- No external data sharing (except LLM API calls)
+- Clear conversation memory: `/forget --all`
+- Clear document index: `/docs clear`
 
 ## Troubleshooting
 

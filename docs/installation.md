@@ -17,21 +17,48 @@ cd episodic
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install core dependencies
-pip install typer rich prompt-toolkit litellm chromadb sentence-transformers
-
-# Install Episodic in development mode
+# Install Episodic with all dependencies
 pip install -e .
 ```
 
-This will install all required dependencies, including:
+This installs Episodic in development mode along with core dependencies defined in setup.py.
+
+### Core Dependencies
+The following packages are automatically installed:
 - **typer**: Command-line interface framework
-- **rich**: Beautiful terminal formatting
+- **rich**: Beautiful terminal formatting and colors
 - **prompt_toolkit**: Interactive interface with tab completion
 - **litellm**: Unified interface for 20+ LLM providers
-- **chromadb**: Vector database for RAG functionality
-- **sentence-transformers**: Text embeddings for topic detection
-- Other dependencies for visualization and database functionality
+- **networkx**: Graph data structures for conversation DAG
+- **flask**: Web server for visualization
+- **plotly**: Interactive visualization
+- **openai**: OpenAI API client (used by litellm)
+- **pygments**: Syntax highlighting
+- **numpy**: Numerical computations
+- **pywebview**: Native GUI for web content
+
+### Installation Options
+Episodic supports optional features through extras:
+
+```bash
+# Install with RAG (knowledge base) support
+pip install -e ".[rag]"
+
+# Install with web search capabilities
+pip install -e ".[web]"
+
+# Install with machine learning features
+pip install -e ".[ml]"
+
+# Install with PDF support
+pip install -e ".[pdf]"
+
+# Install everything (recommended for full features)
+pip install -e ".[all]"
+
+# Install development tools
+pip install -e ".[dev]"
+```
 
 ## Running Episodic
 
@@ -95,9 +122,29 @@ ollama pull phi3  # For instruct tasks
 
 For more providers and configuration options, see the [models configuration guide](./models-configuration.md).
 
-## Optional Dependencies
+## Optional Components
 
-### For PDF Support
+### Quick Setup Examples
+
+#### Full-Featured Installation (Recommended)
+```bash
+# Install with all optional features
+pip install -e ".[all]"
+```
+
+#### Minimal Installation
+```bash
+# Core functionality only (chat with LLMs)
+pip install -e .
+```
+
+#### Development Setup
+```bash
+# Install with development tools
+pip install -e ".[all,dev]"
+```
+
+### PDF Support
 ```bash
 pip install pypdf2
 ```

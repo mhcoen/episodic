@@ -204,7 +204,8 @@ class ContextBuilder:
             search_manager = get_web_search_manager()
             from episodic.web_extract import fetch_page_content_sync
             
-            if search_manager.is_available() and search_manager.is_enabled():
+            # Check if web search is enabled in config
+            if config.get("web_search_enabled", False):
                 # Perform web search
                 typer.echo("")
                 secho_color("🌐 Searching the web...", fg=get_system_color())

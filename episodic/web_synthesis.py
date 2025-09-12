@@ -18,7 +18,17 @@ class WebSynthesizer:
     """Synthesize web search results into coherent answers."""
     
     def __init__(self):
-        self.synthesis_model = config.get('synthesis_model') or config.get('muse_model') or config.get('model', 'gpt-3.5-turbo')
+        # Use synthesis_model if set, otherwise muse_model, otherwise default to ollama/phi3
+        self.synthesis_model = config.get('synthesis_model')
+        if not self.synthesis_model:
+            self.synthesis_model = config.get('muse_model')
+        if not self.synthesis_model:
+            # Default to ollama/phi3 for synthesis to save costs
+            self.synthesis_model = 'ollama/phi3'
+        
+        # Debug: print the model being used
+        if config.get("debug"):
+            typer.secho(f"[DEBUG] WebSynthesizer using model: {self.synthesis_model}", fg="yellow")
         # Use global style system instead of muse-specific style
         self.style = config.get('response_style', 'standard')
         self.detail = config.get('muse_detail', 'moderate')
@@ -28,33 +38,41 @@ class WebSynthesizer:
         
     def _get_style_instructions(self) -> Dict[str, Any]:
         """Get instructions based on synthesis style using global style system."""
-        # Import style definitions from the style module
+        # Import style definitions and prompt manager
         from episodic.commands.style import STYLE_DEFINITIONS
+        from episodic.prompt_manager import get_prompt_manager
         
         style_info = STYLE_DEFINITIONS.get(self.style)
         if not style_info:
             style_info = STYLE_DEFINITIONS['standard']
         
+        # Load the actual style prompt from files
+        prompt_manager = get_prompt_manager()
+        style_prompt = prompt_manager.get(f"style/{self.style}")
+        if not style_prompt:
+            # Fallback if file not found
+            style_prompt = "Provide a clear, natural response with appropriate detail."
+        
         # Convert global style to synthesis-specific instructions
         synthesis_map = {
             'concise': {
                 'description': 'a brief, direct synthesis',
-                'instructions': style_info['prompt'] + ' Focus on synthesizing web search results into concise answers.',
+                'instructions': style_prompt + ' Focus on synthesizing web search results into concise answers.',
                 'tokens': style_info['max_tokens'] or 500
             },
             'standard': {
                 'description': 'a balanced, well-structured synthesis', 
-                'instructions': style_info['prompt'] + ' Synthesize web search results with appropriate detail.',
+                'instructions': style_prompt + ' Synthesize web search results with appropriate detail.',
                 'tokens': style_info['max_tokens'] or 1000
             },
             'comprehensive': {
                 'description': 'a thorough, detailed synthesis',
-                'instructions': style_info['prompt'] + ' Synthesize web search results into comprehensive, detailed answers.',
+                'instructions': style_prompt + ' Synthesize web search results into comprehensive, detailed answers.',
                 'tokens': style_info['max_tokens'] or 2000
             },
             'custom': {
                 'description': 'synthesis with model-specific token limits',
-                'instructions': style_info['prompt'] + ' Synthesize web search results appropriately.',
+                'instructions': style_prompt + ' Synthesize web search results appropriately.',
                 'tokens': None  # Will use model-specific settings
             }
         }
@@ -287,7 +305,7 @@ def synthesize_web_response(query: str, search_results: Dict[str, Any],
         model: Model to use for synthesis
         
     Returns:
-        The synthesized response text
+        The synthesized response text or a dict with streaming info
     """
     synthesizer = WebSynthesizer()
     
@@ -308,30 +326,10 @@ def synthesize_web_response(query: str, search_results: Dict[str, Any],
     # Synthesize the response
     response = synthesizer.synthesize_results(query, results, extracted_content, conversation_history)
     
-    # Handle streaming case - when streaming is enabled, synthesize_results returns a dict
+    # For streaming mode, just return the dict with streaming info
+    # The caller (conversation.py) will handle the actual streaming
     if isinstance(response, dict) and response.get('streaming'):
-        # Execute the actual synthesis with streaming
-        from episodic.llm import _execute_llm_query
-        messages = [
-            {"role": "system", "content": response['system_message']},
-            {"role": "user", "content": response['prompt']}
-        ]
-        
-        stream_generator, _ = _execute_llm_query(
-            messages,
-            model=response['model'],
-            temperature=response.get('temperature', 0.3),
-            max_tokens=response.get('max_tokens', 1500),
-            stream=True
-        )
-        
-        # Collect the streamed response
-        full_response = ""
-        for chunk in stream_generator:
-            if chunk:
-                full_response += chunk
-        
-        return full_response
+        return response
     
     return response or "I couldn't find relevant information to answer your question."
 

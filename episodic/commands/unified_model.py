@@ -98,14 +98,19 @@ def show_current_models():
     seen_types = set()  # Track which model types we've seen
     
     for description, config_key, context_name in contexts:
-        current = config.get(config_key, get_default_for_context(context_name))
+        current = config.get(config_key)
+        
+        # Handle None values - use defaults
+        if current is None:
+            current = get_default_for_context(context_name)
+        
         model_str = get_model_string(current)
         
         # Get model info
         provider = find_provider_for_model(current)
         if not provider:
             # Try to extract provider from model name
-            if "/" in current:
+            if current and "/" in current:
                 provider = current.split("/")[0]
             else:
                 provider = "unknown"

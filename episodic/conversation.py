@@ -575,13 +575,42 @@ class ConversationManager:
                         debug_print(f"  Message {i}: {msg['role']} - {msg['content'][:50]}...")
                 
                 # Use web synthesis for muse mode
-                full_response = synthesize_web_response(
+                synthesis_result = synthesize_web_response(
                     query=user_input,
                     search_results=web_context,
                     conversation_history=messages,
                     model=model
                 )
-                display_response = full_response
+                
+                # Handle streaming case for muse mode
+                if isinstance(synthesis_result, dict) and synthesis_result.get('streaming'):
+                    # Extract streaming info and execute the query
+                    from episodic.llm import _execute_llm_query
+                    
+                    messages = [
+                        {"role": "system", "content": synthesis_result['system_message']},
+                        {"role": "user", "content": synthesis_result['prompt']}
+                    ]
+                    
+                    stream_generator, _ = _execute_llm_query(
+                        messages,
+                        model=synthesis_result['model'],
+                        temperature=synthesis_result.get('temperature', 0.3),
+                        max_tokens=synthesis_result.get('max_tokens', 1500),
+                        stream=True
+                    )
+                    
+                    # Stream the response with unified streamer
+                    typer.echo("")  # Newline before streaming
+                    full_response = unified_stream_response(
+                        stream_generator=stream_generator,
+                        model=synthesis_result['model']
+                    )
+                    display_response = full_response
+                else:
+                    # Non-streaming response
+                    full_response = synthesis_result
+                    display_response = full_response
             else:
                 # Regular LLM query
                 with benchmark_resource("LLM Call", f"main query - {model}"):

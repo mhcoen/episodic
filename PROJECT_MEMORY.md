@@ -92,6 +92,19 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ## Recent Changes
 
+- **Muse Mode Context Preservation Fix (2025-01-12)**:
+  - Fixed critical issue where muse mode was not maintaining conversation context
+  - Problem: Each web search query was answered in isolation, ignoring conversation history
+  - Root cause: Streaming synthesis was replacing entire message history with just synthesis prompt
+  - Solution: Preserve conversation history by appending synthesis to existing messages
+  - Now muse mode properly maintains context across multiple related questions
+- **Muse Mode & Model Configuration Fixes (2025-01-12)**:
+  - Fixed broken muse mode web search functionality (multiple cascading errors)
+  - Restored proper default models: `ollama/phi3` for auxiliary tasks
+  - Fixed NoneType error in `/model` command when models not configured
+  - Fixed UnboundLocalError with `unified_stream_response` in muse mode
+  - Discovered dual model system: expensive cloud models for chat, cheap local for auxiliary
+  - Root cause: falcon-7b-instruct was incorrectly set as default at some point
 - **Topic Detection Evaluation & Fine-Tuning (January 2025)**:
   - Comprehensive evaluation of topic detection methods on 4 datasets
   - Discovered small LLMs (<1B params) cannot handle complex window-based prompts

@@ -586,14 +586,22 @@ class ConversationManager:
                 if isinstance(synthesis_result, dict) and synthesis_result.get('streaming'):
                     # Extract streaming info and execute the query
                     from episodic.llm import _execute_llm_query
-                    
-                    messages = [
-                        {"role": "system", "content": synthesis_result['system_message']},
-                        {"role": "user", "content": synthesis_result['prompt']}
-                    ]
-                    
+
+                    # Preserve conversation history by appending synthesis to existing messages
+                    synthesis_messages = messages.copy() if messages else []
+
+                    # Add synthesis as the final exchange
+                    synthesis_messages.append({
+                        "role": "system",
+                        "content": synthesis_result['system_message']
+                    })
+                    synthesis_messages.append({
+                        "role": "user",
+                        "content": synthesis_result['prompt']
+                    })
+
                     stream_generator, _ = _execute_llm_query(
-                        messages,
+                        synthesis_messages,
                         model=synthesis_result['model'],
                         temperature=synthesis_result.get('temperature', 0.3),
                         max_tokens=synthesis_result.get('max_tokens', 1500),

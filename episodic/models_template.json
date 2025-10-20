@@ -69,28 +69,28 @@
       "display_name": "Anthropic",
       "models": [
         {
-          "name": "claude-opus-4-20250514",
-          "display_name": "Claude 4 Opus",
+          "name": "claude-opus-4-1-20250805",
+          "display_name": "Claude Opus 4.1",
           "type": "both",
           "parameters": "~1T",
           "context_window": 200000
         },
         {
           "name": "claude-sonnet-4-20250522",
-          "display_name": "Claude 4 Sonnet",
+          "display_name": "Claude Sonnet 4",
           "type": "both",
           "parameters": "~300B",
           "context_window": 200000
         },
         {
-          "name": "claude-sonnet-4.5-20250929",
+          "name": "claude-sonnet-4-5-20250929",
           "display_name": "Claude Sonnet 4.5",
           "type": "both",
           "parameters": "~300B",
           "context_window": 200000
         },
         {
-          "name": "claude-haiku-4.5-20251015",
+          "name": "claude-haiku-4-5-20251015",
           "display_name": "Claude Haiku 4.5",
           "type": "both",
           "parameters": "~70B",

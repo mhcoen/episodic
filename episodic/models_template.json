@@ -83,10 +83,17 @@
           "context_window": 200000
         },
         {
-          "name": "claude-3.7-sonnet-20250219",
-          "display_name": "Claude 3.7 Sonnet",
+          "name": "claude-sonnet-4.5-20250929",
+          "display_name": "Claude Sonnet 4.5",
           "type": "both",
           "parameters": "~300B",
+          "context_window": 200000
+        },
+        {
+          "name": "claude-haiku-4.5-20251015",
+          "display_name": "Claude Haiku 4.5",
+          "type": "both",
+          "parameters": "~70B",
           "context_window": 200000
         },
         {

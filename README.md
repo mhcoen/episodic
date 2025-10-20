@@ -542,8 +542,9 @@ OpenAI:
   • gpt-4o-mini               Fast and cost-effective  
   • gpt-3.5-turbo             Legacy but reliable
 
-Anthropic:  
-  • claude-opus-4-20250514     Latest Claude Opus model
+Anthropic:
+  • claude-opus-4-1-20250805   Latest Opus 4.1 model
+  • claude-sonnet-4-5-20250929 Latest Sonnet 4.5 model
   • claude-3.5-sonnet-20241022 Fast and efficient
 
 Local (Ollama):

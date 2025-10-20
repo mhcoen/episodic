@@ -331,8 +331,8 @@ def show_available_models():
     typer.secho("  /model compression <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat 1                       # Select by number from list", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat claude-sonnet-4.5-20250929  # Select by full model name", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat 8                       # Select by number from list", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat claude-opus-4-20250514  # Select by full model name", fg=get_text_color(), dim=True)
 
 
 def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optional[int] = None) -> str:

@@ -19,14 +19,14 @@ Episodic now supports OpenRouter, which provides access to multiple LLM provider
    ```
    
    You'll see OpenRouter models listed like:
-   - `openrouter/anthropic/claude-3-opus`
-   - `openrouter/openai/gpt-4-turbo-preview`
-   - `openrouter/google/gemini-pro`
-   - `openrouter/meta-llama/llama-2-70b-chat`
+   - `openrouter/anthropic/claude-opus-4-20250514`
+   - `openrouter/openai/gpt-5-pro`
+   - `openrouter/google/gemini-2.5-pro`
+   - `openrouter/meta-llama/llama-3.3-70b-instruct`
 
 4. **Select an OpenRouter model**
    ```
-   /model chat openrouter/anthropic/claude-3-opus
+   /model chat openrouter/anthropic/claude-opus-4-20250514
    ```
 
 ## Benefits

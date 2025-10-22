@@ -58,8 +58,13 @@ class DuckDuckGoProvider(WebSearchProvider):
         self.min_delay = 1.0  # Minimum seconds between searches
     
     def is_available(self) -> bool:
-        """DuckDuckGo is always available."""
-        return True
+        """Check if DuckDuckGo dependencies are installed."""
+        try:
+            import aiohttp
+            from bs4 import BeautifulSoup
+            return True
+        except ImportError:
+            return False
     
     async def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
         """Search DuckDuckGo and parse results."""
@@ -72,12 +77,9 @@ class DuckDuckGoProvider(WebSearchProvider):
             import aiohttp
             from bs4 import BeautifulSoup
         except ImportError:
-            typer.secho(
-                "⚠️  Web search requires additional dependencies. Install with:\n"
-                "    pip install aiohttp beautifulsoup4",
-                fg=get_warning_color()
+            raise ImportError(
+                "Web search requires additional dependencies. Install with: pip install aiohttp beautifulsoup4"
             )
-            return []
         
         results = []
         url = f"https://duckduckgo.com/html/?q={quote_plus(query)}"
@@ -132,8 +134,12 @@ class SearxProvider(WebSearchProvider):
         self.min_delay = 0.5  # Searx is usually self-hosted
     
     def is_available(self) -> bool:
-        """Check if Searx instance is configured."""
-        return bool(self.instance_url)
+        """Check if Searx instance is configured and dependencies are installed."""
+        try:
+            import aiohttp
+            return bool(self.instance_url)
+        except ImportError:
+            return False
     
     async def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
         """Search using Searx/SearxNG API."""
@@ -141,16 +147,13 @@ class SearxProvider(WebSearchProvider):
         elapsed = time.time() - self.last_search_time
         if elapsed < self.min_delay:
             await asyncio.sleep(self.min_delay - elapsed)
-        
+
         try:
             import aiohttp
         except ImportError:
-            typer.secho(
-                "⚠️  Web search requires aiohttp. Install with:\n"
-                "    pip install aiohttp",
-                fg=get_warning_color()
+            raise ImportError(
+                "Web search requires aiohttp. Install with: pip install aiohttp"
             )
-            return []
         
         results = []
         # Use JSON format for easier parsing
@@ -206,8 +209,12 @@ class GoogleProvider(WebSearchProvider):
         self.search_engine_id = config.get('google_search_engine_id') or config.get('GOOGLE_SEARCH_ENGINE_ID')
     
     def is_available(self) -> bool:
-        """Check if Google Search is configured."""
-        return bool(self.api_key and self.search_engine_id)
+        """Check if Google Search is configured and dependencies are installed."""
+        try:
+            import aiohttp
+            return bool(self.api_key and self.search_engine_id)
+        except ImportError:
+            return False
     
     async def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
         """Search using Google Custom Search API."""
@@ -218,16 +225,13 @@ class GoogleProvider(WebSearchProvider):
                     fg="yellow"
                 )
             return []
-        
+
         try:
             import aiohttp
         except ImportError:
-            typer.secho(
-                "⚠️  Web search requires aiohttp. Install with:\n"
-                "    pip install aiohttp",
-                fg=get_warning_color()
+            raise ImportError(
+                "Web search requires aiohttp. Install with: pip install aiohttp"
             )
-            return []
         
         results = []
         url = "https://www.googleapis.com/customsearch/v1"
@@ -293,8 +297,12 @@ class BingProvider(WebSearchProvider):
         self.endpoint = config.get('bing_endpoint', 'https://api.bing.microsoft.com/v7.0/search')
     
     def is_available(self) -> bool:
-        """Check if Bing Search is configured."""
-        return bool(self.api_key)
+        """Check if Bing Search is configured and dependencies are installed."""
+        try:
+            import aiohttp
+            return bool(self.api_key)
+        except ImportError:
+            return False
     
     async def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
         """Search using Bing Search API."""
@@ -305,16 +313,13 @@ class BingProvider(WebSearchProvider):
                     fg="yellow"
                 )
             return []
-        
+
         try:
             import aiohttp
         except ImportError:
-            typer.secho(
-                "⚠️  Web search requires aiohttp. Install with:\n"
-                "    pip install aiohttp",
-                fg=get_warning_color()
+            raise ImportError(
+                "Web search requires aiohttp. Install with: pip install aiohttp"
             )
-            return []
         
         results = []
         headers = {
@@ -690,9 +695,14 @@ class WebSearchManager:
                             f"⚠️  Skipping Bing (requires BING_API_KEY)",
                             fg="yellow"
                         )
+                    elif provider_name == 'DuckDuckGo':
+                        typer.secho(
+                            f"⚠️  Skipping DuckDuckGo (requires: pip install aiohttp beautifulsoup4)",
+                            fg="yellow"
+                        )
                     else:
                         typer.secho(
-                            f"⚠️  Skipping {provider_name} (not configured)",
+                            f"⚠️  Skipping {provider_name} (not configured or missing dependencies)",
                             fg="yellow"
                         )
                 continue
@@ -791,9 +801,14 @@ class WebSearchManager:
                             f"⚠️  Skipping Bing (requires BING_API_KEY)",
                             fg="yellow"
                         )
+                    elif provider_name == 'DuckDuckGo':
+                        typer.secho(
+                            f"⚠️  Skipping DuckDuckGo (requires: pip install aiohttp beautifulsoup4)",
+                            fg="yellow"
+                        )
                     else:
                         typer.secho(
-                            f"⚠️  Skipping {provider_name} (not configured)",
+                            f"⚠️  Skipping {provider_name} (not configured or missing dependencies)",
                             fg="yellow"
                         )
                 continue

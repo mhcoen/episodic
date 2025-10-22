@@ -25,13 +25,13 @@ class WebSynthesizer:
 
         # Handle null - use main chat model
         if not self.synthesis_model or self.synthesis_model == 'null':
-            self.synthesis_model = config.get('model', 'gpt-4o-mini')
+            self.synthesis_model = config.get('model')
             if config.get("debug"):
                 typer.secho(f"[DEBUG] WebSynthesizer: synthesis_model is null, using main chat model: {self.synthesis_model}", fg="yellow")
 
-        # Final fallback
+        # Final fallback - still use chat model
         if not self.synthesis_model:
-            self.synthesis_model = 'gpt-4o-mini'
+            self.synthesis_model = config.get('model')
 
         # Debug: print the model being used
         if config.get("debug"):

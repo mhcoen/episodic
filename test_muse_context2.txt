@@ -1,5 +1,0 @@
-# Test muse mode context preservation
-/set muse-mode true
-Who is the current CEO of OpenAI?
-What company did the person I just asked about previously work at?
-/quit

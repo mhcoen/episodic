@@ -648,7 +648,7 @@ def _handle_about():
     typer.secho("  • Web search integration", fg=get_text_color())
     typer.secho("  • Conversation compression and summarization", fg=get_text_color())
     typer.secho("\nVersion: 0.1.0", fg=get_system_color())
-    typer.secho("Repository: https://github.com/yourusername/episodic", fg=get_system_color())
+    typer.secho("Repository: https://github.com/mhcoen/episodic", fg=get_system_color())
 
 
 def _handle_welcome():

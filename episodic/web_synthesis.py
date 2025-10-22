@@ -18,14 +18,21 @@ class WebSynthesizer:
     """Synthesize web search results into coherent answers."""
     
     def __init__(self):
-        # Use synthesis_model if set, otherwise muse_model, otherwise default to ollama/phi3
+        # Use synthesis_model if set, otherwise muse_model, otherwise default
         self.synthesis_model = config.get('synthesis_model')
         if not self.synthesis_model:
             self.synthesis_model = config.get('muse_model')
+
+        # Handle null - use main chat model
+        if not self.synthesis_model or self.synthesis_model == 'null':
+            self.synthesis_model = config.get('model', 'gpt-4o-mini')
+            if config.get("debug"):
+                typer.secho(f"[DEBUG] WebSynthesizer: synthesis_model is null, using main chat model: {self.synthesis_model}", fg="yellow")
+
+        # Final fallback
         if not self.synthesis_model:
-            # Default to ollama/phi3 for synthesis to save costs
-            self.synthesis_model = 'ollama/phi3'
-        
+            self.synthesis_model = 'gpt-4o-mini'
+
         # Debug: print the model being used
         if config.get("debug"):
             typer.secho(f"[DEBUG] WebSynthesizer using model: {self.synthesis_model}", fg="yellow")

@@ -2,7 +2,6 @@
   "_comment": "Model configuration for Episodic. This file defines available models, their types, and parameters.",
   "_version": "1.0",
   "_pricing_note": "Optional pricing can be added to any model. Format: {\"input\": 3.0, \"output\": 15.0, \"unit\": \"per_1m_tokens\", \"last_updated\": \"YYYY-MM-DD\"}",
-  
   "providers": {
     "openai": {
       "display_name": "OpenAI",
@@ -22,7 +21,7 @@
           "context_window": 128000
         },
         {
-          "name": "o4-mini", 
+          "name": "o4-mini",
           "display_name": "o4-mini (Reasoning)",
           "type": "chat",
           "parameters": null,
@@ -64,36 +63,35 @@
         }
       ]
     },
-    
     "anthropic": {
       "display_name": "Anthropic",
       "models": [
         {
-          "name": "claude-opus-4-20250514",
-          "display_name": "Claude 4 Opus",
+          "name": "claude-opus-4-1-20250805",
+          "display_name": "Claude Opus 4.1",
           "type": "both",
           "parameters": "~1T",
           "context_window": 200000
         },
         {
           "name": "claude-sonnet-4-20250522",
-          "display_name": "Claude 4 Sonnet",
+          "display_name": "Claude Sonnet 4",
           "type": "both",
           "parameters": "~300B",
           "context_window": 200000
         },
         {
-          "name": "claude-3-opus-20240229",
-          "display_name": "Claude 3 Opus",
+          "name": "claude-sonnet-4-5-20250929",
+          "display_name": "Claude Sonnet 4.5",
           "type": "both",
-          "parameters": "~1T",
+          "parameters": "~300B",
           "context_window": 200000
         },
         {
-          "name": "claude-3.7-sonnet-20250219",
-          "display_name": "Claude 3.7 Sonnet",
+          "name": "claude-haiku-4-5-20251015",
+          "display_name": "Claude Haiku 4.5",
           "type": "both",
-          "parameters": "~300B",
+          "parameters": "~70B",
           "context_window": 200000
         },
         {
@@ -112,7 +110,6 @@
         }
       ]
     },
-    
     "google": {
       "display_name": "Google",
       "models": [
@@ -131,26 +128,24 @@
           "context_window": 1048576
         },
         {
-          "name": "gemini-ultra",
-          "display_name": "Gemini Ultra",
+          "name": "gemini-2.5-flash-lite",
+          "display_name": "Gemini 2.5 Flash-Lite",
           "type": "both",
           "parameters": null,
-          "context_window": 32768
-        },
-        {
-          "name": "gemini-1.5-pro",
-          "display_name": "Gemini 1.5 Pro",
-          "type": "both",
-          "parameters": null,
-          "context_window": 2097152
+          "context_window": 1048576
         }
       ]
     },
-    
     "ollama": {
       "display_name": "Ollama (Local)",
       "api_base": "http://localhost:11434",
       "models": [
+        {
+          "name": "llama3.3",
+          "display_name": "Llama 3.3",
+          "type": "chat",
+          "detect_params": true
+        },
         {
           "name": "llama3",
           "display_name": "Llama 3",
@@ -187,24 +182,29 @@
           "type": "instruct",
           "parameters": "3.8B",
           "detect_params": true
+        },
+        {
+          "name": "phi4",
+          "display_name": "Phi-4",
+          "type": "instruct",
+          "parameters": "14B",
+          "detect_params": true
         }
       ]
     },
-    
     "lmstudio": {
       "display_name": "LM Studio (Local)",
       "api_base": "http://localhost:1234/v1",
       "models": []
     },
-    
     "openrouter": {
       "display_name": "OpenRouter",
       "api_base": "https://openrouter.ai/api/v1",
       "dynamic": true,
       "models": [
         {
-          "name": "openrouter/anthropic/claude-opus-4",
-          "display_name": "Claude 4 Opus (OR)",
+          "name": "openrouter/anthropic/claude-opus-4.1",
+          "display_name": "Claude Opus 4.1 (OR)",
           "type": "both",
           "context_window": 200000
         },
@@ -273,7 +273,6 @@
         }
       ]
     },
-    
     "huggingface": {
       "display_name": "HuggingFace",
       "models": [
@@ -282,6 +281,12 @@
           "display_name": "Meta Llama 3 8B",
           "type": "chat",
           "parameters": "8B"
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-3.3-70B-Instruct",
+          "display_name": "Meta Llama 3.3 70B Instruct",
+          "type": "instruct",
+          "parameters": "70B"
         },
         {
           "name": "huggingface/meta-llama/Meta-Llama-3-70B",
@@ -324,12 +329,6 @@
           "parameters": "7B"
         },
         {
-          "name": "huggingface/tiiuae/falcon-40b-instruct",
-          "display_name": "Falcon 40B Instruct",
-          "type": "instruct",
-          "parameters": "40B"
-        },
-        {
           "name": "huggingface/01-ai/Yi-1.5-34B-Chat",
           "display_name": "Yi 1.5 34B Chat",
           "type": "chat",
@@ -350,37 +349,73 @@
       ]
     }
   },
-  
   "type_patterns": {
     "instruct": [
-      "instruct", "instruction", "-inst", 
-      "alpaca", "vicuna", "wizardlm", "wizard",
-      "phi3", "phi-3", "phi2", "phi-2",
-      "zephyr", "openhermes", "hermes",
-      "solar", "starling", "openchat",
-      "yi-", "qwen", "deepseek",
-      "gemma:2b-instruct", "gemma:instruct",
-      "minichat", "dolly", "stablelm"
+      "instruct",
+      "instruction",
+      "-inst",
+      "alpaca",
+      "vicuna",
+      "wizardlm",
+      "wizard",
+      "phi3",
+      "phi-3",
+      "phi2",
+      "phi-2",
+      "zephyr",
+      "openhermes",
+      "hermes",
+      "solar",
+      "starling",
+      "openchat",
+      "yi-",
+      "qwen",
+      "deepseek",
+      "gemma:2b-instruct",
+      "gemma:instruct",
+      "minichat",
+      "dolly",
+      "stablelm"
     ],
-    
     "chat": [
-      "chat", "conversation", "dialogue",
-      "assistant", "turbo", "claude",
-      "gpt-4", "gpt-3.5", "gpt4", "gpt3",
-      "llama-2-.*-chat", "llama-3-.*-chat",
-      "llama2:.*chat", "llama3:.*chat",
-      "mixtral", "command", "coral",
-      "bard", "gemini", "palm"
+      "chat",
+      "conversation",
+      "dialogue",
+      "assistant",
+      "turbo",
+      "claude",
+      "gpt-4",
+      "gpt-3.5",
+      "gpt4",
+      "gpt3",
+      "llama-2-.*-chat",
+      "llama-3-.*-chat",
+      "llama2:.*chat",
+      "llama3:.*chat",
+      "mixtral",
+      "command",
+      "coral",
+      "bard",
+      "gemini",
+      "palm"
     ],
-    
     "base": [
-      ":base", "-base", "base-",
-      "completion", "davinci", "curie", "babbage", "ada",
-      "bloom", "gpt-neox", "opt-",
-      "pythia", "galactica", "flan-ul2"
+      ":base",
+      "-base",
+      "base-",
+      "completion",
+      "davinci",
+      "curie",
+      "babbage",
+      "ada",
+      "bloom",
+      "gpt-neox",
+      "opt-",
+      "pythia",
+      "galactica",
+      "flan-ul2"
     ]
   },
-  
   "type_indicators": {
     "instruct": "[I]",
     "chat": "[C]",

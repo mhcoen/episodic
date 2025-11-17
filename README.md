@@ -60,7 +60,7 @@ python -m episodic
 ```
 
 Episodic automatically configures itself based on available providers:
-- **With Hugging Face**: Uses Falcon-7B-Instruct for background tasks (free tier compatible)
+- **With Ollama**: Uses phi3 for background tasks (free and local)
 - **With OpenAI**: Uses GPT-4o-mini by default for chat, GPT-3.5-Turbo-Instruct for analysis
 - **With Ollama**: Uses local models for complete privacy
 
@@ -212,9 +212,9 @@ Use different models for different tasks to optimize performance and cost:
 > /model chat gpt-5
 
 # Use instruct models for background tasks
-> /model detection huggingface/tiiuae/falcon-7b-instruct
-> /model compression gpt-3.5-turbo-instruct
-> /model synthesis huggingface/tiiuae/falcon-7b-instruct
+> /model detection ollama/phi3
+> /model compression ollama/phi3
+> /model synthesis ollama/phi3
 
 # Configure model parameters
 > /mset chat.temperature 0.7
@@ -222,7 +222,7 @@ Use different models for different tasks to optimize performance and cost:
 > /mset compression.max_tokens 500
 
 > Explain the halting problem
-🤖 [GPT-5 provides detailed explanation while Falcon-7B manages topics]
+🤖 [GPT-5 provides detailed explanation while phi3 manages topics]
 ```
 
 ### 💾 Long Conversation Management
@@ -261,16 +261,16 @@ Export conversations to markdown for sharing, backup, or continuing later:
 🤖 The history of computing spans several millennia...
 
 > /out
-✅ Conversation saved to: exports/history-of-computing-2025-01-15.md
+✅ Conversation saved to: exports/history-of-computing-2025-10-15.md
 
 # Later, or on another machine:
 > /files exports
 📁 Markdown files in exports
-📄 history-of-computing-2025-01-15.md
+📄 history-of-computing-2025-10-15.md
    Size: 3.2 KB • Modified: 2 hours ago
    Preview: History of Computing
 
-> /in exports/history-of-computing-2025-01-15.md
+> /in exports/history-of-computing-2025-10-15.md
 ✅ Conversation loaded successfully!
 
 > What about quantum computing?
@@ -372,9 +372,9 @@ Use '/mset <context>.<param> default' to reset to default value
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────
 Chat:        gpt-5
-Detection:   huggingface/tiiuae/falcon-7b-instruct  
-Compression: gpt-3.5-turbo
-Synthesis:   huggingface/tiiuae/falcon-7b-instruct
+Detection:   ollama/phi3
+Compression: ollama/phi3
+Synthesis:   ollama/phi3
 ```
 
 Each context serves a specific purpose:
@@ -468,14 +468,14 @@ Built with:
 > /muse
 🎭 Muse mode active - web search synthesis
 
-> Latest breakthroughs in machine learning 2024
-🔍 Searching web for: latest breakthroughs machine learning 2024
+> Latest breakthroughs in machine learning 2025
+🔍 Searching web for: latest breakthroughs machine learning 2025
 📚 Found 12 relevant sources
-✨ Based on recent developments, here are the major ML breakthroughs in 2024:
+✨ Based on recent developments, here are the major ML breakthroughs in 2025:
 
 1. **OpenAI's GPT-5 with Configurable Reasoning** - Advanced reasoning with verbosity and effort controls...
-2. **Google's Gemini Ultra 1.5** - Extended context windows up to 2M tokens...
-3. **Meta's Llama 3.1 405B** - Open-source model rivaling proprietary systems...
+2. **Google's Gemini 2.5 Pro** - Extended context windows up to 2M tokens...
+3. **Meta's Llama 4 405B** - Open-source model rivaling proprietary systems...
 
 📄 Sources: Nature AI, OpenAI Blog, Google Research, Meta AI...
 ```
@@ -485,8 +485,8 @@ Built with:
 > /topics
 📚 Conversation Topics
 ══════════════════════════════════════════════════════════════
-📌 machine-learning-breakthroughs-2024 (ongoing)
-   Started: d4 | Messages: 6 | Model: gpt-5
+📌 machine-learning-breakthroughs-2025 (ongoing)
+   Started: 2025-10-15 | Messages: 6 | Model: gpt-5
 
 📦 quantum-computing-basics (compressed)  
    Started: a1 | Ended: d3 | Messages: 12 | Model: gpt-5
@@ -503,8 +503,8 @@ Built with:
 > /rag on
 ✅ RAG (knowledge base) enabled
 
-> /index research_papers/quantum_computing_2024.pdf
-📄 Indexed: quantum_computing_2024.pdf (47 chunks)
+> /index research_papers/quantum_computing_2025.pdf
+📄 Indexed: quantum_computing_2025.pdf (47 chunks)
 
 > /muse
 🎭 Muse mode active
@@ -513,7 +513,7 @@ Built with:
 > /set web-auto true
 
 > How do the latest quantum error correction methods compare to existing approaches?
-📚 Using knowledge base: quantum_computing_2024.pdf
+📚 Using knowledge base: quantum_computing_2025.pdf
 🔍 Also searching web for recent developments...
 
 ✨ Based on your research paper and current developments:
@@ -522,13 +522,13 @@ Built with:
 - Surface codes show 99.9% fidelity in simulations...
 - Topological qubits demonstrate improved stability...
 
-**Latest Web Research (2024):**
+**Latest Web Research (2025):**
 - IBM's new error correction protocols achieve 99.95% fidelity...
 - Google's logical qubit demonstrations show promise...
 
 The latest methods build directly on the foundations you documented, with notable improvements in...
 
-📄 Sources: quantum_computing_2024.pdf, IBM Research, Nature Physics
+📄 Sources: quantum_computing_2025.pdf, IBM Research, Nature Physics
 ```
 
 ### Multi-Model Configuration
@@ -542,9 +542,10 @@ OpenAI:
   • gpt-4o-mini               Fast and cost-effective  
   • gpt-3.5-turbo             Legacy but reliable
 
-Anthropic:  
-  • claude-3-5-sonnet-20241022 Latest Claude model
-  • claude-3-haiku-20240307    Fast and efficient
+Anthropic:
+  • claude-opus-4-1-20250805   Latest Opus 4.1 model
+  • claude-sonnet-4-5-20250929 Latest Sonnet 4.5 model
+  • claude-3.5-sonnet-20241022 Fast and efficient
 
 Local (Ollama):
   • llama3:8b                 Meta's open model

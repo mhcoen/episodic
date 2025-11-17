@@ -600,13 +600,38 @@ class ConversationManager:
                         "content": synthesis_result['prompt']
                     })
 
-                    stream_generator, _ = _execute_llm_query(
-                        synthesis_messages,
-                        model=synthesis_result['model'],
-                        temperature=synthesis_result.get('temperature', 0.3),
-                        max_tokens=synthesis_result.get('max_tokens', 1500),
-                        stream=True
-                    )
+                    try:
+                        stream_generator, _ = _execute_llm_query(
+                            synthesis_messages,
+                            model=synthesis_result['model'],
+                            temperature=synthesis_result.get('temperature', 0.3),
+                            max_tokens=synthesis_result.get('max_tokens', 1500),
+                            stream=True
+                        )
+                    except Exception as e:
+                        # Handle model not found errors gracefully
+                        error_str = str(e).lower()
+                        model_name = synthesis_result['model']
+
+                        if 'not found' in error_str or '404' in error_str or 'does not exist' in error_str:
+                            typer.echo("")
+                            typer.secho(f"❌ Synthesis model '{model_name}' not available", fg=get_error_color())
+                            typer.echo("")
+
+                            if model_name.startswith('ollama/'):
+                                model_only = model_name.replace('ollama/', '')
+                                typer.secho(f"   For Ollama models, pull them first:", fg=get_error_color())
+                                typer.secho(f"     ollama pull {model_only}", fg="cyan")
+                                typer.echo("")
+
+                            typer.secho(f"   Change to an available model:", fg=get_error_color())
+                            typer.secho(f"     /set synthesis_model gpt-4o-mini", fg="cyan")
+                            typer.secho(f"     /set synthesis_model null  (uses your main chat model)", fg="cyan")
+                            typer.echo("")
+                            return None, None
+                        else:
+                            # Re-raise other errors
+                            raise
                     
                     # Stream the response with unified streamer
                     typer.echo("")  # Newline before streaming

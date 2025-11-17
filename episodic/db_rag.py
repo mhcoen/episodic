@@ -34,11 +34,10 @@ def create_rag_tables():
         c.execute('''
             CREATE TABLE IF NOT EXISTS rag_retrievals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                node_id TEXT REFERENCES nodes(id),
-                document_id TEXT,
-                relevance_score REAL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                was_helpful BOOLEAN DEFAULT NULL
+                message TEXT NOT NULL,
+                retrieved_doc_ids TEXT,
+                chunk_texts TEXT,
+                retrieved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         

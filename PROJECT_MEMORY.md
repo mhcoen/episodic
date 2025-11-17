@@ -134,7 +134,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
   - Groq provider replaced with Google (Gemini models)
   - Models now loaded from `~/.episodic/models.json`
   - Support for user customization and overrides
-  - Fixed OpenRouter Claude 4 Opus model ID to `openrouter/anthropic/claude-opus-4`
+  - Fixed OpenRouter model ID to `openrouter/anthropic/claude-opus-4.1`
   - Changed pricing display from "per 1K tokens" to "per 1M tokens" for cleaner display
 - **Memory System Improvements**: System memory always on, independent of user RAG
 - **Config Persistence**: Only specific settings saved (via `save_setting()`)

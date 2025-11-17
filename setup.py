@@ -48,5 +48,5 @@ setup(
     keywords="episodic, llm, conversation, memory, rag, ai, chatbot",
     url="https://github.com/mhcoen/episodic",
     license="Apache-2.0",
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )

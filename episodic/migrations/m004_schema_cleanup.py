@@ -98,7 +98,7 @@ class SchemaCleanupMigration(Migration):
         existing_tables = {row[0] for row in cursor.fetchall()}
         
         indexes = [
-            ("idx_topic_scores_node", "topic_detection_scores", "user_node_id"),
+            ("idx_topic_scores_node", "topic_detection_scores", "user_node_short_id"),
             ("idx_topic_scores_changed", "topic_detection_scores", "topic_changed"),
             ("idx_topics_boundaries", "topics", "start_node_id, end_node_id"),
             ("idx_topics_name", "topics", "name"),
@@ -106,18 +106,28 @@ class SchemaCleanupMigration(Migration):
             ("idx_nodes_short_id", "nodes", "short_id"),
             ("idx_compressions_node", "compressions", "compressed_node_id"),
         ]
-        
+
         for index_name, table_name, columns in indexes:
             # Skip if table doesn't exist
             if table_name not in existing_tables:
                 continue
-                
+
+            # Check if columns exist in table before creating index
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            table_columns = [row[1] for row in cursor.fetchall()]
+
+            # Parse columns (handle composite indexes like "col1, col2")
+            index_columns = [col.strip() for col in columns.split(',')]
+            if not all(col in table_columns for col in index_columns):
+                # Skip this index if any column doesn't exist
+                continue
+
             # Check if index already exists
             cursor.execute("""
-                SELECT name FROM sqlite_master 
+                SELECT name FROM sqlite_master
                 WHERE type='index' AND name=?
             """, (index_name,))
-            
+
             if not cursor.fetchone():
                 cursor.execute(f"CREATE INDEX {index_name} ON {table_name}({columns})")
         

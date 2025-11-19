@@ -60,6 +60,19 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-08-07"
           }
+        },
+        {
+          "name": "gpt-5.1",
+          "display_name": "GPT-5.1",
+          "type": "chat",
+          "parameters": null,
+          "context_window": 272000,
+          "pricing": {
+            "input": 1.25,
+            "output": 10.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-11-17"
+          }
         }
       ]
     },

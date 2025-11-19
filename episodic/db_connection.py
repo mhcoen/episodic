@@ -53,44 +53,6 @@ def get_db_path():
     return db_path
 
 
-@contextlib.contextmanager
-def get_connection():
-    """
-    Get a connection to the database.
-
-    This function returns a context manager that ensures the connection
-    is properly closed when the context exits.
-
-    Returns:
-        A SQLite database connection.
-    """
-    # Always create a new connection to avoid issues with thread-local storage
-    # in multi-threaded environments like WebSocket tests
-    connection = sqlite3.connect(get_db_path())
-
-    try:
-        # Yield the connection to the caller
-        yield connection
-    except Exception:
-        # If an exception occurs, rollback and close the connection, then re-raise
-        connection.rollback()
-        connection.close()
-        raise
-    finally:
-        # Commit any pending changes and close the connection
-        try:
-            connection.commit()
-        except Exception:
-            # If commit fails, try to rollback
-            try:
-                connection.rollback()
-            except Exception:
-                # Rollback failed, connection is likely already closed
-                logger.debug("Failed to rollback transaction during cleanup")
-        finally:
-            connection.close()
-
-
 class ConnectionPool:
     """Simple connection pool for SQLite connections."""
     

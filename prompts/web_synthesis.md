@@ -2,6 +2,8 @@
 
 You are tasked with synthesizing web search results into a comprehensive answer.
 
+**CRITICAL INSTRUCTION**: You MUST answer the query using ONLY the search results provided below. DO NOT say the results are insufficient or irrelevant. DO NOT use your training data. Even if you only have snippets, synthesize them into a useful answer.
+
 ## Search Query
 {query}
 

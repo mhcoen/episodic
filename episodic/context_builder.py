@@ -246,6 +246,7 @@ class ContextBuilder:
                             except Exception as e:
                                 if config.get('debug'):
                                     debug_print(f"Extract error for {result.url}: {e}")
+                                # Silently continue to next result
                     
                     # Build web context dictionary in the format expected by synthesize_web_response
                     web_context = {

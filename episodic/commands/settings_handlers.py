@@ -103,7 +103,16 @@ def handle_list_param(param: str, value: str, valid_values: Optional[list] = Non
             return False
     
     config.set(param, values)
-    typer.secho(f"✅ Set {param} = {values}", fg=get_system_color())
+
+    # Special handling for web search providers - reset the global manager
+    if param == 'web_search_providers':
+        import episodic.web_search
+        episodic.web_search._web_search_manager = None
+        typer.secho(f"✅ Set {param} = {values}", fg=get_system_color())
+        typer.secho("  Web search manager reset to use new providers", fg=get_system_color(), dim=True)
+    else:
+        typer.secho(f"✅ Set {param} = {values}", fg=get_system_color())
+
     return True
 
 

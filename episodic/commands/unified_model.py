@@ -46,7 +46,7 @@ def model_command(
         /model synthesis <number|full-name>  # Set synthesis model (instruct recommended)
     
     Examples:
-        /model chat 3                       # Select by number from list
+        /model chat 1                       # Select by number from list
         /model chat gpt-4o-mini             # Select by full model name
     """
     # No arguments - show all models in use
@@ -331,7 +331,7 @@ def show_available_models():
     typer.secho("  /model compression <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat 8                         # Select by number from list", fg=get_text_color(), dim=True)
+    typer.secho("  /model chat 1                         # Select by number from list", fg=get_text_color(), dim=True)
     typer.secho("  /model chat claude-opus-4-1-20250805  # Select by full model name", fg=get_text_color(), dim=True)
 
 

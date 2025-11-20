@@ -247,8 +247,9 @@ class EpisodicRAG:
         # Check for duplicates
         existing_doc_id = check_duplicate(content_hash)
         if existing_doc_id:
-            typer.secho(f"Document already indexed with ID: {existing_doc_id}", 
-                       fg=get_text_color())
+            if config.get('debug', False):
+                typer.secho(f"Document already indexed with ID: {existing_doc_id}",
+                           fg=get_text_color())
             # Get the existing document's chunk count
             doc = _get_document(existing_doc_id)
             return existing_doc_id, doc['chunk_count'] if doc else 0

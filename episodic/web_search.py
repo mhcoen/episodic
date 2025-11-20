@@ -50,75 +50,64 @@ class WebSearchProvider(ABC):
 class DuckDuckGoProvider(WebSearchProvider):
     """
     Free web search provider using DuckDuckGo.
-    No API key required, uses web scraping with rate limiting.
+    No API key required, uses official ddgs library.
     """
-    
+
     def __init__(self):
         self.last_search_time = 0
         self.min_delay = 1.0  # Minimum seconds between searches
-    
+
     def is_available(self) -> bool:
-        """Check if DuckDuckGo dependencies are installed."""
+        """Check if DuckDuckGo library is installed."""
         try:
-            import aiohttp
-            from bs4 import BeautifulSoup
+            from ddgs import DDGS
             return True
         except ImportError:
             return False
-    
+
     async def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
-        """Search DuckDuckGo and parse results."""
+        """Search DuckDuckGo using ddgs library."""
         # Rate limiting
         elapsed = time.time() - self.last_search_time
         if elapsed < self.min_delay:
             await asyncio.sleep(self.min_delay - elapsed)
-        
+
         try:
-            import aiohttp
-            from bs4 import BeautifulSoup
+            from ddgs import DDGS
         except ImportError:
             raise ImportError(
-                "Web search requires additional dependencies. Install with: pip install aiohttp beautifulsoup4"
+                "Web search requires ddgs library. Install with: pip install ddgs"
             )
-        
+
         results = []
-        url = f"https://duckduckgo.com/html/?q={quote_plus(query)}"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        
+
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
-                        return []
-                    
-                    html = await response.text()
-                    soup = BeautifulSoup(html, 'html.parser')
-                    
-                    # Parse DuckDuckGo results
-                    for result_div in soup.find_all('div', class_='result__body')[:num_results]:
-                        title_elem = result_div.find('a', class_='result__a')
-                        snippet_elem = result_div.find('a', class_='result__snippet')
-                        
-                        if title_elem and snippet_elem:
-                            title = title_elem.get_text(strip=True)
-                            url = title_elem.get('href', '')
-                            snippet = snippet_elem.get_text(strip=True)
-                            
-                            if title and url:
-                                results.append(SearchResult(
-                                    title=title,
-                                    url=url,
-                                    snippet=snippet
-                                ))
-                    
-                    self.last_search_time = time.time()
-                    
+            # Run synchronous DDGS search in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            ddgs_results = await loop.run_in_executor(
+                None,
+                lambda: list(DDGS().text(query, max_results=num_results))
+            )
+
+            for result in ddgs_results:
+                if isinstance(result, dict):
+                    title = result.get('title', '')
+                    url = result.get('href', '')
+                    snippet = result.get('body', '')
+
+                    if title and url:
+                        results.append(SearchResult(
+                            title=title,
+                            url=url,
+                            snippet=snippet
+                        ))
+
+            self.last_search_time = time.time()
+
         except Exception as e:
             if config.get('debug'):
                 typer.secho(f"DuckDuckGo search error: {e}", fg=get_error_color())
-        
+
         return results
 
 

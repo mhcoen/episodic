@@ -44,8 +44,6 @@ executing==2.2.0
 face==24.0.0
 filelock==3.18.0
 flake8==7.3.0
-Flask==3.1.1
-Flask-SocketIO==5.5.1
 flatbuffers==25.2.10
 fonttools==4.58.5
 frozenlist==1.7.0
@@ -99,7 +97,6 @@ multidict==6.6.3
 mypy==1.16.1
 mypy_extensions==1.1.0
 narwhals==1.46.0
-networkx==3.5
 numpy==2.3.1
 oauthlib==3.3.1
 onnxruntime==1.22.0
@@ -124,7 +121,6 @@ pexpect==4.9.0
 pillow==11.3.0
 pip-autoremove==0.10.0
 platformdirs==4.3.8
-plotly==6.2.0
 pluggy==1.6.0
 posthog==6.0.3
 prompt_toolkit==3.0.51

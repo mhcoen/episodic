@@ -13,7 +13,6 @@ from .reset import reset, reset_all
 from .topics import topics, compress_current_topic
 from .topic_rename import rename_ongoing_topics
 from .compression import compress, compression_stats, compression_queue, api_call_stats, reset_api_stats
-from .visualization import visualize
 from .prompts import prompts
 from .summary import summary
 from .utility import benchmark
@@ -31,6 +30,6 @@ __all__ = [
     # Compression commands
     'compress', 'compression_stats', 'compression_queue', 'api_call_stats', 'reset_api_stats',
     # Other commands
-    'visualize', 'prompts', 'summary', 'benchmark', 'help',
+    'prompts', 'summary', 'benchmark', 'help',
     'handle_model', 'reflection_command'
 ]

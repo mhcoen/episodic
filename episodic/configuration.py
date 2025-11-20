@@ -21,9 +21,6 @@ LOCAL_PROVIDERS = [PROVIDER_OLLAMA, PROVIDER_LMSTUDIO]
 # Pricing and token calculation
 PRICING_TOKEN_COUNT = 1000  # Number of tokens to use for pricing calculations
 
-# Server configuration
-DEFAULT_VISUALIZATION_PORT = 5000
-
 # Display configuration
 DEFAULT_LIST_COUNT = 5  # Default number of nodes to list
 MAX_CONTENT_DISPLAY_LENGTH = 50  # Max length for truncated content display
@@ -434,9 +431,6 @@ def format_cost(cost_usd: float) -> str:
     else:
         return f"${cost_usd:.2f}"  # 2 decimal places for larger costs
 
-# Server configuration
-SERVER_SHUTDOWN_DELAY = 0.1  # seconds
-
 # Polling and update intervals
 HTTP_POLLING_INTERVAL = 5000  # milliseconds
 MAIN_LOOP_SLEEP_INTERVAL = 1  # seconds
@@ -471,7 +465,3 @@ VIRTUAL_ROOT_COLOR = "#CCCCCC"  # Gray
 # UI interaction thresholds
 CLICK_THRESHOLD_TOUCH = 100  # pixels
 CLICK_THRESHOLD_MOUSE = 50   # pixels
-
-# Server defaults
-DEFAULT_SERVER_HOST = "127.0.0.1"
-DEFAULT_SERVER_PORT = 5000

@@ -40,7 +40,6 @@ class TestConfigurationDefaults(unittest.TestCase):
         self.assertFalse(CORE_DEFAULTS['debug'])
         self.assertEqual(CORE_DEFAULTS['short_id_length'], 2)
         self.assertEqual(CORE_DEFAULTS['history_file'], '~/.episodic_history')
-        self.assertEqual(CORE_DEFAULTS['visualization_port'], 5000)
     
     def test_topic_defaults(self):
         """Test topic detection defaults."""

@@ -80,8 +80,6 @@ def handle_command(command_str: str) -> bool:
             _handle_show(args)
         elif cmd == "/print":
             _handle_print(args)
-        elif cmd == "/visualize":
-            _handle_visualize(args)
         elif cmd == "/cost":
             _handle_cost()
         elif cmd == "/model":
@@ -168,8 +166,6 @@ def handle_command(command_str: str) -> bool:
             _handle_history(args)
         elif cmd == "/tree":
             _handle_tree(args)
-        elif cmd == "/graph":
-            _handle_graph(args)
         elif cmd == "/summary":
             _handle_summary(args)
         elif cmd == "/list":
@@ -242,12 +238,6 @@ def _handle_print(args: List[str]):
         print_node(node_id)
     else:
         print_node()
-
-
-def _handle_visualize(args: List[str]):
-    """Handle /visualize command."""
-    from episodic.commands import visualize
-    visualize()
 
 
 def _handle_cost():
@@ -701,12 +691,6 @@ def _handle_tree(args: List[str]):
         else:
             typer.secho("No current node. Use '/tree <node_id>' to show a specific node's tree.", 
                        fg=get_system_color())
-
-
-def _handle_graph(args: List[str]):
-    """Handle /graph command - show conversation graph visualization."""
-    # This is the same as /visualize
-    _handle_visualize(args)
 
 
 def _handle_summary(args: List[str]):

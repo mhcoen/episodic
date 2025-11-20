@@ -575,13 +575,26 @@ class ConversationManager:
                         debug_print(f"  Message {i}: {msg['role']} - {msg['content'][:50]}...")
                 
                 # Use web synthesis for muse mode
-                synthesis_result = synthesize_web_response(
-                    query=user_input,
-                    search_results=web_context,
-                    conversation_history=messages,
-                    model=model
-                )
-                
+                try:
+                    synthesis_result = synthesize_web_response(
+                        query=user_input,
+                        search_results=web_context,
+                        conversation_history=messages,
+                        model=model
+                    )
+
+                    if config.get("debug"):
+                        debug_print(f"Synthesis result type: {type(synthesis_result)}")
+                        if isinstance(synthesis_result, dict):
+                            debug_print(f"Synthesis dict keys: {synthesis_result.keys()}")
+                        debug_print(f"Synthesis result: {str(synthesis_result)[:200]}")
+                except Exception as e:
+                    typer.secho(f"\n❌ Web synthesis error: {e}", fg=get_error_color())
+                    if config.get("debug"):
+                        import traceback
+                        traceback.print_exc()
+                    return None, None
+
                 # Handle streaming case for muse mode
                 if isinstance(synthesis_result, dict) and synthesis_result.get('streaming'):
                     # Extract streaming info and execute the query

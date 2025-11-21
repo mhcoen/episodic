@@ -371,136 +371,81 @@ def help_command(query: str):
     
     # Ensure docs are indexed
     help_rag.ensure_help_docs_indexed()
-    
-    # Save current RAG state
-    original_rag_enabled = config.get('rag_enabled', False)
-    original_web_search_enabled = config.get('web_search_enabled', False)
-    original_collection = None
-    
+
+    typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
+
+    # Search help docs directly
+    search_terms = query
+
+    # For interface mode questions, search more specifically
+    if 'advanced' in query.lower():
+        search_terms = "/advanced command switch mode"
+    elif 'simple' in query.lower():
+        search_terms = "/simple command switch mode"
+
     try:
-        # Skip collection switching - help docs go to main collection
-        from episodic.rag import get_rag_system
-        rag_system = get_rag_system()
-        # Note: We're using the main collection for help docs now
-        # This is a temporary fix until proper help collection support is added
-        
-        # Enable RAG temporarily and disable web search for help
-        config.set('rag_enabled', True)
-        config.set('web_search_enabled', False)
-        
-        # Create a simple, direct prompt - context will be added FIRST by RAG
-        help_prompt = f"""Answer this Episodic CLI question: {query}
+        with suppress_all_output():
+            # Search help documentation
+            search_results = help_rag.search_help(search_terms, n_results=5)
 
-Instructions:
-- Use the documentation context provided above to answer
-- If you see relevant commands in the context, use them
-- Commands in Episodic always start with /
-- Be helpful and answer the user's intent
+            # Debug: Show what we found
+            if config.get('debug', False):
+                typer.secho(f"\nDebug: Found {len(search_results)} results", fg=get_text_color())
+                for i, result in enumerate(search_results):
+                    score = result.get('score', 0)
+                    typer.secho(f"Result {i+1} (score: {score:.3f}): {result['content'][:100]}...", fg=get_text_color())
 
-Format: No markdown code blocks. Indent commands with 2 spaces. Be concise."""
-        
-        typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
-        
-        # Search help docs directly for better relevance
-        search_terms = query
-        
-        # For interface mode questions, search more specifically
-        if 'advanced' in query.lower():
-            # Search for the actual command
-            search_terms = "/advanced command switch mode"
-        elif 'simple' in query.lower():
-            search_terms = "/simple command switch mode"
-        
-        try:
-            with suppress_all_output():
-                # Use help_rag for better search
-                search_results = help_rag.search_help(search_terms, n_results=5)
-                
-                # Build context from search results
-                context_parts = []
-                for result in search_results[:3]:  # Use top 3 results
-                    context_parts.append(result['content'])
-                
-                # Debug: Show what we found
-                if config.get('debug', False):
-                    typer.secho(f"\nDebug: Found {len(search_results)} results", fg=get_text_color())
-                    for i, result in enumerate(search_results[:3]):
-                        typer.secho(f"Result {i+1} preview: {result['content'][:100]}...", fg=get_text_color())
-                
-                # Create enhanced prompt with context
-                if context_parts:
-                    context = "\n\n".join(context_parts)
-                    enhanced_prompt = f"Documentation Context:\n{context}\n\n{help_prompt}"
-                else:
-                    enhanced_prompt = help_prompt
-        except Exception:
-            # Fallback to regular enhancement
-            enhanced_prompt = rag_system.enhance_with_context(help_prompt, include_web=False)
-        
-        # sources_used is not returned by enhance_with_context
-        sources_used = None
-        
-        if sources_used and config.get('debug', False):
-            typer.secho(f"📚 Found relevant documentation from: {', '.join(sources_used)}", 
-                      fg=get_text_color(), dim=True)
-        
-        # Query the LLM with the enhanced prompt
-        from episodic.llm import query_llm
-        from episodic.unified_streaming import unified_stream_response
-        
-        # Get the model to use
-        model = config.get('model', 'gpt-3.5-turbo')
-        
-        # Add a blank line before the answer
+        # Check if we have relevant results
+        RELEVANCE_THRESHOLD = 0.5
+        relevant_results = [r for r in search_results if r.get('score', 0) >= RELEVANCE_THRESHOLD]
+
+        if not relevant_results:
+            # No relevant results found - show helpful message
+            typer.echo()
+            typer.secho(f"❌ I couldn't find information on '{query}' in the documentation.", fg=get_warning_color())
+            typer.echo()
+            typer.secho("Try these options:", fg=get_text_color())
+            typer.secho("  • Use /help all to see all available commands", fg=get_system_color())
+            typer.secho("  • Try /help <category> for topic-specific help (chat, settings, topics, etc.)", fg=get_system_color())
+            typer.secho("  • Browse documentation files directly:", fg=get_system_color())
+            typer.secho("    - USER_GUIDE.md", fg=get_text_color(), dim=True)
+            typer.secho("    - docs/cli-reference.md", fg=get_text_color(), dim=True)
+            typer.secho("    - docs/quick-reference.md", fg=get_text_color(), dim=True)
+            typer.secho("  • If documentation was recently updated: /help reindex", fg=get_system_color(), dim=True)
+            return
+
+        # Display relevant results
         typer.echo()
-        
-        # Check if streaming is enabled
-        if config.get('stream_responses', True):
-            try:
-                # Query with streaming - returns (generator, None) tuple
-                stream_tuple = query_llm(enhanced_prompt, model=model, stream=True)
-                # Extract the generator from the tuple
-                stream_gen = stream_tuple[0] if isinstance(stream_tuple, tuple) else stream_tuple
-                
-                # Stream the response - use regular streaming with wrapping
-                # Don't use format preservation as it prevents proper word wrapping
-                import shutil
-                terminal_width = shutil.get_terminal_size().columns
-                wrap_width = min(terminal_width - 2, 80)  # Leave margin, cap at 80
-                
-                response_text = unified_stream_response(
-                    stream_gen,
-                    model=model,
-                    color=get_system_color(),
-                    wrap_width=wrap_width,
-                    preserve_formatting=False  # Ensure wrapping is enabled
-                )
-                
-            except Exception as stream_error:
-                if config.get('debug', False):
-                    typer.secho(f"Streaming error: {stream_error}", fg=get_warning_color())
-                # Fallback to non-streaming
-                result = query_llm(enhanced_prompt, model=model, stream=False)
-                response_text = result[0] if isinstance(result, tuple) else result
-                _display_help_output(response_text, get_system_color())
-        else:
-            # Query without streaming
-            result = query_llm(enhanced_prompt, model=model, stream=False)
-            # Extract response text from tuple
-            response_text = result[0] if isinstance(result, tuple) else result
-            _display_help_output(response_text, get_system_color())
-        
+        for i, result in enumerate(relevant_results[:3]):  # Show top 3
+            content = result['content']
+            source = result.get('source', 'Unknown')
+            score = result.get('score', 0)
+
+            # Display content with word wrapping
+            import shutil
+            import textwrap
+            terminal_width = shutil.get_terminal_size().columns
+            wrap_width = min(terminal_width - 4, 76)  # Leave margin
+
+            # Wrap the content
+            wrapped_lines = textwrap.wrap(content, width=wrap_width)
+            for line in wrapped_lines:
+                typer.secho(f"  {line}", fg=get_text_color())
+
+            # Show source if debug enabled
+            if config.get('debug', False):
+                typer.secho(f"  (Source: {source}, Score: {score:.3f})", fg=get_text_color(), dim=True)
+
+            # Add spacing between results
+            if i < len(relevant_results[:3]) - 1:
+                typer.echo()
+
     except Exception as e:
-        typer.secho(f"\n⚠️  Error getting help: {str(e)}", fg=get_warning_color())
+        typer.secho(f"\n⚠️  Error searching documentation: {str(e)}", fg=get_warning_color())
+        if config.get('debug', False):
+            import traceback
+            traceback.print_exc()
         typer.secho("Try browsing the documentation files directly.", fg=get_text_color())
-    
-    finally:
-        # Restore original RAG state
-        config.set('rag_enabled', original_rag_enabled)
-        config.set('web_search_enabled', original_web_search_enabled)
-        if 'original_show_citations' in locals() and 'original_show_citations' in dir():
-            config.set('rag_show_citations', original_show_citations)
-        # Skip collection restoration - we didn't switch collections
 
 
 def help_reindex():

@@ -169,15 +169,19 @@ def show_all_parameters():
 
 def show_parameters_for_context(context: str):
     """Show parameters for a specific context."""
+    from episodic.commands.unified_model import get_default_for_context
+
     # Special handling for embedding context
     if context == "embedding":
         show_embedding_parameters()
         return
-        
+
     # Get current model for context
     model_key = get_model_key_for_context(context)
     current_model = config.get(model_key, "")
-    
+    if not current_model:
+        current_model = get_default_for_context(context)
+
     typer.secho(f"\n⚙️  {context.capitalize()} Model Parameters", fg=get_heading_color(), bold=True)
     typer.secho(f"Current model: {current_model}", fg=get_text_color(), dim=True)
     typer.secho("─" * 50, fg=get_heading_color())
@@ -412,13 +416,16 @@ def get_model_key_for_context(context: str) -> str:
 def get_unsupported_params(model_name: str) -> list:
     """Get list of parameters not supported by a model."""
     unsupported = []
-    
+
+    if not model_name:
+        return unsupported
+
     # Google Gemini models don't support these
     if "gemini" in model_name.lower():
         unsupported.extend(["presence_penalty", "frequency_penalty"])
-    
+
     # Add other model-specific exclusions here as needed
-    
+
     return unsupported
 
 

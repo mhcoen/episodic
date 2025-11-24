@@ -369,9 +369,6 @@ def help_command(query: str):
         typer.secho(f"\n⚠️  Error initializing help system: {str(e)}", fg=get_warning_color())
         return
     
-    # Ensure docs are indexed
-    help_rag.ensure_help_docs_indexed()
-
     typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
 
     # Search help docs directly
@@ -385,6 +382,9 @@ def help_command(query: str):
 
     try:
         with suppress_all_output():
+            # Ensure docs are indexed (suppress indexing messages)
+            help_rag.ensure_help_docs_indexed()
+
             # Search help documentation
             search_results = help_rag.search_help(search_terms, n_results=5)
 

@@ -39,7 +39,9 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - Use type hints for all function signatures
 - Follow existing patterns in the codebase
 - Keep imports organized and minimal
-- No comments unless explicitly requested
+- Add docstrings to functions and classes (explain purpose, parameters, returns)
+- Add comments for non-obvious logic, complex algorithms, or "why" decisions
+- Avoid redundant comments that just restate what the code obviously does
 - Prefer editing existing files over creating new ones
 
 ### Database

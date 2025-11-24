@@ -11,28 +11,65 @@
           "display_name": "GPT-4o Mini",
           "type": "chat",
           "parameters": "8B",
-          "context_window": 128000
+          "context_window": 128000,
+          "pricing": {
+            "input": 0.15,
+            "output": 0.60,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-01-01"
+          }
         },
         {
           "name": "gpt-4o",
           "display_name": "GPT-4o",
           "type": "chat",
           "parameters": "200B+",
-          "context_window": 128000
+          "context_window": 128000,
+          "pricing": {
+            "input": 2.5,
+            "output": 10.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-01-01"
+          }
+        },
+        {
+          "name": "o3",
+          "display_name": "o3 (Advanced Reasoning)",
+          "type": "chat",
+          "parameters": null,
+          "context_window": 200000,
+          "pricing": {
+            "input": 2.0,
+            "output": 8.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-06-10"
+          }
         },
         {
           "name": "o4-mini",
           "display_name": "o4-mini (Reasoning)",
           "type": "chat",
           "parameters": null,
-          "context_window": 128000
+          "context_window": 128000,
+          "pricing": {
+            "input": 1.10,
+            "output": 4.40,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-04-16"
+          }
         },
         {
           "name": "gpt-3.5-turbo",
           "display_name": "GPT-3.5 Turbo",
           "type": "chat",
           "parameters": "175B",
-          "context_window": 16385
+          "context_window": 16385,
+          "pricing": {
+            "input": 0.50,
+            "output": 1.50,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-01-01"
+          }
         },
         {
           "name": "gpt-3.5-turbo-instruct",
@@ -84,42 +121,78 @@
           "display_name": "Claude Opus 4.1",
           "type": "both",
           "parameters": "~1T",
-          "context_window": 200000
+          "context_window": 200000,
+          "pricing": {
+            "input": 15.0,
+            "output": 75.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-08-05"
+          }
         },
         {
           "name": "claude-sonnet-4-20250522",
           "display_name": "Claude Sonnet 4",
           "type": "both",
           "parameters": "~300B",
-          "context_window": 200000
+          "context_window": 200000,
+          "pricing": {
+            "input": 3.0,
+            "output": 15.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-05-22"
+          }
         },
         {
           "name": "claude-sonnet-4-5-20250929",
           "display_name": "Claude Sonnet 4.5",
           "type": "both",
           "parameters": "~300B",
-          "context_window": 200000
+          "context_window": 200000,
+          "pricing": {
+            "input": 3.0,
+            "output": 15.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-09-29"
+          }
         },
         {
-          "name": "claude-haiku-4-5-20251015",
+          "name": "claude-haiku-4-5-20251001",
           "display_name": "Claude Haiku 4.5",
           "type": "both",
           "parameters": "~70B",
-          "context_window": 200000
+          "context_window": 200000,
+          "pricing": {
+            "input": 1.0,
+            "output": 5.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-10-01"
+          }
         },
         {
           "name": "claude-3.5-sonnet-20241022",
           "display_name": "Claude 3.5 Sonnet",
           "type": "both",
           "parameters": "~300B",
-          "context_window": 200000
+          "context_window": 200000,
+          "pricing": {
+            "input": 3.0,
+            "output": 15.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2024-10-22"
+          }
         },
         {
           "name": "claude-3.5-haiku-20241022",
           "display_name": "Claude 3.5 Haiku",
           "type": "both",
           "parameters": "~70B",
-          "context_window": 200000
+          "context_window": 200000,
+          "pricing": {
+            "input": 0.80,
+            "output": 4.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2024-10-22"
+          }
         }
       ]
     },

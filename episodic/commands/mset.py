@@ -139,7 +139,7 @@ def show_all_parameters():
             tokens_display = format_param_value(tokens)
 
             # Add indicator for extra parameters
-            indicator = get_extra_params_indicator(context_name)
+            indicator = get_extra_params_indicator(context_name, model_name)
             model_display += indicator
 
         # Get cost information
@@ -365,23 +365,17 @@ def format_cost_display(model_name: str, provider_name: str) -> str:
     return "N/A"
 
 
-def get_extra_params_indicator(context: str) -> str:
+def get_extra_params_indicator(context: str, model_name: str) -> str:
     """
-    Check if context has non-standard parameters set.
-    Returns "*" if extra params exist, "" otherwise.
+    Check if context has additional parameters available beyond temperature/max_tokens.
+    Returns "*" if extra params are available, "" otherwise.
     """
-    param_key = get_param_key_for_context(context)
-    params = config.get(param_key, {})
-
-    if not isinstance(params, dict):
-        return ""
-
-    # Check for non-standard parameters with non-default values
     extra_params = ["top_p", "presence_penalty", "frequency_penalty"]
-    defaults = {"top_p": 1.0, "presence_penalty": 0.0, "frequency_penalty": 0.0}
+
+    unsupported = get_unsupported_params(model_name)
 
     for param in extra_params:
-        if param in params and params[param] != defaults[param]:
+        if param not in unsupported:
             return "*"
 
     return ""

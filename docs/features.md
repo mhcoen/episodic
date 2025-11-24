@@ -148,29 +148,7 @@ Episodic includes an always-on conversation memory system:
 
 **Note**: This is separate from the user RAG system and automatically indexes all conversations for intelligent context recall.
 
-## 4. Visualization
-
-### Interactive Conversation Graph
-
-View your conversation as an interactive directed graph:
-
-```bash
-# Start visualization server
-/visualize
-
-# Options
-/visualize --browser    # Open in default browser
-/visualize --window     # Native window (if supported)
-```
-
-### Features
-
-- **Real-time Updates**: Graph updates as you chat
-- **Interactive Navigation**: Double-click nodes to jump to that point
-- **Visual Topic Boundaries**: See how conversations are organized
-- **Zoom & Pan**: Explore large conversation trees
-
-## 5. Topic Detection & Management
+## 4. Topic Detection & Management
 
 ### Automatic Organization
 
@@ -213,7 +191,7 @@ The dual-window system uses:
 /topics stats
 ```
 
-## 6. RAG (Knowledge Base)
+## 5. RAG (Knowledge Base)
 
 ### Index Your Documents
 

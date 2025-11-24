@@ -8,6 +8,51 @@ Episodic uses a JSON-based model configuration system that allows you to:
 - Override model properties
 - Configure provider-specific settings
 
+## Current Models (2025)
+
+### Latest Available Models
+
+**OpenAI:**
+- GPT-5.1 (November 2025) - Latest flagship model
+- GPT-5 (August 2025)
+- o3 (June 2025) - Advanced reasoning model
+- o4-mini (April 2025) - Compact reasoning model
+- GPT-4o, GPT-4o Mini, GPT-3.5 Turbo
+
+**Anthropic:**
+- Claude Opus 4.1 (August 2025)
+- Claude Sonnet 4.5 (September 2025)
+- Claude Sonnet 4 (May 2025)
+- Claude Haiku 4.5 (October 2025)
+
+**Google:**
+- Gemini 2.5 Pro, 2.5 Flash, 2.5 Flash-Lite
+
+**Ollama (Local):**
+- Llama 4 Scout and Maverick (April 2025)
+- Llama 3.3, Llama 3
+- DeepSeek R1 (January 2025)
+- Mistral, Phi-4, and others
+
+**OpenRouter:**
+- Provides access to models from multiple providers including:
+  - Latest Anthropic and OpenAI models
+  - Llama 4 Scout and Maverick
+  - DeepSeek R1 and Chat V3
+  - And many more
+
+**HuggingFace:**
+- Llama 4 Scout and Maverick
+- Llama 3.3, Llama 3, Llama 2
+- Qwen 3, Mistral, DeepSeek, and others
+
+### Deprecated Models
+
+The following models have been removed or deprecated:
+- **Claude 3.5 Sonnet** - Deprecated August 2025, retired November 2025
+- **Claude 3.5 Haiku** - Deprecated and removed November 2025
+- **Claude 3 Opus** - Deprecated, retiring January 2026 (still available)
+
 ## Configuration Files
 
 ### Models Configuration: `~/.episodic/models.json`
@@ -27,6 +72,29 @@ You can edit this file to:
 
 ## Model Configuration Examples
 
+### Using New 2025 Models
+
+```bash
+# Use latest OpenAI models
+/model chat gpt-5.1
+/model chat o3  # For reasoning tasks
+
+# Use latest Anthropic models
+/model chat claude-sonnet-4-5-20250929
+/model chat claude-opus-4-1-20250805
+
+# Use Llama 4 locally via Ollama
+/model chat ollama/llama4-scout
+/model chat ollama/llama4-maverick
+
+# Use DeepSeek for reasoning
+/model chat ollama/deepseek-r1
+
+# Access models via OpenRouter
+/model chat openrouter/meta-llama/llama-4-scout:free
+/model chat openrouter/deepseek/deepseek-r1
+```
+
 ### Adding a New Model
 
 Edit `~/.episodic/models.json` and add to the appropriate provider:
@@ -37,11 +105,16 @@ Edit `~/.episodic/models.json` and add to the appropriate provider:
     "openai": {
       "models": [
         {
-          "name": "gpt-4-turbo-preview",
-          "display_name": "GPT-4 Turbo Preview",
+          "name": "gpt-5.1",
+          "display_name": "GPT-5.1",
           "type": "chat",
-          "parameters": "175B+",
-          "context_window": 128000
+          "context_window": 272000,
+          "pricing": {
+            "input": 1.25,
+            "output": 10.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-11-17"
+          }
         }
       ]
     }

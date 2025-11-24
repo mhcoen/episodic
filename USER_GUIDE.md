@@ -606,7 +606,6 @@ export EPISODIC_CACHE=true
 /forget <query>     # Remove specific memories
 /cost               # Show session token usage and costs
 /summary            # Summarize recent conversation
-/visualize          # Start web-based conversation visualizer
 ```
 
 **Note**: The memory system is always on by default and separate from the user RAG system. It automatically indexes your conversations for intelligent context recall.

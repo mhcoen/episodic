@@ -523,15 +523,6 @@ Database migration utilities
 
 ## Utility Commands
 
-### /visualize
-Generate conversation graph
-```bash
-/visualize                  # Open in browser
-/visualize --output out.html # Save to file
-/visualize --no-browser     # Don't open browser
-/visualize --port 5001      # Custom port
-```
-
 ### /benchmark
 Show performance stats
 ```bash

@@ -102,9 +102,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Lazy Loading**: Partially implemented for LiteLLM, needs expansion
 - **Caching**: Limited use of @lru_cache decorators
 
-### Code Organization  
+### Code Organization
 - **Large Files Needing Split**:
-  - `visualization.py` (1278 lines)
   - `cli_command_router.py` (939 lines)
   - `conversation.py` (787 lines)
   - `web_search.py` (905 lines)

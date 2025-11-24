@@ -167,32 +167,6 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-10-01"
           }
-        },
-        {
-          "name": "claude-3.5-sonnet-20241022",
-          "display_name": "Claude 3.5 Sonnet",
-          "type": "both",
-          "parameters": "~300B",
-          "context_window": 200000,
-          "pricing": {
-            "input": 3.0,
-            "output": 15.0,
-            "unit": "per_1m_tokens",
-            "last_updated": "2024-10-22"
-          }
-        },
-        {
-          "name": "claude-3.5-haiku-20241022",
-          "display_name": "Claude 3.5 Haiku",
-          "type": "both",
-          "parameters": "~70B",
-          "context_window": 200000,
-          "pricing": {
-            "input": 0.80,
-            "output": 4.0,
-            "unit": "per_1m_tokens",
-            "last_updated": "2024-10-22"
-          }
         }
       ]
     },
@@ -275,6 +249,24 @@
           "type": "instruct",
           "parameters": "14B",
           "detect_params": true
+        },
+        {
+          "name": "llama4-scout",
+          "display_name": "Llama 4 Scout",
+          "type": "chat",
+          "detect_params": true
+        },
+        {
+          "name": "llama4-maverick",
+          "display_name": "Llama 4 Maverick",
+          "type": "chat",
+          "detect_params": true
+        },
+        {
+          "name": "deepseek-r1",
+          "display_name": "DeepSeek R1",
+          "type": "chat",
+          "detect_params": true
         }
       ]
     },
@@ -295,11 +287,6 @@
           "context_window": 200000
         },
         {
-          "name": "openrouter/anthropic/claude-3-sonnet",
-          "display_name": "Claude 3 Sonnet (OR)",
-          "type": "chat"
-        },
-        {
           "name": "openrouter/openai/gpt-4",
           "display_name": "GPT-4 (OR)",
           "type": "chat"
@@ -310,8 +297,28 @@
           "type": "chat"
         },
         {
-          "name": "openrouter/google/gemini-pro",
-          "display_name": "Gemini Pro (OR)",
+          "name": "openrouter/google/gemini-2.5-pro",
+          "display_name": "Gemini 2.5 Pro (OR)",
+          "type": "chat"
+        },
+        {
+          "name": "openrouter/deepseek/deepseek-r1",
+          "display_name": "DeepSeek R1 (OR)",
+          "type": "chat"
+        },
+        {
+          "name": "openrouter/deepseek/deepseek-chat-v3",
+          "display_name": "DeepSeek Chat V3 (OR)",
+          "type": "chat"
+        },
+        {
+          "name": "openrouter/meta-llama/llama-4-scout:free",
+          "display_name": "Llama 4 Scout (OR)",
+          "type": "chat"
+        },
+        {
+          "name": "openrouter/meta-llama/llama-4-maverick:free",
+          "display_name": "Llama 4 Maverick (OR)",
           "type": "chat"
         },
         {
@@ -379,6 +386,16 @@
           "display_name": "Meta Llama 3 70B",
           "type": "chat",
           "parameters": "70B"
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-4-Scout",
+          "display_name": "Meta Llama 4 Scout",
+          "type": "chat"
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-4-Maverick",
+          "display_name": "Meta Llama 4 Maverick",
+          "type": "chat"
         },
         {
           "name": "huggingface/meta-llama/Llama-2-7b-chat",

@@ -78,44 +78,93 @@ def mset_command(
 
 
 def show_all_parameters():
-    """Show all parameters for all contexts in a table format."""
-    typer.secho("\n⚙️  Model Parameters:", fg=get_heading_color(), bold=True)
-    typer.secho("─" * 70, fg=get_heading_color())
-    
-    contexts = ["chat", "detection", "compression", "synthesis"]
-    params_to_show = ["temperature", "max_tokens", "top_p", "presence_penalty", "frequency_penalty"]
-    
-    # Header
-    header = "Parameter".ljust(20)
-    for ctx in contexts:
-        header += ctx.capitalize().center(12)
+    """Show all parameters for all contexts in a unified table format."""
+    from episodic.llm_config import find_provider_for_model
+    from episodic.commands.unified_model import get_default_for_context
+
+    typer.secho("\n⚙️  Model Parameters Across Contexts", fg=get_heading_color(), bold=True)
+    typer.secho("─" * 90, fg=get_heading_color())
+
+    # Table header
+    header = (
+        "Context".ljust(13) +
+        "Model".ljust(22) +
+        "Temperature".ljust(13) +
+        "Max Tokens".ljust(13) +
+        "Cost/1K"
+    )
     typer.secho(header, fg=get_text_color(), bold=True)
-    typer.secho("─" * 70, fg=get_system_color())
-    
-    # Show each parameter
-    for param in params_to_show:
-        row = param.ljust(20)
-        for ctx in contexts:
-            value = get_parameter_value(ctx, param)
-            row += format_param_value(value).center(12)
+    typer.secho("─" * 90, fg=get_system_color())
+
+    # Define contexts with their config keys
+    contexts = [
+        ("Chat", "model", "chat"),
+        ("Detection", "topic_detection_model", "detection"),
+        ("Compression", "compression_model", "compression"),
+        ("Synthesis", "synthesis_model", "synthesis"),
+        ("Embedding", "drift_embedding_model", "embedding")
+    ]
+
+    # Show each context as a row
+    for display_name, model_key, context_name in contexts:
+        # Get model name
+        if context_name == "embedding":
+            model_name = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+            # Truncate long model names
+            if len(model_name) > 20:
+                model_display = model_name[:17] + "..."
+            else:
+                model_display = model_name
+        else:
+            model_name = config.get(model_key, "")
+            if not model_name:
+                model_name = get_default_for_context(context_name)
+            # Truncate long model names
+            if len(model_name) > 20:
+                model_display = model_name[:17] + "..."
+            else:
+                model_display = model_name
+
+        # Get temperature and max_tokens
+        if context_name == "embedding":
+            # For embedding, show threshold instead
+            threshold = config.get("drift_threshold", 0.9)
+            temp_display = f"thresh:{threshold:.1f}"
+            tokens_display = ""
+        else:
+            temp = get_parameter_value(context_name, "temperature")
+            tokens = get_parameter_value(context_name, "max_tokens")
+
+            temp_display = format_param_value(temp)
+            tokens_display = format_param_value(tokens)
+
+            # Add indicator for extra parameters
+            indicator = get_extra_params_indicator(context_name)
+            model_display += indicator
+
+        # Get cost information
+        if context_name == "embedding":
+            cost_display = "Local"
+        else:
+            provider = find_provider_for_model(model_name)
+            if not provider and "/" in model_name:
+                provider = model_name.split("/")[0]
+            cost_display = format_cost_display(model_name, provider or "")
+
+        # Build and display row
+        row = (
+            display_name.ljust(13) +
+            model_display.ljust(22) +
+            temp_display.ljust(13) +
+            tokens_display.ljust(13) +
+            cost_display
+        )
         typer.secho(row, fg=get_text_color())
-    
-    typer.secho("\nUse '/mset <context>' to see details for a specific context", fg=get_text_color(), dim=True)
-    typer.secho("Use '/mset <context>.<param> default' to reset to default value", fg=get_text_color(), dim=True)
-    
-    # Show embedding configuration separately
+
+    # Footer with usage hints
     typer.echo()
-    typer.secho("🧬 Embedding Configuration:", fg=get_heading_color(), bold=True)
-    provider = config.get("drift_embedding_provider", "sentence-transformers")
-    model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
-    threshold = config.get("drift_threshold", 0.9)
-    typer.secho(f"  Provider: {provider}, Model: {model}, Threshold: {threshold}", fg=get_text_color())
-    typer.secho("  Use '/mset embedding' for details or '/mset embedding list' for available models", fg=get_text_color(), dim=True)
-    
-    # Now show the models
-    typer.echo()  # Add blank line
-    from episodic.commands.unified_model import show_current_models
-    show_current_models()
+    typer.secho("Use '/mset <context>' to see all parameters for a context", fg=get_text_color(), dim=True)
+    typer.secho("Models with * have additional parameters available", fg=get_text_color(), dim=True)
 
 
 def show_parameters_for_context(context: str):
@@ -278,6 +327,64 @@ def format_param_value(value: Any) -> str:
         return f"{value:.1f}"
     else:
         return str(value)
+
+
+def format_cost_display(model_name: str, provider_name: str) -> str:
+    """
+    Format cost display for a model as input/output per 1K tokens.
+    Returns format: "$X.XXX/$Y.YYY" or "Local" or "N/A"
+    """
+    from episodic.commands.unified_model import get_pricing_for_model
+
+    # Get pricing info
+    pricing_str = get_pricing_for_model(model_name, provider_name)
+
+    # Handle local models
+    if pricing_str == "Local model":
+        return "Local"
+
+    # Parse the pricing string format: "$X.XX/1M in, $Y.YY/1M out"
+    if "/1M in" in pricing_str:
+        try:
+            parts = pricing_str.split(",")
+            input_part = parts[0].strip()  # "$X.XX/1M in"
+            output_part = parts[1].strip()  # "$Y.YY/1M out"
+
+            # Extract numbers
+            input_cost = float(input_part.split("$")[1].split("/")[0])
+            output_cost = float(output_part.split("$")[1].split("/")[0])
+
+            # Convert from per 1M to per 1K (divide by 1000)
+            input_1k = input_cost / 1000
+            output_1k = output_cost / 1000
+
+            return f"${input_1k:.3f}/${output_1k:.3f}"
+        except (ValueError, IndexError):
+            return "N/A"
+
+    return "N/A"
+
+
+def get_extra_params_indicator(context: str) -> str:
+    """
+    Check if context has non-standard parameters set.
+    Returns "*" if extra params exist, "" otherwise.
+    """
+    param_key = get_param_key_for_context(context)
+    params = config.get(param_key, {})
+
+    if not isinstance(params, dict):
+        return ""
+
+    # Check for non-standard parameters with non-default values
+    extra_params = ["top_p", "presence_penalty", "frequency_penalty"]
+    defaults = {"top_p": 1.0, "presence_penalty": 0.0, "frequency_penalty": 0.0}
+
+    for param in extra_params:
+        if param in params and params[param] != defaults[param]:
+            return "*"
+
+    return ""
 
 
 def get_param_key_for_context(context: str) -> str:

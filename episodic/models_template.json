@@ -79,13 +79,6 @@
           "context_window": 4096
         },
         {
-          "name": "gpt-4",
-          "display_name": "GPT-4",
-          "type": "chat",
-          "parameters": "175B+",
-          "context_window": 8192
-        },
-        {
           "name": "gpt-5",
           "display_name": "GPT-5",
           "type": "chat",
@@ -238,18 +231,6 @@
           "detect_params": true
         },
         {
-          "name": "llama3",
-          "display_name": "Llama 3",
-          "type": "chat",
-          "detect_params": true
-        },
-        {
-          "name": "llama3:instruct",
-          "display_name": "Llama 3 Instruct",
-          "type": "instruct",
-          "detect_params": true
-        },
-        {
           "name": "mistral",
           "display_name": "Mistral",
           "type": "chat",
@@ -259,19 +240,6 @@
           "name": "mistral:instruct",
           "display_name": "Mistral Instruct",
           "type": "instruct",
-          "detect_params": true
-        },
-        {
-          "name": "codellama",
-          "display_name": "Code Llama",
-          "type": "base",
-          "detect_params": true
-        },
-        {
-          "name": "phi3",
-          "display_name": "Phi-3",
-          "type": "instruct",
-          "parameters": "3.8B",
           "detect_params": true
         },
         {
@@ -298,6 +266,30 @@
           "display_name": "DeepSeek R1",
           "type": "chat",
           "detect_params": true
+        },
+        {
+          "name": "deepseek-v3",
+          "display_name": "DeepSeek V3",
+          "type": "chat",
+          "detect_params": true
+        },
+        {
+          "name": "qwen2.5",
+          "display_name": "Qwen 2.5",
+          "type": "chat",
+          "detect_params": true
+        },
+        {
+          "name": "qwen2.5-coder",
+          "display_name": "Qwen 2.5 Coder",
+          "type": "chat",
+          "detect_params": true
+        },
+        {
+          "name": "gemma2",
+          "display_name": "Gemma 2",
+          "type": "chat",
+          "detect_params": true
         }
       ]
     },
@@ -316,16 +308,6 @@
           "display_name": "Claude Opus 4.1 (OR)",
           "type": "both",
           "context_window": 200000
-        },
-        {
-          "name": "openrouter/openai/gpt-4",
-          "display_name": "GPT-4 (OR)",
-          "type": "chat"
-        },
-        {
-          "name": "openrouter/openai/gpt-3.5-turbo",
-          "display_name": "GPT-3.5 Turbo (OR)",
-          "type": "chat"
         },
         {
           "name": "openrouter/google/gemini-2.5-pro",
@@ -378,22 +360,43 @@
           "context_window": 128000
         },
         {
-          "name": "openrouter/databricks/dbrx-instruct",
-          "display_name": "DBRX Instruct 132B (OR)",
-          "type": "instruct",
-          "parameters": "132B"
-        },
-        {
-          "name": "openrouter/nousresearch/hermes-3-405b-instruct",
-          "display_name": "Hermes 3 405B Instruct (OR)",
-          "type": "instruct",
-          "parameters": "405B"
-        },
-        {
           "name": "openrouter/mistralai/mixtral-8x7b-instruct",
           "display_name": "Mixtral 8x7B Instruct (OR)",
           "type": "instruct",
           "parameters": "8x7B"
+        },
+        {
+          "name": "openrouter/mistralai/mistral-large-2",
+          "display_name": "Mistral Large 2 (OR)",
+          "type": "chat",
+          "parameters": "123B",
+          "context_window": 128000
+        },
+        {
+          "name": "openrouter/qwen/qwen-2.5-72b-instruct",
+          "display_name": "Qwen 2.5 72B Instruct (OR)",
+          "type": "instruct",
+          "parameters": "72B",
+          "context_window": 131072
+        },
+        {
+          "name": "openrouter/qwen/qwen-2.5-coder-32b-instruct",
+          "display_name": "Qwen 2.5 Coder 32B (OR)",
+          "type": "instruct",
+          "parameters": "32B",
+          "context_window": 131072
+        },
+        {
+          "name": "openrouter/google/gemma-2-27b-it",
+          "display_name": "Gemma 2 27B (OR)",
+          "type": "instruct",
+          "parameters": "27B"
+        },
+        {
+          "name": "openrouter/x-ai/grok-2",
+          "display_name": "Grok-2 (OR)",
+          "type": "chat",
+          "context_window": 131072
         }
       ]
     },
@@ -401,21 +404,9 @@
       "display_name": "HuggingFace",
       "models": [
         {
-          "name": "huggingface/meta-llama/Meta-Llama-3-8B",
-          "display_name": "Meta Llama 3 8B",
-          "type": "chat",
-          "parameters": "8B"
-        },
-        {
           "name": "huggingface/meta-llama/Llama-3.3-70B-Instruct",
           "display_name": "Meta Llama 3.3 70B Instruct",
           "type": "instruct",
-          "parameters": "70B"
-        },
-        {
-          "name": "huggingface/meta-llama/Meta-Llama-3-70B",
-          "display_name": "Meta Llama 3 70B",
-          "type": "chat",
           "parameters": "70B"
         },
         {
@@ -427,12 +418,6 @@
           "name": "huggingface/meta-llama/Llama-4-Maverick",
           "display_name": "Meta Llama 4 Maverick",
           "type": "chat"
-        },
-        {
-          "name": "huggingface/meta-llama/Llama-2-7b-chat",
-          "display_name": "Meta Llama 2 7B Chat",
-          "type": "chat",
-          "parameters": "7B"
         },
         {
           "name": "huggingface/Qwen/Qwen-3",
@@ -463,22 +448,21 @@
           "parameters": "7B"
         },
         {
-          "name": "huggingface/01-ai/Yi-1.5-34B-Chat",
-          "display_name": "Yi 1.5 34B Chat",
-          "type": "chat",
-          "parameters": "34B"
+          "name": "huggingface/Qwen/Qwen2.5-72B-Instruct",
+          "display_name": "Qwen 2.5 72B Instruct",
+          "type": "instruct",
+          "parameters": "72B"
         },
         {
-          "name": "huggingface/bigscience/bloom",
-          "display_name": "BLOOM 176B",
-          "type": "base",
-          "parameters": "176B"
+          "name": "huggingface/google/gemma-2-27b-it",
+          "display_name": "Gemma 2 27B Instruct",
+          "type": "instruct",
+          "parameters": "27B"
         },
         {
-          "name": "huggingface/EleutherAI/gpt-neox-20b",
-          "display_name": "GPT-NeoX 20B",
-          "type": "base",
-          "parameters": "20B"
+          "name": "huggingface/deepseek-ai/DeepSeek-V3",
+          "display_name": "DeepSeek V3",
+          "type": "chat"
         }
       ]
     }

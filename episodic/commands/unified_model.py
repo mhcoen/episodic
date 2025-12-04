@@ -31,21 +31,23 @@ except ImportError:
 
 
 def model_command(
-    context: Optional[str] = typer.Argument(None, help="Context (chat/detection/compression/synthesis) or 'list'"),
+    context: Optional[str] = typer.Argument(None, help="Context (chat/detection/compression/synthesis), 'list', or model number"),
     model_name: Optional[str] = typer.Argument(None, help="Model name to set")
 ):
     """
     Manage language models for different contexts.
-    
+
     Usage:
         /model                              # Show all four models in use
         /model list                         # Show available models with pricing
+        /model <number>                     # Show detailed info about model #number
         /model chat <number|full-name>      # Set chat model
         /model detection <number|full-name> # Set detection model (instruct recommended)
         /model compression <number|full-name> # Set compression model (instruct recommended)
         /model synthesis <number|full-name>  # Set synthesis model (instruct recommended)
-    
+
     Examples:
+        /model 5                            # Show info about model #5
         /model chat 9                       # Select by number from list
         /model chat claude-opus-4-1-20250805  # Select by full model name
     """
@@ -53,11 +55,19 @@ def model_command(
     if not context:
         show_current_models()
         return
-    
+
     # Handle 'list' command
     if context.lower() == "list":
         show_available_models()
         return
+
+    # Check if context is a number (show model info)
+    try:
+        model_number = int(context)
+        show_model_info(model_number)
+        return
+    except ValueError:
+        pass  # Not a number, continue with normal flow
     
     # Validate context
     valid_contexts = ["chat", "detection", "compression", "synthesis"]
@@ -333,6 +343,179 @@ def show_available_models():
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
     typer.secho("  /model chat 9                         # Select by number from list", fg=get_text_color(), dim=True)
     typer.secho("  /model chat claude-opus-4-1-20250805  # Select by full model name", fg=get_text_color(), dim=True)
+
+
+def show_model_info(model_number: int):
+    """Show detailed information about a specific model by its number."""
+    from episodic.model_utils import get_models_config
+
+    # Build the numbered model list (same logic as show_available_models)
+    providers = get_available_providers()
+    current_idx = 1
+    target_model = None
+    target_provider = None
+    target_provider_display = None
+
+    for provider_name, provider_config in providers.items():
+        models = get_provider_models(provider_name)
+        if models:
+            for model in models:
+                if current_idx == model_number:
+                    target_model = model
+                    target_provider = provider_name
+                    target_provider_display = provider_config.get("display_name", provider_name)
+                    break
+                current_idx += 1
+            if target_model:
+                break
+
+    if not target_model:
+        typer.secho(f"Model #{model_number} not found.", fg="red")
+        typer.secho(f"Use '/model list' to see available models (1-{current_idx-1}).", fg=get_text_color())
+        return
+
+    # Extract model data - for string models, look up full data from models.json
+    models_config = get_models_config()
+
+    if isinstance(target_model, dict):
+        model_data = target_model
+    else:
+        # Look up full model data from models.json (string models lose extended fields)
+        model_data = None
+        for prov_name, prov_data in models_config.get('providers', {}).items():
+            for m in prov_data.get('models', []):
+                if isinstance(m, dict) and m.get('name') == target_model:
+                    model_data = m
+                    break
+            if model_data:
+                break
+        if not model_data:
+            model_data = {"name": target_model}
+
+    model_name = model_data.get("name", target_model if isinstance(target_model, str) else "unknown")
+    display_name = model_data.get("display_name", model_name)
+    model_type = model_data.get("type", "unknown")
+    parameters = model_data.get("parameters")
+    context_window = model_data.get("context_window")
+    pricing = model_data.get("pricing")
+    creator = model_data.get("creator", target_provider_display)
+    released = model_data.get("released")
+    description = model_data.get("description")
+    strengths = model_data.get("strengths", [])
+    weaknesses = model_data.get("weaknesses", [])
+    recommended_for = model_data.get("recommended_for", [])
+
+    # Get type indicator
+    type_indicator, tech_info = get_model_info_string(model_name, target_provider)
+
+    # Map type indicators to full descriptions
+    type_descriptions = {
+        '[C]': 'Chat',
+        '[I]': 'Instruct',
+        '[CI]': 'Chat & Instruct',
+        '[B]': 'Base/Completion',
+        '[?]': 'Unknown'
+    }
+    type_desc = type_descriptions.get(type_indicator, model_type.capitalize())
+
+    # Print header
+    header_text = f"{display_name}"
+    number_text = f"#{model_number}"
+    # Calculate padding to right-align the number
+    total_width = 60
+    padding = total_width - len(header_text) - len(number_text)
+    padding = max(1, padding)
+
+    typer.echo()
+    typer.secho(f"{header_text}{' ' * padding}{number_text}", fg=get_heading_color(), bold=True)
+    typer.secho("━" * total_width, fg=get_text_color(), dim=True)
+
+    # Basic info fields
+    typer.secho("Creator:        ", fg=get_text_color(), nl=False)
+    typer.secho(creator or "Unknown", fg=get_heading_color())
+
+    typer.secho("Type:           ", fg=get_text_color(), nl=False)
+    if type_indicator == '[I]':
+        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.GREEN, bold=True)
+        typer.secho(type_indicator, fg=typer.colors.GREEN, bold=True)
+    elif type_indicator == '[C]':
+        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.BLUE, bold=True)
+        typer.secho(type_indicator, fg=typer.colors.BLUE, bold=True)
+    elif type_indicator == '[CI]':
+        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.CYAN, bold=True)
+        typer.secho(type_indicator, fg=typer.colors.CYAN, bold=True)
+    elif type_indicator == '[B]':
+        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.MAGENTA, bold=True)
+        typer.secho(type_indicator, fg=typer.colors.MAGENTA, bold=True)
+    else:
+        typer.secho(f"{type_desc} {type_indicator}", fg=get_text_color())
+
+    typer.secho("Parameters:     ", fg=get_text_color(), nl=False)
+    typer.secho(parameters or "Unknown", fg=get_heading_color())
+
+    typer.secho("Context:        ", fg=get_text_color(), nl=False)
+    if context_window:
+        typer.secho(f"{context_window:,} tokens", fg=get_heading_color())
+    elif target_provider in LOCAL_PROVIDERS:
+        typer.secho("(detect on use)", fg=get_text_color(), dim=True)
+    else:
+        typer.secho("Unknown", fg=get_text_color(), dim=True)
+
+    # Pricing
+    typer.secho("Pricing:        ", fg=get_text_color(), nl=False)
+    if target_provider in LOCAL_PROVIDERS:
+        typer.secho("Free (local)", fg=typer.colors.BRIGHT_GREEN, bold=True)
+    elif pricing:
+        input_cost = pricing.get('input', 0)
+        output_cost = pricing.get('output', 0)
+        unit = pricing.get('unit', 'per_1m_tokens')
+        if unit == 'per_1m_tokens':
+            typer.secho(f"${input_cost:.2f}/1M in, ${output_cost:.2f}/1M out", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+        else:
+            typer.secho(f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out", fg=typer.colors.BRIGHT_MAGENTA, bold=True)
+    else:
+        typer.secho("Not available", fg=get_text_color(), dim=True)
+
+    # Released date (if available)
+    if released:
+        typer.secho("Released:       ", fg=get_text_color(), nl=False)
+        typer.secho(released, fg=get_heading_color())
+
+    # API name
+    typer.secho("API name:       ", fg=get_text_color(), nl=False)
+    typer.secho(model_name, fg=get_text_color(), dim=True)
+
+    # Description
+    typer.echo()
+    if description:
+        # Word wrap the description at ~60 chars
+        import textwrap
+        wrapped = textwrap.fill(description, width=60)
+        typer.secho(wrapped, fg=get_text_color())
+    else:
+        typer.secho("No detailed description available for this model.", fg=get_text_color(), dim=True)
+
+    # Strengths
+    if strengths:
+        typer.echo()
+        typer.secho("Strengths:", fg=get_heading_color(), bold=True)
+        for strength in strengths:
+            typer.secho(f"  + {strength}", fg=typer.colors.GREEN)
+
+    # Weaknesses
+    if weaknesses:
+        typer.echo()
+        typer.secho("Weaknesses:", fg=get_heading_color(), bold=True)
+        for weakness in weaknesses:
+            typer.secho(f"  - {weakness}", fg=typer.colors.YELLOW)
+
+    # Recommended for
+    if recommended_for:
+        typer.echo()
+        typer.secho("Recommended for: ", fg=get_text_color(), nl=False)
+        typer.secho(", ".join(recommended_for), fg=typer.colors.CYAN, bold=True)
+
+    typer.echo()
 
 
 def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optional[int] = None) -> str:

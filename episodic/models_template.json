@@ -17,7 +17,21 @@
             "output": 0.60,
             "unit": "per_1m_tokens",
             "last_updated": "2025-01-01"
-          }
+          },
+          "released": "July 2024",
+          "description": "OpenAI's most cost-effective model, designed for fast responses at scale. GPT-4o Mini offers strong performance on everyday tasks while being significantly cheaper than larger models. It handles general conversation, simple coding questions, and basic analysis well, though it may struggle with complex reasoning or specialized domains.",
+          "strengths": [
+            "Very affordable pricing",
+            "Fast response times",
+            "Good for high-volume applications",
+            "Solid general knowledge"
+          ],
+          "weaknesses": [
+            "Limited complex reasoning",
+            "May miss nuance in difficult tasks",
+            "Smaller context than some competitors"
+          ],
+          "recommended_for": ["chat", "compression"]
         },
         {
           "name": "gpt-4o",
@@ -30,7 +44,21 @@
             "output": 10.0,
             "unit": "per_1m_tokens",
             "last_updated": "2025-01-01"
-          }
+          },
+          "released": "May 2024",
+          "description": "OpenAI's flagship multimodal model optimized for speed and efficiency. GPT-4o matches GPT-4 Turbo's intelligence while being 2x faster and 50% cheaper. It excels at complex reasoning, coding, and creative tasks. The 'o' stands for 'omni' - it can process text, images, and audio natively.",
+          "strengths": [
+            "Excellent reasoning and analysis",
+            "Strong coding across many languages",
+            "Fast response times",
+            "Native vision capabilities"
+          ],
+          "weaknesses": [
+            "More expensive than mini models",
+            "May be overkill for simple tasks",
+            "Knowledge cutoff limits recent events"
+          ],
+          "recommended_for": ["chat", "detection", "compression", "synthesis"]
         },
         {
           "name": "o3",
@@ -140,7 +168,21 @@
             "output": 15.0,
             "unit": "per_1m_tokens",
             "last_updated": "2025-05-22"
-          }
+          },
+          "released": "May 2025",
+          "description": "Anthropic's flagship balanced model, offering strong reasoning and coding abilities at moderate cost. Claude Sonnet 4 excels at nuanced conversation, code generation, and analytical tasks. It's particularly good at following complex instructions and maintaining context over long conversations. A solid all-around choice that balances capability with affordability.",
+          "strengths": [
+            "Excellent instruction following",
+            "Strong coding and analysis",
+            "200K token context window",
+            "Works well for chat and instruct tasks"
+          ],
+          "weaknesses": [
+            "Pricier than budget models",
+            "Can be verbose in responses",
+            "Slower than smaller models"
+          ],
+          "recommended_for": ["chat", "detection", "compression", "synthesis"]
         },
         {
           "name": "claude-sonnet-4-5-20250929",
@@ -166,7 +208,21 @@
             "output": 5.0,
             "unit": "per_1m_tokens",
             "last_updated": "2025-10-01"
-          }
+          },
+          "released": "October 2025",
+          "description": "Anthropic's fastest and most affordable Claude model. Haiku 4.5 is optimized for speed while maintaining strong capabilities. It's ideal for tasks that need quick responses at scale, like summarization, simple analysis, and high-volume applications. While not as capable as Sonnet for complex reasoning, it handles most everyday tasks well.",
+          "strengths": [
+            "Very fast responses",
+            "Affordable pricing",
+            "200K token context window",
+            "Good for high-volume use"
+          ],
+          "weaknesses": [
+            "Less capable on complex reasoning",
+            "May miss subtle nuances",
+            "Not ideal for difficult coding tasks"
+          ],
+          "recommended_for": ["compression", "detection"]
         }
       ]
     },
@@ -178,7 +234,21 @@
           "display_name": "Gemini 2.5 Pro",
           "type": "both",
           "parameters": null,
-          "context_window": 2097152
+          "context_window": 2097152,
+          "released": "December 2024",
+          "description": "Google's most capable Gemini model with an industry-leading 2M token context window. Gemini 2.5 Pro excels at analyzing large documents, codebases, and long conversations. It offers strong reasoning and multimodal capabilities (text, images, video, audio). Particularly powerful for tasks requiring understanding of extensive context.",
+          "strengths": [
+            "Massive 2M token context window",
+            "Native multimodal (text, image, video, audio)",
+            "Strong reasoning and coding",
+            "Free tier available for experimentation"
+          ],
+          "weaknesses": [
+            "Some parameters not supported (presence/frequency penalty)",
+            "API quotas on free tier",
+            "Can be slower on very long contexts"
+          ],
+          "recommended_for": ["chat", "detection", "compression", "synthesis"]
         },
         {
           "name": "gemini-2.5-flash",
@@ -204,7 +274,23 @@
           "name": "llama3.3",
           "display_name": "Llama 3.3",
           "type": "chat",
-          "detect_params": true
+          "parameters": "70B",
+          "detect_params": true,
+          "creator": "Meta",
+          "released": "December 2024",
+          "description": "Meta's latest open-weight large language model, offering strong general capabilities comparable to many commercial models. Llama 3.3 runs locally via Ollama, meaning no API costs and full data privacy. The 70B parameter size provides excellent performance but requires significant VRAM (40GB+ recommended for full precision).",
+          "strengths": [
+            "Free and open-weight",
+            "Strong general capabilities",
+            "Full data privacy (runs locally)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Requires powerful hardware (40GB+ VRAM)",
+            "Slower than cloud models on modest hardware",
+            "No native multimodal support"
+          ],
+          "recommended_for": ["chat"]
         },
         {
           "name": "llama3",
@@ -266,7 +352,22 @@
           "name": "deepseek-r1",
           "display_name": "DeepSeek R1",
           "type": "chat",
-          "detect_params": true
+          "detect_params": true,
+          "creator": "DeepSeek",
+          "released": "January 2025",
+          "description": "DeepSeek's R1 is a powerful open-source reasoning model that rivals GPT-4 and Claude at a fraction of the cost. It excels at step-by-step reasoning, math, and coding tasks. R1 runs locally via Ollama, offering full privacy and no per-token costs. The model uses chain-of-thought reasoning visible in its output.",
+          "strengths": [
+            "Excellent reasoning and math",
+            "Strong coding capabilities",
+            "Free and open-source",
+            "Visible chain-of-thought"
+          ],
+          "weaknesses": [
+            "Large model size (requires significant resources)",
+            "Can be verbose with reasoning steps",
+            "Newer model with less community support"
+          ],
+          "recommended_for": ["chat", "detection"]
         }
       ]
     },

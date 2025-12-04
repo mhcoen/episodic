@@ -23,7 +23,7 @@
           "name": "gpt-4o",
           "display_name": "GPT-4o",
           "type": "chat",
-          "parameters": "200B+",
+          "parameters": null,
           "context_window": 128000,
           "pricing": {
             "input": 2.5,
@@ -60,9 +60,9 @@
         },
         {
           "name": "gpt-3.5-turbo",
-          "display_name": "GPT-3.5 Turbo",
+          "display_name": "GPT-3.5 Turbo (Legacy)",
           "type": "chat",
-          "parameters": "175B",
+          "parameters": null,
           "context_window": 16385,
           "pricing": {
             "input": 0.50,
@@ -73,16 +73,16 @@
         },
         {
           "name": "gpt-3.5-turbo-instruct",
-          "display_name": "GPT-3.5 Turbo Instruct",
+          "display_name": "GPT-3.5 Turbo Instruct (Legacy)",
           "type": "instruct",
-          "parameters": "175B",
+          "parameters": null,
           "context_window": 4096
         },
         {
           "name": "gpt-4",
           "display_name": "GPT-4",
           "type": "chat",
-          "parameters": "175B+",
+          "parameters": null,
           "context_window": 8192
         },
         {
@@ -92,10 +92,10 @@
           "parameters": null,
           "context_window": 272000,
           "pricing": {
-            "input": 1.25,
-            "output": 10.0,
+            "input": 1.0,
+            "output": 5.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-08-07"
+            "last_updated": "2025-12-04"
           }
         },
         {
@@ -105,10 +105,10 @@
           "parameters": null,
           "context_window": 272000,
           "pricing": {
-            "input": 1.25,
-            "output": 10.0,
+            "input": 1.0,
+            "output": 5.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-11-17"
+            "last_updated": "2025-12-04"
           }
         }
       ]

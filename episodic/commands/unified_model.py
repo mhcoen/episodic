@@ -156,11 +156,13 @@ def show_current_models():
     for type_indicator in ['[C]', '[I]', '[CI]', '[B]', '[?]']:
         if type_indicator in seen_types:
             description, color = type_info[type_indicator]
+            # Pad indicator to align equals signs (longest is [CI] at 4 chars)
+            padded_indicator = f"{type_indicator:4}"
             typer.secho("  ", nl=False)
             if color:
-                typer.secho(type_indicator, fg=color, bold=True, nl=False)
+                typer.secho(padded_indicator, fg=color, bold=True, nl=False)
             else:
-                typer.secho(type_indicator, fg=get_text_color(), dim=True, nl=False)
+                typer.secho(padded_indicator, fg=get_text_color(), dim=True, nl=False)
             typer.secho(f" = {description}", fg=get_text_color())
     
     typer.secho("\nUse '/model list' to see available models", fg=get_text_color(), dim=True)
@@ -318,11 +320,13 @@ def show_available_models():
     for type_indicator in ['[C]', '[I]', '[CI]', '[B]', '[?]']:
         if type_indicator in seen_types:
             description, color = type_info[type_indicator]
+            # Pad indicator to align equals signs (longest is [CI] at 4 chars)
+            padded_indicator = f"{type_indicator:4}"
             typer.secho("  ", nl=False)
             if color:
-                typer.secho(type_indicator, fg=color, bold=True, nl=False)
+                typer.secho(padded_indicator, fg=color, bold=True, nl=False)
             else:
-                typer.secho(type_indicator, fg=get_text_color(), dim=True, nl=False)
+                typer.secho(padded_indicator, fg=get_text_color(), dim=True, nl=False)
             typer.secho(f" = {description}", fg=get_text_color())
     
     typer.secho("\nTo change a model:", fg=get_text_color())

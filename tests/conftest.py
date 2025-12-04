@@ -44,17 +44,38 @@ def temp_database(temp_db_path):
     Automatically cleans up after test completion.
     """
     old_path = os.environ.get('EPISODIC_DB_PATH')
+    old_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
+
+    # Set up test environment
     os.environ['EPISODIC_DB_PATH'] = temp_db_path
+    os.environ['EPISODIC_DISABLE_POOL'] = 'true'  # Disable connection pooling for tests
 
     try:
+        # Close any existing connection pool to avoid stale connections
+        from episodic.db_connection import close_pool
+        close_pool()
+
         from episodic.db import initialize_db
         initialize_db()
         yield temp_db_path
     finally:
+        # Clean up - close pool again
+        try:
+            from episodic.db_connection import close_pool
+            close_pool()
+        except Exception:
+            pass
+
+        # Restore environment
         if old_path:
             os.environ['EPISODIC_DB_PATH'] = old_path
         else:
             os.environ.pop('EPISODIC_DB_PATH', None)
+
+        if old_disable_pool:
+            os.environ['EPISODIC_DISABLE_POOL'] = old_disable_pool
+        else:
+            os.environ.pop('EPISODIC_DISABLE_POOL', None)
 
 
 @pytest.fixture

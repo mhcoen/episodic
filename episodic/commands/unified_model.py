@@ -507,7 +507,7 @@ def show_model_info(model_number: int):
         typer.echo()
         typer.secho("Weaknesses:", fg=get_heading_color(), bold=True)
         for weakness in weaknesses:
-            typer.secho(f"  - {weakness}", fg=typer.colors.YELLOW)
+            typer.secho(f"  - {weakness}", fg=typer.colors.RED)
 
     # Recommended for
     if recommended_for:

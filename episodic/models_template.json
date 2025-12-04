@@ -23,7 +23,7 @@
           "name": "gpt-4o",
           "display_name": "GPT-4o",
           "type": "chat",
-          "parameters": null,
+          "parameters": "200B+",
           "context_window": 128000,
           "pricing": {
             "input": 2.5,
@@ -62,7 +62,7 @@
           "name": "gpt-3.5-turbo",
           "display_name": "GPT-3.5 Turbo (Legacy)",
           "type": "chat",
-          "parameters": null,
+          "parameters": "175B",
           "context_window": 16385,
           "pricing": {
             "input": 0.50,
@@ -75,14 +75,14 @@
           "name": "gpt-3.5-turbo-instruct",
           "display_name": "GPT-3.5 Turbo Instruct (Legacy)",
           "type": "instruct",
-          "parameters": null,
+          "parameters": "175B",
           "context_window": 4096
         },
         {
           "name": "gpt-4",
           "display_name": "GPT-4",
           "type": "chat",
-          "parameters": null,
+          "parameters": "175B+",
           "context_window": 8192
         },
         {

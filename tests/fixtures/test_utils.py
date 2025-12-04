@@ -63,24 +63,24 @@ def isolated_config():
     from episodic.config import config
     
     # Save current config
-    original_config = dict(config._config)
-    
+    original_config = dict(config.config)
+
     # Reset to defaults
-    config._config.clear()
-    config._config.update({
+    config.config.clear()
+    config.config.update({
         'model': 'test-model',
         'debug': False,
         'show_cost': False,
         'automatic_topic_detection': True,
         'min_messages_before_topic_change': 8
     })
-    
+
     try:
         yield config
     finally:
         # Restore original config
-        config._config.clear()
-        config._config.update(original_config)
+        config.config.clear()
+        config.config.update(original_config)
 
 
 def create_test_topics(count: int = 3) -> List[Dict]:

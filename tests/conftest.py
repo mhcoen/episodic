@@ -86,11 +86,11 @@ def isolated_config():
     from episodic.config import config
 
     # Save current config
-    original_config = dict(config._config)
+    original_config = dict(config.config)
 
     # Reset to test defaults
-    config._config.clear()
-    config._config.update({
+    config.config.clear()
+    config.config.update({
         'model': 'test-model',
         'debug': False,
         'show_cost': False,
@@ -102,8 +102,8 @@ def isolated_config():
     try:
         yield config
     finally:
-        config._config.clear()
-        config._config.update(original_config)
+        config.config.clear()
+        config.config.update(original_config)
 
 
 @pytest.fixture

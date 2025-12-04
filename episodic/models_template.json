@@ -92,8 +92,8 @@
           "parameters": null,
           "context_window": 272000,
           "pricing": {
-            "input": 1.0,
-            "output": 5.0,
+            "input": 1.25,
+            "output": 10.0,
             "unit": "per_1m_tokens",
             "last_updated": "2025-12-04"
           }
@@ -105,8 +105,8 @@
           "parameters": null,
           "context_window": 272000,
           "pricing": {
-            "input": 1.0,
-            "output": 5.0,
+            "input": 1.25,
+            "output": 10.0,
             "unit": "per_1m_tokens",
             "last_updated": "2025-12-04"
           }
@@ -117,10 +117,23 @@
       "display_name": "Anthropic",
       "models": [
         {
-          "name": "claude-opus-4-1-20250805",
-          "display_name": "Claude Opus 4.1",
+          "name": "claude-opus-4-5-20251022",
+          "display_name": "Claude Opus 4.5",
           "type": "both",
-          "parameters": "~1T",
+          "parameters": null,
+          "context_window": 200000,
+          "pricing": {
+            "input": 5.0,
+            "output": 25.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          }
+        },
+        {
+          "name": "claude-opus-4-1-20250805",
+          "display_name": "Claude Opus 4.1 (Legacy)",
+          "type": "both",
+          "parameters": null,
           "context_window": 200000,
           "pricing": {
             "input": 15.0,
@@ -178,21 +191,39 @@
           "display_name": "Gemini 2.5 Pro",
           "type": "both",
           "parameters": null,
-          "context_window": 2097152
+          "context_window": 2097152,
+          "pricing": {
+            "input": 1.25,
+            "output": 10.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          }
         },
         {
           "name": "gemini-2.5-flash",
           "display_name": "Gemini 2.5 Flash",
           "type": "both",
           "parameters": null,
-          "context_window": 1048576
+          "context_window": 1048576,
+          "pricing": {
+            "input": 0.30,
+            "output": 2.50,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          }
         },
         {
           "name": "gemini-2.5-flash-lite",
           "display_name": "Gemini 2.5 Flash-Lite",
           "type": "both",
           "parameters": null,
-          "context_window": 1048576
+          "context_window": 1048576,
+          "pricing": {
+            "input": 0.10,
+            "output": 0.40,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          }
         }
       ]
     },

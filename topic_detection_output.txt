@@ -1,5 +1,5 @@
 STDOUT:
-[3J[H[2J[34mExecuting script: /var/folders/hl/mgwkf5l500l37_1hm17nk9300000gn/T/tmp7zggdd5x.txt[0m
+[3J[H[2J[34mExecuting script: /var/folders/hl/mgwkf5l500l37_1hm17nk9300000gn/T/tmpo3lzmdke.txt[0m
 
 [37m[1m[1/21] /init --erase[0m
 [34m🗑️  Erasing existing database...[0m

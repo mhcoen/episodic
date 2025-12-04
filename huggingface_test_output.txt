@@ -1,5 +1,5 @@
 STDOUT:
-[3J[H[2J[34mExecuting script: /var/folders/hl/mgwkf5l500l37_1hm17nk9300000gn/T/tmp9r_lc5r7.txt[0m
+[3J[H[2J[34mExecuting script: /var/folders/hl/mgwkf5l500l37_1hm17nk9300000gn/T/tmphnm1qrhr.txt[0m
 
 [37m[1m[1/4] /init --erase[0m
 [34m🗑️  Erasing existing database...[0m
@@ -11,7 +11,7 @@ STDOUT:
 
 [37m[1m[3/4] Tell me a fun fact in 10 words or less[0m
 
-[36mHoney[0m[36m [0m[36mnever[0m[36m [0m[36mspoils[0m[36m [0m[36mand[0m[36m [0m[36mcan[0m[36m [0m[36mlast[0m[36m [0m[36mthousands[0m[36m [0m[36mof[0m[36m [0m[36myears![0m
+[36mHoney[0m[36m [0m[36mnever[0m[36m [0m[36mspoils;[0m[36m [0m[36marchaeologists[0m[36m [0m[36mfound[0m[36m [0m[36mit[0m[36m [0m[36min[0m[36m [0m[36mancient[0m[36m [0m[36mtombs![0m
 
 [37m[1m[4/4] /exit[0m
 [33mScript requested exit, stopping execution.[0m
@@ -21,8 +21,8 @@ STDOUT:
 💰 Session Costs[0m
 [33m========================================[0m
 [34mInput tokens:          79[0m
-[34mOutput tokens:         11[0m
-[34mTotal tokens:          90[0m
+[34mOutput tokens:         14[0m
+[34mTotal tokens:          93[0m
 [37m────────────────────────────────────────[0m
 [32m[1mTotal cost:    $    0.0000[0m
 [33m========================================[0m

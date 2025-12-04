@@ -1,6 +1,0 @@
-# Test muse mode context preservation
-/set muse-mode true
-What is Python?
-Can you give me an example of the language I just asked about?
-What specific feature did I ask about in my first question?
-/quit

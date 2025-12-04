@@ -18,18 +18,19 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-01-01"
           },
+          "creator": "OpenAI",
           "released": "July 2024",
-          "description": "OpenAI's most cost-effective model, designed for fast responses at scale. GPT-4o Mini offers strong performance on everyday tasks while being significantly cheaper than larger models. It handles general conversation, simple coding questions, and basic analysis well, though it may struggle with complex reasoning or specialized domains.",
+          "description": "OpenAI's efficient small model optimized for fast, cost-effective tasks. GPT-4o Mini delivers impressive quality for its size at a fraction of the cost of larger models. Ideal for high-volume applications where speed and cost matter more than maximum capability.",
           "strengths": [
-            "Very affordable pricing",
+            "Very cost-effective",
             "Fast response times",
-            "Good for high-volume applications",
-            "Solid general knowledge"
+            "128K context window",
+            "Good for routine tasks"
           ],
           "weaknesses": [
-            "Limited complex reasoning",
-            "May miss nuance in difficult tasks",
-            "Smaller context than some competitors"
+            "Less capable than GPT-4o",
+            "May struggle with complex reasoning",
+            "Limited for specialized tasks"
           ],
           "recommended_for": ["chat", "compression"]
         },
@@ -45,17 +46,17 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-01-01"
           },
+          "creator": "OpenAI",
           "released": "May 2024",
-          "description": "OpenAI's flagship multimodal model optimized for speed and efficiency. GPT-4o matches GPT-4 Turbo's intelligence while being 2x faster and 50% cheaper. It excels at complex reasoning, coding, and creative tasks. The 'o' stands for 'omni' - it can process text, images, and audio natively.",
+          "description": "OpenAI's flagship multimodal model optimized for speed and efficiency. GPT-4o matches GPT-4 Turbo's intelligence while being 2x faster and 50% cheaper. It excels at complex reasoning, coding, and creative tasks with native vision and audio capabilities.",
           "strengths": [
             "Excellent reasoning and analysis",
             "Strong coding across many languages",
             "Fast response times",
-            "Native vision capabilities"
+            "Native multimodal capabilities"
           ],
           "weaknesses": [
             "More expensive than mini models",
-            "May be overkill for simple tasks",
             "Knowledge cutoff limits recent events"
           ],
           "recommended_for": ["chat", "detection", "compression", "synthesis"]
@@ -72,8 +73,9 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-06-10"
           },
+          "creator": "OpenAI",
           "released": "June 2025",
-          "description": "OpenAI's advanced reasoning model, designed for complex problem-solving tasks requiring step-by-step thinking. o3 uses chain-of-thought reasoning internally before producing its response, making it exceptionally strong at math, coding challenges, and logical puzzles. Best for tasks where accuracy matters more than speed.",
+          "description": "OpenAI's advanced reasoning model, designed for complex problem-solving that requires deep thinking. Uses chain-of-thought processing to work through multi-step problems, showing its reasoning process. Excels at math, science, and logical puzzles where careful step-by-step analysis matters.",
           "strengths": [
             "Exceptional reasoning and math",
             "Strong at complex problem-solving",
@@ -99,24 +101,25 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-04-16"
           },
+          "creator": "OpenAI",
           "released": "April 2025",
-          "description": "OpenAI's efficient reasoning model, offering o-series reasoning capabilities at a lower cost. o4-mini brings chain-of-thought reasoning to more budget-conscious applications while maintaining strong performance on math, coding, and logical tasks. A good middle ground between speed and reasoning depth.",
+          "description": "OpenAI's cost-efficient reasoning model. Combines the step-by-step thinking approach of the o-series with a smaller, faster architecture. Great for applications that need reasoning capabilities without the cost of full o3.",
           "strengths": [
-            "Good reasoning at lower cost",
-            "Faster than full o-series models",
-            "128K context window",
-            "Strong at math and coding"
+            "Affordable reasoning model",
+            "Faster than o3",
+            "Good for moderate complexity",
+            "Chain-of-thought processing"
           ],
           "weaknesses": [
-            "Less capable than o3 on hard problems",
-            "Still slower than non-reasoning models",
-            "May be overkill for simple tasks"
+            "Less capable than full o3",
+            "Still slower than GPT-4o",
+            "Overkill for simple queries"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": ["detection"]
         },
         {
           "name": "gpt-3.5-turbo",
-          "display_name": "GPT-3.5 Turbo",
+          "display_name": "GPT-3.5 Turbo (Legacy)",
           "type": "chat",
           "parameters": "175B",
           "context_window": 16385,
@@ -126,65 +129,43 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-01-01"
           },
-          "released": "November 2022",
-          "description": "OpenAI's legacy fast and affordable model. GPT-3.5 Turbo was the model that powered the original ChatGPT and remains useful for simple tasks where cost is critical. While largely superseded by GPT-4o Mini, it's still available for existing applications and budget-conscious use cases.",
+          "creator": "OpenAI",
+          "released": "March 2023",
+          "description": "OpenAI's legacy chat model that powered the original ChatGPT. Still available for backwards compatibility but superseded by GPT-4o Mini for most use cases. Fast and inexpensive, but notably less capable than newer models.",
           "strengths": [
-            "Very low cost",
-            "Fast response times",
-            "Good for simple tasks",
-            "Well-understood behavior"
+            "Very fast responses",
+            "Low cost",
+            "Well-understood behavior",
+            "Good for simple tasks"
           ],
           "weaknesses": [
-            "Limited reasoning compared to GPT-4",
+            "Superseded by GPT-4o Mini",
             "Smaller context window (16K)",
-            "Outdated compared to newer models",
-            "May hallucinate more often"
+            "Less accurate than GPT-4 class",
+            "May be deprecated soon"
           ],
-          "recommended_for": ["compression"]
+          "recommended_for": ["chat"]
         },
         {
           "name": "gpt-3.5-turbo-instruct",
-          "display_name": "GPT-3.5 Turbo Instruct",
+          "display_name": "GPT-3.5 Turbo Instruct (Legacy)",
           "type": "instruct",
           "parameters": "175B",
           "context_window": 4096,
+          "creator": "OpenAI",
           "released": "September 2023",
-          "description": "An instruction-tuned variant of GPT-3.5 optimized for completing single-turn tasks. Unlike the chat model, this version is designed for direct instruction following without conversational context. Useful for structured tasks like text transformation, extraction, and formatting.",
+          "description": "OpenAI's instruction-following variant of GPT-3.5. Uses a completion-style API rather than chat format. Useful for specific instruction-following tasks and legacy integrations that rely on the instruct format.",
           "strengths": [
             "Good instruction following",
-            "Low cost",
-            "Fast responses",
-            "Predictable output format"
+            "Completion-style API",
+            "Predictable outputs"
           ],
           "weaknesses": [
-            "Small 4K context window",
-            "Not designed for conversation",
+            "Very small context (4K)",
             "Legacy model",
-            "Limited reasoning"
+            "Not recommended for new projects"
           ],
           "recommended_for": ["compression"]
-        },
-        {
-          "name": "gpt-4",
-          "display_name": "GPT-4",
-          "type": "chat",
-          "parameters": "175B+",
-          "context_window": 8192,
-          "released": "March 2023",
-          "description": "OpenAI's original GPT-4 model that marked a major leap in AI capabilities. While now superseded by GPT-4o and GPT-4 Turbo, the original GPT-4 remains available for users who need its specific behavior. Known for strong reasoning and reduced hallucinations compared to GPT-3.5.",
-          "strengths": [
-            "Strong reasoning capabilities",
-            "Reduced hallucinations",
-            "Well-tested and understood",
-            "Good at complex tasks"
-          ],
-          "weaknesses": [
-            "Small 8K context window",
-            "Slower than newer models",
-            "More expensive than GPT-4o",
-            "Superseded by better options"
-          ],
-          "recommended_for": ["chat"]
         },
         {
           "name": "gpt-5",
@@ -196,22 +177,22 @@
             "input": 1.25,
             "output": 10.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-08-07"
+            "last_updated": "2025-12-04"
           },
-          "released": "August 2025",
-          "description": "OpenAI's next-generation flagship model, representing a significant capability jump from GPT-4. GPT-5 features improved reasoning, coding, and creative abilities with a massive 272K context window. It's designed to handle more complex tasks with greater accuracy and nuance than its predecessors.",
+          "creator": "OpenAI",
+          "released": "2025",
+          "description": "OpenAI's next-generation model representing a major leap in capabilities. GPT-5 brings significant improvements in reasoning, coding, and creative tasks with a massive 272K context window. Designed to handle more complex, nuanced tasks than previous generations.",
           "strengths": [
-            "Major capability improvement over GPT-4",
-            "272K token context window",
-            "Excellent reasoning and coding",
-            "Strong multimodal capabilities"
+            "Major capability upgrade",
+            "272K context window",
+            "Advanced reasoning",
+            "Improved accuracy"
           ],
           "weaknesses": [
-            "More expensive than GPT-4o",
-            "Newer model (less community experience)",
+            "Higher cost than GPT-4o",
             "May be overkill for simple tasks"
           ],
-          "recommended_for": ["chat", "detection", "compression", "synthesis"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
           "name": "gpt-5.1",
@@ -223,22 +204,22 @@
             "input": 1.25,
             "output": 10.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-11-17"
+            "last_updated": "2025-12-04"
           },
-          "released": "November 2025",
-          "description": "An incremental update to GPT-5, offering refinements and improvements based on user feedback. GPT-5.1 maintains the same pricing and context window as GPT-5 while providing better instruction following and reduced edge-case failures. OpenAI's current recommended model for most use cases.",
+          "creator": "OpenAI",
+          "released": "2025",
+          "description": "Incremental update to GPT-5 with refined capabilities and improved reliability. GPT-5.1 addresses early feedback on GPT-5, offering better consistency and reduced hallucinations while maintaining the same powerful feature set.",
           "strengths": [
-            "Refined version of GPT-5",
-            "Better instruction following",
-            "272K token context window",
-            "Improved reliability"
+            "Refined GPT-5 capabilities",
+            "272K context window",
+            "Improved reliability",
+            "Better consistency"
           ],
           "weaknesses": [
             "Similar cost to GPT-5",
-            "Very new model",
             "May be overkill for simple tasks"
           ],
-          "recommended_for": ["chat", "detection", "compression", "synthesis"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         }
       ]
     },
@@ -246,10 +227,37 @@
       "display_name": "Anthropic",
       "models": [
         {
-          "name": "claude-opus-4-1-20250805",
-          "display_name": "Claude Opus 4.1",
+          "name": "claude-opus-4-5-20251022",
+          "display_name": "Claude Opus 4.5",
           "type": "both",
-          "parameters": "~1T",
+          "parameters": null,
+          "context_window": 200000,
+          "pricing": {
+            "input": 5.0,
+            "output": 25.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          },
+          "creator": "Anthropic",
+          "released": "October 2025",
+          "description": "The latest and most capable model in the Opus family. Claude Opus 4.5 represents the pinnacle of capabilities with exceptional reasoning, analysis, and creative writing abilities. Ideal for the most demanding tasks requiring nuanced understanding.",
+          "strengths": [
+            "Most capable Opus variant",
+            "Exceptional reasoning",
+            "200K context window",
+            "Strong creative abilities"
+          ],
+          "weaknesses": [
+            "Higher cost",
+            "May be overkill for simpler tasks"
+          ],
+          "recommended_for": ["chat", "detection", "synthesis"]
+        },
+        {
+          "name": "claude-opus-4-1-20250805",
+          "display_name": "Claude Opus 4.1 (Legacy)",
+          "type": "both",
+          "parameters": null,
           "context_window": 200000,
           "pricing": {
             "input": 15.0,
@@ -257,19 +265,18 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-08-05"
           },
+          "creator": "Anthropic",
           "released": "August 2025",
-          "description": "The most capable model in the Claude family, designed for highly complex tasks requiring deep reasoning and analysis. Opus 4.1 excels at research, complex coding projects, and tasks requiring extensive knowledge synthesis. It's significantly more expensive than Sonnet but offers superior performance on difficult problems.",
+          "description": "The previous generation Opus model, now marked as legacy. Still highly capable for complex tasks but superseded by Opus 4.5 which offers better value. Maintained for backwards compatibility.",
           "strengths": [
-            "Highest capability in Claude family",
-            "Exceptional at complex reasoning",
-            "Strong research and analysis",
-            "200K token context window"
+            "Strong reasoning",
+            "200K context window",
+            "Proven reliability"
           ],
           "weaknesses": [
-            "Most expensive Claude model",
-            "Slower than Sonnet/Haiku",
-            "Overkill for simple tasks",
-            "High cost adds up quickly"
+            "Superseded by Opus 4.5",
+            "Higher cost than newer version",
+            "Legacy status"
           ],
           "recommended_for": ["synthesis"]
         },
@@ -285,20 +292,20 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-05-22"
           },
+          "creator": "Anthropic",
           "released": "May 2025",
-          "description": "Anthropic's flagship balanced model, offering strong reasoning and coding abilities at moderate cost. Claude Sonnet 4 excels at nuanced conversation, code generation, and analytical tasks. It's particularly good at following complex instructions and maintaining context over long conversations. A solid all-around choice that balances capability with affordability.",
+          "description": "A balanced model offering excellent capabilities at a reasonable price point. Claude Sonnet 4 excels at a wide range of tasks including coding, analysis, and creative writing while being more cost-effective than Opus models.",
           "strengths": [
-            "Excellent instruction following",
-            "Strong coding and analysis",
-            "200K token context window",
-            "Works well for chat and instruct tasks"
+            "Great balance of capability and cost",
+            "Strong coding abilities",
+            "200K context window",
+            "Fast responses"
           ],
           "weaknesses": [
-            "Pricier than budget models",
-            "Can be verbose in responses",
-            "Slower than smaller models"
+            "Less capable than Opus for complex tasks",
+            "Superseded by Sonnet 4.5"
           ],
-          "recommended_for": ["chat", "detection", "compression", "synthesis"]
+          "recommended_for": ["chat", "detection", "compression"]
         },
         {
           "name": "claude-sonnet-4-5-20250929",
@@ -312,18 +319,17 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-09-29"
           },
+          "creator": "Anthropic",
           "released": "September 2025",
-          "description": "An updated version of Claude Sonnet 4 with refinements and improvements. Sonnet 4.5 maintains the same balanced capabilities as its predecessor while offering better performance on edge cases and improved instruction following. A strong all-around choice for most tasks.",
+          "description": "The latest Sonnet model with improved capabilities over Sonnet 4. Offers excellent performance for everyday tasks at a competitive price point. The recommended choice for most general-purpose applications.",
           "strengths": [
-            "Refined Sonnet 4 experience",
-            "Excellent instruction following",
-            "200K token context window",
-            "Good balance of cost and capability"
+            "Improved over Sonnet 4",
+            "Excellent value",
+            "200K context window",
+            "Strong all-around performance"
           ],
           "weaknesses": [
-            "Same price as Sonnet 4",
-            "Newer model (less tested)",
-            "Can be verbose"
+            "Less capable than Opus for complex tasks"
           ],
           "recommended_for": ["chat", "detection", "compression", "synthesis"]
         },
@@ -339,20 +345,20 @@
             "unit": "per_1m_tokens",
             "last_updated": "2025-10-01"
           },
+          "creator": "Anthropic",
           "released": "October 2025",
-          "description": "Anthropic's fastest and most affordable Claude model. Haiku 4.5 is optimized for speed while maintaining strong capabilities. It's ideal for tasks that need quick responses at scale, like summarization, simple analysis, and high-volume applications. While not as capable as Sonnet for complex reasoning, it handles most everyday tasks well.",
+          "description": "The fastest and most cost-effective model in the family. Claude Haiku 4.5 is optimized for speed and efficiency while still delivering solid capabilities. Ideal for high-volume applications and latency-sensitive tasks.",
           "strengths": [
             "Very fast responses",
-            "Affordable pricing",
-            "200K token context window",
-            "Good for high-volume use"
+            "Most cost-effective option",
+            "200K context window",
+            "Good for routine tasks"
           ],
           "weaknesses": [
-            "Less capable on complex reasoning",
-            "May miss subtle nuances",
-            "Not ideal for difficult coding tasks"
+            "Less capable than Sonnet/Opus",
+            "May struggle with complex reasoning"
           ],
-          "recommended_for": ["compression", "detection"]
+          "recommended_for": ["chat", "compression"]
         }
       ]
     },
@@ -365,20 +371,26 @@
           "type": "both",
           "parameters": null,
           "context_window": 2097152,
-          "released": "December 2024",
-          "description": "Google's most capable Gemini model with an industry-leading 2M token context window. Gemini 2.5 Pro excels at analyzing large documents, codebases, and long conversations. It offers strong reasoning and multimodal capabilities (text, images, video, audio). Particularly powerful for tasks requiring understanding of extensive context.",
+          "pricing": {
+            "input": 1.25,
+            "output": 10.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          },
+          "creator": "Google",
+          "released": "2025",
+          "description": "Google's flagship Gemini model with an industry-leading 2M token context window. Gemini 2.5 Pro excels at processing massive documents, long codebases, and extended conversations. Strong multimodal capabilities for text, images, and code.",
           "strengths": [
-            "Massive 2M token context window",
-            "Native multimodal (text, image, video, audio)",
-            "Strong reasoning and coding",
-            "Free tier available for experimentation"
+            "Massive 2M context window",
+            "Strong multimodal support",
+            "Excellent reasoning",
+            "Competitive pricing"
           ],
           "weaknesses": [
-            "Some parameters not supported (presence/frequency penalty)",
-            "API quotas on free tier",
-            "Can be slower on very long contexts"
+            "Higher latency for long contexts",
+            "May be overkill for short tasks"
           ],
-          "recommended_for": ["chat", "detection", "compression", "synthesis"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
           "name": "gemini-2.5-flash",
@@ -386,18 +398,24 @@
           "type": "both",
           "parameters": null,
           "context_window": 1048576,
-          "released": "December 2024",
-          "description": "Google's fast and efficient Gemini model, optimized for speed while maintaining strong capabilities. Flash offers a 1M token context window at lower cost than Pro, making it ideal for applications requiring quick responses and large document processing. Good balance of speed and capability.",
+          "pricing": {
+            "input": 0.30,
+            "output": 2.50,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          },
+          "creator": "Google",
+          "released": "2025",
+          "description": "Google's fast, cost-effective model optimized for high-volume applications. Gemini 2.5 Flash offers a 1M token context with excellent speed-to-quality ratio. Ideal for real-time applications and batch processing.",
           "strengths": [
             "Very fast responses",
-            "1M token context window",
-            "Lower cost than Pro",
-            "Strong multimodal support"
+            "1M context window",
+            "Excellent value",
+            "Good for high volume"
           ],
           "weaknesses": [
-            "Less capable than Pro on complex tasks",
-            "Some API parameter limitations",
-            "May miss subtle nuances"
+            "Less capable than Pro",
+            "May struggle with complex reasoning"
           ],
           "recommended_for": ["chat", "compression"]
         },
@@ -407,18 +425,25 @@
           "type": "both",
           "parameters": null,
           "context_window": 1048576,
-          "released": "December 2024",
-          "description": "The most lightweight Gemini model, designed for maximum speed and cost efficiency. Flash-Lite is ideal for simple tasks, high-volume applications, and latency-sensitive use cases. While less capable than Flash or Pro, it still benefits from the 1M context window.",
+          "pricing": {
+            "input": 0.10,
+            "output": 0.40,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-04"
+          },
+          "creator": "Google",
+          "released": "2025",
+          "description": "The most cost-effective Gemini model, optimized for maximum efficiency. Flash-Lite provides the cheapest per-token pricing while maintaining a 1M context window. Perfect for cost-sensitive applications and simple tasks.",
           "strengths": [
-            "Fastest Gemini model",
-            "Most affordable option",
-            "1M token context window",
-            "Great for high-volume use"
+            "Extremely low cost",
+            "1M context window",
+            "Fastest variant",
+            "Great for simple tasks"
           ],
           "weaknesses": [
-            "Least capable Gemini variant",
-            "Not ideal for complex reasoning",
-            "May struggle with nuanced tasks"
+            "Least capable Gemini",
+            "Limited complex reasoning",
+            "May need more guidance"
           ],
           "recommended_for": ["compression"]
         }
@@ -429,159 +454,147 @@
       "api_base": "http://localhost:11434",
       "models": [
         {
+          "name": "llama3.1",
+          "display_name": "Llama 3.1",
+          "type": "chat",
+          "detect_params": true,
+          "creator": "Meta",
+          "released": "July 2024",
+          "description": "Meta's Llama 3.1 running locally via Ollama. A strong open-weight model with excellent general capabilities. Run it completely offline with full privacy - no data leaves your machine.",
+          "strengths": [
+            "Runs locally (private)",
+            "No API costs",
+            "Strong general performance",
+            "Offline capable"
+          ],
+          "weaknesses": [
+            "Requires local hardware",
+            "Slower than cloud models",
+            "Superseded by 3.2/3.3"
+          ],
+          "recommended_for": ["chat"]
+        },
+        {
+          "name": "llama3.2",
+          "display_name": "Llama 3.2",
+          "type": "chat",
+          "detect_params": true,
+          "creator": "Meta",
+          "released": "September 2024",
+          "description": "Meta's Llama 3.2 running locally via Ollama. Includes improved efficiency and multimodal capabilities over 3.1. Great for local inference with balanced speed and quality.",
+          "strengths": [
+            "Improved over 3.1",
+            "Multimodal support",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Requires local hardware",
+            "Superseded by 3.3"
+          ],
+          "recommended_for": ["chat"]
+        },
+        {
           "name": "llama3.3",
           "display_name": "Llama 3.3",
           "type": "chat",
-          "parameters": "70B",
           "detect_params": true,
           "creator": "Meta",
           "released": "December 2024",
-          "description": "Meta's latest open-weight large language model, offering strong general capabilities comparable to many commercial models. Llama 3.3 runs locally via Ollama, meaning no API costs and full data privacy. The 70B parameter size provides excellent performance but requires significant VRAM (40GB+ recommended for full precision).",
+          "description": "Meta's latest Llama 3.3 running locally via Ollama. The most capable Llama 3.x model with strong instruction following and reasoning. Excellent choice for local AI without compromising on quality.",
           "strengths": [
-            "Free and open-weight",
-            "Strong general capabilities",
-            "Full data privacy (runs locally)",
+            "Latest Llama 3.x",
+            "Strong reasoning",
+            "Runs locally (private)",
             "No API costs"
           ],
           "weaknesses": [
-            "Requires powerful hardware (40GB+ VRAM)",
-            "Slower than cloud models on modest hardware",
-            "No native multimodal support"
+            "Requires decent hardware",
+            "Slower than cloud"
           ],
-          "recommended_for": ["chat"]
-        },
-        {
-          "name": "llama3",
-          "display_name": "Llama 3",
-          "type": "chat",
-          "detect_params": true,
-          "parameters": "8B",
-          "creator": "Meta",
-          "released": "April 2024",
-          "description": "Meta's Llama 3 8B model running locally via Ollama. A capable general-purpose model that runs efficiently on consumer hardware. Good for everyday tasks and conversation while keeping data fully private on your machine.",
-          "strengths": [
-            "Runs on modest hardware",
-            "Full data privacy",
-            "No API costs",
-            "Good general performance"
-          ],
-          "weaknesses": [
-            "Less capable than 70B models",
-            "Older than Llama 3.3",
-            "May struggle with complex tasks"
-          ],
-          "recommended_for": ["chat"]
-        },
-        {
-          "name": "llama3:instruct",
-          "display_name": "Llama 3 Instruct",
-          "type": "instruct",
-          "detect_params": true,
-          "parameters": "8B",
-          "creator": "Meta",
-          "released": "April 2024",
-          "description": "The instruction-tuned variant of Llama 3 8B, optimized for following instructions and completing tasks. Better than the chat variant for structured tasks like summarization, extraction, and analysis. Runs locally with full privacy.",
-          "strengths": [
-            "Good instruction following",
-            "Runs on modest hardware",
-            "Full data privacy",
-            "No API costs"
-          ],
-          "weaknesses": [
-            "Less conversational than chat variant",
-            "Older than Llama 3.3",
-            "Limited on complex tasks"
-          ],
-          "recommended_for": ["detection", "compression"]
+          "recommended_for": ["chat", "detection"]
         },
         {
           "name": "mistral",
           "display_name": "Mistral",
           "type": "chat",
           "detect_params": true,
-          "parameters": "7B",
           "creator": "Mistral AI",
-          "released": "September 2023",
-          "description": "Mistral AI's efficient 7B model, known for punching above its weight class. Despite its small size, Mistral 7B outperforms larger models on many benchmarks. Runs quickly on consumer hardware with low memory requirements, making it an excellent choice for local inference.",
+          "released": "2023",
+          "description": "Mistral AI's 7B model running locally via Ollama. Known for exceptional efficiency - delivers strong performance from a compact 7B architecture. One of the best quality-to-size ratios available.",
           "strengths": [
-            "Excellent performance for size",
-            "Low hardware requirements",
-            "Fast inference",
-            "Full data privacy"
+            "Excellent efficiency",
+            "Fast on modest hardware",
+            "Strong for 7B size",
+            "No API costs"
           ],
           "weaknesses": [
-            "Limited on complex reasoning",
-            "Smaller knowledge base",
-            "May need more guidance than larger models"
+            "Limited by 7B size",
+            "Less capable than larger models"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": ["chat", "compression"]
         },
         {
           "name": "mistral:instruct",
           "display_name": "Mistral Instruct",
           "type": "instruct",
           "detect_params": true,
-          "parameters": "7B",
           "creator": "Mistral AI",
-          "released": "September 2023",
-          "description": "The instruction-tuned version of Mistral 7B, optimized for following commands and completing structured tasks. Better than the chat variant for specific tasks like extraction, summarization, and analysis. Very efficient on consumer hardware.",
+          "released": "2023",
+          "description": "Instruction-tuned variant of Mistral 7B for Ollama. Optimized for following specific instructions rather than open conversation. Good for task-oriented workflows.",
           "strengths": [
             "Good instruction following",
-            "Low hardware requirements",
+            "Efficient 7B size",
             "Fast inference",
-            "Full data privacy"
+            "No API costs"
           ],
           "weaknesses": [
             "Less conversational",
-            "Limited on complex reasoning",
-            "Smaller knowledge base"
-          ],
-          "recommended_for": ["detection", "compression"]
-        },
-        {
-          "name": "codellama",
-          "display_name": "Code Llama",
-          "type": "base",
-          "detect_params": true,
-          "parameters": "7B",
-          "creator": "Meta",
-          "released": "August 2023",
-          "description": "Meta's code-specialized model based on Llama 2, designed for code completion and generation. As a base model, it's optimized for completing code rather than following instructions. Best for IDE-style code completion tasks.",
-          "strengths": [
-            "Specialized for code",
-            "Good code completion",
-            "Runs on consumer hardware",
-            "Full data privacy"
-          ],
-          "weaknesses": [
-            "Base model (not instruction-tuned)",
-            "Older architecture",
-            "Limited general knowledge",
-            "Not for conversation"
-          ],
-          "recommended_for": ["synthesis"]
-        },
-        {
-          "name": "phi3",
-          "display_name": "Phi-3",
-          "type": "instruct",
-          "parameters": "3.8B",
-          "detect_params": true,
-          "creator": "Microsoft",
-          "released": "April 2024",
-          "description": "Microsoft's small but mighty language model. Phi-3 achieves impressive capabilities despite its tiny 3.8B size, thanks to high-quality training data. Runs on almost any hardware including laptops without dedicated GPUs. Great for experimentation and resource-constrained environments.",
-          "strengths": [
-            "Extremely small size",
-            "Runs on almost any hardware",
-            "Surprisingly capable",
-            "Fast inference"
-          ],
-          "weaknesses": [
-            "Limited knowledge scope",
-            "Struggles with complex reasoning",
-            "Less tested than larger models"
+            "Limited by 7B size"
           ],
           "recommended_for": ["compression"]
+        },
+        {
+          "name": "mistral-nemo",
+          "display_name": "Mistral Nemo",
+          "type": "chat",
+          "parameters": "12B",
+          "detect_params": true,
+          "creator": "Mistral AI",
+          "released": "2024",
+          "description": "Mistral's Nemo 12B model via Ollama. Larger than base Mistral with improved capabilities while remaining efficient. A good middle ground between 7B and much larger models.",
+          "strengths": [
+            "Better than 7B Mistral",
+            "Still efficient (12B)",
+            "Good reasoning",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Needs more RAM than 7B",
+            "Slower than smaller models"
+          ],
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "mistral-nemo:instruct",
+          "display_name": "Mistral Nemo Instruct",
+          "type": "instruct",
+          "parameters": "12B",
+          "detect_params": true,
+          "creator": "Mistral AI",
+          "released": "2024",
+          "description": "Instruction-tuned Mistral Nemo 12B via Ollama. Combines the improved capabilities of Nemo with instruction-following optimization. Good for local task automation.",
+          "strengths": [
+            "Good instruction following",
+            "12B capability boost",
+            "Efficient inference",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Needs more RAM",
+            "Less conversational"
+          ],
+          "recommended_for": ["detection", "compression"]
         },
         {
           "name": "phi4",
@@ -591,17 +604,16 @@
           "detect_params": true,
           "creator": "Microsoft",
           "released": "December 2024",
-          "description": "Microsoft's larger Phi model, scaling up the efficient architecture to 14B parameters. Phi-4 offers significantly better capabilities than Phi-3 while still running on consumer GPUs. Strong performance on reasoning and coding tasks relative to its size.",
+          "description": "Microsoft's Phi-4 running locally via Ollama. A small but mighty model that punches above its weight class, especially in reasoning and math. Excellent for local use with limited resources.",
           "strengths": [
-            "Excellent performance for size",
-            "Strong reasoning capabilities",
-            "Runs on consumer GPUs",
-            "Good instruction following"
+            "Exceptional for 14B size",
+            "Strong reasoning/math",
+            "Efficient architecture",
+            "No API costs"
           ],
           "weaknesses": [
-            "Requires more VRAM than Phi-3",
-            "Less capable than 70B models",
-            "Newer model (less tested)"
+            "Limited context window",
+            "Less general knowledge"
           ],
           "recommended_for": ["chat", "detection"]
         },
@@ -612,17 +624,16 @@
           "detect_params": true,
           "creator": "Meta",
           "released": "2025",
-          "description": "Meta's Llama 4 Scout, one of the smaller models in the Llama 4 family. Scout is designed for efficient deployment while maintaining strong general capabilities. Part of Meta's next-generation open model series.",
+          "description": "Meta's Llama 4 Scout running locally via Ollama. The efficient variant of Llama 4 optimized for speed. Run the latest Llama generation completely locally.",
           "strengths": [
-            "Llama 4 architecture",
-            "Efficient for its capabilities",
-            "Open weights",
-            "Full data privacy locally"
+            "Llama 4 capabilities",
+            "Fast inference",
+            "Runs locally (private)",
+            "No API costs"
           ],
           "weaknesses": [
-            "Requires capable hardware",
-            "Newer model (less community testing)",
-            "Less capable than Maverick"
+            "Less capable than Maverick",
+            "Needs good hardware"
           ],
           "recommended_for": ["chat"]
         },
@@ -633,17 +644,16 @@
           "detect_params": true,
           "creator": "Meta",
           "released": "2025",
-          "description": "Meta's flagship Llama 4 model, offering the highest capabilities in the Llama 4 series. Maverick represents Meta's most powerful open-weight model, competitive with commercial offerings. Requires significant hardware but delivers exceptional performance.",
+          "description": "Meta's flagship Llama 4 Maverick running locally via Ollama. The most capable Llama 4 variant for those with powerful hardware. State-of-the-art open model performance locally.",
           "strengths": [
-            "Top-tier Llama 4 performance",
-            "Strong reasoning and coding",
-            "Open weights",
-            "Full data privacy locally"
+            "Most capable Llama 4",
+            "Strong reasoning",
+            "Runs locally (private)",
+            "No API costs"
           ],
           "weaknesses": [
-            "High hardware requirements",
-            "Newer model (less tested)",
-            "Slower than smaller models"
+            "Requires powerful hardware",
+            "Slow on modest systems"
           ],
           "recommended_for": ["chat", "detection", "synthesis"]
         },
@@ -653,20 +663,260 @@
           "type": "chat",
           "detect_params": true,
           "creator": "DeepSeek",
-          "released": "January 2025",
-          "description": "DeepSeek's R1 is a powerful open-source reasoning model that rivals GPT-4 and Claude at a fraction of the cost. It excels at step-by-step reasoning, math, and coding tasks. R1 runs locally via Ollama, offering full privacy and no per-token costs. The model uses chain-of-thought reasoning visible in its output.",
+          "released": "2025",
+          "description": "DeepSeek's R1 reasoning model running locally via Ollama. Known for exceptional chain-of-thought reasoning and math capabilities. Run advanced reasoning completely offline.",
           "strengths": [
-            "Excellent reasoning and math",
-            "Strong coding capabilities",
-            "Free and open-source",
-            "Visible chain-of-thought"
+            "Exceptional reasoning",
+            "Strong math abilities",
+            "Chain-of-thought",
+            "No API costs"
           ],
           "weaknesses": [
-            "Large model size (requires significant resources)",
-            "Can be verbose with reasoning steps",
-            "Newer model with less community support"
+            "Slower due to reasoning",
+            "Needs good hardware"
+          ],
+          "recommended_for": ["detection", "synthesis"]
+        },
+        {
+          "name": "deepseek-v3",
+          "display_name": "DeepSeek V3",
+          "type": "chat",
+          "detect_params": true,
+          "creator": "DeepSeek",
+          "released": "2024",
+          "description": "DeepSeek V3 running locally via Ollama. A strong general-purpose model with good coding and reasoning abilities. Competitive with larger commercial models.",
+          "strengths": [
+            "Strong general abilities",
+            "Good coding support",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Large model size",
+            "Needs substantial RAM"
           ],
           "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "qwen2.5",
+          "display_name": "Qwen 2.5",
+          "type": "chat",
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "2024",
+          "description": "Alibaba's Qwen 2.5 running locally via Ollama. Excellent multilingual model with strong Chinese and English capabilities. Great for bilingual applications.",
+          "strengths": [
+            "Strong multilingual",
+            "Good reasoning",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "May vary by size variant"
+          ],
+          "recommended_for": ["chat"]
+        },
+        {
+          "name": "qwen2.5:7b",
+          "display_name": "Qwen 2.5 7B",
+          "type": "chat",
+          "parameters": "7B",
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "2024",
+          "description": "Qwen 2.5 7B variant via Ollama. The lightweight option that runs well on modest hardware while maintaining strong multilingual performance.",
+          "strengths": [
+            "Runs on modest hardware",
+            "Good multilingual",
+            "Fast inference",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Limited by 7B size"
+          ],
+          "recommended_for": ["chat", "compression"]
+        },
+        {
+          "name": "qwen2.5:14b",
+          "display_name": "Qwen 2.5 14B",
+          "type": "chat",
+          "parameters": "14B",
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "2024",
+          "description": "Qwen 2.5 14B variant via Ollama. A balanced middle ground with improved capabilities over 7B while remaining relatively efficient.",
+          "strengths": [
+            "Good capability balance",
+            "Strong multilingual",
+            "Reasonable hardware needs",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Needs more RAM than 7B"
+          ],
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "qwen2.5:32b",
+          "display_name": "Qwen 2.5 32B",
+          "type": "chat",
+          "parameters": "32B",
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "2024",
+          "description": "Qwen 2.5 32B variant via Ollama. The most capable Qwen 2.5 option with strong performance across all tasks. Requires more powerful hardware.",
+          "strengths": [
+            "Most capable Qwen 2.5",
+            "Excellent multilingual",
+            "Strong reasoning",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Needs powerful hardware",
+            "Slower inference"
+          ],
+          "recommended_for": ["chat", "detection", "synthesis"]
+        },
+        {
+          "name": "qwen2.5-coder",
+          "display_name": "Qwen 2.5 Coder",
+          "type": "chat",
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "2024",
+          "description": "Qwen 2.5 variant optimized for coding via Ollama. Fine-tuned specifically for programming tasks with strong code generation and understanding abilities.",
+          "strengths": [
+            "Strong coding focus",
+            "Good code generation",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Less general-purpose",
+            "Coding-specific tuning"
+          ],
+          "recommended_for": ["synthesis"]
+        },
+        {
+          "name": "gemma2",
+          "display_name": "Gemma 2",
+          "type": "chat",
+          "detect_params": true,
+          "creator": "Google",
+          "released": "2024",
+          "description": "Google's Gemma 2 running locally via Ollama. An open-weight model built with similar technology to Gemini. Good balance of quality and efficiency.",
+          "strengths": [
+            "Google's quality",
+            "Efficient architecture",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Smaller than Gemini"
+          ],
+          "recommended_for": ["chat"]
+        },
+        {
+          "name": "gemma2:2b",
+          "display_name": "Gemma 2 2B",
+          "type": "chat",
+          "parameters": "2B",
+          "detect_params": true,
+          "creator": "Google",
+          "released": "2024",
+          "description": "Gemma 2 2B variant via Ollama. The ultra-lightweight option that runs on almost any hardware. Great for edge devices and resource-constrained environments.",
+          "strengths": [
+            "Runs on any hardware",
+            "Very fast",
+            "Minimal resources",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Limited by 2B size",
+            "Less capable"
+          ],
+          "recommended_for": ["compression"]
+        },
+        {
+          "name": "gemma2:9b",
+          "display_name": "Gemma 2 9B",
+          "type": "chat",
+          "parameters": "9B",
+          "detect_params": true,
+          "creator": "Google",
+          "released": "2024",
+          "description": "Gemma 2 9B variant via Ollama. The larger Gemma option with improved capabilities while remaining efficient. Good for most local use cases.",
+          "strengths": [
+            "Good capability balance",
+            "Efficient 9B size",
+            "Google quality",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Needs moderate hardware"
+          ],
+          "recommended_for": ["chat"]
+        },
+        {
+          "name": "codellama",
+          "display_name": "Code Llama",
+          "type": "base",
+          "detect_params": true,
+          "creator": "Meta",
+          "released": "August 2023",
+          "description": "Meta's Code Llama running locally via Ollama. A Llama 2 variant specifically trained on code. Excellent for local code completion and generation.",
+          "strengths": [
+            "Strong code generation",
+            "Multiple languages",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Code-focused only",
+            "Base model (not chat)",
+            "Older architecture"
+          ],
+          "recommended_for": ["synthesis"]
+        },
+        {
+          "name": "starcoder2",
+          "display_name": "StarCoder 2",
+          "type": "base",
+          "detect_params": true,
+          "creator": "BigCode",
+          "released": "2024",
+          "description": "BigCode's StarCoder 2 running locally via Ollama. An open-source code model trained on permissively licensed code. Good for code-centric applications.",
+          "strengths": [
+            "Open-source trained",
+            "Strong code generation",
+            "Permissive training data",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Code-focused only",
+            "Base model (not chat)"
+          ],
+          "recommended_for": ["synthesis"]
+        },
+        {
+          "name": "deepseek-coder",
+          "display_name": "DeepSeek Coder",
+          "type": "base",
+          "detect_params": true,
+          "creator": "DeepSeek",
+          "released": "2023",
+          "description": "DeepSeek's code-specialized model via Ollama. Trained extensively on code with strong generation and understanding abilities. Good for local coding assistance.",
+          "strengths": [
+            "Strong code abilities",
+            "Good generation",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Code-focused only",
+            "Base model (not chat)"
+          ],
+          "recommended_for": ["synthesis"]
         }
       ]
     },
@@ -685,65 +935,33 @@
           "display_name": "Claude Opus 4.1 (OR)",
           "type": "both",
           "context_window": 200000,
-          "description": "Claude Opus 4.1 accessed via OpenRouter. OpenRouter provides a unified API to multiple providers, often with competitive pricing and additional features like automatic failover. Same capabilities as direct API access.",
+          "creator": "Anthropic",
+          "description": "Claude Opus 4.1 accessed via OpenRouter. OpenRouter provides a unified API to access models from multiple providers. Use this when you want OpenRouter's routing features.",
           "strengths": [
-            "Access via unified OpenRouter API",
-            "May offer different pricing",
-            "Automatic failover support",
-            "Single API key for multiple providers"
+            "Unified API access",
+            "OpenRouter failover",
+            "Same Claude capabilities"
           ],
           "weaknesses": [
-            "Additional API layer",
-            "Pricing varies from direct access",
-            "Depends on OpenRouter availability"
+            "Additional routing layer",
+            "Pricing varies"
           ],
-          "recommended_for": ["synthesis"]
-        },
-        {
-          "name": "openrouter/openai/gpt-4",
-          "display_name": "GPT-4 (OR)",
-          "type": "chat",
-          "description": "OpenAI's GPT-4 accessed via OpenRouter. Same capabilities as direct API access but through OpenRouter's unified interface.",
-          "strengths": [
-            "Unified OpenRouter API",
-            "May offer competitive pricing",
-            "Automatic failover"
-          ],
-          "weaknesses": [
-            "Additional API layer",
-            "Legacy model (consider GPT-4o)"
-          ],
-          "recommended_for": ["chat"]
-        },
-        {
-          "name": "openrouter/openai/gpt-3.5-turbo",
-          "display_name": "GPT-3.5 Turbo (OR)",
-          "type": "chat",
-          "description": "OpenAI's GPT-3.5 Turbo via OpenRouter. Budget-friendly option for simple tasks through OpenRouter's unified API.",
-          "strengths": [
-            "Very affordable",
-            "Unified OpenRouter API",
-            "Fast responses"
-          ],
-          "weaknesses": [
-            "Legacy model",
-            "Limited reasoning"
-          ],
-          "recommended_for": ["compression"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
           "name": "openrouter/google/gemini-2.5-pro",
           "display_name": "Gemini 2.5 Pro (OR)",
           "type": "chat",
-          "description": "Google's Gemini 2.5 Pro via OpenRouter. Access Google's powerful model through OpenRouter's unified API with potential pricing advantages.",
+          "creator": "Google",
+          "description": "Gemini 2.5 Pro accessed via OpenRouter. Access Google's flagship model through OpenRouter's unified API with routing and failover capabilities.",
           "strengths": [
-            "Unified OpenRouter API",
-            "Large context window",
-            "Strong multimodal"
+            "Unified API access",
+            "Google's capabilities",
+            "OpenRouter routing"
           ],
           "weaknesses": [
-            "Additional API layer",
-            "Pricing varies"
+            "Additional layer",
+            "May have different pricing"
           ],
           "recommended_for": ["chat", "detection", "synthesis"]
         },
@@ -751,31 +969,31 @@
           "name": "openrouter/deepseek/deepseek-r1",
           "display_name": "DeepSeek R1 (OR)",
           "type": "chat",
-          "description": "DeepSeek's R1 reasoning model via OpenRouter. Excellent for complex reasoning and math tasks, accessed through OpenRouter's unified API without running locally.",
+          "creator": "DeepSeek",
+          "description": "DeepSeek R1 reasoning model via OpenRouter. Access DeepSeek's chain-of-thought reasoning capabilities through OpenRouter's unified API.",
           "strengths": [
-            "Strong reasoning and math",
-            "No local hardware needed",
-            "Unified OpenRouter API"
+            "Strong reasoning",
+            "Unified API",
+            "Easy access"
           ],
           "weaknesses": [
-            "Pricing through OpenRouter",
-            "Can be verbose"
+            "Additional routing layer"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": ["detection", "synthesis"]
         },
         {
           "name": "openrouter/deepseek/deepseek-chat-v3",
           "display_name": "DeepSeek Chat V3 (OR)",
           "type": "chat",
-          "description": "DeepSeek's Chat V3 model via OpenRouter. A strong general-purpose chat model from DeepSeek, known for competitive performance at lower cost.",
+          "creator": "DeepSeek",
+          "description": "DeepSeek Chat V3 via OpenRouter. A strong general-purpose model accessible through OpenRouter's unified API.",
           "strengths": [
-            "Good value for money",
-            "Strong general chat",
-            "Unified OpenRouter API"
+            "Good general chat",
+            "Unified API",
+            "Competitive pricing"
           ],
           "weaknesses": [
-            "Less known than major providers",
-            "Pricing varies"
+            "Additional routing layer"
           ],
           "recommended_for": ["chat"]
         },
@@ -783,15 +1001,16 @@
           "name": "openrouter/meta-llama/llama-4-scout:free",
           "display_name": "Llama 4 Scout (OR)",
           "type": "chat",
-          "description": "Meta's Llama 4 Scout accessed via OpenRouter's free tier. A cost-effective way to try Llama 4 models without local hardware or API costs.",
+          "creator": "Meta",
+          "description": "Meta's Llama 4 Scout via OpenRouter's free tier. Access the efficient Llama 4 variant at no cost through OpenRouter.",
           "strengths": [
-            "Free tier available",
-            "No local hardware needed",
-            "Llama 4 capabilities"
+            "Free access",
+            "Llama 4 capabilities",
+            "No API costs"
           ],
           "weaknesses": [
-            "Rate limits on free tier",
-            "May have availability limits"
+            "Rate limited",
+            "Less capable than Maverick"
           ],
           "recommended_for": ["chat"]
         },
@@ -799,69 +1018,88 @@
           "name": "openrouter/meta-llama/llama-4-maverick:free",
           "display_name": "Llama 4 Maverick (OR)",
           "type": "chat",
-          "description": "Meta's flagship Llama 4 Maverick via OpenRouter's free tier. Access the most powerful Llama 4 model without local hardware or API costs.",
+          "creator": "Meta",
+          "description": "Meta's flagship Llama 4 Maverick via OpenRouter's free tier. Access the most capable Llama 4 at no cost.",
           "strengths": [
-            "Free tier available",
-            "Top Llama 4 capabilities",
-            "No local hardware needed"
+            "Free access",
+            "Most capable Llama 4",
+            "No API costs"
           ],
           "weaknesses": [
-            "Rate limits on free tier",
-            "May have availability limits"
+            "Rate limited",
+            "May have queue times"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": ["chat", "detection"]
         },
         {
-          "name": "openrouter/mistralai/mistral-7b-instruct",
-          "display_name": "Mistral 7B Instruct (OR)",
+          "name": "openrouter/meta-llama/llama-3.1-70b-instruct",
+          "display_name": "Llama 3.1 70B Instruct (OR)",
           "type": "instruct",
-          "parameters": "7B",
-          "description": "Mistral AI's efficient 7B instruct model via OpenRouter. Great value for instruction-following tasks without local hardware requirements.",
+          "parameters": "70B",
+          "creator": "Meta",
+          "description": "Meta's Llama 3.1 70B Instruct via OpenRouter. Strong instruction-following model accessible through OpenRouter's unified API.",
           "strengths": [
-            "Excellent performance for size",
-            "No local hardware needed",
-            "Unified OpenRouter API"
+            "Strong 70B capabilities",
+            "Good instruction following",
+            "Unified API access"
           ],
           "weaknesses": [
-            "Limited on complex tasks",
-            "Smaller model"
+            "Superseded by 3.3",
+            "Additional routing layer"
           ],
-          "recommended_for": ["detection", "compression"]
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "openrouter/meta-llama/llama-3.1-405b-instruct",
+          "display_name": "Llama 3.1 405B Instruct (OR)",
+          "type": "instruct",
+          "parameters": "405B",
+          "creator": "Meta",
+          "description": "Meta's massive 405B Llama via OpenRouter. The largest open-weight model, accessible without needing your own infrastructure.",
+          "strengths": [
+            "Massive 405B capabilities",
+            "No local hardware needed",
+            "Near GPT-4 performance"
+          ],
+          "weaknesses": [
+            "Higher costs",
+            "Slower inference"
+          ],
+          "recommended_for": ["detection", "synthesis"]
         },
         {
           "name": "openrouter/meta-llama/llama-3.3-70b-instruct",
           "display_name": "Llama 3.3 70B Instruct (OR)",
           "type": "instruct",
           "parameters": "70B",
-          "description": "Meta's powerful Llama 3.3 70B instruction model via OpenRouter. Strong capabilities rivaling commercial models, accessible without local hardware through OpenRouter's API.",
+          "creator": "Meta",
+          "description": "Meta's latest Llama 3.3 70B Instruct via OpenRouter. The most capable 70B Llama with strong instruction following.",
           "strengths": [
-            "Strong instruction following",
-            "No local hardware needed",
-            "Competitive with commercial models"
+            "Latest Llama 3.x",
+            "Strong capabilities",
+            "Unified API access"
           ],
           "weaknesses": [
-            "OpenRouter pricing applies",
-            "API latency"
-          ],
-          "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
-          "name": "openrouter/qwen/qwen-2-72b-instruct",
-          "display_name": "Qwen 2 72B Instruct (OR)",
-          "type": "instruct",
-          "parameters": "72B",
-          "creator": "Alibaba",
-          "description": "Alibaba's Qwen 2 72B instruction model via OpenRouter. A powerful Chinese-developed model with strong multilingual capabilities, particularly in Chinese and English.",
-          "strengths": [
-            "Strong multilingual (Chinese/English)",
-            "72B parameters",
-            "Good instruction following"
-          ],
-          "weaknesses": [
-            "Less known in Western markets",
-            "OpenRouter pricing applies"
+            "Additional routing layer"
           ],
           "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "openrouter/mistralai/mistral-nemo",
+          "display_name": "Mistral Nemo (OR)",
+          "type": "chat",
+          "parameters": "12B",
+          "creator": "Mistral AI",
+          "description": "Mistral Nemo 12B via OpenRouter. An efficient mid-size model with good capabilities accessible through OpenRouter.",
+          "strengths": [
+            "Efficient 12B size",
+            "Good capabilities",
+            "Unified API"
+          ],
+          "weaknesses": [
+            "Limited by size"
+          ],
+          "recommended_for": ["chat"]
         },
         {
           "name": "openrouter/moonshotai/kimi-k2",
@@ -870,54 +1108,16 @@
           "parameters": null,
           "context_window": 128000,
           "creator": "Moonshot AI",
-          "description": "Moonshot AI's Kimi K2 via OpenRouter. A powerful Chinese AI model with strong long-context capabilities and 128K token window. Known for competitive performance on benchmarks.",
+          "description": "Moonshot AI's Kimi K2 via OpenRouter. A Chinese AI model with strong multilingual capabilities and 128K context.",
           "strengths": [
-            "128K context window",
-            "Strong benchmark performance",
-            "Good multilingual support"
+            "128K context",
+            "Strong multilingual",
+            "Good reasoning"
           ],
           "weaknesses": [
-            "Newer model (less community testing)",
-            "Less known outside China"
+            "Less known globally"
           ],
           "recommended_for": ["chat"]
-        },
-        {
-          "name": "openrouter/databricks/dbrx-instruct",
-          "display_name": "DBRX Instruct 132B (OR)",
-          "type": "instruct",
-          "parameters": "132B",
-          "creator": "Databricks",
-          "description": "Databricks' DBRX 132B instruction model via OpenRouter. A large open-source model designed for enterprise use cases with strong performance on coding and analysis tasks.",
-          "strengths": [
-            "132B parameters",
-            "Enterprise-focused design",
-            "Strong coding performance"
-          ],
-          "weaknesses": [
-            "Less known than major players",
-            "OpenRouter pricing applies"
-          ],
-          "recommended_for": ["detection", "synthesis"]
-        },
-        {
-          "name": "openrouter/nousresearch/hermes-3-405b-instruct",
-          "display_name": "Hermes 3 405B Instruct (OR)",
-          "type": "instruct",
-          "parameters": "405B",
-          "creator": "Nous Research",
-          "description": "Nous Research's massive Hermes 3 405B instruction model via OpenRouter. Built on the largest Llama base, Hermes models are known for creative and unconstrained outputs, popular in the open-source community.",
-          "strengths": [
-            "Massive 405B parameters",
-            "Creative and unconstrained",
-            "Strong community support"
-          ],
-          "weaknesses": [
-            "Can be unpredictable",
-            "High OpenRouter costs",
-            "May need careful prompting"
-          ],
-          "recommended_for": ["synthesis"]
         },
         {
           "name": "openrouter/mistralai/mixtral-8x7b-instruct",
@@ -925,17 +1125,105 @@
           "type": "instruct",
           "parameters": "8x7B",
           "creator": "Mistral AI",
-          "description": "Mistral AI's Mixture of Experts model via OpenRouter. Mixtral uses 8 expert networks (7B each) with sparse activation, providing strong performance while only using ~12B parameters per forward pass. Excellent efficiency-to-quality ratio.",
+          "description": "Mistral's Mixture of Experts model via OpenRouter. Efficient MoE architecture providing strong performance while using fewer active parameters.",
           "strengths": [
-            "Efficient MoE architecture",
-            "Strong performance for cost",
+            "Efficient MoE",
+            "Good performance/cost",
+            "Unified API"
+          ],
+          "weaknesses": [
+            "MoE inconsistency"
+          ],
+          "recommended_for": ["chat", "compression"]
+        },
+        {
+          "name": "openrouter/mistralai/mistral-large-2",
+          "display_name": "Mistral Large 2 (OR)",
+          "type": "chat",
+          "parameters": "123B",
+          "context_window": 128000,
+          "creator": "Mistral AI",
+          "description": "Mistral's flagship Large 2 model via OpenRouter. A 123B parameter model competing with top-tier models, accessible through OpenRouter.",
+          "strengths": [
+            "Strong 123B capabilities",
+            "128K context",
+            "European AI leader"
+          ],
+          "weaknesses": [
+            "Higher cost"
+          ],
+          "recommended_for": ["chat", "detection", "synthesis"]
+        },
+        {
+          "name": "openrouter/qwen/qwen-2.5-72b-instruct",
+          "display_name": "Qwen 2.5 72B Instruct (OR)",
+          "type": "instruct",
+          "parameters": "72B",
+          "context_window": 131072,
+          "creator": "Alibaba",
+          "description": "Alibaba's Qwen 2.5 72B Instruct via OpenRouter. Strong multilingual model with excellent Chinese/English capabilities and 128K context.",
+          "strengths": [
+            "Strong multilingual",
+            "128K context",
+            "Good reasoning"
+          ],
+          "weaknesses": [
+            "Additional routing layer"
+          ],
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "openrouter/qwen/qwen-2.5-coder-32b-instruct",
+          "display_name": "Qwen 2.5 Coder 32B (OR)",
+          "type": "instruct",
+          "parameters": "32B",
+          "context_window": 131072,
+          "creator": "Alibaba",
+          "description": "Alibaba's coding-focused Qwen 2.5 via OpenRouter. Optimized for code generation with 128K context for processing large codebases.",
+          "strengths": [
+            "Strong coding focus",
+            "128K context",
+            "Good for large codebases"
+          ],
+          "weaknesses": [
+            "Coding-specialized"
+          ],
+          "recommended_for": ["synthesis"]
+        },
+        {
+          "name": "openrouter/google/gemma-2-27b-it",
+          "display_name": "Gemma 2 27B (OR)",
+          "type": "instruct",
+          "parameters": "27B",
+          "creator": "Google",
+          "description": "Google's Gemma 2 27B instruction-tuned model via OpenRouter. An efficient open-weight model with Google's quality accessible through OpenRouter.",
+          "strengths": [
+            "Google quality",
+            "Efficient 27B",
             "Good instruction following"
           ],
           "weaknesses": [
-            "Less capable than larger dense models",
-            "MoE can have inconsistency"
+            "Limited context"
           ],
-          "recommended_for": ["detection", "compression"]
+          "recommended_for": ["chat"]
+        },
+        {
+          "name": "openrouter/x-ai/grok-2",
+          "display_name": "Grok-2 (OR)",
+          "type": "chat",
+          "context_window": 131072,
+          "creator": "xAI",
+          "description": "xAI's Grok-2 via OpenRouter. Elon Musk's AI with distinctive personality, 128K context, and real-time information access.",
+          "strengths": [
+            "128K context",
+            "Real-time knowledge",
+            "Unique personality"
+          ],
+          "weaknesses": [
+            "Can be unpredictable",
+            "Less formal style"
+          ],
+          "recommended_for": ["chat"]
         }
       ]
     },
@@ -943,88 +1231,64 @@
       "display_name": "HuggingFace",
       "models": [
         {
-          "name": "huggingface/meta-llama/Meta-Llama-3-8B",
-          "display_name": "Meta Llama 3 8B",
-          "type": "chat",
+          "name": "huggingface/meta-llama/Llama-3.1-8B-Instruct",
+          "display_name": "Meta Llama 3.1 8B Instruct",
+          "type": "instruct",
           "parameters": "8B",
           "creator": "Meta",
-          "released": "April 2024",
-          "description": "Meta's Llama 3 8B model accessible via HuggingFace inference. A capable smaller model good for general tasks, running on HuggingFace's infrastructure without requiring local hardware.",
+          "released": "July 2024",
+          "description": "Meta's Llama 3.1 8B Instruct via HuggingFace. A capable small model for instruction following, accessible without local hardware through HuggingFace's inference API.",
           "strengths": [
             "Free via HuggingFace",
-            "No local hardware needed",
-            "Good general performance"
+            "Good instruction following",
+            "Lightweight 8B",
+            "No local hardware needed"
           ],
           "weaknesses": [
             "HuggingFace rate limits",
-            "Less capable than larger models",
-            "Older than Llama 3.3"
+            "Superseded by newer versions"
           ],
           "recommended_for": ["chat"]
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-3.2-3B-Instruct",
+          "display_name": "Meta Llama 3.2 3B Instruct",
+          "type": "instruct",
+          "parameters": "3B",
+          "creator": "Meta",
+          "released": "September 2024",
+          "description": "Meta's ultra-compact Llama 3.2 3B Instruct via HuggingFace. The smallest Llama 3.x model, perfect for testing and lightweight tasks.",
+          "strengths": [
+            "Very lightweight (3B)",
+            "Free via HuggingFace",
+            "Fast inference",
+            "Good for simple tasks"
+          ],
+          "weaknesses": [
+            "Limited by 3B size",
+            "Less capable than larger models"
+          ],
+          "recommended_for": ["compression"]
         },
         {
           "name": "huggingface/meta-llama/Llama-3.3-70B-Instruct",
           "display_name": "Meta Llama 3.3 70B Instruct",
           "type": "instruct",
           "parameters": "70B",
-          "context_window": 128000,
           "creator": "Meta",
           "released": "December 2024",
-          "description": "Meta's latest open-weight model fine-tuned for instruction following. Llama 3.3 70B Instruct excels at following complex instructions, coding, analysis, and multi-step reasoning. At 70B parameters, it rivals many commercial models while being freely accessible via HuggingFace. Ideal for users who want strong capabilities without API costs.",
+          "description": "Meta's latest Llama 3.3 70B Instruct via HuggingFace. The most capable open-weight Llama with strong instruction following, accessible through HuggingFace's inference API.",
           "strengths": [
-            "Free via HuggingFace inference",
+            "Most capable Llama 3.x",
             "Strong instruction following",
-            "Excellent coding abilities",
+            "Free via HuggingFace",
             "128K context window"
           ],
           "weaknesses": [
-            "Slower than smaller models",
-            "HuggingFace rate limits apply",
-            "Less tested than commercial models"
-          ],
-          "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
-          "name": "huggingface/meta-llama/Llama-3.3-70B",
-          "display_name": "Llama 3.3 70B (Base)",
-          "type": "base",
-          "parameters": "70B",
-          "context_window": 128000,
-          "creator": "Meta",
-          "released": "December 2024",
-          "description": "Meta's latest open-weight large language model in its base (pre-trained) form. This is the raw foundational model without instruction tuning, making it suitable for fine-tuning or specialized applications. At 70 billion parameters, it offers strong general capabilities rivaling many commercial models. Accessed via HuggingFace's inference API, so no local hardware required.",
-          "strengths": [
-            "Open weights - can be fine-tuned",
-            "Strong general knowledge",
-            "128K context window",
-            "No API costs via HuggingFace free tier"
-          ],
-          "weaknesses": [
-            "Not instruction-tuned (use Instruct version for chat)",
-            "May require more careful prompting",
-            "HuggingFace rate limits apply"
-          ],
-          "recommended_for": ["synthesis"]
-        },
-        {
-          "name": "huggingface/meta-llama/Meta-Llama-3-70B",
-          "display_name": "Meta Llama 3 70B",
-          "type": "chat",
-          "parameters": "70B",
-          "creator": "Meta",
-          "released": "April 2024",
-          "description": "Meta's Llama 3 70B via HuggingFace. A powerful large model with strong general capabilities, though superseded by Llama 3.3. Accessible without local hardware through HuggingFace's inference API.",
-          "strengths": [
-            "Strong 70B capabilities",
-            "Free via HuggingFace",
-            "No local hardware needed"
-          ],
-          "weaknesses": [
-            "Superseded by Llama 3.3",
             "HuggingFace rate limits",
             "Slower than smaller models"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
           "name": "huggingface/meta-llama/Llama-4-Scout",
@@ -1032,9 +1296,9 @@
           "type": "chat",
           "creator": "Meta",
           "released": "2025",
-          "description": "Meta's Llama 4 Scout via HuggingFace inference. Access the efficient Llama 4 model through HuggingFace without local hardware requirements.",
+          "description": "Meta's Llama 4 Scout via HuggingFace. The efficient Llama 4 variant accessible through HuggingFace's inference API without local hardware.",
           "strengths": [
-            "Llama 4 architecture",
+            "Llama 4 capabilities",
             "Free via HuggingFace",
             "No local hardware needed"
           ],
@@ -1050,59 +1314,17 @@
           "type": "chat",
           "creator": "Meta",
           "released": "2025",
-          "description": "Meta's flagship Llama 4 Maverick model via HuggingFace inference. The larger, more capable version of Llama 4, designed for complex reasoning and generation tasks. Accessible through HuggingFace without local hardware requirements.",
+          "description": "Meta's flagship Llama 4 Maverick via HuggingFace. The most capable Llama 4 accessible through HuggingFace without needing local hardware.",
           "strengths": [
-            "Most capable Llama 4 variant",
-            "Strong reasoning abilities",
+            "Most capable Llama 4",
             "Free via HuggingFace",
-            "No local hardware needed"
+            "Strong reasoning"
           ],
           "weaknesses": [
             "HuggingFace rate limits",
-            "Slower than Scout variant",
-            "Resource intensive"
+            "May have queue times"
           ],
           "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
-          "name": "huggingface/meta-llama/Llama-2-7b-chat",
-          "display_name": "Meta Llama 2 7B Chat",
-          "type": "chat",
-          "parameters": "7B",
-          "creator": "Meta",
-          "released": "July 2023",
-          "description": "Meta's Llama 2 7B Chat model via HuggingFace. An older but proven model fine-tuned for conversational tasks. Still useful for lighter workloads and legacy compatibility, though superseded by Llama 3.x series.",
-          "strengths": [
-            "Lightweight and fast",
-            "Well-tested and stable",
-            "Free via HuggingFace"
-          ],
-          "weaknesses": [
-            "Superseded by Llama 3.x",
-            "Limited context window",
-            "Less capable than newer models"
-          ],
-          "recommended_for": ["chat"]
-        },
-        {
-          "name": "huggingface/Qwen/Qwen-3",
-          "display_name": "Alibaba Qwen 3",
-          "type": "chat",
-          "creator": "Alibaba",
-          "released": "2025",
-          "description": "Alibaba's Qwen 3 model via HuggingFace inference. Part of the competitive Qwen series known for strong multilingual capabilities, particularly Chinese and English. Offers excellent performance on reasoning and coding tasks.",
-          "strengths": [
-            "Strong multilingual (Chinese/English)",
-            "Good reasoning capabilities",
-            "Free via HuggingFace",
-            "Strong coding abilities"
-          ],
-          "weaknesses": [
-            "HuggingFace rate limits",
-            "Less known in Western markets",
-            "Documentation primarily in Chinese"
-          ],
-          "recommended_for": ["chat", "detection"]
         },
         {
           "name": "huggingface/mistralai/Mistral-Small-3.1",
@@ -1111,17 +1333,16 @@
           "parameters": "7B",
           "creator": "Mistral AI",
           "released": "2024",
-          "description": "Mistral AI's Small 3.1 model via HuggingFace. A compact yet capable model from the European AI lab known for efficient architectures. Optimized for fast inference while maintaining quality, ideal for latency-sensitive applications.",
+          "description": "Mistral's Small 3.1 model via HuggingFace. A compact, efficient model optimized for fast inference while maintaining quality.",
           "strengths": [
+            "Efficient 7B size",
             "Fast inference",
-            "Efficient architecture",
-            "Good quality for size",
-            "Free via HuggingFace"
+            "Free via HuggingFace",
+            "Good quality for size"
           ],
           "weaknesses": [
-            "Less capable than larger models",
-            "HuggingFace rate limits",
-            "Limited context window"
+            "Limited by 7B size",
+            "HuggingFace rate limits"
           ],
           "recommended_for": ["chat", "compression"]
         },
@@ -1132,19 +1353,17 @@
           "parameters": "8x7B",
           "creator": "Mistral AI",
           "released": "December 2023",
-          "description": "Mistral AI's groundbreaking Mixture of Experts model via HuggingFace. Uses 8 expert networks (7B each) with sparse activation, achieving strong performance while only activating ~12B parameters per forward pass. This architecture provides an excellent efficiency-to-quality ratio.",
+          "description": "Mistral's groundbreaking MoE model via HuggingFace. Uses 8 expert networks with sparse activation for efficient, high-quality inference.",
           "strengths": [
             "Efficient MoE architecture",
-            "Strong performance for compute cost",
-            "Good instruction following",
+            "Good performance/cost",
             "Free via HuggingFace"
           ],
           "weaknesses": [
-            "MoE can have inconsistent outputs",
-            "HuggingFace rate limits",
-            "Less capable than dense 70B+ models"
+            "MoE can have inconsistency",
+            "HuggingFace rate limits"
           ],
-          "recommended_for": ["chat", "detection", "compression"]
+          "recommended_for": ["chat", "detection"]
         },
         {
           "name": "huggingface/deepseek-ai/DeepSeek-R1-0528",
@@ -1152,102 +1371,128 @@
           "type": "chat",
           "creator": "DeepSeek",
           "released": "May 2025",
-          "description": "DeepSeek's R1-0528 reasoning model via HuggingFace. Part of the R1 series known for exceptional reasoning capabilities through chain-of-thought processing. DeepSeek models have gained recognition for strong performance at competitive costs, particularly in math and coding benchmarks.",
+          "description": "DeepSeek's R1-0528 reasoning model via HuggingFace. Exceptional chain-of-thought reasoning and math capabilities accessible through HuggingFace.",
           "strengths": [
-            "Excellent reasoning capabilities",
-            "Strong math and coding",
-            "Chain-of-thought processing",
+            "Excellent reasoning",
+            "Strong math abilities",
             "Free via HuggingFace"
           ],
           "weaknesses": [
-            "Slower due to reasoning chains",
-            "HuggingFace rate limits",
-            "May overthink simple tasks"
+            "Slower due to reasoning",
+            "HuggingFace rate limits"
           ],
           "recommended_for": ["detection", "synthesis"]
         },
         {
-          "name": "huggingface/google/gemma-7b",
-          "display_name": "Google Gemma 7B",
-          "type": "chat",
-          "parameters": "7B",
+          "name": "huggingface/Qwen/Qwen2.5-72B-Instruct",
+          "display_name": "Qwen 2.5 72B Instruct",
+          "type": "instruct",
+          "parameters": "72B",
+          "creator": "Alibaba",
+          "released": "2024",
+          "description": "Alibaba's Qwen 2.5 72B Instruct via HuggingFace. Strong multilingual model with excellent Chinese/English capabilities.",
+          "strengths": [
+            "Strong multilingual",
+            "Good reasoning",
+            "Free via HuggingFace"
+          ],
+          "weaknesses": [
+            "HuggingFace rate limits",
+            "Large model"
+          ],
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "huggingface/google/gemma-2-27b-it",
+          "display_name": "Gemma 2 27B Instruct",
+          "type": "instruct",
+          "parameters": "27B",
           "creator": "Google",
-          "released": "February 2024",
-          "description": "Google's Gemma 7B model via HuggingFace. An open-weight model from Google designed to be lightweight yet capable. Part of the Gemma family built using similar technology to Gemini. Good for general tasks where you want Google's quality in an open model.",
+          "released": "2024",
+          "description": "Google's Gemma 2 27B instruction-tuned model via HuggingFace. Google's quality in an open-weight model accessible through HuggingFace.",
           "strengths": [
-            "Google's open-weight quality",
-            "Efficient 7B architecture",
-            "Free via HuggingFace",
-            "Well-documented"
+            "Google quality",
+            "Efficient 27B",
+            "Free via HuggingFace"
           ],
           "weaknesses": [
-            "Smaller than Gemini models",
-            "HuggingFace rate limits",
-            "Limited context window"
+            "HuggingFace rate limits"
           ],
           "recommended_for": ["chat"]
         },
         {
-          "name": "huggingface/01-ai/Yi-1.5-34B-Chat",
-          "display_name": "Yi 1.5 34B Chat",
+          "name": "huggingface/deepseek-ai/DeepSeek-V3",
+          "display_name": "DeepSeek V3",
           "type": "chat",
-          "parameters": "34B",
-          "creator": "01.AI",
-          "released": "May 2024",
-          "description": "01.AI's Yi 1.5 34B Chat model via HuggingFace. A strong bilingual (Chinese/English) model from the startup founded by Kai-Fu Lee. At 34B parameters, it offers a good balance of capability and efficiency, known for strong performance on Chinese language tasks and competitive English abilities.",
+          "creator": "DeepSeek",
+          "released": "2024",
+          "description": "DeepSeek V3 via HuggingFace. A strong general-purpose model with good coding and reasoning abilities.",
           "strengths": [
-            "Strong bilingual capabilities",
-            "Good 34B size balance",
-            "Competitive benchmarks",
+            "Strong general abilities",
+            "Good coding",
             "Free via HuggingFace"
           ],
           "weaknesses": [
-            "HuggingFace rate limits",
-            "Less Western market presence",
-            "Mid-size context window"
+            "HuggingFace rate limits"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": ["chat", "detection"]
         },
         {
-          "name": "huggingface/bigscience/bloom",
-          "display_name": "BLOOM 176B",
+          "name": "huggingface/bigcode/starcoder2-15b",
+          "display_name": "StarCoder 2 15B",
           "type": "base",
-          "parameters": "176B",
-          "creator": "BigScience",
-          "released": "July 2022",
-          "description": "BigScience's BLOOM 176B via HuggingFace. A massive open-science multilingual model trained by a collaborative of researchers. Supports 46 natural languages and 13 programming languages. As a base model, it's designed for text generation and fine-tuning rather than chat.",
+          "parameters": "15B",
+          "creator": "BigCode",
+          "released": "2024",
+          "description": "BigCode's StarCoder 2 15B via HuggingFace. An open-source code model trained on permissively licensed code.",
           "strengths": [
-            "Massive 176B parameters",
-            "46 natural languages",
-            "Open-science collaboration",
+            "Open-source trained",
+            "Strong code generation",
             "Free via HuggingFace"
           ],
           "weaknesses": [
-            "Not instruction-tuned (base model)",
-            "Older architecture (2022)",
-            "Very slow inference",
+            "Code-focused only",
+            "Base model (not chat)"
+          ],
+          "recommended_for": ["synthesis"]
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-3.3-70B",
+          "display_name": "Llama 3.3 70B (Base)",
+          "type": "base",
+          "parameters": "70B",
+          "creator": "Meta",
+          "released": "December 2024",
+          "description": "Meta's Llama 3.3 70B base model via HuggingFace. The raw pre-trained model without instruction tuning, suitable for fine-tuning or specialized applications.",
+          "strengths": [
+            "Open weights - can be fine-tuned",
+            "Strong general knowledge",
+            "128K context window",
+            "Free via HuggingFace"
+          ],
+          "weaknesses": [
+            "Not instruction-tuned",
+            "Requires careful prompting",
             "HuggingFace rate limits"
           ],
           "recommended_for": ["synthesis"]
         },
         {
-          "name": "huggingface/EleutherAI/gpt-neox-20b",
-          "display_name": "GPT-NeoX 20B",
+          "name": "huggingface/mistralai/Mistral-7B-v0.3",
+          "display_name": "Mistral 7B v0.3 (Base)",
           "type": "base",
-          "parameters": "20B",
-          "creator": "EleutherAI",
-          "released": "April 2022",
-          "description": "EleutherAI's GPT-NeoX 20B via HuggingFace. A pioneering open-source large language model from the nonprofit EleutherAI research collective. As a base model, it excels at text generation and completion tasks. Important for the open-source AI movement, though superseded by newer models.",
+          "parameters": "7B",
+          "creator": "Mistral AI",
+          "released": "2024",
+          "description": "Mistral's 7B v0.3 base model via HuggingFace. The raw pre-trained model with excellent efficiency, suitable for fine-tuning.",
           "strengths": [
-            "Open-source pioneer",
-            "Solid 20B capability",
-            "Well-documented architecture",
+            "Efficient 7B architecture",
+            "Can be fine-tuned",
             "Free via HuggingFace"
           ],
           "weaknesses": [
-            "Not instruction-tuned (base model)",
-            "Older architecture (2022)",
-            "Superseded by newer models",
+            "Not instruction-tuned",
+            "Base model (not chat)",
             "HuggingFace rate limits"
           ],
           "recommended_for": ["synthesis"]

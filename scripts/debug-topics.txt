@@ -1,3 +1,0 @@
-# Debug the topic boundary issue
-/set debug true
-/topics

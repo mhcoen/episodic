@@ -68,17 +68,17 @@ class TestMemoryCommand:
 
 class TestListMemories:
     """Test the list_memories function."""
-    
-    @patch('episodic.commands.memory.config')
+
+    @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.secho')
-    def test_list_memories_rag_disabled(self, mock_secho, mock_config):
-        """Test listing memories when RAG is disabled."""
-        mock_config.get.return_value = False
-        
+    def test_list_memories_rag_unavailable(self, mock_secho, mock_get_rag):
+        """Test listing memories when RAG system is unavailable."""
+        mock_get_rag.return_value = None
+
         list_memories()
-        
-        # Should show warning about RAG being disabled
-        assert any("Memory system is disabled" in str(call) for call in mock_secho.call_args_list)
+
+        # Should show error about failed initialization
+        assert any("Failed to initialize memory system" in str(call) for call in mock_secho.call_args_list)
     
     @patch('episodic.commands.memory.config')
     @patch('episodic.rag.get_rag_system')
@@ -159,23 +159,23 @@ class TestListMemories:
 
 class TestSearchMemories:
     """Test the search_memories function."""
-    
-    @patch('episodic.commands.memory.config')
+
+    @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.secho')
-    def test_search_memories_rag_disabled(self, mock_secho, mock_config):
-        """Test searching memories when RAG is disabled."""
-        mock_config.get.return_value = False
-        
+    def test_search_memories_rag_unavailable(self, mock_secho, mock_get_rag):
+        """Test searching memories when RAG system is unavailable."""
+        mock_get_rag.return_value = None
+
         search_memories("test query")
-        
-        assert any("Memory system is disabled" in str(call) for call in mock_secho.call_args_list)
-    
+
+        assert any("Failed to initialize memory system" in str(call) for call in mock_secho.call_args_list)
+
     @patch('episodic.commands.memory.config')
     @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.secho')
     def test_search_memories_with_results(self, mock_secho, mock_get_rag, mock_config):
         """Test searching memories with results."""
-        mock_config.get.return_value = True
+        mock_config.get.return_value = 0.3  # relevance threshold
         mock_rag = MagicMock()
         mock_rag.search.return_value = {
             'results': [
@@ -191,11 +191,11 @@ class TestSearchMemories:
             ]
         }
         mock_get_rag.return_value = mock_rag
-        
+
         search_memories("test query")
-        
-        mock_rag.search.assert_called_once_with("test query", n_results=10)
-        assert any("Found 1 matches" in str(call) for call in mock_secho.call_args_list)
+
+        mock_rag.search.assert_called_once_with("test query", n_results=10, source_filter='conversation')
+        assert any("Found 1 relevant matches" in str(call) for call in mock_secho.call_args_list)
         assert any("relevance: 0.95" in str(call) for call in mock_secho.call_args_list)
     
     @patch('episodic.commands.memory.config')
@@ -283,40 +283,38 @@ class TestShowMemory:
 
 class TestForgetCommand:
     """Test the /forget command."""
-    
+
     @patch('episodic.commands.memory.typer.secho')
     def test_forget_no_args(self, mock_secho):
         """Test /forget with no arguments shows usage."""
         forget_command()
         assert any("Usage: /forget" in str(call) for call in mock_secho.call_args_list)
-    
-    @patch('episodic.commands.memory.config')
+
+    @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.secho')
-    def test_forget_rag_disabled(self, mock_secho, mock_config):
-        """Test /forget when RAG is disabled."""
-        mock_config.get.return_value = False
-        
+    def test_forget_rag_unavailable(self, mock_secho, mock_get_rag):
+        """Test /forget when RAG system is unavailable."""
+        mock_get_rag.return_value = None
+
         forget_command("test123")
-        
-        assert any("Memory system is disabled" in str(call) for call in mock_secho.call_args_list)
-    
-    @patch('episodic.commands.memory.config')
+
+        assert any("Failed to initialize memory system" in str(call) for call in mock_secho.call_args_list)
+
     @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.confirm')
     @patch('episodic.commands.memory.typer.secho')
-    def test_forget_all_confirmed(self, mock_secho, mock_confirm, mock_get_rag, mock_config):
+    def test_forget_all_confirmed(self, mock_secho, mock_confirm, mock_get_rag):
         """Test /forget --all with confirmation."""
-        mock_config.get.return_value = True
         mock_confirm.return_value = True
         mock_rag = MagicMock()
         mock_rag.clear_documents.return_value = 10
         mock_get_rag.return_value = mock_rag
-        
+
         forget_command("--all")
-        
+
         mock_confirm.assert_called_once()
-        mock_rag.clear_documents.assert_called_once()
-        assert any("Removed 10 memories" in str(call) for call in mock_secho.call_args_list)
+        mock_rag.clear_documents.assert_called_once_with(source_filter='conversation')
+        assert any("Removed 10 conversation memories" in str(call) for call in mock_secho.call_args_list)
     
     @patch('episodic.commands.memory.config')
     @patch('episodic.rag.get_rag_system')
@@ -393,17 +391,17 @@ class TestForgetCommand:
 
 class TestMemoryStatsCommand:
     """Test the /memory-stats command."""
-    
-    @patch('episodic.commands.memory.config')
+
+    @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.secho')
-    def test_memory_stats_rag_disabled(self, mock_secho, mock_config):
-        """Test memory stats when RAG is disabled."""
-        mock_config.get.return_value = False
-        
+    def test_memory_stats_rag_unavailable(self, mock_secho, mock_get_rag):
+        """Test memory stats when RAG system is unavailable."""
+        mock_get_rag.return_value = None
+
         memory_stats_command()
-        
-        assert any("Memory system is disabled" in str(call) for call in mock_secho.call_args_list)
-    
+
+        assert any("Failed to initialize memory system" in str(call) for call in mock_secho.call_args_list)
+
     @patch('episodic.commands.memory.config')
     @patch('episodic.rag.get_rag_system')
     @patch('episodic.commands.memory.typer.secho')
@@ -415,7 +413,7 @@ class TestMemoryStatsCommand:
             'rag_chunk_size': 1000,
             'rag_search_results': 5
         }.get(key, default)
-        
+
         mock_rag = MagicMock()
         mock_rag.get_stats.return_value = {
             'total_documents': 100,
@@ -435,15 +433,15 @@ class TestMemoryStatsCommand:
             ]
         }
         mock_get_rag.return_value = mock_rag
-        
+
         memory_stats_command()
-        
+
         # Check that various stats are displayed
         assert any("Total documents: 100" in str(call) for call in mock_secho.call_args_list)
         assert any("Total chunks: 500" in str(call) for call in mock_secho.call_args_list)
         assert any("conversation: 80" in str(call) for call in mock_secho.call_args_list)
         assert any("Database size: 10.0 MB" in str(call) for call in mock_secho.call_args_list)
-        assert any("RAG enabled: True" in str(call) for call in mock_secho.call_args_list)
+        assert any("Auto-context:" in str(call) for call in mock_secho.call_args_list)
 
 
 if __name__ == "__main__":

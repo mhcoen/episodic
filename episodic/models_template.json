@@ -262,6 +262,13 @@
           "detect_params": true
         },
         {
+          "name": "mistral-nemo:instruct",
+          "display_name": "Mistral Nemo Instruct",
+          "type": "instruct",
+          "parameters": "12B",
+          "detect_params": true
+        },
+        {
           "name": "phi4",
           "display_name": "Phi-4",
           "type": "instruct",
@@ -299,6 +306,27 @@
           "detect_params": true
         },
         {
+          "name": "qwen2.5:7b",
+          "display_name": "Qwen 2.5 7B",
+          "type": "chat",
+          "parameters": "7B",
+          "detect_params": true
+        },
+        {
+          "name": "qwen2.5:14b",
+          "display_name": "Qwen 2.5 14B",
+          "type": "chat",
+          "parameters": "14B",
+          "detect_params": true
+        },
+        {
+          "name": "qwen2.5:32b",
+          "display_name": "Qwen 2.5 32B",
+          "type": "chat",
+          "parameters": "32B",
+          "detect_params": true
+        },
+        {
           "name": "qwen2.5-coder",
           "display_name": "Qwen 2.5 Coder",
           "type": "chat",
@@ -308,6 +336,20 @@
           "name": "gemma2",
           "display_name": "Gemma 2",
           "type": "chat",
+          "detect_params": true
+        },
+        {
+          "name": "gemma2:2b",
+          "display_name": "Gemma 2 2B",
+          "type": "chat",
+          "parameters": "2B",
+          "detect_params": true
+        },
+        {
+          "name": "gemma2:9b",
+          "display_name": "Gemma 2 9B",
+          "type": "chat",
+          "parameters": "9B",
           "detect_params": true
         },
         {

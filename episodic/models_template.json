@@ -480,7 +480,45 @@
           "name": "huggingface/meta-llama/Llama-3.3-70B-Instruct",
           "display_name": "Meta Llama 3.3 70B Instruct",
           "type": "instruct",
-          "parameters": "70B"
+          "parameters": "70B",
+          "context_window": 128000,
+          "creator": "Meta",
+          "released": "December 2024",
+          "description": "Meta's latest open-weight model fine-tuned for instruction following. Llama 3.3 70B Instruct excels at following complex instructions, coding, analysis, and multi-step reasoning. At 70B parameters, it rivals many commercial models while being freely accessible via HuggingFace. Ideal for users who want strong capabilities without API costs.",
+          "strengths": [
+            "Free via HuggingFace inference",
+            "Strong instruction following",
+            "Excellent coding abilities",
+            "128K context window"
+          ],
+          "weaknesses": [
+            "Slower than smaller models",
+            "HuggingFace rate limits apply",
+            "Less tested than commercial models"
+          ],
+          "recommended_for": ["chat", "detection", "synthesis"]
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-3.3-70B",
+          "display_name": "Llama 3.3 70B (Base)",
+          "type": "base",
+          "parameters": "70B",
+          "context_window": 128000,
+          "creator": "Meta",
+          "released": "December 2024",
+          "description": "Meta's latest open-weight large language model in its base (pre-trained) form. This is the raw foundational model without instruction tuning, making it suitable for fine-tuning or specialized applications. At 70 billion parameters, it offers strong general capabilities rivaling many commercial models. Accessed via HuggingFace's inference API, so no local hardware required.",
+          "strengths": [
+            "Open weights - can be fine-tuned",
+            "Strong general knowledge",
+            "128K context window",
+            "No API costs via HuggingFace free tier"
+          ],
+          "weaknesses": [
+            "Not instruction-tuned (use Instruct version for chat)",
+            "May require more careful prompting",
+            "HuggingFace rate limits apply"
+          ],
+          "recommended_for": ["synthesis"]
         },
         {
           "name": "huggingface/meta-llama/Meta-Llama-3-70B",

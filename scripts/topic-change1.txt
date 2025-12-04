@@ -1,9 +1,0 @@
-/init --erase
-Generate a long answer about the 10 best sci-fi movies so I can test my api that is calling you
-What was the scientific reaction to jurasic park?
-What about to the Matrix?
-Have other movies been scientifically influential?
-My favorite book is The Lion, The Witch, and The Wardrobe. Can you recommend some books like it?
-I really enjoyed the Harry Potter books.
-Oh, the Hunger Games seems like a very different genre. No magics and much more action and violence.
-/topics all

@@ -290,6 +290,24 @@
           "display_name": "Gemma 2",
           "type": "chat",
           "detect_params": true
+        },
+        {
+          "name": "codellama",
+          "display_name": "Code Llama",
+          "type": "base",
+          "detect_params": true
+        },
+        {
+          "name": "starcoder2",
+          "display_name": "StarCoder 2",
+          "type": "base",
+          "detect_params": true
+        },
+        {
+          "name": "deepseek-coder",
+          "display_name": "DeepSeek Coder",
+          "type": "base",
+          "detect_params": true
         }
       ]
     },
@@ -463,6 +481,24 @@
           "name": "huggingface/deepseek-ai/DeepSeek-V3",
           "display_name": "DeepSeek V3",
           "type": "chat"
+        },
+        {
+          "name": "huggingface/bigcode/starcoder2-15b",
+          "display_name": "StarCoder 2 15B",
+          "type": "base",
+          "parameters": "15B"
+        },
+        {
+          "name": "huggingface/meta-llama/Llama-3.3-70B",
+          "display_name": "Llama 3.3 70B (Base)",
+          "type": "base",
+          "parameters": "70B"
+        },
+        {
+          "name": "huggingface/mistralai/Mistral-7B-v0.3",
+          "display_name": "Mistral 7B v0.3 (Base)",
+          "type": "base",
+          "parameters": "7B"
         }
       ]
     }

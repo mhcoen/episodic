@@ -92,7 +92,7 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_web_command(parts, word_before_cursor)
             elif full_cmd in ['set', 'mset']:
                 yield from self._complete_set_command(parts, word_before_cursor)
-            elif full_cmd in ['topics', 'compression']:
+            elif full_cmd in ['topics', 'compression', 'voice']:
                 yield from self._complete_subcommand(full_cmd, parts, word_before_cursor)
             elif full_cmd in ['in', 'out', 'index', 'script']:
                 yield from self._complete_file_path(full_cmd, parts, word_before_cursor)
@@ -321,6 +321,8 @@ class EpisodicCompleter(Completer):
                 subcommands = ['list', 'rename', 'compress', 'index', 'scores', 'stats']
             elif cmd == 'compression':
                 subcommands = ['stats', 'queue', 'compress', 'api-stats', 'reset-api']
+            elif cmd == 'voice':
+                subcommands = ['on', 'off', 'status', 'stt', 'tts', 'info']
             
             for sub in subcommands:
                 if sub.startswith(word.lower()):

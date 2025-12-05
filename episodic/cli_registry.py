@@ -283,11 +283,16 @@ def show_category_help(category: str):
 
 def show_chat_help():
     """Show chat and conversation management commands."""
-    
+
     # Commands
     commands = [
         ("/chat", "Enable normal LLM conversation mode"),
         ("/muse", "Enable web search synthesis mode (like Perplexity)"),
+        ("/voice", "Toggle voice mode (speech input/output)"),
+        ("/voice on|off", "Enable or disable voice mode"),
+        ("/voice status", "Show voice mode status and settings"),
+        ("/voice info", "Show audio devices and test microphone"),
+        ("/voice stt|tts", "Configure speech-to-text or text-to-speech provider"),
         ("/style <style>", "Set global response style (concise/standard/comprehensive/custom)"),
         ("/format <format>", "Set global response format (paragraph/bulleted/mixed/academic)"),
         ("/topics", "List conversation topics"),
@@ -296,10 +301,11 @@ def show_chat_help():
         ("/summary", "Summarize conversation (brief/short/standard/detailed/bulleted)"),
         ("/cost", "Show token usage and costs")
     ]
-    
+
     # Examples
     examples = [
         ("/muse", "Switch to web search mode"),
+        ("/voice", "Toggle voice mode on/off"),
         ("/style concise", "Set shorter responses for all modes"),
         ("/format bulleted", "Use bullet points for all modes"),
         ("/topics", "See conversation topics")

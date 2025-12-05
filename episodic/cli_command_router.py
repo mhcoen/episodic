@@ -118,6 +118,8 @@ def handle_command(command_str: str) -> bool:
             _handle_muse(args)
         elif cmd == "/chat":
             _handle_chat(args)
+        elif cmd == "/voice":
+            _handle_voice(args)
         elif cmd == "/prompt":
             _handle_prompt(args)
         elif cmd == "/script":
@@ -502,6 +504,16 @@ def _handle_chat(args: List[str]):
     """Handle /chat command."""
     from episodic.commands.mode import chat_command
     chat_command()
+
+
+def _handle_voice(args: List[str]):
+    """Handle /voice command."""
+    from episodic.commands.voice import voice
+
+    if not args:
+        voice()
+    else:
+        voice(action=args[0])
 
 
 def _handle_prompt(args: List[str]):

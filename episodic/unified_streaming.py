@@ -157,6 +157,23 @@ def unified_stream_response(
     in_header = False
     accumulated_text = ""
     start_time = time.time()
+
+    # Voice TTS integration - stream sentences to speech
+    voice_sentence_buffer = None
+    voice_manager = None
+    if config.get("voice_mode", False) and config.get("voice_tts_enabled", True):
+        try:
+            from episodic.voice import get_voice_manager
+            from episodic.voice.sentence_buffer import SentenceBuffer
+
+            voice_manager = get_voice_manager()
+            if voice_manager.is_active:
+                voice_sentence_buffer = SentenceBuffer(
+                    on_sentence=voice_manager.speak_sentence,
+                    min_sentence_length=15,
+                )
+        except ImportError:
+            pass  # Voice module not available
     
     # Process stream
     try:
@@ -164,6 +181,10 @@ def unified_stream_response(
             if chunk_content:
                 full_response_parts.append(chunk_content)
                 accumulated_text += chunk_content
+
+                # Feed to voice TTS sentence buffer
+                if voice_sentence_buffer:
+                    voice_sentence_buffer.add(chunk_content)
             
             # Process accumulated text into words
             # Find the last space or newline in the accumulated text
@@ -262,11 +283,17 @@ def unified_stream_response(
     # Final newline if needed
     if current_position > 0:
         typer.echo("")
-    
+
+    # Flush remaining voice TTS and wait for speech to complete
+    if voice_sentence_buffer:
+        voice_sentence_buffer.flush()
+        if voice_manager:
+            voice_manager.wait_for_speech_complete()
+
     # Add extra blank line after muse responses
     if config.get("muse_mode", False):
         typer.echo("")
-    
+
     # Join the full response
     full_response = ''.join(full_response_parts)
     

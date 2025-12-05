@@ -199,6 +199,20 @@ CONFIG_DOCS = {
     # Detection thresholds
     "drift_threshold": "Semantic drift threshold for topic changes (0.9+ indicates topic change)",
     "keyword_threshold": "Keyword-based topic detection threshold",
+
+    # Voice mode settings
+    "voice_mode": "Enable voice mode for speech input/output",
+    "voice_stt_provider": "Speech-to-text provider: local_whisper, openai_whisper, deepgram",
+    "voice_tts_provider": "Text-to-speech provider: local_piper, local_xtts, openai_tts, elevenlabs",
+    "voice_tts_enabled": "Enable TTS output (can disable to use only speech input)",
+    "voice_local_whisper_model": "Local Whisper model size: tiny, base, small, medium, large-v2, large-v3",
+    "voice_local_piper_voice": "Piper voice model name (e.g., en_US-lessac-medium)",
+    "voice_local_xtts_speaker": "XTTS built-in speaker name (e.g., Claribel Dervla)",
+    "voice_openai_tts_voice": "OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer",
+    "voice_silence_threshold_ms": "Milliseconds of silence before speech is considered complete",
+    "voice_vad_aggressiveness": "Voice Activity Detection aggressiveness 0-3 (higher = more aggressive filtering)",
+    "voice_show_transcription": "Display transcribed speech in terminal",
+    "voice_audio_cues": "Play audio cues for state transitions (ready, processing, complete)",
 }
 
 # REMOVED - No special threshold behavior needed

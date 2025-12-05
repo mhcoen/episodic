@@ -202,6 +202,13 @@ def register_all_commands():
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
     command_registry.register("muse", handle_muse, "Enable muse mode (web search synthesis)", "Conversation")
     command_registry.register("chat", handle_chat, "Enable chat mode (normal LLM conversation)", "Conversation")
+
+    # Voice command with lazy loading
+    def lazy_voice_command(*args, **kwargs):
+        from episodic.commands.voice import voice
+        return voice(*args, **kwargs)
+
+    command_registry.register("voice", lazy_voice_command, "Toggle voice mode (speech input/output)", "Conversation")
     command_registry.register("benchmark", benchmark, "Show performance statistics", "Utility")
     command_registry.register("help", help, "Show help information", "Utility", aliases=["h"])
     command_registry.register("about", _handle_about, "Show information about Episodic", "Utility")

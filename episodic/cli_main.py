@@ -86,6 +86,31 @@ def handle_chat_message(user_input: str) -> None:
             typer.secho(traceback.format_exc(), fg="red")
 
 
+def _get_voice_input() -> Optional[str]:
+    """Get user input via voice (speech-to-text)."""
+    try:
+        from episodic.voice import get_voice_manager
+
+        manager = get_voice_manager()
+        if not manager.is_active:
+            # Voice mode config is on but manager isn't started - start it
+            manager.start()
+
+        # Wait for speech input
+        text = manager.listen(timeout=60.0)
+
+        if text:
+            # Show what was transcribed
+            if config.get("voice_show_transcription", True):
+                typer.secho(f"You said: \"{text}\"", fg="cyan")
+
+        return text
+
+    except Exception as e:
+        typer.secho(f"Voice input error: {e}", fg="red")
+        return None
+
+
 def talk_loop() -> None:
     """Main conversation loop."""
     global conversation_manager
@@ -127,9 +152,20 @@ def talk_loop() -> None:
     # Main loop
     while True:
         try:
-            # Get user input using the enhanced prompt
-            user_input = session.prompt()
-            
+            # Check for voice mode
+            if config.get("voice_mode", False):
+                user_input = _get_voice_input()
+                if user_input is None:
+                    continue
+                # Check for voice exit command
+                if user_input.lower().strip() in ["exit voice", "voice off"]:
+                    from episodic.commands.voice import voice_off
+                    voice_off()
+                    continue
+            else:
+                # Get user input using the enhanced prompt
+                user_input = session.prompt()
+
             # Skip empty input
             if not user_input.strip():
                 continue

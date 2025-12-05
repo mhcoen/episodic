@@ -34,20 +34,86 @@ def check_dependencies():
 
     return True
 
-def test_microphone(duration=3):
+
+def check_audio_devices():
+    """Check and display available audio devices."""
+    import sounddevice as sd
+
+    print("\n=== Audio Device Check ===")
+
+    try:
+        devices = sd.query_devices()
+        default_input = sd.default.device[0]
+        default_output = sd.default.device[1]
+
+        print(f"\nDefault input device:  #{default_input}")
+        print(f"Default output device: #{default_output}")
+
+        # Show input devices
+        print("\nAvailable INPUT devices:")
+        for i, dev in enumerate(devices):
+            if dev['max_input_channels'] > 0:
+                marker = " <-- DEFAULT" if i == default_input else ""
+                print(f"  [{i}] {dev['name']} ({dev['max_input_channels']} ch, {int(dev['default_samplerate'])} Hz){marker}")
+
+        # Test if default input works
+        print(f"\nTesting default input device...")
+        try:
+            # Query the specific device
+            input_info = sd.query_devices(default_input)
+            print(f"  Device: {input_info['name']}")
+            print(f"  Sample rate: {input_info['default_samplerate']} Hz")
+            print(f"  Channels: {input_info['max_input_channels']}")
+
+            # Try opening a brief stream to test permissions
+            test_duration = 0.1
+            test_sr = int(input_info['default_samplerate'])
+            _ = sd.rec(int(test_duration * test_sr), samplerate=test_sr, channels=1, dtype='int16')
+            sd.wait()
+            print("  ✓ Microphone access OK")
+            return True
+        except Exception as e:
+            print(f"  ✗ Microphone test failed: {e}")
+            print("\n=== TROUBLESHOOTING ===")
+            print("1. Check System Preferences > Privacy & Security > Microphone")
+            print("   - Ensure Terminal (or your terminal app) has microphone access")
+            print("2. Try running: python -c \"import sounddevice; print(sounddevice.query_devices())\"")
+            print("3. If using VS Code terminal, grant VS Code microphone access")
+            return False
+
+    except Exception as e:
+        print(f"✗ Could not query audio devices: {e}")
+        return False
+
+def test_microphone(duration=3, target_sample_rate=16000):
     """Test microphone recording."""
     import sounddevice as sd
+    from scipy import signal
 
     print(f"\n=== Recording {duration} seconds ===")
     print("Speak now!")
 
-    sample_rate = 16000
-
     try:
-        audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate,
+        # Get default input device info
+        default_input = sd.default.device[0]
+        input_info = sd.query_devices(default_input)
+        device_sample_rate = int(input_info['default_samplerate'])
+
+        # Record at device's native sample rate to avoid format issues
+        print(f"  Recording at {device_sample_rate} Hz (device native rate)...")
+        audio = sd.rec(int(duration * device_sample_rate), samplerate=device_sample_rate,
                       channels=1, dtype='int16')
         sd.wait()
         print(f"✓ Recorded {len(audio)} samples")
+
+        # Resample to target rate if needed (16kHz is optimal for Whisper)
+        if device_sample_rate != target_sample_rate:
+            print(f"  Resampling from {device_sample_rate} Hz to {target_sample_rate} Hz...")
+            num_samples = int(len(audio) * target_sample_rate / device_sample_rate)
+            audio = signal.resample(audio.flatten(), num_samples).astype(np.int16).reshape(-1, 1)
+            sample_rate = target_sample_rate
+        else:
+            sample_rate = device_sample_rate
 
         max_amplitude = np.max(np.abs(audio))
         print(f"  Max amplitude: {max_amplitude}")
@@ -59,6 +125,7 @@ def test_microphone(duration=3):
         return audio, sample_rate
     except Exception as e:
         print(f"✗ Microphone error: {e}")
+        print("\nTry running option 'd' to diagnose audio devices.")
         return None, None
 
 def audio_to_wav_bytes(audio_data, sample_rate):
@@ -406,6 +473,7 @@ def main():
 
     while True:
         print("\nOptions:")
+        print("d. Diagnose audio devices (run this first if having issues)")
         print("1. Quick TTS test (OpenAI)")
         print("2. Quick TTS test (Local Piper - fast, lower quality)")
         print("3. Quick TTS test (Coqui XTTS - slow first load, high quality)")
@@ -417,7 +485,9 @@ def main():
 
         choice = input("\nChoice: ").strip().lower()
 
-        if choice == "1":
+        if choice == "d":
+            check_audio_devices()
+        elif choice == "1":
             tts_openai("Hello! This is OpenAI text to speech. How does it sound?")
         elif choice == "2":
             tts_local_piper("Hello! This is local Piper text to speech. How does it sound?")

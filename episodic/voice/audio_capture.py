@@ -12,6 +12,32 @@ from typing import Callable, Optional
 import numpy as np
 
 
+def _get_device_sample_rate() -> int:
+    """Get the default input device's native sample rate."""
+    import sounddevice as sd
+    try:
+        default_input = sd.default.device[0]
+        input_info = sd.query_devices(default_input)
+        return int(input_info['default_samplerate'])
+    except Exception:
+        return 48000  # Common fallback
+
+
+def _resample_audio(audio: np.ndarray, from_rate: int, to_rate: int) -> np.ndarray:
+    """Resample audio from one sample rate to another."""
+    if from_rate == to_rate:
+        return audio
+
+    try:
+        from scipy import signal
+        num_samples = int(len(audio) * to_rate / from_rate)
+        return signal.resample(audio, num_samples).astype(audio.dtype)
+    except ImportError:
+        # Fallback: simple linear interpolation (less accurate but no scipy needed)
+        indices = np.linspace(0, len(audio) - 1, int(len(audio) * to_rate / from_rate))
+        return np.interp(indices, np.arange(len(audio)), audio.astype(np.float32)).astype(audio.dtype)
+
+
 class AudioCapture:
     """
     Captures audio from microphone with voice activity detection.
@@ -21,7 +47,7 @@ class AudioCapture:
 
     def __init__(
         self,
-        sample_rate: int = 16000,
+        target_sample_rate: int = 16000,
         vad_aggressiveness: int = 2,
         silence_threshold_ms: int = 1000,
         pre_speech_buffer_ms: int = 300,
@@ -30,22 +56,27 @@ class AudioCapture:
         Initialize audio capture.
 
         Args:
-            sample_rate: Audio sample rate (16000 recommended for STT)
+            target_sample_rate: Target sample rate for STT (16000 recommended)
             vad_aggressiveness: VAD sensitivity 0-3 (higher = more aggressive filtering)
             silence_threshold_ms: Silence duration to end speech detection
             pre_speech_buffer_ms: Audio to keep before speech detected
         """
-        self.sample_rate = sample_rate
+        self.target_sample_rate = target_sample_rate
         self.vad_aggressiveness = vad_aggressiveness
         self.silence_threshold_ms = silence_threshold_ms
         self.pre_speech_buffer_ms = pre_speech_buffer_ms
+
+        # Device sample rate (set on start)
+        self._device_sample_rate: int = 16000
+        # VAD always works at 16kHz
+        self._vad_sample_rate: int = 16000
 
         self._vad = None
         self._stream = None
         self._is_recording = False
         self._is_muted = False
 
-        # Audio buffers
+        # Audio buffers (stored at device sample rate, resampled on output)
         self._pre_speech_buffer: deque = deque()
         self._speech_buffer: list = []
 
@@ -74,7 +105,7 @@ class AudioCapture:
         if self._is_muted:
             return
 
-        # Convert to int16 for VAD
+        # Convert to int16
         audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
 
         with self._lock:
@@ -83,16 +114,28 @@ class AudioCapture:
     def _process_audio(self, audio_int16: np.ndarray):
         """Process audio chunk with VAD."""
         # VAD requires 10, 20, or 30ms frames at 8000, 16000, or 32000 Hz
+        # We resample to 16kHz for VAD processing
         frame_duration_ms = 30
-        frame_size = int(self.sample_rate * frame_duration_ms / 1000)
+        vad_frame_size = int(self._vad_sample_rate * frame_duration_ms / 1000)  # 480 samples at 16kHz
+        device_frame_size = int(self._device_sample_rate * frame_duration_ms / 1000)
+
+        # Resample chunk for VAD if needed
+        if self._device_sample_rate != self._vad_sample_rate:
+            audio_for_vad = _resample_audio(audio_int16, self._device_sample_rate, self._vad_sample_rate)
+        else:
+            audio_for_vad = audio_int16
 
         # Process in VAD-compatible frames
-        for i in range(0, len(audio_int16) - frame_size + 1, frame_size):
-            frame = audio_int16[i:i + frame_size]
-            frame_bytes = frame.tobytes()
+        # We use device-rate frames for storage but VAD-rate frames for detection
+        num_frames = len(audio_for_vad) // vad_frame_size
+        for i in range(num_frames):
+            vad_frame = audio_for_vad[i * vad_frame_size:(i + 1) * vad_frame_size]
+            device_frame = audio_int16[i * device_frame_size:(i + 1) * device_frame_size]
+
+            frame_bytes = vad_frame.tobytes()
 
             try:
-                is_speech = self._vad.is_speech(frame_bytes, self.sample_rate)
+                is_speech = self._vad.is_speech(frame_bytes, self._vad_sample_rate)
             except Exception:
                 # VAD can fail on certain audio, treat as non-speech
                 is_speech = False
@@ -109,12 +152,12 @@ class AudioCapture:
                     if self._on_speech_start:
                         self._on_speech_start()
 
-                self._speech_buffer.append(frame)
+                self._speech_buffer.append(device_frame)
 
             else:
                 if self._speech_started:
                     # In speech but silence detected
-                    self._speech_buffer.append(frame)
+                    self._speech_buffer.append(device_frame)
 
                     if self._silence_start is None:
                         self._silence_start = time.time()
@@ -123,7 +166,7 @@ class AudioCapture:
                         self._finalize_speech()
                 else:
                     # Not in speech, maintain pre-speech buffer
-                    self._pre_speech_buffer.append(frame)
+                    self._pre_speech_buffer.append(device_frame)
                     # Limit buffer size
                     max_frames = int(self.pre_speech_buffer_ms / frame_duration_ms)
                     while len(self._pre_speech_buffer) > max_frames:
@@ -132,8 +175,12 @@ class AudioCapture:
     def _finalize_speech(self):
         """Finalize captured speech and trigger callback."""
         if self._speech_buffer:
-            # Concatenate all frames
+            # Concatenate all frames (at device sample rate)
             audio = np.concatenate(self._speech_buffer)
+
+            # Resample to target sample rate for STT
+            if self._device_sample_rate != self.target_sample_rate:
+                audio = _resample_audio(audio, self._device_sample_rate, self.target_sample_rate)
 
             # Reset state
             self._speech_started = False
@@ -170,13 +217,16 @@ class AudioCapture:
         self._speech_buffer = []
         self._pre_speech_buffer.clear()
 
-        # Start audio stream
+        # Get device's native sample rate to avoid format errors
+        self._device_sample_rate = _get_device_sample_rate()
+
+        # Start audio stream at device's native rate
         self._stream = sd.InputStream(
-            samplerate=self.sample_rate,
+            samplerate=self._device_sample_rate,
             channels=1,
             dtype='float32',
             callback=self._audio_callback,
-            blocksize=int(self.sample_rate * 0.03),  # 30ms blocks
+            blocksize=int(self._device_sample_rate * 0.03),  # 30ms blocks
         )
         self._stream.start()
 
@@ -185,7 +235,7 @@ class AudioCapture:
         Stop capturing audio.
 
         Returns:
-            Any remaining speech audio, or None
+            Any remaining speech audio (at target sample rate), or None
         """
         self._is_recording = False
 
@@ -199,6 +249,9 @@ class AudioCapture:
             if self._speech_buffer:
                 audio = np.concatenate(self._speech_buffer)
                 self._speech_buffer = []
+                # Resample to target sample rate
+                if self._device_sample_rate != self.target_sample_rate:
+                    audio = _resample_audio(audio, self._device_sample_rate, self.target_sample_rate)
                 return audio
 
         return None
@@ -226,7 +279,7 @@ class AudioCapture:
 
 
 def record_until_silence(
-    sample_rate: int = 16000,
+    target_sample_rate: int = 16000,
     silence_threshold_ms: int = 1000,
     vad_aggressiveness: int = 2,
     max_duration_s: float = 30.0,
@@ -238,14 +291,14 @@ def record_until_silence(
     Convenience function for simple recording without callbacks.
 
     Args:
-        sample_rate: Audio sample rate
+        target_sample_rate: Target sample rate for output (16000 recommended for STT)
         silence_threshold_ms: Silence duration to stop recording
         vad_aggressiveness: VAD sensitivity 0-3
         max_duration_s: Maximum recording duration
         on_start: Called when speech is first detected
 
     Returns:
-        Recorded audio as int16 numpy array, or None if no speech
+        Recorded audio as int16 numpy array at target sample rate, or None if no speech
     """
     result = None
     done = threading.Event()
@@ -256,7 +309,7 @@ def record_until_silence(
         done.set()
 
     capture = AudioCapture(
-        sample_rate=sample_rate,
+        target_sample_rate=target_sample_rate,
         silence_threshold_ms=silence_threshold_ms,
         vad_aggressiveness=vad_aggressiveness,
     )

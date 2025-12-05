@@ -276,9 +276,11 @@ def show_category_help(category: str):
         show_topics_help()
     elif category == "markdown":
         show_markdown_help()
+    elif category == "voice":
+        show_voice_help()
     else:
         typer.secho(f"Unknown help category: {category}", fg="red")
-        typer.secho("Available categories: chat, settings, search, history, topics, markdown", fg=get_text_color())
+        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice", fg=get_text_color())
 
 
 def show_chat_help():
@@ -288,11 +290,7 @@ def show_chat_help():
     commands = [
         ("/chat", "Enable normal LLM conversation mode"),
         ("/muse", "Enable web search synthesis mode (like Perplexity)"),
-        ("/voice", "Toggle voice mode (speech input/output)"),
-        ("/voice on|off", "Enable or disable voice mode"),
-        ("/voice status", "Show voice mode status and settings"),
-        ("/voice info", "Show audio devices and test microphone"),
-        ("/voice stt|tts", "Configure speech-to-text or text-to-speech provider"),
+        ("/voice", "Toggle voice mode (see /help voice for details)"),
         ("/style <style>", "Set global response style (concise/standard/comprehensive/custom)"),
         ("/format <format>", "Set global response format (paragraph/bulleted/mixed/academic)"),
         ("/topics", "List conversation topics"),
@@ -305,7 +303,6 @@ def show_chat_help():
     # Examples
     examples = [
         ("/muse", "Switch to web search mode"),
-        ("/voice", "Toggle voice mode on/off"),
         ("/style concise", "Set shorter responses for all modes"),
         ("/format bulleted", "Use bullet points for all modes"),
         ("/topics", "See conversation topics")
@@ -553,6 +550,78 @@ def show_markdown_help():
     
     typer.secho("Examples:", fg=get_heading_color(), bold=True)
     _display_aligned_commands(examples, max_width)
+
+
+def show_voice_help():
+    """Show voice mode commands."""
+
+    # Commands
+    commands = [
+        ("/voice", "Toggle voice mode on/off"),
+        ("/voice on", "Enable voice mode"),
+        ("/voice off", "Disable voice mode"),
+        ("/voice status", "Show voice mode status and current settings"),
+        ("/voice info", "Show audio devices and test microphone access"),
+        ("/voice stt", "Show and configure speech-to-text provider"),
+        ("/voice tts", "Show and configure text-to-speech provider"),
+    ]
+
+    # STT providers
+    stt_providers = [
+        ("local_whisper", "Free, runs locally (default)"),
+        ("openai_whisper", "~$0.006/min, excellent accuracy"),
+        ("deepgram", "~$0.008/min, real-time streaming"),
+    ]
+
+    # TTS providers
+    tts_providers = [
+        ("local_piper", "Free, fast, lower quality (default)"),
+        ("local_xtts", "Free, high quality, slow first load (~18s)"),
+        ("openai_tts", "~$0.015/min, good quality"),
+        ("elevenlabs", "~$0.20/1k chars, highest quality"),
+    ]
+
+    # Examples
+    examples = [
+        ("/voice", "Toggle voice mode"),
+        ("/voice info", "Check microphone before enabling"),
+        ("/set voice_stt_provider openai_whisper", "Use OpenAI for STT"),
+        ("/set voice_tts_provider local_xtts", "Use high-quality local TTS"),
+    ]
+
+    # Find the longest item for alignment
+    all_items = commands + [(f"  {p}", d) for p, d in stt_providers] + [(f"  {p}", d) for p, d in tts_providers] + examples
+    max_width = max(len(item) for item, _ in all_items)
+
+    # Display header
+    typer.secho("🎙️ Voice Mode", fg=get_heading_color(), bold=True)
+    typer.secho("Speech input and text-to-speech output for hands-free interaction.", fg=get_text_color())
+    typer.echo()
+
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+
+    typer.secho("STT Providers (speech-to-text):", fg=get_text_color())
+    for provider, desc in stt_providers:
+        padding = ' ' * max(1, max_width - len(provider) - 2)
+        typer.secho(f"  {provider}{padding}", fg=get_system_color(), nl=False)
+        typer.secho(desc, fg=get_text_color())
+    typer.echo()
+
+    typer.secho("TTS Providers (text-to-speech):", fg=get_text_color())
+    for provider, desc in tts_providers:
+        padding = ' ' * max(1, max_width - len(provider) - 2)
+        typer.secho(f"  {provider}{padding}", fg=get_system_color(), nl=False)
+        typer.secho(desc, fg=get_text_color())
+    typer.echo()
+
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
+    typer.echo()
+
+    typer.secho("Voice Commands (while in voice mode):", fg=get_text_color())
+    typer.secho('  Say "exit voice" or "voice off" to disable voice mode', fg=get_system_color())
 
 
 def show_advanced_help():

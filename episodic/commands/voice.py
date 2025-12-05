@@ -240,6 +240,7 @@ def voice_info():
 
 def _check_dependencies() -> list:
     """Check for required voice dependencies."""
+    import warnings
     missing = []
 
     try:
@@ -248,7 +249,9 @@ def _check_dependencies() -> list:
         missing.append("sounddevice")
 
     try:
-        import webrtcvad
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
+            import webrtcvad
     except ImportError:
         missing.append("webrtcvad")
 

@@ -94,7 +94,10 @@ class AudioCapture:
     def _init_vad(self):
         """Initialize VAD if not already done."""
         if self._vad is None:
-            import webrtcvad
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
+                import webrtcvad
             self._vad = webrtcvad.Vad(self.vad_aggressiveness)
 
     def _audio_callback(self, indata, frames, time_info, status):

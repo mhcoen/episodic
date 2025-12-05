@@ -16,7 +16,7 @@ def voice(action: Optional[str] = None):
     Toggle or configure voice mode.
 
     Args:
-        action: Subcommand (on/off/status/stt/tts) or None for toggle
+        action: Subcommand (on/off/status/stt/tts/info) or None for toggle
     """
     if action is None:
         # Toggle
@@ -34,9 +34,11 @@ def voice(action: Optional[str] = None):
         voice_stt_menu()
     elif action == "tts":
         voice_tts_menu()
+    elif action == "info":
+        voice_info()
     else:
         typer.secho(f"Unknown voice action: {action}", fg="yellow")
-        typer.secho("Usage: /voice [on|off|status|stt|tts]", fg=get_text_color())
+        typer.secho("Usage: /voice [on|off|status|stt|tts|info]", fg=get_text_color())
 
 
 def voice_on():
@@ -151,6 +153,89 @@ def voice_tts_menu():
 
     typer.echo()
     typer.secho("Set with: /set voice_tts_provider <name>", fg=typer.colors.WHITE, dim=True)
+
+
+def voice_info():
+    """Show audio device information and test microphone access."""
+    typer.secho("Audio Device Information", fg=get_system_color(), bold=True)
+    typer.secho("=" * 50, fg=get_text_color())
+
+    # Check dependencies first
+    missing = _check_dependencies()
+    if missing:
+        typer.secho("Missing dependencies:", fg="red")
+        for dep in missing:
+            typer.secho(f"  - {dep}", fg="yellow")
+        typer.secho("\nInstall with: pip install sounddevice webrtcvad numpy", fg=get_text_color())
+        return
+
+    try:
+        import sounddevice as sd
+        import numpy as np
+
+        devices = sd.query_devices()
+        default_input = sd.default.device[0]
+        default_output = sd.default.device[1]
+
+        # Input devices
+        typer.echo()
+        typer.secho("INPUT Devices (Microphones)", fg=get_system_color(), bold=True)
+        typer.secho("-" * 40, fg=get_text_color())
+
+        for i, dev in enumerate(devices):
+            if dev['max_input_channels'] > 0:
+                if i == default_input:
+                    typer.secho(f"  [{i}] {dev['name']}", fg="bright_green", bold=True)
+                    typer.secho(f"      {dev['max_input_channels']} ch, {int(dev['default_samplerate'])} Hz  <-- DEFAULT", fg="bright_green")
+                else:
+                    typer.secho(f"  [{i}] {dev['name']}", fg=get_text_color())
+                    typer.secho(f"      {dev['max_input_channels']} ch, {int(dev['default_samplerate'])} Hz", fg=typer.colors.WHITE, dim=True)
+
+        # Output devices
+        typer.echo()
+        typer.secho("OUTPUT Devices (Speakers)", fg=get_system_color(), bold=True)
+        typer.secho("-" * 40, fg=get_text_color())
+
+        for i, dev in enumerate(devices):
+            if dev['max_output_channels'] > 0:
+                if i == default_output:
+                    typer.secho(f"  [{i}] {dev['name']}", fg="bright_green", bold=True)
+                    typer.secho(f"      {dev['max_output_channels']} ch, {int(dev['default_samplerate'])} Hz  <-- DEFAULT", fg="bright_green")
+                else:
+                    typer.secho(f"  [{i}] {dev['name']}", fg=get_text_color())
+                    typer.secho(f"      {dev['max_output_channels']} ch, {int(dev['default_samplerate'])} Hz", fg=typer.colors.WHITE, dim=True)
+
+        # Test microphone access
+        typer.echo()
+        typer.secho("Microphone Test", fg=get_system_color(), bold=True)
+        typer.secho("-" * 40, fg=get_text_color())
+
+        try:
+            input_info = sd.query_devices(default_input)
+            device_sr = int(input_info['default_samplerate'])
+            typer.secho(f"  Testing device: {input_info['name']}", fg=get_text_color())
+            typer.secho(f"  Native sample rate: {device_sr} Hz", fg=get_text_color())
+
+            # Try recording a brief sample
+            test_duration = 0.1
+            _ = sd.rec(int(test_duration * device_sr), samplerate=device_sr, channels=1, dtype='int16')
+            sd.wait()
+
+            typer.secho("  Microphone access: ", nl=False, fg=get_text_color())
+            typer.secho("OK", fg="bright_green", bold=True)
+
+        except Exception as e:
+            typer.secho("  Microphone access: ", nl=False, fg=get_text_color())
+            typer.secho("FAILED", fg="bright_red", bold=True)
+            typer.secho(f"  Error: {e}", fg="red")
+            typer.echo()
+            typer.secho("Troubleshooting:", fg="yellow", bold=True)
+            typer.secho("  1. Check System Settings > Privacy & Security > Microphone", fg=get_text_color())
+            typer.secho("     Ensure your terminal app has microphone access", fg=get_text_color())
+            typer.secho("  2. Restart your terminal after granting permission", fg=get_text_color())
+
+    except Exception as e:
+        typer.secho(f"Error querying audio devices: {e}", fg="red")
 
 
 def _check_dependencies() -> list:

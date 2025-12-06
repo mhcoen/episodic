@@ -62,7 +62,81 @@ Configure model parameters:
    ollama pull llama3
    ```
 
-## 2. Web Search Integration
+## 2. Voice Mode
+
+Voice mode enables hands-free conversation with speech input and text-to-speech output.
+
+### Features
+
+- **Speech-to-Text (STT)**: Convert your spoken words to text
+- **Text-to-Speech (TTS)**: Hear responses spoken aloud
+- **Voice Activity Detection (VAD)**: Automatic speech start/stop detection
+- **Provider Agnostic**: Both local (free) and cloud (paid) options
+- **Cross-Platform**: Works on macOS, Linux, and Windows
+
+### STT Providers
+
+| Provider | Cost | Notes |
+|----------|------|-------|
+| `local_whisper` (default) | Free | Uses faster-whisper, excellent on Apple Silicon |
+| `openai_whisper` | ~$0.006/min | API, excellent accuracy |
+| `deepgram` | ~$0.008/min | Real-time streaming |
+
+### TTS Providers
+
+| Provider | Cost | Notes |
+|----------|------|-------|
+| `local_piper` (default) | Free | Fast, CPU-friendly |
+| `openai_tts` | ~$0.015/min | Good quality, steerable |
+| `elevenlabs` | ~$0.20/1k chars | Highest quality |
+
+### Commands
+
+```bash
+# Basic usage
+/voice           # Toggle voice mode
+/voice on        # Enable voice mode
+/voice off       # Disable voice mode
+/voice status    # Show status and providers
+
+# Provider configuration
+/voice stt       # Show/configure STT providers
+/voice tts       # Show/configure TTS providers
+
+# Diagnostics
+/voice info      # Show audio devices, test microphone
+```
+
+### Configuration
+
+```bash
+# Set providers
+/set voice_stt_provider local_whisper
+/set voice_tts_provider local_piper
+
+# TTS settings
+/set voice_tts_enabled true      # Enable/disable TTS output
+/set voice_audio_cues true       # Enable state transition sounds
+
+# VAD tuning
+/set voice_silence_threshold_ms 1000  # Silence to end speech
+/set voice_vad_aggressiveness 2       # 0-3 (higher = more filtering)
+```
+
+### Dependencies
+
+Voice mode requires additional packages:
+```bash
+pip install sounddevice webrtcvad numpy
+
+# For local STT
+pip install faster-whisper
+
+# For local TTS
+pip install piper-tts
+```
+
+## 3. Web Search Integration
 
 ### Available Search Providers
 
@@ -94,7 +168,7 @@ quantum computing news
 /set web_search_provider duckduckgo
 ```
 
-## 3. Muse Mode (Web Synthesis)
+## 4. Muse Mode (Web Synthesis)
 
 ### What is Muse Mode?
 
@@ -148,7 +222,7 @@ Episodic includes an always-on conversation memory system:
 
 **Note**: This is separate from the user RAG system and automatically indexes all conversations for intelligent context recall.
 
-## 4. Topic Detection & Management
+## 5. Topic Detection & Management
 
 ### Automatic Organization
 
@@ -191,7 +265,7 @@ The dual-window system uses:
 /topics stats
 ```
 
-## 5. RAG (Knowledge Base)
+## 6. RAG (Knowledge Base)
 
 ### Index Your Documents
 

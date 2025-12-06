@@ -34,6 +34,17 @@ Just type to chat! No prefix needed.
 | `/muse` | | Switch to web search mode |
 | `/chat` | | Switch to chat mode |
 
+### Voice Mode
+| Command | Description |
+|---------|-------------|
+| `/voice` | Toggle voice mode |
+| `/voice on` | Enable voice mode |
+| `/voice off` | Disable voice mode |
+| `/voice status` | Show voice status and providers |
+| `/voice stt` | Show/configure STT provider |
+| `/voice tts` | Show/configure TTS provider |
+| `/voice info` | Show audio devices, test microphone |
+
 ### Configuration
 | Command | Description |
 |---------|-------------|
@@ -105,6 +116,14 @@ Just type to chat! No prefix needed.
 /set topic-auto true
 /set comp-auto true
 /set topics true
+```
+
+### Voice Mode
+```bash
+/voice on                 # Enable voice mode
+/voice info               # Check audio devices
+/set voice_stt_provider local_whisper  # Free local STT
+/set voice_tts_provider local_piper    # Free local TTS
 ```
 
 ### Parameter Profiles via Scripts

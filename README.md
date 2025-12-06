@@ -15,6 +15,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 - **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
+- **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output with local and cloud providers
 - **🗄️ Persistent Memory** - Automatic topic detection and context management
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
@@ -105,6 +106,11 @@ Episodic automatically configures itself based on available providers:
 /muse            # Switch to Perplexity-like web search mode
 /web             # Show current web search provider
 
+# Voice Mode
+/voice           # Toggle voice mode on/off
+/voice status    # Show voice mode status and providers
+/voice info      # Show audio devices and test microphone
+
 # Customization
 /style           # Set global response style (concise/standard/comprehensive/custom)
 /format          # Set global response format (paragraph/bulleted/mixed/academic)
@@ -140,6 +146,37 @@ Episodic automatically configures itself based on available providers:
 - **[Configuration](docs/configuration.md)** - Settings and options
 
 ## 🎯 Use Cases
+
+### 🎙️ Voice Mode - Hands-Free Conversation
+Voice mode enables speech input and text-to-speech output for hands-free interaction:
+
+```text
+> /voice on
+🎙️ Voice mode ENABLED
+STT: local_whisper  |  TTS: local_piper
+Say 'exit voice' to disable, or use /voice off
+
+# Speak into your microphone - your speech is transcribed
+Listening...
+Processing...
+🤖 [Response plays through speakers while streaming to terminal]
+
+# Check your audio setup
+> /voice info
+Audio Device Information
+==================================================
+INPUT Devices (Microphones)
+  [0] MacBook Pro Microphone  <-- DEFAULT
+OUTPUT Devices (Speakers)
+  [1] MacBook Pro Speakers  <-- DEFAULT
+Microphone access: OK
+```
+
+**Provider Options:**
+- **STT (Speech-to-Text)**: Local Whisper (free), OpenAI Whisper API, Deepgram
+- **TTS (Text-to-Speech)**: Local Piper (free), OpenAI TTS, ElevenLabs
+
+Configure providers with `/voice stt` and `/voice tts`.
 
 ### 🎭 Muse Mode - Conversational Web Search
 Muse mode transforms Episodic into a Perplexity-like AI research assistant that searches the web and synthesizes comprehensive answers:

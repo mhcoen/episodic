@@ -202,7 +202,8 @@ def show_help_with_categories():
     # Essential commands
     essential_commands = [
         ("/muse", "Enable web search synthesis mode"),
-        ("/chat", "Enable normal LLM conversation mode"), 
+        ("/chat", "Enable normal LLM conversation mode"),
+        ("/voice", "Toggle voice mode (speech input/output)"),
         ("/style", "Set global response style (concise/standard/comprehensive/custom)"),
         ("/format", "Set global response format (paragraph/bulleted/mixed/academic)"),
         ("/topics", "List conversation topics"),
@@ -212,10 +213,11 @@ def show_help_with_categories():
         ("/set", "Change configuration settings"),
         ("/reset", "Reset configuration to defaults")
     ]
-    
-    # Command categories  
+
+    # Command categories
     categories = [
         ("/help chat", "Mode switching and conversation management"),
+        ("/help voice", "Voice mode, STT/TTS providers"),
         ("/help settings", "Configuration and system management"),
         ("/help search", "Knowledge base and muse configuration"),
         ("/help history", "Navigation and conversation history"),

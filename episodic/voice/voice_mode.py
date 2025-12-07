@@ -78,6 +78,9 @@ class VoiceModeManager:
             provider_name = config.get("voice_tts_provider", "local_piper")
             kwargs = {}
 
+            # Speed setting applies to all providers
+            kwargs["speed"] = config.get("voice_tts_speed", 1.0)
+
             if provider_name == "local_piper":
                 kwargs["voice"] = config.get("voice_local_piper_voice", "en_US-lessac-medium")
             elif provider_name == "local_xtts":

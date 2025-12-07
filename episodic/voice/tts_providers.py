@@ -57,8 +57,9 @@ class LocalPiperProvider(BaseTTSProvider):
         ".",
     ]
 
-    def __init__(self, voice: str = "en_US-lessac-medium"):
+    def __init__(self, voice: str = "en_US-lessac-medium", speed: float = 1.0):
         self.voice = voice
+        self.speed = speed  # 1.0 = normal, >1.0 = faster, <1.0 = slower
         self._piper_voice = None
 
     def _find_voice_model(self) -> Optional[str]:
@@ -95,7 +96,11 @@ class LocalPiperProvider(BaseTTSProvider):
             audio_floats = []
             sample_rate = None
 
-            for chunk in voice.synthesize(text):
+            # Piper uses length_scale: <1.0 = faster, >1.0 = slower
+            # We invert our speed so >1.0 = faster (more intuitive)
+            length_scale = 1.0 / self.speed if self.speed > 0 else 1.0
+
+            for chunk in voice.synthesize(text, length_scale=length_scale):
                 audio_floats.append(chunk.audio_float_array)
                 if sample_rate is None:
                     sample_rate = chunk.sample_rate
@@ -212,9 +217,10 @@ class OpenAITTSProvider(BaseTTSProvider):
         "tts-1-hd": 0.030,
     }
 
-    def __init__(self, voice: str = "alloy", model: str = "tts-1"):
+    def __init__(self, voice: str = "alloy", model: str = "tts-1", speed: float = 1.0):
         self.voice = voice
         self.model = model  # tts-1 (fast) or tts-1-hd (higher quality)
+        self.speed = max(0.25, min(4.0, speed))  # OpenAI supports 0.25 to 4.0
         self._client = None
 
     def _get_client(self):
@@ -233,6 +239,7 @@ class OpenAITTSProvider(BaseTTSProvider):
                 model=self.model,
                 voice=self.voice,
                 input=text,
+                speed=self.speed,
                 response_format="wav"
             )
 

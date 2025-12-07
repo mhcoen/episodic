@@ -213,6 +213,7 @@ CONFIG_DOCS = {
     "voice_vad_aggressiveness": "Voice Activity Detection aggressiveness 0-3 (higher = more aggressive filtering)",
     "voice_show_transcription": "Display transcribed speech in terminal",
     "voice_audio_cues": "Play audio cues for state transitions (ready, processing, complete)",
+    "voice_tts_speed": "TTS speech rate: 0.5-2.0 (1.0 = normal, higher = faster)",
 
     # Mode switching
     "mode": "Current provider mode: 'local' (free, private) or 'cloud' (paid, quality)",

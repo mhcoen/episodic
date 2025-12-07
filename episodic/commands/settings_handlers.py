@@ -251,6 +251,7 @@ PARAM_HANDLERS = {
     # Float parameters
     'stream_rate': lambda v: handle_float_param('stream_rate', v, 1.0, 100.0),
     'drift_threshold': lambda v: handle_float_param('drift_threshold', v, 0.0, 1.0),
+    'voice_tts_speed': lambda v: handle_float_param('voice_tts_speed', v, 0.5, 2.0),
     
     # String parameters with validation
     'color_mode': lambda v: handle_string_param('color_mode', v, COLOR_MODES),

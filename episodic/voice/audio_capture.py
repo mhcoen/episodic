@@ -154,6 +154,9 @@ class AudioCapture:
 
                     if self._on_speech_start:
                         self._on_speech_start()
+                else:
+                    # Speech continuing - reset silence timer if it was running
+                    self._silence_start = None
 
                 self._speech_buffer.append(device_frame)
 

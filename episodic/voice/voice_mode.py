@@ -96,7 +96,7 @@ class VoiceModeManager:
 
             self._audio_capture = AudioCapture(
                 target_sample_rate=16000,
-                vad_aggressiveness=config.get("voice_vad_aggressiveness", 1),
+                vad_aggressiveness=config.get("voice_vad_aggressiveness", 2),
                 silence_threshold_ms=config.get("voice_silence_threshold_ms", 1000),
             )
 

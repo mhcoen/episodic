@@ -15,7 +15,8 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 - **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
-- **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output with local and cloud providers
+- **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
+- **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
 - **🗄️ Persistent Memory** - Automatic topic detection and context management
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
@@ -148,14 +149,12 @@ Episodic automatically configures itself based on available providers:
 ## 🎯 Use Cases
 
 ### 🎙️ Voice Mode - Hands-Free Conversation
-Voice mode enables speech input and text-to-speech output:
+Voice mode enables speech input and text-to-speech output with wake word detection for hands-free use.
 
-```text
-> /voice on
-🎙️ Voice mode ENABLED
-
-# Speak naturally - includes wake word detection ("computer") for hands-free use
-```
+**Provider Options:**
+- STT (Speech-to-Text): Local Whisper (free), OpenAI Whisper API, Deepgram
+- TTS (Text-to-Speech): Local Piper (free), OpenAI TTS, ElevenLabs
+- Wake Word: Porcupine (local, low-latency), Local Whisper
 
 See the [User Guide](docs/user-guide.md) for voice mode setup and configuration.
 

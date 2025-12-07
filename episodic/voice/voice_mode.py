@@ -142,7 +142,7 @@ class VoiceModeManager:
         """Start timer to transition to IDLE state after inactivity."""
         self._cancel_idle_timer()
 
-        timeout = config.get("voice_idle_timeout_s", 60)
+        timeout = config.get("voice_idle_timeout", 60)
         if timeout > 0 and config.get("voice_wake_word_enabled", True):
             self._idle_timer = threading.Timer(timeout, self._enter_idle)
             self._idle_timer.daemon = True

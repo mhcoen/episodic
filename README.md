@@ -365,7 +365,7 @@ export PICOVOICE_ACCESS_KEY="your_access_key_here"
 ```bash
 /set voice_wake_word computer          # Wake word (computer, jarvis, alexa, etc.)
 /set voice_wake_word_sensitivity 0.5   # Detection sensitivity (0.0-1.0)
-/set voice_idle_timeout_s 60           # Seconds before entering idle mode (0 = never)
+/set voice_idle_timeout 60             # Seconds before entering idle mode (0 = never)
 /set voice_wake_word_enabled true      # Enable/disable wake word feature
 ```
 

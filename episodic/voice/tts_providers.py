@@ -91,6 +91,7 @@ class LocalPiperProvider(BaseTTSProvider):
     def synthesize(self, text: str) -> Tuple[np.ndarray, int]:
         """Synthesize using local Piper."""
         try:
+            from piper.config import SynthesisConfig
             voice = self._load_voice()
 
             audio_floats = []
@@ -99,8 +100,9 @@ class LocalPiperProvider(BaseTTSProvider):
             # Piper uses length_scale: <1.0 = faster, >1.0 = slower
             # We invert our speed so >1.0 = faster (more intuitive)
             length_scale = 1.0 / self.speed if self.speed > 0 else 1.0
+            syn_config = SynthesisConfig(length_scale=length_scale)
 
-            for chunk in voice.synthesize(text, length_scale=length_scale):
+            for chunk in voice.synthesize(text, syn_config=syn_config):
                 audio_floats.append(chunk.audio_float_array)
                 if sample_rate is None:
                     sample_rate = chunk.sample_rate

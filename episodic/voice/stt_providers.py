@@ -61,6 +61,52 @@ def _save_wav_temp(audio_data: np.ndarray, sample_rate: int) -> str:
         return f.name
 
 
+def _is_hallucination(text: str) -> bool:
+    """Check if transcribed text is likely a Whisper hallucination."""
+    if not text:
+        return True
+
+    text_lower = text.lower().strip()
+
+    # Common exact hallucinations
+    hallucinations = {
+        "bye", "bye.", "bye bye", "bye-bye", "goodbye",
+        "thank you", "thanks", "thanks.", "thank you.",
+        "you", "the", "a", "i", "it", "so", "and",
+        "...", ".", "", " ",
+        "thanks for watching", "thank you for watching",
+        "please subscribe", "subscribe", "like and subscribe",
+        "see you next time", "see you", "see you later",
+        "take care", "have a nice day", "have a good day",
+    }
+    if text_lower in hallucinations:
+        return True
+
+    # Patterns that indicate hallucinations (URLs, promotional content)
+    hallucination_patterns = [
+        "www.", "http", ".com", ".org", ".net",
+        "subscribe", "channel", "video",
+        "engvid", "learn english",
+        "copyright", "all rights reserved",
+        "music", "♪", "♫",
+        "[music]", "[applause]", "[laughter]",
+        "transcribed by", "subtitles by",
+    ]
+    for pattern in hallucination_patterns:
+        if pattern in text_lower:
+            return True
+
+    # Very short single words are often hallucinations
+    if len(text_lower) <= 2:
+        return True
+
+    # Repeated characters or words
+    if len(set(text_lower.replace(" ", ""))) <= 2:
+        return True
+
+    return False
+
+
 class LocalWhisperProvider(BaseSTTProvider):
     """
     Local speech-to-text using faster-whisper.
@@ -91,12 +137,33 @@ class LocalWhisperProvider(BaseSTTProvider):
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> Optional[str]:
         """Transcribe using local faster-whisper."""
         try:
+            # Check for minimum audio length (at least 0.1 seconds)
+            min_samples = int(sample_rate * 0.1)
+            if len(audio_data) < min_samples:
+                return None
+
+            # Check for silence (avoid hallucinations on quiet audio)
+            peak = np.max(np.abs(audio_data))
+            if peak < 500:  # Very quiet, likely silence
+                return None
+
             model = self._load_model()
             temp_path = _save_wav_temp(audio_data, sample_rate)
 
             try:
-                segments, info = model.transcribe(temp_path, beam_size=5)
+                segments, info = model.transcribe(
+                    temp_path,
+                    beam_size=5,
+                    language="en",  # Force English
+                    condition_on_previous_text=False,  # Reduce hallucinations
+                    no_speech_threshold=0.6,  # Higher threshold to filter non-speech
+                )
                 text = " ".join([segment.text for segment in segments]).strip()
+
+                # Filter hallucinations
+                if _is_hallucination(text):
+                    return None
+
                 return text if text else None
             finally:
                 os.unlink(temp_path)
@@ -137,6 +204,16 @@ class OpenAIWhisperProvider(BaseSTTProvider):
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> Optional[str]:
         """Transcribe using OpenAI Whisper API."""
         try:
+            # Check for minimum audio length (at least 0.1 seconds)
+            min_samples = int(sample_rate * 0.1)
+            if len(audio_data) < min_samples:
+                return None
+
+            # Check for silence (avoid hallucinations on quiet audio)
+            peak = np.max(np.abs(audio_data))
+            if peak < 500:  # Very quiet, likely silence
+                return None
+
             client = self._get_client()
             temp_path = _save_wav_temp(audio_data, sample_rate)
 
@@ -144,9 +221,15 @@ class OpenAIWhisperProvider(BaseSTTProvider):
                 with open(temp_path, "rb") as audio_file:
                     transcript = client.audio.transcriptions.create(
                         model="whisper-1",
-                        file=audio_file
+                        file=audio_file,
+                        language="en",  # Force English to prevent wrong language detection
                     )
                 text = transcript.text.strip()
+
+                # Filter hallucinations
+                if _is_hallucination(text):
+                    return None
+
                 return text if text else None
             finally:
                 os.unlink(temp_path)

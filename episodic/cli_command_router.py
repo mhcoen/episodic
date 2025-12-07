@@ -512,8 +512,10 @@ def _handle_voice(args: List[str]):
 
     if not args:
         voice()
-    else:
+    elif len(args) == 1:
         voice(action=args[0])
+    else:
+        voice(action=args[0], arg=args[1])
 
 
 def _handle_prompt(args: List[str]):

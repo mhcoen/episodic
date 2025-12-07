@@ -48,9 +48,9 @@ class AudioCapture:
     def __init__(
         self,
         target_sample_rate: int = 16000,
-        vad_aggressiveness: int = 2,
+        vad_aggressiveness: int = 1,
         silence_threshold_ms: int = 1000,
-        pre_speech_buffer_ms: int = 300,
+        pre_speech_buffer_ms: int = 500,
     ):
         """
         Initialize audio capture.

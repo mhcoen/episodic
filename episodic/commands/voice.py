@@ -11,12 +11,13 @@ from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color
 
 
-def voice(action: Optional[str] = None):
+def voice(action: Optional[str] = None, arg: Optional[str] = None):
     """
     Toggle or configure voice mode.
 
     Args:
         action: Subcommand (on/off/status/stt/tts/info) or None for toggle
+        arg: Optional argument (e.g., provider number for stt/tts)
     """
     if action is None:
         # Toggle
@@ -31,9 +32,9 @@ def voice(action: Optional[str] = None):
     elif action == "status":
         voice_status()
     elif action == "stt":
-        voice_stt_menu()
+        voice_stt_menu(arg)
     elif action == "tts":
-        voice_tts_menu()
+        voice_tts_menu(arg)
     elif action == "info":
         voice_info()
     else:
@@ -110,18 +111,35 @@ def voice_status():
     typer.secho(f"  VAD aggressiveness: {config.get('voice_vad_aggressiveness', 2)}", fg=get_text_color())
 
 
-def voice_stt_menu():
+def voice_stt_menu(selection: Optional[str] = None):
     """Show and configure STT provider."""
-    typer.secho("Speech-to-Text Providers", fg=get_system_color(), bold=True)
-    typer.secho("-" * 30, fg=get_text_color())
-
-    current = config.get("voice_stt_provider", "local_whisper")
-
     providers = [
         ("local_whisper", "Local (faster-whisper)", "Free, runs locally"),
         ("openai_whisper", "OpenAI Whisper API", "~$0.006/min, excellent accuracy"),
         ("deepgram", "Deepgram API", "~$0.008/min, real-time streaming"),
     ]
+
+    # Handle selection by number
+    if selection is not None:
+        try:
+            idx = int(selection) - 1
+            if 0 <= idx < len(providers):
+                provider_key = providers[idx][0]
+                config.set("voice_stt_provider", provider_key)
+                typer.secho(f"STT provider set to: {providers[idx][1]}", fg="bright_green")
+                return
+            else:
+                typer.secho(f"Invalid selection: {selection}. Choose 1-{len(providers)}", fg="yellow")
+                return
+        except ValueError:
+            typer.secho(f"Invalid selection: {selection}. Use a number 1-{len(providers)}", fg="yellow")
+            return
+
+    # Show menu
+    typer.secho("Speech-to-Text Providers", fg=get_system_color(), bold=True)
+    typer.secho("-" * 30, fg=get_text_color())
+
+    current = config.get("voice_stt_provider", "local_whisper")
 
     for i, (key, name, desc) in enumerate(providers, 1):
         marker = " *" if key == current else ""
@@ -129,16 +147,11 @@ def voice_stt_menu():
         typer.secho(f"     {desc}", fg=typer.colors.WHITE, dim=True)
 
     typer.echo()
-    typer.secho("Set with: /set voice_stt_provider <name>", fg=typer.colors.WHITE, dim=True)
+    typer.secho("Set with: /voice stt <number>", fg=typer.colors.WHITE, dim=True)
 
 
-def voice_tts_menu():
+def voice_tts_menu(selection: Optional[str] = None):
     """Show and configure TTS provider."""
-    typer.secho("Text-to-Speech Providers", fg=get_system_color(), bold=True)
-    typer.secho("-" * 30, fg=get_text_color())
-
-    current = config.get("voice_tts_provider", "local_piper")
-
     providers = [
         ("local_piper", "Local Piper", "Free, fast, lower quality"),
         ("local_xtts", "Local XTTS", "Free, high quality, slow first load (~18s)"),
@@ -146,13 +159,35 @@ def voice_tts_menu():
         ("elevenlabs", "ElevenLabs", "~$0.20/1k chars, highest quality"),
     ]
 
+    # Handle selection by number
+    if selection is not None:
+        try:
+            idx = int(selection) - 1
+            if 0 <= idx < len(providers):
+                provider_key = providers[idx][0]
+                config.set("voice_tts_provider", provider_key)
+                typer.secho(f"TTS provider set to: {providers[idx][1]}", fg="bright_green")
+                return
+            else:
+                typer.secho(f"Invalid selection: {selection}. Choose 1-{len(providers)}", fg="yellow")
+                return
+        except ValueError:
+            typer.secho(f"Invalid selection: {selection}. Use a number 1-{len(providers)}", fg="yellow")
+            return
+
+    # Show menu
+    typer.secho("Text-to-Speech Providers", fg=get_system_color(), bold=True)
+    typer.secho("-" * 30, fg=get_text_color())
+
+    current = config.get("voice_tts_provider", "local_piper")
+
     for i, (key, name, desc) in enumerate(providers, 1):
         marker = " *" if key == current else ""
         typer.secho(f"  {i}. {name}{marker}", fg=get_text_color())
         typer.secho(f"     {desc}", fg=typer.colors.WHITE, dim=True)
 
     typer.echo()
-    typer.secho("Set with: /set voice_tts_provider <name>", fg=typer.colors.WHITE, dim=True)
+    typer.secho("Set with: /voice tts <number>", fg=typer.colors.WHITE, dim=True)
 
 
 def voice_info():

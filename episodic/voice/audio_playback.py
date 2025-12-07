@@ -2,104 +2,155 @@
 Audio playback queue for Episodic voice mode.
 
 Handles non-blocking audio playback with queuing for streaming TTS.
+Uses a continuous output stream to avoid gaps between audio chunks.
 """
 
-import queue
+import collections
 import threading
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import numpy as np
+
+
+def _resample_audio(audio: np.ndarray, from_rate: int, to_rate: int) -> np.ndarray:
+    """Resample audio from one sample rate to another."""
+    if from_rate == to_rate:
+        return audio
+
+    try:
+        from scipy import signal
+        num_samples = int(len(audio) * to_rate / from_rate)
+        return signal.resample(audio, num_samples).astype(np.float32)
+    except ImportError:
+        # Fallback: simple linear interpolation
+        indices = np.linspace(0, len(audio) - 1, int(len(audio) * to_rate / from_rate))
+        return np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
 
 
 class AudioPlayback:
     """
     Non-blocking audio playback with queuing.
 
-    Supports streaming TTS by queueing audio chunks for sequential playback.
+    Uses a continuous output stream to avoid gaps between audio chunks.
+    Supports streaming TTS by queueing audio samples for sequential playback.
     """
+
+    # Standard output sample rate (resample all audio to this)
+    OUTPUT_SAMPLE_RATE = 22050
+
+    # Fade out duration in samples (~10ms) to prevent clicks at end
+    FADE_OUT_SAMPLES = 220
 
     def __init__(self, on_start: Optional[Callable] = None, on_stop: Optional[Callable] = None):
         """
         Initialize audio playback.
 
         Args:
-            on_start: Called when playback starts
-            on_stop: Called when playback queue is empty
+            on_start: Called when playback starts (first samples enqueued)
+            on_stop: Called when playback queue is empty and silence begins
         """
-        self._queue: queue.Queue[Tuple[np.ndarray, int]] = queue.Queue()
-        self._thread: Optional[threading.Thread] = None
-        self._stop_event = threading.Event()
+        # Sample buffer (deque of float32 samples)
+        self._sample_buffer: collections.deque = collections.deque()
+        self._buffer_lock = threading.Lock()
+
+        # Output stream
+        self._stream = None
+        self._stream_active = False
+
+        # State tracking
         self._is_playing = False
+        self._samples_played = 0
+        self._silence_samples = 0
+
+        # Callbacks
         self._on_start = on_start
         self._on_stop = on_stop
 
-    def _playback_thread(self):
-        """Background thread for audio playback."""
-        import sounddevice as sd
+        # Wait event for synchronization
+        self._empty_event = threading.Event()
+        self._empty_event.set()  # Initially empty
 
-        first_chunk = True
+    def _audio_callback(self, outdata, frames, time_info, status):
+        """Fill output buffer from sample queue."""
+        if status:
+            print(f"Playback status: {status}")
 
-        while not self._stop_event.is_set():
-            try:
-                # Get next audio chunk (with timeout to check stop event)
-                audio, sample_rate = self._queue.get(timeout=0.1)
-            except queue.Empty:
-                if self._is_playing:
+        with self._buffer_lock:
+            available = len(self._sample_buffer)
+
+            if available >= frames:
+                # Enough samples - fill the buffer
+                for i in range(frames):
+                    outdata[i, 0] = self._sample_buffer.popleft()
+                self._samples_played += frames
+                self._silence_samples = 0
+
+                # Trigger on_start callback when we start playing after silence
+                if not self._is_playing:
+                    self._is_playing = True
+                    self._empty_event.clear()
+                    if self._on_start:
+                        # Call in separate thread to avoid blocking audio callback
+                        threading.Thread(target=self._on_start, daemon=True).start()
+
+            elif available > 0:
+                # Partial buffer - use what we have, apply fade-out, fill rest with silence
+                for i in range(available):
+                    sample = self._sample_buffer.popleft()
+                    # Apply fade-out to last samples to prevent click
+                    if i >= available - self.FADE_OUT_SAMPLES:
+                        fade_pos = available - i
+                        fade_factor = fade_pos / self.FADE_OUT_SAMPLES
+                        sample *= fade_factor
+                    outdata[i, 0] = sample
+                outdata[available:, 0] = 0
+                self._samples_played += available
+                self._silence_samples += frames - available
+
+            else:
+                # No samples - output silence
+                outdata[:, 0] = 0
+                self._silence_samples += frames
+
+                # After ~100ms of silence, trigger on_stop
+                if self._is_playing and self._silence_samples > self.OUTPUT_SAMPLE_RATE * 0.1:
                     self._is_playing = False
+                    self._empty_event.set()
                     if self._on_stop:
-                        self._on_stop()
-                continue
-
-            if not self._is_playing:
-                self._is_playing = True
-                if self._on_start:
-                    self._on_start()
-
-            first_chunk = False
-
-            # Play audio (blocking)
-            try:
-                sd.play(audio, sample_rate)
-                sd.wait()
-            except Exception as e:
-                print(f"Playback error: {e}")
-
-            self._queue.task_done()
+                        threading.Thread(target=self._on_stop, daemon=True).start()
 
     def start(self):
-        """Start the playback thread."""
-        if self._thread is not None and self._thread.is_alive():
+        """Start the playback stream."""
+        if self._stream is not None and self._stream_active:
             return
 
-        self._stop_event.clear()
-        self._thread = threading.Thread(target=self._playback_thread, daemon=True)
-        self._thread.start()
+        import sounddevice as sd
+
+        self._stream = sd.OutputStream(
+            samplerate=self.OUTPUT_SAMPLE_RATE,
+            channels=1,
+            dtype='float32',
+            callback=self._audio_callback,
+            blocksize=1024,  # ~46ms at 22050 Hz
+        )
+        self._stream.start()
+        self._stream_active = True
+        self._silence_samples = 0
+        self._is_playing = False
 
     def stop(self):
         """Stop playback and clear queue."""
-        import sounddevice as sd
+        if self._stream is not None:
+            self._stream.stop()
+            self._stream.close()
+            self._stream = None
+            self._stream_active = False
 
-        self._stop_event.set()
-
-        # Clear the queue
-        while not self._queue.empty():
-            try:
-                self._queue.get_nowait()
-                self._queue.task_done()
-            except queue.Empty:
-                break
-
-        # Stop any current playback
-        try:
-            sd.stop()
-        except Exception:
-            pass
-
-        if self._thread is not None:
-            self._thread.join(timeout=1.0)
-            self._thread = None
+        with self._buffer_lock:
+            self._sample_buffer.clear()
 
         self._is_playing = False
+        self._empty_event.set()
 
     def enqueue(self, audio: np.ndarray, sample_rate: int):
         """
@@ -107,9 +158,41 @@ class AudioPlayback:
 
         Args:
             audio: Audio data as float32 numpy array
-            sample_rate: Sample rate in Hz
+            sample_rate: Sample rate of the audio in Hz
         """
-        self._queue.put((audio, sample_rate))
+        # Resample to match output stream if needed
+        if sample_rate != self.OUTPUT_SAMPLE_RATE:
+            audio = _resample_audio(audio, sample_rate, self.OUTPUT_SAMPLE_RATE)
+
+        # Ensure float32
+        if audio.dtype != np.float32:
+            audio = audio.astype(np.float32)
+
+        # Ensure 1D
+        if audio.ndim > 1:
+            audio = audio.flatten()
+
+        # Add to buffer
+        with self._buffer_lock:
+            self._sample_buffer.extend(audio)
+            self._empty_event.clear()
+
+    def _apply_fade_out_to_buffer(self):
+        """Apply fade-out to the end of the current buffer to prevent clicks."""
+        with self._buffer_lock:
+            buf_len = len(self._sample_buffer)
+            if buf_len < self.FADE_OUT_SAMPLES:
+                return
+
+            # Convert last N samples to list, apply fade, put back
+            fade_samples = []
+            for _ in range(self.FADE_OUT_SAMPLES):
+                fade_samples.append(self._sample_buffer.pop())
+            fade_samples.reverse()
+
+            for i, sample in enumerate(fade_samples):
+                fade_factor = 1.0 - (i / self.FADE_OUT_SAMPLES)
+                self._sample_buffer.append(sample * fade_factor)
 
     def play_immediate(self, audio: np.ndarray, sample_rate: int):
         """
@@ -119,36 +202,21 @@ class AudioPlayback:
             audio: Audio data as float32 numpy array
             sample_rate: Sample rate in Hz
         """
-        import sounddevice as sd
+        # Clear existing samples
+        with self._buffer_lock:
+            self._sample_buffer.clear()
 
-        # Clear queue
-        while not self._queue.empty():
-            try:
-                self._queue.get_nowait()
-                self._queue.task_done()
-            except queue.Empty:
-                break
+        # Enqueue the new audio
+        self.enqueue(audio, sample_rate)
 
-        # Stop current playback
-        try:
-            sd.stop()
-        except Exception:
-            pass
-
-        # Play immediately
-        if self._on_start:
-            self._on_start()
-
-        try:
-            sd.play(audio, sample_rate)
-            sd.wait()
-        finally:
-            if self._on_stop:
-                self._on_stop()
+    def finish(self):
+        """Signal that no more audio will be added and apply fade-out."""
+        self._apply_fade_out_to_buffer()
 
     def wait(self):
         """Wait for all queued audio to finish playing."""
-        self._queue.join()
+        # Wait for empty event (triggered after ~100ms of silence)
+        self._empty_event.wait()
 
     @property
     def is_playing(self) -> bool:
@@ -157,8 +225,14 @@ class AudioPlayback:
 
     @property
     def queue_size(self) -> int:
-        """Get number of items in the queue."""
-        return self._queue.qsize()
+        """Get number of samples in the queue."""
+        with self._buffer_lock:
+            return len(self._sample_buffer)
+
+    @property
+    def queue_duration(self) -> float:
+        """Get duration of queued audio in seconds."""
+        return self.queue_size / self.OUTPUT_SAMPLE_RATE
 
 
 def play_audio(audio: np.ndarray, sample_rate: int):

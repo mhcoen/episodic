@@ -562,7 +562,20 @@ class ConversationManager:
             if config.get("reflection_mode", False):
                 from episodic.commands.reflection import handle_reflection_in_conversation
                 messages = handle_reflection_in_conversation(user_input, messages)
-            
+
+            # Apply voice persona if voice mode is enabled
+            if config.get("voice_mode", False):
+                from episodic.voice.voice_persona import get_voice_system_prompt_addition
+                voice_prompt = get_voice_system_prompt_addition()
+
+                # Insert voice persona as system message near the end
+                if messages and messages[-1]["role"] == "user":
+                    last_user_message = messages.pop()
+                    messages.append({"role": "system", "content": voice_prompt})
+                    messages.append(last_user_message)
+                else:
+                    messages.append({"role": "system", "content": voice_prompt})
+
             # Prepare for LLM query
             from episodic.web_synthesis import synthesize_web_response
             

@@ -95,8 +95,8 @@ class VoiceModeManager:
             from episodic.voice.audio_capture import AudioCapture
 
             self._audio_capture = AudioCapture(
-                sample_rate=16000,
-                vad_aggressiveness=config.get("voice_vad_aggressiveness", 2),
+                target_sample_rate=16000,
+                vad_aggressiveness=config.get("voice_vad_aggressiveness", 1),
                 silence_threshold_ms=config.get("voice_silence_threshold_ms", 1000),
             )
 
@@ -160,10 +160,8 @@ class VoiceModeManager:
         if self._audio_capture:
             self._audio_capture.unmute()
 
-        # Play ready chime if audio cues enabled
-        if config.get("voice_audio_cues", True):
-            from episodic.voice.audio_playback import play_beep
-            play_beep(frequency=880, duration=0.05)
+        # Note: Don't play beep here - this fires between sentences during streaming.
+        # The ready chime is played only at voice mode start.
 
     def start(
         self,
@@ -300,6 +298,7 @@ class VoiceModeManager:
     def wait_for_speech_complete(self):
         """Wait for all queued TTS to finish playing."""
         if self._audio_playback:
+            self._audio_playback.finish()  # Apply fade-out to prevent click
             self._audio_playback.wait()
 
     def mute(self):

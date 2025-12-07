@@ -111,6 +111,90 @@ def _get_voice_input() -> Optional[str]:
         return None
 
 
+def _get_voice_input_with_keyboard_fallback(session) -> Optional[str]:
+    """
+    Get user input via voice, but allow keyboard input to interrupt.
+
+    Uses short voice listen timeouts and checks for keyboard input between them.
+    Keyboard input starting with '/' takes priority immediately.
+    """
+    import sys
+    import select
+    import threading
+
+    try:
+        from episodic.voice import get_voice_manager
+
+        manager = get_voice_manager()
+        if not manager.is_active:
+            manager.start()
+
+        # Use threading to allow keyboard to interrupt voice
+        result = {"text": None, "source": None}
+        stop_event = threading.Event()
+
+        def voice_listener():
+            """Listen for voice input."""
+            while not stop_event.is_set():
+                text = manager.listen(timeout=2.0)  # Short timeout
+                if text:
+                    result["text"] = text
+                    result["source"] = "voice"
+                    stop_event.set()
+                    return
+                if stop_event.is_set():
+                    return
+
+        # Start voice listener in background
+        voice_thread = threading.Thread(target=voice_listener, daemon=True)
+        voice_thread.start()
+
+        # Check for keyboard input (non-blocking on Unix)
+        try:
+            while not stop_event.is_set():
+                # On Unix, use select to check for keyboard input
+                if sys.platform != 'win32':
+                    readable, _, _ = select.select([sys.stdin], [], [], 0.1)
+                    if readable:
+                        # Keyboard input available - use prompt session
+                        stop_event.set()
+                        # Get input via prompt_toolkit for proper handling
+                        try:
+                            keyboard_input = session.prompt()
+                            if keyboard_input.strip():
+                                result["text"] = keyboard_input
+                                result["source"] = "keyboard"
+                        except (EOFError, KeyboardInterrupt):
+                            pass
+                        break
+                else:
+                    # On Windows, just use short sleeps and check voice
+                    import time
+                    time.sleep(0.1)
+
+                # Check if voice got input
+                if result["text"]:
+                    break
+        except Exception:
+            pass
+
+        # Wait for voice thread to finish
+        stop_event.set()
+        voice_thread.join(timeout=0.5)
+
+        if result["text"]:
+            # Show what was transcribed (for voice input)
+            if result["source"] == "voice" and config.get("voice_show_transcription", True):
+                typer.secho(f"You said: \"{result['text']}\"", fg="cyan")
+            return result["text"]
+
+        return None
+
+    except Exception as e:
+        typer.secho(f"Voice input error: {e}", fg="red")
+        return None
+
+
 def talk_loop() -> None:
     """Main conversation loop."""
     global conversation_manager
@@ -154,11 +238,16 @@ def talk_loop() -> None:
         try:
             # Check for voice mode
             if config.get("voice_mode", False):
-                user_input = _get_voice_input()
+                user_input = _get_voice_input_with_keyboard_fallback(session)
                 if user_input is None:
                     continue
-                # Check for voice exit command
-                if user_input.lower().strip() in ["exit voice", "voice off"]:
+                # Check for voice exit command (spoken)
+                input_lower = user_input.lower().strip()
+                voice_off_phrases = [
+                    "exit voice", "voice off", "stop voice", "disable voice",
+                    "turn off voice", "voice mode off", "stop listening",
+                ]
+                if any(phrase in input_lower for phrase in voice_off_phrases):
                     from episodic.commands.voice import voice_off
                     voice_off()
                     continue

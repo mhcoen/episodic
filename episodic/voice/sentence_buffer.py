@@ -7,6 +7,8 @@ Accumulates streaming text and emits complete sentences for TTS.
 import re
 from typing import Callable, List, Optional
 
+from episodic.voice.voice_persona import clean_text_for_tts
+
 
 class SentenceBuffer:
     """
@@ -86,9 +88,13 @@ class SentenceBuffer:
             if self.FALSE_ENDS.search(candidate):
                 continue
 
-            # We have a complete sentence
-            sentence = candidate
+            # We have a complete sentence - clean it for TTS
+            sentence = clean_text_for_tts(candidate)
             self._buffer = self._buffer[match.end():].lstrip()
+
+            # Skip empty sentences after cleaning
+            if not sentence.strip():
+                continue
 
             self._emitted.append(sentence)
 
@@ -108,7 +114,7 @@ class SentenceBuffer:
         Returns:
             Remaining text if any, None otherwise
         """
-        remaining = self._buffer.strip()
+        remaining = clean_text_for_tts(self._buffer.strip())
         self._buffer = ""
 
         if remaining:

@@ -14,7 +14,7 @@ from episodic.configuration import (
 from episodic.llm import enable_cache, disable_cache
 from episodic.debug_system import debug_system
 from episodic.constants import (
-    WEB_SEARCH_PROVIDERS, COLOR_MODES, COMPRESSION_METHODS
+    WEB_SEARCH_PROVIDERS, COLOR_MODES, COMPRESSION_METHODS, PORCUPINE_KEYWORDS
 )
 
 
@@ -252,7 +252,12 @@ PARAM_HANDLERS = {
     'stream_rate': lambda v: handle_float_param('stream_rate', v, 1.0, 100.0),
     'drift_threshold': lambda v: handle_float_param('drift_threshold', v, 0.0, 1.0),
     'voice_tts_speed': lambda v: handle_float_param('voice_tts_speed', v, 0.5, 2.0),
-    
+    'voice_idle_timeout_s': lambda v: handle_integer_param('voice_idle_timeout_s', v, 0, 600),
+    'voice_wake_word': lambda v: handle_string_param('voice_wake_word', v, PORCUPINE_KEYWORDS),
+    'voice_wake_word_sensitivity': lambda v: handle_float_param('voice_wake_word_sensitivity', v, 0.0, 1.0),
+    'voice_wake_word_enabled': lambda v: handle_boolean_param('voice_wake_word_enabled', v),
+    'porcupine_access_key': lambda v: handle_string_param('porcupine_access_key', v),
+
     # String parameters with validation
     'color_mode': lambda v: handle_string_param('color_mode', v, COLOR_MODES),
     'compression_method': lambda v: handle_string_param('compression_method', v, COMPRESSION_METHODS),

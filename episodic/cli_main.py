@@ -100,6 +100,11 @@ def _get_voice_input() -> Optional[str]:
         text = manager.listen(timeout=60.0)
 
         if text:
+            # Check for sleep commands first
+            if manager.is_sleep_command(text):
+                manager.force_idle()
+                return None  # Don't pass sleep command to LLM
+
             # Show what was transcribed
             if config.get("voice_show_transcription", True):
                 typer.secho(f"You said: \"{text}\"", fg="cyan")
@@ -183,6 +188,11 @@ def _get_voice_input_with_keyboard_fallback(session) -> Optional[str]:
         voice_thread.join(timeout=0.5)
 
         if result["text"]:
+            # Check for sleep commands (voice input only)
+            if result["source"] == "voice" and manager.is_sleep_command(result["text"]):
+                manager.force_idle()
+                return None  # Don't pass sleep command to LLM
+
             # Show what was transcribed (for voice input)
             if result["source"] == "voice" and config.get("voice_show_transcription", True):
                 typer.secho(f"You said: \"{result['text']}\"", fg="cyan")

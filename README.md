@@ -148,35 +148,16 @@ Episodic automatically configures itself based on available providers:
 ## 🎯 Use Cases
 
 ### 🎙️ Voice Mode - Hands-Free Conversation
-Voice mode enables speech input and text-to-speech output for hands-free interaction:
+Voice mode enables speech input and text-to-speech output:
 
 ```text
 > /voice on
 🎙️ Voice mode ENABLED
-STT: local_whisper  |  TTS: local_piper
-Say 'exit voice' to disable, or use /voice off
 
-# Speak into your microphone - your speech is transcribed
-Listening...
-Processing...
-🤖 [Response plays through speakers while streaming to terminal]
-
-# Check your audio setup
-> /voice info
-Audio Device Information
-==================================================
-INPUT Devices (Microphones)
-  [0] MacBook Pro Microphone  <-- DEFAULT
-OUTPUT Devices (Speakers)
-  [1] MacBook Pro Speakers  <-- DEFAULT
-Microphone access: OK
+# Speak naturally - includes wake word detection ("computer") for hands-free use
 ```
 
-**Provider Options:**
-- **STT (Speech-to-Text)**: Local Whisper (free), OpenAI Whisper API, Deepgram
-- **TTS (Text-to-Speech)**: Local Piper (free), OpenAI TTS, ElevenLabs
-
-Configure providers with `/voice stt` and `/voice tts`.
+See the [User Guide](docs/user-guide.md) for voice mode setup and configuration.
 
 ### 🎭 Muse Mode - Conversational Web Search
 Muse mode transforms Episodic into a Perplexity-like AI research assistant that searches the web and synthesizes comprehensive answers:
@@ -361,6 +342,34 @@ Common settings that can be changed via the CLI:
 ```
 
 See the [Configuration Documentation](docs/configuration.md) for all configuration options.
+
+### Voice Mode Setup
+
+Voice mode requires a free Picovoice access key for wake word detection.
+
+**Get Your Free Access Key:**
+1. Go to https://console.picovoice.ai/
+2. Create a free account
+3. Copy your Access Key from the dashboard
+
+**Configure the Access Key:**
+```bash
+# Option 1: Environment variable
+export PICOVOICE_ACCESS_KEY="your_access_key_here"
+
+# Option 2: In Episodic
+> /set porcupine_access_key your_access_key_here
+```
+
+**Voice Mode Settings:**
+```bash
+/set voice_wake_word computer          # Wake word (computer, jarvis, alexa, etc.)
+/set voice_wake_word_sensitivity 0.5   # Detection sensitivity (0.0-1.0)
+/set voice_idle_timeout_s 60           # Seconds before entering idle mode (0 = never)
+/set voice_wake_word_enabled true      # Enable/disable wake word feature
+```
+
+The wake word detection runs locally with minimal CPU usage (~1-2%) and works completely offline after initial setup.
 
 ### Global Response Formatting
 

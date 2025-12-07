@@ -352,36 +352,41 @@ def cost():
     costs = conversation_manager.get_session_costs()
 
     typer.secho("\n💰 Session Costs", fg=get_heading_color(), bold=True)
+    typer.secho("=" * 40, fg=get_heading_color())
 
     # LLM section
-    typer.secho("LLM:", fg=get_system_color(), bold=True)
-    typer.secho(f"  Input:   {costs['total_input_tokens']:>6,} tokens", fg=get_text_color())
-    typer.secho(f"  Output:  {costs['total_output_tokens']:>6,} tokens", fg=get_text_color())
+    typer.secho("LLM Usage:", fg=get_system_color(), bold=True)
+    typer.secho(f"  Input tokens:  {costs['total_input_tokens']:>8,}", fg=get_text_color())
+    typer.secho(f"  Output tokens: {costs['total_output_tokens']:>8,}", fg=get_text_color())
+    typer.secho(f"  Total tokens:  {costs['total_tokens']:>8,}", fg=get_text_color())
 
     # Check if using Hugging Face model
     current_model = config.get("model", "")
     if current_model.startswith("huggingface/"):
-        typer.secho("  Cost:      (free tier)", fg=get_text_color())
+        typer.secho("  (HuggingFace: Free tier)", fg=get_text_color())
     else:
-        typer.secho(f"  Cost:    {_format_cost(costs['total_cost_usd']):>7}", fg=get_text_color())
+        typer.secho(f"  Cost:          {_format_cost(costs['total_cost_usd']):>8}", fg=get_text_color())
 
     # Voice section (if any voice usage)
     voice_stt_calls = costs.get('voice_stt_calls', 0)
     voice_tts_calls = costs.get('voice_tts_calls', 0)
 
     if voice_stt_calls > 0 or voice_tts_calls > 0:
-        typer.secho("Voice:", fg=get_system_color(), bold=True)
+        typer.secho("─" * 40, fg=get_text_color())
+        typer.secho("Voice Usage:", fg=get_system_color(), bold=True)
 
         if voice_stt_calls > 0:
             stt_seconds = costs.get('voice_stt_seconds', 0)
             stt_cost = costs.get('voice_stt_cost_usd', 0)
-            typer.secho(f"  STT:     {_format_cost(stt_cost):>7}  ({stt_seconds:.0f}s)", fg=get_text_color())
+            typer.secho(f"  STT ({stt_seconds:.0f}s):      {_format_cost(stt_cost):>8}", fg=get_text_color())
 
         if voice_tts_calls > 0:
             tts_chars = costs.get('voice_tts_chars', 0)
             tts_cost = costs.get('voice_tts_cost_usd', 0)
-            typer.secho(f"  TTS:     {_format_cost(tts_cost):>7}  ({tts_chars:,} chars)", fg=get_text_color())
+            typer.secho(f"  TTS ({tts_chars:,} ch): {_format_cost(tts_cost):>8}", fg=get_text_color())
 
     # Grand total
+    typer.secho("─" * 40, fg=get_text_color())
     grand_total = costs.get('grand_total_cost_usd', costs['total_cost_usd'])
-    typer.secho(f"Total:     {_format_cost(grand_total):>7}", fg="green", bold=True)
+    typer.secho(f"  Total:         {_format_cost(grand_total):>8}", fg="green", bold=True)
+    typer.secho("=" * 40, fg=get_heading_color())

@@ -52,3 +52,10 @@ MODEL_CONTEXTS = ['chat', 'detection', 'compression', 'synthesis']
 
 # Muse source options
 MUSE_SOURCES = ['first-only', 'top-three', 'all-relevant', 'selective']
+
+# Porcupine built-in wake words (free tier)
+PORCUPINE_KEYWORDS = [
+    'alexa', 'americano', 'blueberry', 'bumblebee', 'computer',
+    'grapefruit', 'grasshopper', 'hey google', 'hey siri', 'jarvis',
+    'ok google', 'picovoice', 'porcupine', 'terminator'
+]

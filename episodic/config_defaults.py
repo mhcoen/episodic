@@ -214,6 +214,11 @@ CONFIG_DOCS = {
     "voice_show_transcription": "Display transcribed speech in terminal",
     "voice_audio_cues": "Play audio cues for state transitions (ready, processing, complete)",
     "voice_tts_speed": "TTS speech rate: 0.5-2.0 (1.0 = normal, higher = faster)",
+    "voice_idle_timeout_s": "Seconds of inactivity before entering wake word mode (0 = never idle)",
+    "voice_wake_word": "Wake word (porcupine built-in: computer, jarvis, alexa, hey google, ok google)",
+    "voice_wake_word_sensitivity": "Wake word detection sensitivity 0.0-1.0 (higher = more sensitive)",
+    "voice_wake_word_enabled": "Enable automatic idle mode with wake word activation",
+    "porcupine_access_key": "Picovoice access key for wake word detection (free at console.picovoice.ai)",
 
     # Mode switching
     "mode": "Current provider mode: 'local' (free, private) or 'cloud' (paid, quality)",

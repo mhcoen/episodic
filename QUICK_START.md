@@ -220,6 +220,59 @@ set HUGGINGFACE_API_KEY=hf_...       # Windows
 - If using Brave, check your API key is set correctly
 - Try `/web provider duckduckgo` to switch back
 
+## 8. (Optional) Enable Voice Mode
+
+Voice mode allows hands-free conversation with speech input and text-to-speech output.
+
+### Basic Voice Mode (No Setup Required)
+
+```bash
+# Enable voice mode
+> /voice on
+
+# Speak into your microphone - Episodic will transcribe and respond
+# Say "exit voice" to disable
+```
+
+### Enable Wake Word Detection
+
+Voice mode can listen for a wake word (like "computer") so you can leave it running hands-free. This requires a free Picovoice account.
+
+**Get Your Free Access Key (2 minutes):**
+1. Go to https://console.picovoice.ai/
+2. Create a free account (no credit card required)
+3. Copy your Access Key from the dashboard
+
+**Configure in Episodic:**
+```bash
+# Set your access key
+> /set porcupine_access_key your_access_key_here
+
+# Enable voice mode
+> /voice on
+
+# After 60 seconds of silence, voice mode enters idle state
+💤 Idle - say "computer" to wake
+
+# Say "computer" to wake it up
+🎤 Listening...
+```
+
+**Available Wake Words:**
+`computer`, `jarvis`, `alexa`, `hey google`, `ok google`, `hey siri`, `picovoice`, `porcupine`, `bumblebee`, `terminator`
+
+**Change the Wake Word:**
+```bash
+> /set voice_wake_word jarvis
+```
+
+**Voice Commands to Enter Idle:**
+- "Go to sleep"
+- "Stop listening"
+- "Standby"
+
+The wake word detection runs 100% locally with minimal CPU (~1-2%) and works offline.
+
 ## Next Steps
 
 - Read the [User Guide](USER_GUIDE.md) for advanced features

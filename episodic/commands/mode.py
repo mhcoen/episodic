@@ -80,7 +80,7 @@ def mode_command(mode_name: Optional[str] = None):
 
 def switch_to_local():
     """Switch all providers to local mode."""
-    local_model = config.get("local_model", "ollama/llama3.3:70b-instruct-q4_K_M")
+    local_model = config.get("local_model") or "ollama/qwen2.5:7b"
     local_stt = config.get("local_stt_provider", "local_whisper")
     local_tts = config.get("local_tts_provider", "local_piper")
 

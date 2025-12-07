@@ -159,7 +159,7 @@ def verify():
         compression_model = f"{model} (using primary)"
     typer.secho(f"  Compression model: {compression_model}", fg=get_system_color())
     
-    topic_model = config.get("topic_detection_model", "ollama/llama3")
+    topic_model = config.get("topic_detection_model") or config.get("model") or "gpt-4o-mini"
     typer.secho(f"  Topic detection model: {topic_model}", fg=get_system_color())
     
     # Core settings
@@ -289,7 +289,7 @@ def config_docs():
         ],
         "Topic Detection": [
             ("automatic-topic-detection", "Enable automatic topic detection", "true"),
-            ("topic-detection-model", "Model for topic detection", "ollama/llama3"),
+            ("topic-detection-model", "Model for topic detection", "(uses main model)"),
             ("min-messages-before-topic-change", "Messages required before topic change", "8"),
             ("show-topics", "Show topic evolution in responses", "false"),
         ],

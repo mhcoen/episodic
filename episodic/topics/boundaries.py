@@ -119,7 +119,7 @@ Reply with ONLY the message number where the new topic begins."""
     
     # Use topic detection model by default
     if not model:
-        model = config.get("topic_detection_model", "ollama/llama3")
+        model = config.get("topic_detection_model") or config.get("model") or "ollama/qwen2.5:7b"
     
     try:
         if config.get("debug"):

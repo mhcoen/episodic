@@ -71,7 +71,7 @@ def detect_topic_change_separately(
         
         # Load topic detection prompt
         # Use simplified prompt for ollama models
-        topic_model = config.get("topic_detection_model") or config.get("model") or "ollama/llama3"
+        topic_model = config.get("topic_detection_model") or config.get("model") or "ollama/qwen2.5:7b"
         use_v3_prompt = config.get("topic_detection_v3", True)  # Default to v3
         
         if "ollama" in topic_model.lower() and prompt_manager.get("topic_detection_ollama"):
@@ -105,8 +105,8 @@ def detect_topic_change_separately(
             # Fallback to default prompt if file not found
             prompt = _get_fallback_detection_prompt(context, new_message)
 
-        # Get the topic detection model from config (default to ollama/llama3)
-        topic_model = config.get("topic_detection_model", "ollama/llama3")
+        # Get the topic detection model from config (default to main model or qwen2.5:7b)
+        topic_model = config.get("topic_detection_model") or config.get("model") or "ollama/qwen2.5:7b"
         
         if config.get("debug"):
             typer.echo(f"\n🔍 DEBUG: Topic change detection")

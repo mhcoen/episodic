@@ -79,9 +79,23 @@ def handle_string_param(param: str, value: str, valid_values: Optional[list] = N
     if valid_values and value not in valid_values:
         typer.secho(f"Invalid value. Must be one of: {', '.join(valid_values)}", fg="red")
         return False
-        
+
     config.set(param, value)
     typer.secho(f"✅ Set {param} = {value}", fg=get_system_color())
+    return True
+
+
+def handle_rag_embedding_model(value: str) -> bool:
+    """Handle RAG embedding model setting with restart warning."""
+    old_value = config.get("rag_embedding_model", "all-MiniLM-L6-v2")
+    if old_value == value:
+        typer.secho(f"rag_embedding_model already set to {value}", fg=get_system_color())
+        return True
+
+    config.set("rag_embedding_model", value)
+    typer.secho(f"✅ Set rag_embedding_model = {value}", fg=get_system_color())
+    typer.secho("⚠️  Restart required for this change to take effect", fg="yellow")
+    typer.secho("⚠️  Existing RAG documents will need to be re-indexed", fg="yellow")
     return True
 
 
@@ -206,6 +220,7 @@ PARAM_HANDLERS = {
     'vi_mode': lambda v: handle_boolean_param('vi_mode', v),
     'automatic_topic_detection': lambda v: handle_boolean_param('automatic_topic_detection', v),
     'show_topics': lambda v: handle_boolean_param('show_topics', v),
+    'show_drift': lambda v: handle_boolean_param('show_drift', v),
     'analyze_topic_boundaries': lambda v: handle_boolean_param('analyze_topic_boundaries', v),
     'auto_compress_topics': lambda v: handle_boolean_param('auto_compress_topics', v),
     'show_model_list': lambda v: handle_boolean_param('show_model_list', v),
@@ -247,4 +262,7 @@ PARAM_HANDLERS = {
     # Model parameters (special handling needed)
     'compression_model': lambda v: handle_string_param('compression_model', v),
     'topic_detection_model': lambda v: handle_string_param('topic_detection_model', v),
+
+    # RAG embedding model (requires restart and re-indexing)
+    'rag_embedding_model': handle_rag_embedding_model,
 }

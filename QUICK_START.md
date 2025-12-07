@@ -118,19 +118,15 @@ Download from https://ollama.com/download/windows
 
 ```bash
 # Download recommended models (runs in terminal, not Episodic)
-ollama pull llama3        # Best all-around (8B parameters, 4.7GB)
-ollama pull phi3          # Fast and efficient (3.8B parameters, 2.3GB)
-ollama pull mistral       # Good for reasoning (7B parameters, 4.1GB)
+ollama pull phi4          # Best all-around (14B parameters, ~9GB)
+ollama pull qwen2.5:7b    # Fast and efficient (7B parameters, ~5GB)
 ```
 
 ### Configure Episodic for Ollama
 
 ```bash
-# In Episodic, set all contexts to use local models
-> /model chat ollama/llama3
-> /model detection ollama/phi3
-> /model compression ollama/mistral
-> /model synthesis ollama/phi3
+# In Episodic, switch to local mode
+> /mode local
 
 # Now everything runs locally - no API limits!
 ```

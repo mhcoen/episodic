@@ -59,7 +59,7 @@ Configure model parameters:
    ```bash
    # Install Ollama
    curl -fsSL https://ollama.ai/install.sh | sh
-   ollama pull llama3
+   ollama pull phi4
    ```
 
 ## 2. Voice Mode

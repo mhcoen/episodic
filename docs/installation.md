@@ -116,8 +116,8 @@ export HUGGINGFACE_API_KEY="hf_..."
 ### Option 5: Ollama (Fully local)
 ```bash
 # Install Ollama from https://ollama.com
-ollama pull llama3
-ollama pull phi3  # For instruct tasks
+ollama pull phi4
+ollama pull qwen2.5:7b
 ```
 
 For more providers and configuration options, see the [models configuration guide](./models-configuration.md).

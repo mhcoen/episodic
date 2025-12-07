@@ -50,7 +50,7 @@ export OPENAI_API_KEY="sk-..."
 
 # Option 3: Fully local with Ollama (advanced users)
 # Install from https://ollama.com, then:
-ollama pull llama3
+ollama pull phi4
 ```
 
 ### First Conversation

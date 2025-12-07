@@ -250,20 +250,30 @@ class ConversationManager:
     
     def get_drift_calculator(self) -> Optional[ConversationalDrift]:
         """Get or create the drift calculator instance."""
-        # Check if drift detection is disabled in config
+        # Check if drift detection is disabled in config (check every time for runtime changes)
         if not config.get("show_drift"):
             return None
-            
-        if self.drift_calculator is None:
+
+        # Get current embedding settings from config
+        embedding_provider = config.get("drift_embedding_provider", "sentence-transformers")
+        embedding_model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
+
+        # Check if settings changed - recreate if so
+        if (self.drift_calculator is not None and
+            self.drift_calculator is not False and
+            (getattr(self.drift_calculator, '_embedding_provider', None) != embedding_provider or
+             getattr(self.drift_calculator, '_embedding_model', None) != embedding_model)):
+            self.drift_calculator = None  # Force recreation
+
+        if self.drift_calculator is None or self.drift_calculator is False:
             try:
-                # Get embedding settings from config
-                embedding_provider = config.get("drift_embedding_provider", "sentence-transformers")
-                embedding_model = config.get("drift_embedding_model", "paraphrase-mpnet-base-v2")
-                
                 self.drift_calculator = ConversationalDrift(
                     embedding_provider=embedding_provider,
                     embedding_model=embedding_model
                 )
+                # Store settings for change detection
+                self.drift_calculator._embedding_provider = embedding_provider
+                self.drift_calculator._embedding_model = embedding_model
                 if config.get("debug"):
                     typer.echo(f"✅ Initialized drift calculator with {embedding_provider}/{embedding_model}")
             except Exception as e:

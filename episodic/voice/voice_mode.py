@@ -227,6 +227,13 @@ class VoiceModeManager:
 
         self._set_state(VoiceState.OFF)
 
+        # Clear all cached components so they'll be recreated with current config
+        # next time voice mode is enabled (allows /mode switch and config changes to take effect)
+        self._stt_provider = None
+        self._tts_provider = None
+        self._audio_capture = None
+        self._audio_playback = None
+
         # Release any waiting listen() calls
         self._transcription_event.set()
 

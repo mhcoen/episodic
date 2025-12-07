@@ -71,7 +71,7 @@ def detect_topic_change_separately(
         
         # Load topic detection prompt
         # Use simplified prompt for ollama models
-        topic_model = config.get("topic_detection_model", "ollama/llama3")
+        topic_model = config.get("topic_detection_model") or config.get("model") or "ollama/llama3"
         use_v3_prompt = config.get("topic_detection_v3", True)  # Default to v3
         
         if "ollama" in topic_model.lower() and prompt_manager.get("topic_detection_ollama"):

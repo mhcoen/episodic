@@ -42,8 +42,8 @@ Conversation:
 
 Topic name:"""
 
-        # Get the topic detection model from config (default to ollama/llama3)
-        topic_model = config.get("topic_detection_model", "ollama/llama3")
+        # Get the topic detection model from config (default to main model or ollama/llama3)
+        topic_model = config.get("topic_detection_model") or config.get("model") or "ollama/llama3"
         
         # Use configured model for topic extraction
         if config.get("debug"):

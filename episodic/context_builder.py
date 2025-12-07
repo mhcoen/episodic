@@ -144,10 +144,11 @@ class ContextBuilder:
             return None
             
         try:
-            from episodic.rag import rag_manager
-            if rag_manager.is_available() and config.get("rag_auto_search", True):
+            from episodic.rag import get_rag_system
+            rag_system = get_rag_system()
+            if rag_system is not None and config.get("rag_auto_search", True):
                 # Search for relevant documents
-                results = rag_manager.search(user_input, k=config.get("rag_max_results", 3))
+                results = rag_system.search(user_input, k=config.get("rag_max_results", 3))
                 
                 if results:
                     # Build context from search results
@@ -279,13 +280,10 @@ class ContextBuilder:
         """Track which RAG documents were used in the response."""
         if hasattr(self, '_pending_rag_tracking'):
             try:
-                from episodic.rag import rag_manager
+                from episodic.rag_document_manager import record_retrieval
                 tracking = self._pending_rag_tracking
-                rag_manager.track_retrieval(
-                    doc_ids=tracking['doc_ids'],
-                    query=tracking['query'],
-                    response_node_id=assistant_node_id
-                )
+                for doc_id in tracking['doc_ids']:
+                    record_retrieval(doc_id, tracking['query'])
                 delattr(self, '_pending_rag_tracking')
             except Exception as e:
                 if config.get("debug"):

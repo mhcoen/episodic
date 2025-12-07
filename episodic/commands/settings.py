@@ -356,16 +356,16 @@ def cost():
 
     # LLM section
     typer.secho("LLM Usage:", fg=get_system_color(), bold=True)
-    typer.secho(f"  Input tokens:  {costs['total_input_tokens']:>8,}", fg=get_text_color())
-    typer.secho(f"  Output tokens: {costs['total_output_tokens']:>8,}", fg=get_text_color())
-    typer.secho(f"  Total tokens:  {costs['total_tokens']:>8,}", fg=get_text_color())
+    typer.secho(f"  Input tokens:   {costs['total_input_tokens']:>10,}", fg=get_text_color())
+    typer.secho(f"  Output tokens:  {costs['total_output_tokens']:>10,}", fg=get_text_color())
+    typer.secho(f"  Total tokens:   {costs['total_tokens']:>10,}", fg=get_text_color())
 
     # Check if using Hugging Face model
     current_model = config.get("model", "")
     if current_model.startswith("huggingface/"):
         typer.secho("  (HuggingFace: Free tier)", fg=get_text_color())
     else:
-        typer.secho(f"  Cost:          {_format_cost(costs['total_cost_usd']):>8}", fg=get_text_color())
+        typer.secho(f"  Cost:           {_format_cost(costs['total_cost_usd']):>10}", fg=get_text_color())
 
     # Voice section (if any voice usage)
     voice_stt_calls = costs.get('voice_stt_calls', 0)
@@ -378,15 +378,17 @@ def cost():
         if voice_stt_calls > 0:
             stt_seconds = costs.get('voice_stt_seconds', 0)
             stt_cost = costs.get('voice_stt_cost_usd', 0)
-            typer.secho(f"  STT ({stt_seconds:.0f}s):      {_format_cost(stt_cost):>8}", fg=get_text_color())
+            stt_label = f"STT ({stt_seconds:.0f}s):"
+            typer.secho(f"  {stt_label:<16}{_format_cost(stt_cost):>10}", fg=get_text_color())
 
         if voice_tts_calls > 0:
             tts_chars = costs.get('voice_tts_chars', 0)
             tts_cost = costs.get('voice_tts_cost_usd', 0)
-            typer.secho(f"  TTS ({tts_chars:,} ch): {_format_cost(tts_cost):>8}", fg=get_text_color())
+            tts_label = f"TTS ({tts_chars:,} ch):"
+            typer.secho(f"  {tts_label:<16}{_format_cost(tts_cost):>10}", fg=get_text_color())
 
     # Grand total
     typer.secho("─" * 40, fg=get_text_color())
     grand_total = costs.get('grand_total_cost_usd', costs['total_cost_usd'])
-    typer.secho(f"  Total:         {_format_cost(grand_total):>8}", fg="green", bold=True)
+    typer.secho(f"  {'Total:':<16}{_format_cost(grand_total):>10}", fg="green", bold=True)
     typer.secho("=" * 40, fg=get_heading_color())

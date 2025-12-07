@@ -200,34 +200,35 @@ class EpisodicCompleter(Completer):
     def _complete_set_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /set and /mset commands."""
         if len(parts) == 2:
-            # Complete parameter names with type hints
-            # Define parameters with their types
+            # Get parameter types from PARAM_HANDLERS to stay in sync
+            from episodic.commands.settings_handlers import PARAM_HANDLERS
+
+            # Build param_types from PARAM_HANDLERS by inspecting handler names
             param_types = {
-                # Boolean parameters
-                'debug': 'boolean/categories',
-                'show-cost': 'boolean',
-                'show-drift': 'boolean',
-                'show-topics': 'boolean',
-                'automatic-topic-detection': 'boolean',
-                'auto-compress-topics': 'boolean',
-                'stream-responses': 'boolean',
-                'stream-constant-rate': 'boolean',
-                'stream-natural-rhythm': 'boolean',
-                'text-wrap': 'boolean',
-                'benchmark': 'boolean',
-                'benchmark-display': 'boolean',
-                'rag-enabled': 'boolean',
-                'web-search-enabled': 'boolean',
-                'muse-mode': 'boolean',
-                'enable-tab-completion': 'boolean',
-                # Number parameters
-                'stream-rate': 'number',
-                'context-depth': 'number',
-                # String parameters
-                'color-mode': 'choice'
-                # muse-detail removed - use /detail command instead
+                'debug': 'boolean/categories',  # Special case
             }
-            
+
+            for param, handler in PARAM_HANDLERS.items():
+                # Convert underscore to dash for display
+                display_param = param.replace('_', '-')
+
+                # Determine type from handler name
+                handler_str = str(handler)
+                if 'handle_boolean_param' in handler_str:
+                    param_types[display_param] = 'boolean'
+                elif 'handle_integer_param' in handler_str:
+                    param_types[display_param] = 'integer'
+                elif 'handle_float_param' in handler_str:
+                    param_types[display_param] = 'float'
+                elif 'handle_string_param' in handler_str:
+                    param_types[display_param] = 'string'
+                elif 'handle_list_param' in handler_str:
+                    param_types[display_param] = 'list'
+                elif 'handle_rag_embedding_model' in handler_str:
+                    param_types[display_param] = 'string (restart required)'
+                else:
+                    param_types[display_param] = 'value'
+
             # For /mset, add model parameter options
             if parts[0] == '/mset':
                 param_types.update({
@@ -241,7 +242,7 @@ class EpisodicCompleter(Completer):
                     'synthesis.temperature': 'float (0.0-2.0)',
                     'synthesis.max_tokens': 'integer'
                 })
-            
+
             for param in sorted(param_types.keys()):
                 if param.startswith(word.lower()):
                     yield Completion(
@@ -288,30 +289,32 @@ class EpisodicCompleter(Completer):
                                 start_position=-len(word),
                                 display_meta='debug category'
                             )
-            elif param in ['show-cost', 'show-drift', 'show-topics',
-                        'automatic-topic-detection', 'auto-compress-topics',
-                        'stream-responses', 'stream-constant-rate',
-                        'stream-natural-rhythm', 'text-wrap', 'benchmark',
-                        'benchmark-display', 'rag-enabled', 'web-search-enabled',
-                        'muse-mode', 'enable-tab-completion']:
-                # Boolean parameters
-                for value in ['true', 'false']:
-                    if value.startswith(word.lower()):
-                        yield Completion(
-                            value,
-                            start_position=-len(word),
-                            display_meta='boolean'
-                        )
-            elif param == 'color-mode':
-                # Color mode options
-                for mode in ['full', 'minimal', 'none']:
-                    if mode.startswith(word.lower()):
-                        yield Completion(
-                            mode,
-                            start_position=-len(word),
-                            display_meta='color mode'
-                        )
-            # muse-detail completion removed - use /detail command instead
+            else:
+                # Check if it's a boolean parameter by looking up in PARAM_HANDLERS
+                from episodic.commands.settings_handlers import PARAM_HANDLERS
+
+                # Convert dash to underscore for lookup
+                param_key = param.replace('-', '_')
+                handler = PARAM_HANDLERS.get(param_key)
+
+                if handler and 'handle_boolean_param' in str(handler):
+                    # Boolean parameters
+                    for value in ['true', 'false']:
+                        if value.startswith(word.lower()):
+                            yield Completion(
+                                value,
+                                start_position=-len(word),
+                                display_meta='boolean'
+                            )
+                elif param == 'color-mode':
+                    # Color mode options
+                    for mode in ['full', 'minimal', 'none']:
+                        if mode.startswith(word.lower()):
+                            yield Completion(
+                                mode,
+                                start_position=-len(word),
+                                display_meta='color mode'
+                            )
     
     def _complete_subcommand(self, cmd: str, parts: List[str], word: str) -> List[Completion]:
         """Complete subcommands for unified commands."""

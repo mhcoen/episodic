@@ -196,7 +196,12 @@ class VoiceModeManager:
         except Exception as e:
             typer.secho(f"Warning: TTS provider init failed: {e}", fg="yellow", err=True)
 
-        # Start audio capture
+        # Play ready sound BEFORE starting audio capture to avoid capturing the chime
+        if config.get("voice_audio_cues", True):
+            from episodic.voice.audio_playback import play_chime
+            play_chime()
+
+        # Start audio capture (after chime finishes)
         capture.start(
             on_speech_start=self._on_speech_start,
             on_speech_end=self._on_speech_end,
@@ -206,11 +211,6 @@ class VoiceModeManager:
         playback.start()
 
         self._set_state(VoiceState.LISTENING)
-
-        # Play ready sound
-        if config.get("voice_audio_cues", True):
-            from episodic.voice.audio_playback import play_chime
-            play_chime()
 
     def stop(self):
         """Stop voice mode."""

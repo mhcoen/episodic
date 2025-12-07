@@ -331,35 +331,65 @@ def config_docs():
     typer.secho("  /debug status           - Show debug categories", fg=get_text_color())
 
 
+def _format_cost(cost_usd: float) -> str:
+    """Format cost with appropriate precision - more decimals for small amounts."""
+    if cost_usd == 0:
+        return "$0.00"
+    elif cost_usd < 0.0001:
+        return f"${cost_usd:.6f}"
+    elif cost_usd < 0.01:
+        return f"${cost_usd:.4f}"
+    else:
+        return f"${cost_usd:.2f}"
+
+
 def cost():
     """Display session cost information."""
     if not conversation_manager:
         typer.secho("No active conversation session", fg="yellow")
         return
-        
+
     costs = conversation_manager.get_session_costs()
-    
+
     typer.secho("\n💰 Session Costs", fg=get_heading_color(), bold=True)
     typer.secho("=" * 40, fg=get_heading_color())
-    
-    # Token counts
-    typer.secho(f"Input tokens:  {costs['total_input_tokens']:>10,}", fg=get_system_color())
-    typer.secho(f"Output tokens: {costs['total_output_tokens']:>10,}", fg=get_system_color())
-    typer.secho(f"Total tokens:  {costs['total_tokens']:>10,}", fg=get_system_color())
-    
-    # Cost
-    typer.secho("─" * 40, fg=get_text_color())
-    
+
+    # LLM section
+    typer.secho("LLM Usage:", fg=get_system_color(), bold=True)
+    typer.secho(f"  Input tokens:  {costs['total_input_tokens']:>8,}", fg=get_text_color())
+    typer.secho(f"  Output tokens: {costs['total_output_tokens']:>8,}", fg=get_text_color())
+    typer.secho(f"  Total tokens:  {costs['total_tokens']:>8,}", fg=get_text_color())
+
     # Check if using Hugging Face model
     current_model = config.get("model", "")
     if current_model.startswith("huggingface/"):
-        # Show HF tier information instead of cost
-        typer.secho("Hugging Face Usage:", fg="green", bold=True)
-        typer.secho(f"  Free tier:  ~30K tokens/month", fg=get_text_color())
-        typer.secho(f"  Pro tier:   $9/month unlimited", fg=get_text_color())
+        typer.secho("  (HuggingFace: Free tier)", fg=get_text_color())
     else:
-        typer.secho(f"Total cost:    ${costs['total_cost_usd']:>10.4f}", fg="green", bold=True)
-    
+        typer.secho(f"  Cost:          {_format_cost(costs['total_cost_usd']):>8}", fg=get_text_color())
+
+    # Voice section (if any voice usage)
+    voice_stt_calls = costs.get('voice_stt_calls', 0)
+    voice_tts_calls = costs.get('voice_tts_calls', 0)
+
+    if voice_stt_calls > 0 or voice_tts_calls > 0:
+        typer.secho("─" * 40, fg=get_text_color())
+        typer.secho("Voice Usage:", fg=get_system_color(), bold=True)
+
+        if voice_stt_calls > 0:
+            stt_seconds = costs.get('voice_stt_seconds', 0)
+            stt_cost = costs.get('voice_stt_cost_usd', 0)
+            typer.secho(f"  STT ({stt_seconds:.0f}s):      {_format_cost(stt_cost):>8}", fg=get_text_color())
+
+        if voice_tts_calls > 0:
+            tts_chars = costs.get('voice_tts_chars', 0)
+            tts_cost = costs.get('voice_tts_cost_usd', 0)
+            typer.secho(f"  TTS ({tts_chars:,} ch): {_format_cost(tts_cost):>8}", fg=get_text_color())
+
+    # Grand total
+    typer.secho("─" * 40, fg=get_text_color())
+    grand_total = costs.get('grand_total_cost_usd', costs['total_cost_usd'])
+    typer.secho(f"  Total:         {_format_cost(grand_total):>8}", fg="green", bold=True)
+
     # API stats if available
     if 'api_stats' in costs and costs['api_stats']:
         typer.secho("\nAPI Usage by Operation:", fg=get_heading_color())
@@ -367,11 +397,11 @@ def cost():
             if stats['count'] > 0:
                 typer.secho(f"\n  {operation}:", fg=get_system_color())
                 typer.secho(f"    Calls: {stats['count']}", fg=get_text_color())
-                typer.secho(f"    Cost:  ${stats['total_cost']:.4f}", fg=get_text_color())
+                typer.secho(f"    Cost:  {_format_cost(stats['total_cost'])}", fg=get_text_color())
                 if stats['operations']:
                     for op, op_stats in stats['operations'].items():
                         if op_stats['count'] > 0:
-                            typer.secho(f"      - {op}: {op_stats['count']} calls, ${op_stats['total_cost']:.4f}", 
+                            typer.secho(f"      - {op}: {op_stats['count']} calls, {_format_cost(op_stats['total_cost'])}",
                                        fg=get_text_color())
-    
+
     typer.secho("=" * 40, fg=get_heading_color())

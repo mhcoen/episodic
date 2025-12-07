@@ -117,7 +117,7 @@ def register_all_commands():
     from episodic.commands.save_load import save_command, load_command, files_command
     
     # Import mode commands
-    from episodic.commands.mode import handle_muse, handle_chat
+    from episodic.commands.mode import handle_muse, handle_chat, mode_command
     
     # Import interface mode commands
     from episodic.commands.interface_mode import simple_mode_command, advanced_mode_command
@@ -202,6 +202,7 @@ def register_all_commands():
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
     command_registry.register("muse", handle_muse, "Enable muse mode (web search synthesis)", "Conversation")
     command_registry.register("chat", handle_chat, "Enable chat mode (normal LLM conversation)", "Conversation")
+    command_registry.register("mode", mode_command, "Switch between local and cloud provider modes", "Configuration")
 
     # Voice command with lazy loading
     def lazy_voice_command(*args, **kwargs):

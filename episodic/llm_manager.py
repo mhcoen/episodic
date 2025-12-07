@@ -31,6 +31,13 @@ class CallMetrics:
         self._total_input_tokens = 0
         self._total_output_tokens = 0
         self._total_tokens = 0
+        # Voice cost tracking
+        self._voice_stt_cost_usd = 0.0
+        self._voice_stt_seconds = 0.0
+        self._voice_stt_calls = 0
+        self._voice_tts_cost_usd = 0.0
+        self._voice_tts_chars = 0
+        self._voice_tts_calls = 0
         
     def record_call(self, duration: float, cost_info: Optional[Dict[str, Any]] = None):
         """Record an API call with thread safety."""
@@ -63,14 +70,37 @@ class CallMetrics:
                 'total_tokens': self._total_tokens
             }
     
+    def record_voice_stt(self, duration_seconds: float, cost_usd: float):
+        """Record a voice STT API call."""
+        with self._lock:
+            self._voice_stt_calls += 1
+            self._voice_stt_seconds += duration_seconds
+            self._voice_stt_cost_usd += cost_usd
+
+    def record_voice_tts(self, char_count: int, cost_usd: float):
+        """Record a voice TTS API call."""
+        with self._lock:
+            self._voice_tts_calls += 1
+            self._voice_tts_chars += char_count
+            self._voice_tts_cost_usd += cost_usd
+
     def get_cost_info(self) -> Dict[str, Any]:
         """Get just the cost information."""
         with self._lock:
+            voice_cost = self._voice_stt_cost_usd + self._voice_tts_cost_usd
             return {
                 'total_cost_usd': self._total_cost_usd,
                 'total_input_tokens': self._total_input_tokens,
                 'total_output_tokens': self._total_output_tokens,
-                'total_tokens': self._total_tokens
+                'total_tokens': self._total_tokens,
+                'voice_stt_cost_usd': self._voice_stt_cost_usd,
+                'voice_stt_seconds': self._voice_stt_seconds,
+                'voice_stt_calls': self._voice_stt_calls,
+                'voice_tts_cost_usd': self._voice_tts_cost_usd,
+                'voice_tts_chars': self._voice_tts_chars,
+                'voice_tts_calls': self._voice_tts_calls,
+                'voice_total_cost_usd': voice_cost,
+                'grand_total_cost_usd': self._total_cost_usd + voice_cost
             }
     
     def reset(self):
@@ -83,6 +113,12 @@ class CallMetrics:
             self._total_input_tokens = 0
             self._total_output_tokens = 0
             self._total_tokens = 0
+            self._voice_stt_cost_usd = 0.0
+            self._voice_stt_seconds = 0.0
+            self._voice_stt_calls = 0
+            self._voice_tts_cost_usd = 0.0
+            self._voice_tts_chars = 0
+            self._voice_tts_calls = 0
 
 
 class LLMManager:
@@ -246,6 +282,14 @@ class LLMManager:
     def get_session_costs(self) -> Dict[str, Any]:
         """Get current session cost information."""
         return self.metrics.get_cost_info()
+
+    def record_voice_stt(self, duration_seconds: float, cost_usd: float):
+        """Record a voice STT API call cost."""
+        self.metrics.record_voice_stt(duration_seconds, cost_usd)
+
+    def record_voice_tts(self, char_count: int, cost_usd: float):
+        """Record a voice TTS API call cost."""
+        self.metrics.record_voice_tts(char_count, cost_usd)
 
 
 # Global singleton instance

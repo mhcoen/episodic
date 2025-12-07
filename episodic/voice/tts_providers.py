@@ -198,13 +198,19 @@ class OpenAITTSProvider(BaseTTSProvider):
     """
     Cloud text-to-speech using OpenAI TTS API.
 
-    Cost: ~$0.015/minute
+    Cost: $0.015/1K characters (tts-1) or $0.030/1K characters (tts-1-hd)
     Good quality, fast, no local compute needed.
     """
 
     name = "openai_tts"
 
     VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+
+    # OpenAI TTS pricing per 1K characters
+    COST_PER_1K_CHARS = {
+        "tts-1": 0.015,
+        "tts-1-hd": 0.030,
+    }
 
     def __init__(self, voice: str = "alloy", model: str = "tts-1"):
         self.voice = voice
@@ -232,6 +238,13 @@ class OpenAITTSProvider(BaseTTSProvider):
 
             audio_bytes = response.content
 
+            # Track cost
+            char_count = len(text)
+            cost_per_1k = self.COST_PER_1K_CHARS.get(self.model, 0.015)
+            cost_usd = (char_count / 1000.0) * cost_per_1k
+            from episodic.llm_manager import llm_manager
+            llm_manager.record_voice_tts(char_count, cost_usd)
+
             # Parse WAV to get audio data
             wav_buffer = io.BytesIO(audio_bytes)
             with wave.open(wav_buffer, 'rb') as wav:
@@ -257,11 +270,14 @@ class ElevenLabsProvider(BaseTTSProvider):
     """
     Cloud text-to-speech using ElevenLabs API.
 
-    Cost: ~$0.20/1000 characters (expensive but highest quality)
+    Cost: ~$0.30/1000 characters (expensive but highest quality)
     Best quality, most natural sounding.
     """
 
     name = "elevenlabs"
+
+    # ElevenLabs pricing: $0.30 per 1K characters (Creator plan)
+    COST_PER_1K_CHARS = 0.30
 
     def __init__(self, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):  # Rachel
         self.voice_id = voice_id
@@ -287,6 +303,12 @@ class ElevenLabsProvider(BaseTTSProvider):
 
             # Collect all audio chunks
             audio_bytes = b"".join(audio_generator)
+
+            # Track cost
+            char_count = len(text)
+            cost_usd = (char_count / 1000.0) * self.COST_PER_1K_CHARS
+            from episodic.llm_manager import llm_manager
+            llm_manager.record_voice_tts(char_count, cost_usd)
 
             # ElevenLabs returns MP3 by default, convert to numpy
             # Using pydub for MP3 decoding

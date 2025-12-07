@@ -57,14 +57,9 @@ def voice_on():
 
     manager = get_voice_manager()
 
-    def on_state_change(state: VoiceState):
-        """Display state changes."""
-        if state == VoiceState.LISTENING:
-            typer.secho("Listening...", fg="cyan", dim=True)
-        elif state == VoiceState.PROCESSING:
-            typer.secho("Processing...", fg="cyan", dim=True)
-
-    manager.start(on_state_change=on_state_change)
+    # No visual status callback - audio cues handle feedback
+    # Visual status indicators caused display corruption issues
+    manager.start()
     config.set("voice_mode", True)
 
     typer.secho("Voice mode ", nl=False, fg=get_system_color(), bold=True)

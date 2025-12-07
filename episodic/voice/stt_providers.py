@@ -201,6 +201,9 @@ class OpenAIWhisperProvider(BaseSTTProvider):
             self._client = OpenAI()
         return self._client
 
+    # OpenAI Whisper pricing: $0.006 per minute
+    COST_PER_MINUTE = 0.006
+
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> Optional[str]:
         """Transcribe using OpenAI Whisper API."""
         try:
@@ -214,6 +217,9 @@ class OpenAIWhisperProvider(BaseSTTProvider):
             if peak < 500:  # Very quiet, likely silence
                 return None
 
+            # Calculate audio duration for cost tracking
+            duration_seconds = len(audio_data) / sample_rate
+
             client = self._get_client()
             temp_path = _save_wav_temp(audio_data, sample_rate)
 
@@ -225,6 +231,11 @@ class OpenAIWhisperProvider(BaseSTTProvider):
                         language="en",  # Force English to prevent wrong language detection
                     )
                 text = transcript.text.strip()
+
+                # Track cost
+                cost_usd = (duration_seconds / 60.0) * self.COST_PER_MINUTE
+                from episodic.llm_manager import llm_manager
+                llm_manager.record_voice_stt(duration_seconds, cost_usd)
 
                 # Filter hallucinations
                 if _is_hallucination(text):
@@ -247,11 +258,14 @@ class DeepgramProvider(BaseSTTProvider):
     """
     Cloud speech-to-text using Deepgram API.
 
-    Cost: ~$0.008/minute
+    Cost: ~$0.0043/minute (Nova-2 model)
     Real-time streaming support, very fast.
     """
 
     name = "deepgram"
+
+    # Deepgram Nova-2 pricing: $0.0043 per minute
+    COST_PER_MINUTE = 0.0043
 
     def __init__(self, model: str = "nova-2"):
         self.model = model
@@ -269,6 +283,9 @@ class DeepgramProvider(BaseSTTProvider):
         try:
             from deepgram import PrerecordedOptions
 
+            # Calculate audio duration for cost tracking
+            duration_seconds = len(audio_data) / sample_rate
+
             client = self._get_client()
             wav_bytes = _audio_to_wav_bytes(audio_data, sample_rate)
 
@@ -283,6 +300,12 @@ class DeepgramProvider(BaseSTTProvider):
             )
 
             text = response.results.channels[0].alternatives[0].transcript
+
+            # Track cost
+            cost_usd = (duration_seconds / 60.0) * self.COST_PER_MINUTE
+            from episodic.llm_manager import llm_manager
+            llm_manager.record_voice_stt(duration_seconds, cost_usd)
+
             return text.strip() if text else None
 
         except ImportError:

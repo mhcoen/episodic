@@ -638,26 +638,6 @@
           "recommended_for": ["chat"]
         },
         {
-          "name": "llama4-maverick",
-          "display_name": "Llama 4 Maverick",
-          "type": "chat",
-          "detect_params": true,
-          "creator": "Meta",
-          "released": "2025",
-          "description": "Meta's flagship Llama 4 Maverick running locally via Ollama. The most capable Llama 4 variant for those with powerful hardware. State-of-the-art open model performance locally.",
-          "strengths": [
-            "Most capable Llama 4",
-            "Strong reasoning",
-            "Runs locally (private)",
-            "No API costs"
-          ],
-          "weaknesses": [
-            "Requires powerful hardware",
-            "Slow on modest systems"
-          ],
-          "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
           "name": "deepseek-r1",
           "display_name": "DeepSeek R1",
           "type": "chat",
@@ -676,26 +656,6 @@
             "Needs good hardware"
           ],
           "recommended_for": ["detection", "synthesis"]
-        },
-        {
-          "name": "deepseek-v3",
-          "display_name": "DeepSeek V3",
-          "type": "chat",
-          "detect_params": true,
-          "creator": "DeepSeek",
-          "released": "2024",
-          "description": "DeepSeek V3 running locally via Ollama. A strong general-purpose model with good coding and reasoning abilities. Competitive with larger commercial models.",
-          "strengths": [
-            "Strong general abilities",
-            "Good coding support",
-            "Runs locally (private)",
-            "No API costs"
-          ],
-          "weaknesses": [
-            "Large model size",
-            "Needs substantial RAM"
-          ],
-          "recommended_for": ["chat", "detection"]
         },
         {
           "name": "qwen2.5",

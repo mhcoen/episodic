@@ -347,5 +347,21 @@
   "_comment_voice_show_transcription": "Display transcribed speech in terminal",
   "voice_show_transcription": true,
   "_comment_voice_audio_cues": "Play audio cues for state transitions",
-  "voice_audio_cues": true
+  "voice_audio_cues": true,
+
+  "_comment_mode": "// === MODE SWITCHING ===",
+  "_comment_mode_setting": "Current mode: local (free, private) or cloud (paid, quality)",
+  "mode": "cloud",
+  "_comment_local_model": "Default chat model for local mode",
+  "local_model": "ollama/qwen2.5:7b",
+  "_comment_cloud_model": "Default chat model for cloud mode",
+  "cloud_model": "gpt-4o-mini",
+  "_comment_local_stt_provider": "STT provider for local mode",
+  "local_stt_provider": "local_whisper",
+  "_comment_cloud_stt_provider": "STT provider for cloud mode",
+  "cloud_stt_provider": "openai_whisper",
+  "_comment_local_tts_provider": "TTS provider for local mode",
+  "local_tts_provider": "local_piper",
+  "_comment_cloud_tts_provider": "TTS provider for cloud mode",
+  "cloud_tts_provider": "openai_tts"
 }

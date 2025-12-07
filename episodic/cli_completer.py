@@ -94,6 +94,8 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_set_command(parts, word_before_cursor)
             elif full_cmd in ['topics', 'compression', 'voice']:
                 yield from self._complete_subcommand(full_cmd, parts, word_before_cursor)
+            elif full_cmd == 'mode':
+                yield from self._complete_mode_command(parts, word_before_cursor)
             elif full_cmd in ['in', 'out', 'index', 'script']:
                 yield from self._complete_file_path(full_cmd, parts, word_before_cursor)
             elif full_cmd == 'save':
@@ -316,20 +318,35 @@ class EpisodicCompleter(Completer):
         if len(parts) == 2:
             # Get subcommands for this command
             subcommands = []
-            
+
             if cmd == 'topics':
                 subcommands = ['list', 'rename', 'compress', 'index', 'scores', 'stats']
             elif cmd == 'compression':
                 subcommands = ['stats', 'queue', 'compress', 'api-stats', 'reset-api']
             elif cmd == 'voice':
                 subcommands = ['on', 'off', 'status', 'stt', 'tts', 'info']
-            
+
             for sub in subcommands:
                 if sub.startswith(word.lower()):
                     yield Completion(
                         sub,
                         start_position=-len(word),
                         display_meta='subcommand'
+                    )
+
+    def _complete_mode_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /mode command."""
+        if len(parts) == 2:
+            modes = {
+                'local': 'Free, private, offline-capable',
+                'cloud': 'Paid, higher quality APIs'
+            }
+            for mode, desc in modes.items():
+                if mode.startswith(word.lower()):
+                    yield Completion(
+                        mode,
+                        start_position=-len(word),
+                        display_meta=desc
                     )
     
     def _complete_file_path(self, cmd: str, parts: List[str], word: str) -> List[Completion]:

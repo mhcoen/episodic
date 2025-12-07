@@ -213,6 +213,15 @@ CONFIG_DOCS = {
     "voice_vad_aggressiveness": "Voice Activity Detection aggressiveness 0-3 (higher = more aggressive filtering)",
     "voice_show_transcription": "Display transcribed speech in terminal",
     "voice_audio_cues": "Play audio cues for state transitions (ready, processing, complete)",
+
+    # Mode switching
+    "mode": "Current provider mode: 'local' (free, private) or 'cloud' (paid, quality)",
+    "local_model": "Default LLM model for local mode",
+    "cloud_model": "Default LLM model for cloud mode",
+    "local_stt_provider": "STT provider for local mode",
+    "cloud_stt_provider": "STT provider for cloud mode",
+    "local_tts_provider": "TTS provider for local mode",
+    "cloud_tts_provider": "TTS provider for cloud mode",
 }
 
 # REMOVED - No special threshold behavior needed

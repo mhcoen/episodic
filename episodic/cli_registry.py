@@ -204,6 +204,7 @@ def show_help_with_categories():
         ("/muse", "Enable web search synthesis mode"),
         ("/chat", "Enable normal LLM conversation mode"),
         ("/voice", "Toggle voice mode (speech input/output)"),
+        ("/mode", "Switch between local/cloud provider modes"),
         ("/style", "Set global response style (concise/standard/comprehensive/custom)"),
         ("/format", "Set global response format (paragraph/bulleted/mixed/academic)"),
         ("/topics", "List conversation topics"),

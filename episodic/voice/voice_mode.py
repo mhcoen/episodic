@@ -206,7 +206,7 @@ class VoiceModeManager:
 
         wake_word = config.get("voice_wake_word", "computer")
         if config.get("voice_show_transcription", True):
-            typer.secho(f"💤 Idle - say \"{wake_word}\" to wake", fg="yellow")
+            typer.secho(f"😴 Going to sleep - say \"{wake_word}\" to wake", fg="yellow")
             sys.stdout.flush()
 
         self._set_state(VoiceState.IDLE)

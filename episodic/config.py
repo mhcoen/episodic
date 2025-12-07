@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Any, Dict
 from .config_defaults import CONFIG_DOCS
 from .param_mappings import ENV_VAR_MAPPING
+from .constants import (
+    RESPONSE_STYLES, RESPONSE_FORMATS, DETAIL_LEVELS, MUSE_SOURCES
+)
 
 class Config:
     def __init__(self, config_file: str = None):
@@ -159,14 +162,14 @@ class Config:
             value: The value to set
         """
         # Validate synthesis configuration values (now muse_*)
-        if key == 'muse_style' and value not in ['concise', 'standard', 'comprehensive', 'exhaustive']:
-            raise ValueError(f"Invalid synthesis style: {value}. Must be one of: concise, standard, comprehensive, exhaustive")
-        elif key == 'muse_detail' and value not in ['minimal', 'moderate', 'detailed', 'maximum']:
-            raise ValueError(f"Invalid synthesis detail: {value}. Must be one of: minimal, moderate, detailed, maximum")
-        elif key == 'muse_format' and value not in ['paragraph', 'bulleted', 'mixed', 'academic']:
-            raise ValueError(f"Invalid synthesis format: {value}. Must be one of: paragraph, bulleted, mixed, academic")
-        elif key == 'muse_sources' and value not in ['first-only', 'top-three', 'all-relevant', 'selective']:
-            raise ValueError(f"Invalid synthesis sources: {value}. Must be one of: first-only, top-three, all-relevant, selective")
+        if key == 'muse_style' and value not in RESPONSE_STYLES:
+            raise ValueError(f"Invalid synthesis style: {value}. Must be one of: {', '.join(RESPONSE_STYLES)}")
+        elif key == 'muse_detail' and value not in DETAIL_LEVELS:
+            raise ValueError(f"Invalid synthesis detail: {value}. Must be one of: {', '.join(DETAIL_LEVELS)}")
+        elif key == 'muse_format' and value not in RESPONSE_FORMATS:
+            raise ValueError(f"Invalid synthesis format: {value}. Must be one of: {', '.join(RESPONSE_FORMATS)}")
+        elif key == 'muse_sources' and value not in MUSE_SOURCES:
+            raise ValueError(f"Invalid synthesis sources: {value}. Must be one of: {', '.join(MUSE_SOURCES)}")
         elif key == 'muse_max_tokens' and value is not None:
             try:
                 tokens = int(value)

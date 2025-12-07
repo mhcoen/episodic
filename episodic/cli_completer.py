@@ -15,6 +15,11 @@ from episodic.commands.registry import command_registry, register_all_commands
 from episodic.config import config
 from episodic.llm_config import get_available_providers, get_provider_models
 from episodic.db_topics import get_recent_topics
+from episodic.constants import (
+    WEB_SEARCH_PROVIDERS, RESPONSE_STYLES, RESPONSE_FORMATS, DETAIL_LEVELS,
+    TOPIC_ACTIONS, COMPRESSION_ACTIONS, VOICE_ACTIONS, SUMMARY_LENGTHS,
+    COLOR_MODES, MODEL_CONTEXTS
+)
 
 
 class EpisodicCompleter(Completer):
@@ -188,7 +193,7 @@ class EpisodicCompleter(Completer):
                     )
         elif len(parts) == 3 and parts[1] == 'provider':
             # Complete provider names
-            providers = ['duckduckgo', 'google', 'bing', 'brave', 'searx']
+            providers = WEB_SEARCH_PROVIDERS
             for provider in providers:
                 if provider.startswith(word.lower()):
                     yield Completion(
@@ -323,11 +328,11 @@ class EpisodicCompleter(Completer):
             subcommands = []
 
             if cmd == 'topics':
-                subcommands = ['list', 'rename', 'compress', 'index', 'scores', 'stats']
+                subcommands = TOPIC_ACTIONS
             elif cmd == 'compression':
-                subcommands = ['stats', 'queue', 'compress', 'api-stats', 'reset-api']
+                subcommands = COMPRESSION_ACTIONS
             elif cmd == 'voice':
-                subcommands = ['on', 'off', 'status', 'stt', 'tts', 'info']
+                subcommands = VOICE_ACTIONS
 
             for sub in subcommands:
                 if sub.startswith(word.lower()):
@@ -510,7 +515,7 @@ class EpisodicCompleter(Completer):
         """Complete /style command arguments."""
         if len(parts) == 2:
             # Complete style options
-            styles = ['concise', 'standard', 'comprehensive', 'custom']
+            styles = RESPONSE_STYLES
             for style in styles:
                 if style.startswith(word.lower()):
                     yield Completion(
@@ -523,7 +528,7 @@ class EpisodicCompleter(Completer):
         """Complete /format command arguments."""
         if len(parts) == 2:
             # Complete format options
-            formats = ['paragraph', 'bulleted', 'mixed', 'academic']
+            formats = RESPONSE_FORMATS
             for fmt in formats:
                 if fmt.startswith(word.lower()):
                     yield Completion(
@@ -536,7 +541,7 @@ class EpisodicCompleter(Completer):
         """Complete /detail command arguments."""
         if len(parts) == 2:
             # Complete detail level options
-            detail_levels = ['minimal', 'moderate', 'detailed', 'maximum']
+            detail_levels = DETAIL_LEVELS
             for level in detail_levels:
                 if level.startswith(word.lower()):
                     yield Completion(
@@ -611,7 +616,7 @@ class EpisodicCompleter(Completer):
         """Complete /summary command arguments."""
         if len(parts) >= 2:
             # Complete length options and count options
-            options = ['brief', 'short', 'standard', 'detailed', 'bulleted', 'all', 'loaded', '5', '10', '20', '50']
+            options = SUMMARY_LENGTHS + ['all', 'loaded', '5', '10', '20', '50']
             # Filter out already used options
             used_options = set(parts[1:])
             

@@ -15,6 +15,7 @@ from episodic.configuration import (
 )
 from episodic.cli_helpers import _has_flag
 from episodic.benchmark import display_pending_benchmark
+from episodic.constants import TOPIC_ACTIONS, COMPRESSION_ACTIONS, SUMMARY_LENGTHS
 
 
 def parse_command(command_str: str) -> Tuple[str, List[str]]:
@@ -405,7 +406,7 @@ def _handle_topics(args: List[str]):
             handle_topics_action(action="list")
         else:
             typer.secho(f"Unknown topics action: {action}", fg=get_error_color())
-            typer.secho("Available actions: list, rename, compress, index, scores, stats", fg=get_warning_color())
+            typer.secho(f"Available actions: {', '.join(TOPIC_ACTIONS)}", fg=get_warning_color())
 
 
 def _handle_compression(args: List[str]):
@@ -416,10 +417,11 @@ def _handle_compression(args: List[str]):
         compression_command()
     else:
         action = args[0]
-        if action in ["stats", "queue", "compress", "api-stats", "reset-api"]:
+        if action in COMPRESSION_ACTIONS:
             compression_command(action=action)
         else:
             typer.secho(f"Unknown compression action: {action}", fg=get_error_color())
+            typer.secho(f"Available actions: {', '.join(COMPRESSION_ACTIONS)}", fg=get_warning_color())
 
 
 def _handle_rag(args: List[str]):

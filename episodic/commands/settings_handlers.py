@@ -13,6 +13,9 @@ from episodic.configuration import (
 )
 from episodic.llm import enable_cache, disable_cache
 from episodic.debug_system import debug_system
+from episodic.constants import (
+    WEB_SEARCH_PROVIDERS, COLOR_MODES, COMPRESSION_METHODS
+)
 
 
 def handle_boolean_param(param: str, value: str) -> bool:
@@ -250,13 +253,12 @@ PARAM_HANDLERS = {
     'drift_threshold': lambda v: handle_float_param('drift_threshold', v, 0.0, 1.0),
     
     # String parameters with validation
-    'color_mode': lambda v: handle_string_param('color_mode', v, ['full', 'basic', 'none']),
-    'compression_method': lambda v: handle_string_param('compression_method', v, 
-                                                      ['tiered', 'simple', 'extractive']),
+    'color_mode': lambda v: handle_string_param('color_mode', v, COLOR_MODES),
+    'compression_method': lambda v: handle_string_param('compression_method', v, COMPRESSION_METHODS),
     'drift_embedding_provider': lambda v: handle_string_param('drift_embedding_provider', v),
     'drift_embedding_model': lambda v: handle_string_param('drift_embedding_model', v),
-    'web_search_provider': lambda v: handle_string_param('web_search_provider', v, ['duckduckgo', 'google', 'bing', 'searx']),
-    'web_search_providers': lambda v: handle_list_param('web_search_providers', v, ['duckduckgo', 'google', 'bing', 'searx']),
+    'web_search_provider': lambda v: handle_string_param('web_search_provider', v, WEB_SEARCH_PROVIDERS),
+    'web_search_providers': lambda v: handle_list_param('web_search_providers', v, WEB_SEARCH_PROVIDERS),
     # muse_detail removed - use /detail command instead to avoid duplication
     
     # Model parameters (special handling needed)

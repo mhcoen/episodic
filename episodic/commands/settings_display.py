@@ -116,8 +116,12 @@ Use '/model' to view and manage all 4 model contexts
     
     # Web search (only show if enabled)
     if config.get('web_search_enabled', False):
+        providers_list = config.get('web_search_providers', ['duckduckgo'])
+        if isinstance(providers_list, str):
+            providers_list = [p.strip() for p in providers_list.split(',')]
+        primary_provider = providers_list[0] if providers_list else 'duckduckgo'
         web_settings = [
-            ("web-provider", config.get('web_search_provider', 'duckduckgo'), "Search provider"),
+            ("web-providers", primary_provider if len(providers_list) == 1 else ' → '.join(providers_list), "Search provider(s)"),
             ("web-results", str(config.get('web_search_max_results', 5)), "Maximum search results"),
         ]
         content += "## 🌐 Web Search\n"

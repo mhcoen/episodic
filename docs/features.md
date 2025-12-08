@@ -78,16 +78,16 @@ Voice mode enables hands-free conversation with speech input and text-to-speech 
 
 | Provider | Cost | Notes |
 |----------|------|-------|
-| `local_whisper` (default) | Free | Uses faster-whisper, excellent on Apple Silicon |
-| `openai_whisper` | ~$0.006/min | API, excellent accuracy |
+| `openai_whisper` (default) | ~$0.006/min | API, excellent accuracy |
+| `local_whisper` | Free | Uses faster-whisper, excellent on Apple Silicon |
 | `deepgram` | ~$0.008/min | Real-time streaming |
 
 ### TTS Providers
 
 | Provider | Cost | Notes |
 |----------|------|-------|
-| `local_piper` (default) | Free | Fast, CPU-friendly |
-| `openai_tts` | ~$0.015/min | Good quality, steerable |
+| `openai_tts` (default) | ~$0.015/min | Good quality, steerable |
+| `local_piper` | Free | Fast, CPU-friendly |
 | `elevenlabs` | ~$0.20/1k chars | Highest quality |
 
 ### Commands
@@ -165,7 +165,7 @@ quantum computing news
 
 # Configure automatic enhancement
 /set web-auto true         # Auto-enhance responses
-/set web_search_provider duckduckgo
+/set web.providers duckduckgo
 ```
 
 ## 4. Muse Mode (Web Synthesis)

@@ -110,7 +110,13 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         if normalized:
             current_value = config.get(normalized, "Not set")
             display_name = get_short_name(normalized) or get_display_name(normalized)
-            typer.secho(f"{display_name}: {current_value}", fg=get_system_color())
+            typer.secho(f"{display_name}: ", fg=get_system_color(), nl=False)
+            typer.secho(f"{current_value}", fg=get_text_color(), bold=True)
+            # Show description from CONFIG_DOCS (authoritative source)
+            from episodic.config_defaults import CONFIG_DOCS
+            description = CONFIG_DOCS.get(normalized) or get_param_description(display_name)
+            if description:
+                typer.secho(f"  {description}", fg=get_text_color(), dim=True)
         else:
             typer.secho(f"Unknown parameter: {param}", fg="red")
         return

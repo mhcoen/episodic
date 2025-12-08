@@ -46,7 +46,10 @@ def web_command(
 
 def show_current_provider():
     """Show the current web search provider and available commands."""
-    current = config.get("web_search_provider", "duckduckgo")
+    providers_list = config.get("web_search_providers", ["duckduckgo"])
+    if isinstance(providers_list, str):
+        providers_list = [p.strip() for p in providers_list.split(',')]
+    current = providers_list[0] if providers_list else "duckduckgo"
     
     typer.secho("\n🌐 Muse Mode Web Search Provider", fg=get_heading_color(), bold=True)
     typer.secho("─" * 50, fg=get_heading_color())
@@ -55,8 +58,7 @@ def show_current_provider():
     typer.secho(current.title(), fg=get_system_color(), bold=True)
     
     # Show provider list if multiple providers configured
-    providers_list = config.get("web_search_providers")
-    if providers_list and isinstance(providers_list, list) and len(providers_list) > 1:
+    if len(providers_list) > 1:
         typer.secho("Fallback order: ", fg=get_text_color(), nl=False)
         typer.secho(" → ".join(providers_list), fg=get_system_color())
     
@@ -115,8 +117,11 @@ def list_providers():
         ("searx", "Searx", "Requires instance URL"),
     ]
     
-    current = config.get("web_search_provider", "duckduckgo").lower()
-    
+    providers_list = config.get("web_search_providers", ["duckduckgo"])
+    if isinstance(providers_list, str):
+        providers_list = [p.strip() for p in providers_list.split(',')]
+    current = (providers_list[0] if providers_list else "duckduckgo").lower()
+
     for key, name, description in providers:
         # Show current provider
         if key == current:
@@ -133,7 +138,10 @@ def list_providers():
 
 def show_provider_details():
     """Show detailed information about the current provider."""
-    current = config.get("web_search_provider", "duckduckgo").lower()
+    providers_list = config.get("web_search_providers", ["duckduckgo"])
+    if isinstance(providers_list, str):
+        providers_list = [p.strip() for p in providers_list.split(',')]
+    current = (providers_list[0] if providers_list else "duckduckgo").lower()
     
     typer.secho(f"\n🌐 Web Search Provider: ", fg=get_heading_color(), bold=True, nl=False)
     typer.secho(current.title(), fg=get_system_color(), bold=True)
@@ -253,14 +261,11 @@ def set_provider(provider_name: str):
             typer.secho("\nPublic instances: https://searx.space/", fg="cyan")
             return
     
-    # Set the provider
-    config.set("web_search_provider", provider_name)
-    
-    # Also update the providers list to include this provider
+    # Update the providers list - put the new provider at the front
     current_providers = config.get("web_search_providers", ["duckduckgo"])
     if isinstance(current_providers, str):
         current_providers = [p.strip() for p in current_providers.split(',')]
-    
+
     # Add the new provider to the front of the list if not already there
     if provider_name not in current_providers:
         current_providers.insert(0, provider_name)
@@ -268,7 +273,7 @@ def set_provider(provider_name: str):
         # Move it to the front
         current_providers.remove(provider_name)
         current_providers.insert(0, provider_name)
-    
+
     config.set("web_search_providers", current_providers)
     
     # Reset the global web search manager to pick up the new configuration
@@ -286,14 +291,11 @@ def set_provider(provider_name: str):
 def reset_to_defaults():
     """Reset web search configuration to defaults."""
     from episodic.config_defaults import DEFAULT_CONFIG
-    
+
     # Reset to default values
-    default_provider = DEFAULT_CONFIG.get("web_search_provider", "duckduckgo")
     default_providers = DEFAULT_CONFIG.get("web_search_providers", ["duckduckgo"])
-    
-    config.set("web_search_provider", default_provider)
+
     config.set("web_search_providers", default_providers)
-    
+
     typer.secho("✓ Reset to default web search configuration", fg="green")
-    typer.secho(f"  Provider: {default_provider}", fg=get_text_color(), dim=True)
     typer.secho(f"  Provider order: {' → '.join(default_providers)}", fg=get_text_color(), dim=True)

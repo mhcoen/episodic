@@ -275,11 +275,12 @@ List markdown files
 ## Knowledge Base (RAG)
 
 ### /rag
-Enable/disable RAG
+Enable/disable RAG and view statistics
 ```bash
-/rag                        # Show RAG status
+/rag                        # Show RAG statistics (default)
 /rag on                     # Enable RAG
 /rag off                    # Disable RAG
+/rag stats                  # Show RAG statistics
 ```
 
 ### /index, /i

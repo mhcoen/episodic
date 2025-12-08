@@ -30,6 +30,8 @@ Just type to chat! No prefix needed.
 | Command | Short | Description |
 |---------|-------|-------------|
 | `/rag on` | | Enable knowledge base |
+| `/rag off` | | Disable knowledge base |
+| `/rag stats` | | Show RAG statistics |
 | `/index file.txt` | `/i` | Index a document |
 | `/search query` | `/s` | Search knowledge base |
 | `/muse` | | Switch to web search mode |
@@ -72,11 +74,11 @@ Just type to chat! No prefix needed.
 /debug on memory              # Debug memory system
 ```
 
-### Web Search Settings (New)
+### Web Search Settings
 ```bash
 # Provider configuration
-/set web.provider google              # Single provider
-/set web.providers google,duckduckgo  # Fallback order
+/set web.providers duckduckgo         # Single provider
+/set web.providers google,duckduckgo  # Fallback order (first is primary)
 /set web.fallback true                # Enable fallback
 /set web.cache 3600                   # Cache 1 hour
 /set web.max_results 5                # Results to fetch

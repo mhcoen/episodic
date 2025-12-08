@@ -118,8 +118,8 @@ def show_current_mode():
     """Display current mode and provider settings."""
     mode = config.get("mode", "cloud")
     model = config.get("model", "gpt-4o-mini")
-    stt = config.get("voice_stt_provider", "local_whisper")
-    tts = config.get("voice_tts_provider", "local_piper")
+    stt = config.get("voice_stt_provider", "openai_whisper")
+    tts = config.get("voice_tts_provider", "openai_tts")
 
     icon = "🏠" if mode == "local" else "☁️"
     typer.secho(f"{icon} Current mode: ", nl=False, fg=get_system_color())

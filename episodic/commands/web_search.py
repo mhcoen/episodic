@@ -234,8 +234,7 @@ def websearch_config():
     
     settings = [
         ('Enabled', 'web_search_enabled'),
-        ('Provider', 'web_search_provider'),
-        ('Providers list', 'web_search_providers'),
+        ('Providers', 'web_search_providers'),
         ('Fallback enabled', 'web_search_fallback_enabled'),
         ('Fallback cache (min)', 'web_search_fallback_cache_minutes'),
         ('Auto-enhance', 'web_search_auto_enhance'),
@@ -263,7 +262,10 @@ def websearch_config():
         typer.secho(f"{', '.join(excluded)}", fg=get_system_color())
     
     # Show provider-specific configuration
-    provider = config.get('web_search_provider', 'duckduckgo').lower()
+    providers_list = config.get('web_search_providers', ['duckduckgo'])
+    if isinstance(providers_list, str):
+        providers_list = [p.strip() for p in providers_list.split(',')]
+    provider = (providers_list[0] if providers_list else 'duckduckgo').lower()
     typer.secho(f"\n{provider.title()} Provider Configuration:", fg=get_heading_color())
     
     if provider == 'searx':

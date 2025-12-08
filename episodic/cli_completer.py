@@ -17,8 +17,9 @@ from episodic.llm_config import get_available_providers, get_provider_models
 from episodic.db_topics import get_recent_topics
 from episodic.constants import (
     WEB_SEARCH_PROVIDERS, RESPONSE_STYLES, RESPONSE_FORMATS, DETAIL_LEVELS,
-    TOPIC_ACTIONS, COMPRESSION_ACTIONS, VOICE_ACTIONS, SUMMARY_LENGTHS,
-    COLOR_MODES, MODEL_CONTEXTS
+    TOPIC_ACTIONS, COMPRESSION_ACTIONS, VOICE_ACTIONS, RAG_ACTIONS, SUMMARY_LENGTHS,
+    COLOR_MODES, MODEL_CONTEXTS, DOCS_ACTIONS, PROMPT_ACTIONS, RESET_ACTIONS,
+    DEV_ACTIONS, MIGRATE_ACTIONS
 )
 
 
@@ -97,7 +98,7 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_web_command(parts, word_before_cursor)
             elif full_cmd in ['set', 'mset']:
                 yield from self._complete_set_command(parts, word_before_cursor)
-            elif full_cmd in ['topics', 'compression', 'voice']:
+            elif full_cmd in ['topics', 'compression', 'voice', 'rag']:
                 yield from self._complete_subcommand(full_cmd, parts, word_before_cursor)
             elif full_cmd == 'mode':
                 yield from self._complete_mode_command(parts, word_before_cursor)
@@ -123,6 +124,18 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_memory_command(parts, word_before_cursor)
             elif full_cmd == 'forget':
                 yield from self._complete_forget_command(parts, word_before_cursor)
+            elif full_cmd == 'help':
+                yield from self._complete_help_command(parts, word_before_cursor)
+            elif full_cmd == 'docs':
+                yield from self._complete_docs_command(parts, word_before_cursor)
+            elif full_cmd == 'prompt':
+                yield from self._complete_prompt_command(parts, word_before_cursor)
+            elif full_cmd == 'reset':
+                yield from self._complete_reset_command(parts, word_before_cursor)
+            elif full_cmd == 'dev':
+                yield from self._complete_dev_command(parts, word_before_cursor)
+            elif full_cmd == 'migrate':
+                yield from self._complete_migrate_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
@@ -333,6 +346,8 @@ class EpisodicCompleter(Completer):
                 subcommands = COMPRESSION_ACTIONS
             elif cmd == 'voice':
                 subcommands = VOICE_ACTIONS
+            elif cmd == 'rag':
+                subcommands = RAG_ACTIONS
 
             for sub in subcommands:
                 if sub.startswith(word.lower()):
@@ -727,3 +742,112 @@ class EpisodicCompleter(Completer):
             for opt, desc in options.items():
                 if opt.startswith(word):
                     yield Completion(opt, start_position=-len(word), display_meta=desc)
+
+    def _complete_help_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /help with command names."""
+        if len(parts) == 2:
+            # Suggest command names for help lookups
+            for cmd in sorted(command_registry._commands.keys()):
+                if cmd.startswith(word.lower()):
+                    info = command_registry._commands[cmd]
+                    yield Completion(
+                        cmd,
+                        start_position=-len(word),
+                        display_meta=info.description[:40] if info.description else ''
+                    )
+
+    def _complete_docs_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /docs subcommands."""
+        if len(parts) == 2:
+            descriptions = {
+                'list': 'List all documents',
+                'show': 'Show document content',
+                'remove': 'Remove a document',
+                'rm': 'Remove a document (alias)',
+                'clear': 'Remove all documents'
+            }
+            for action in DOCS_ACTIONS:
+                if action.startswith(word.lower()):
+                    yield Completion(
+                        action,
+                        start_position=-len(word),
+                        display_meta=descriptions.get(action, '')
+                    )
+
+    def _complete_prompt_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /prompt subcommands and prompt names."""
+        if len(parts) == 2:
+            # Complete subcommands
+            descriptions = {
+                'list': 'List available prompts',
+                'use': 'Use a prompt',
+                'show': 'Show prompt content'
+            }
+            for action in PROMPT_ACTIONS:
+                if action.startswith(word.lower()):
+                    yield Completion(
+                        action,
+                        start_position=-len(word),
+                        display_meta=descriptions.get(action, '')
+                    )
+            # Also suggest prompt names directly
+            try:
+                from episodic.prompt_manager import get_prompt_manager
+                pm = get_prompt_manager()
+                for name in pm.list_prompts():
+                    if name.startswith(word.lower()):
+                        yield Completion(name, start_position=-len(word), display_meta='prompt')
+            except:
+                pass
+        elif len(parts) == 3 and parts[1] in ['use', 'show']:
+            # Complete prompt names for use/show
+            try:
+                from episodic.prompt_manager import get_prompt_manager
+                pm = get_prompt_manager()
+                for name in pm.list_prompts():
+                    if name.startswith(word.lower()):
+                        yield Completion(name, start_position=-len(word), display_meta='prompt')
+            except:
+                pass
+
+    def _complete_reset_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /reset with 'all' or parameter names."""
+        if len(parts) == 2:
+            # Suggest 'all' first
+            if 'all'.startswith(word.lower()):
+                yield Completion('all', start_position=-len(word), display_meta='Reset all to defaults')
+            # Also suggest parameter names from PARAM_HANDLERS
+            from episodic.commands.settings_handlers import PARAM_HANDLERS
+            for param in PARAM_HANDLERS.keys():
+                if param.startswith(word.lower()):
+                    yield Completion(param, start_position=-len(word), display_meta='parameter')
+
+    def _complete_dev_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /dev subcommands."""
+        if len(parts) == 2:
+            descriptions = {
+                'reindex-help': 'Reindex help documentation'
+            }
+            for action in DEV_ACTIONS:
+                if action.startswith(word.lower()):
+                    yield Completion(
+                        action,
+                        start_position=-len(word),
+                        display_meta=descriptions.get(action, '')
+                    )
+
+    def _complete_migrate_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /migrate subcommands."""
+        if len(parts) == 2:
+            descriptions = {
+                'run': 'Run migration',
+                'dry-run': 'Preview what would be migrated',
+                'rollback': 'Rollback migration'
+            }
+            for action in MIGRATE_ACTIONS:
+                if action.startswith(word.lower()):
+                    yield Completion(
+                        action,
+                        start_position=-len(word),
+                        display_meta=descriptions.get(action, '')
+                    )

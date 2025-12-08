@@ -150,8 +150,7 @@ Web search parameters can be set using the shorter `web.` prefix:
 | Parameter | Short Form | Default | Description |
 |-----------|------------|---------|-------------|
 | `web_search_enabled` | `web.enabled` | false | Enable web search |
-| `web_search_provider` | `web.provider` | "duckduckgo" | Single provider |
-| `web_search_providers` | `web.providers` | ["duckduckgo"] | Provider order for fallback |
+| `web_search_providers` | `web.providers` | ["duckduckgo"] | Provider order (first is primary, others are fallbacks) |
 | `web_search_fallback_enabled` | `web.fallback` | true | Enable automatic fallback |
 | `web_search_fallback_cache_minutes` | `web.fallback_cache_minutes` | 5 | Cache working provider (minutes) |
 | `web_search_max_results` | `web.max_results` | 5 | Number of results to retrieve |

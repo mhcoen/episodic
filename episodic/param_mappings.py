@@ -46,7 +46,7 @@ PARAM_MAPPING = {
     
     # Web search settings
     'web-search-enabled': 'web_search_enabled',
-    'web-search-provider': 'web_search_provider',
+    'web-search-provider': 'web_search_providers',  # Singular alias maps to plural
     'web-search-auto-enhance': 'web_search_auto_enhance',
     'web-search-max-results': 'web_search_max_results',
     'web-search-synthesize': 'web_search_synthesize',
@@ -75,8 +75,8 @@ PARAM_MAPPING = {
 
 # Short aliases for common parameters
 SHORT_ALIASES = {
-    # Web search - dot notation
-    'web.provider': 'web_search_provider',
+    # Web search - dot notation (all map to plural list)
+    'web.provider': 'web_search_providers',  # Singular alias maps to plural
     'web.providers': 'web_search_providers',
     'web.enabled': 'web_search_enabled',
     'web.fallback': 'web_search_fallback_enabled',
@@ -90,8 +90,8 @@ SHORT_ALIASES = {
     'web.show_sources': 'web_show_sources',
     'web.show_raw': 'web_show_raw',
     
-    # Web search - dash notation (backward compatibility)
-    'web-provider': 'web_search_provider',
+    # Web search - dash notation (all map to plural list)
+    'web-provider': 'web_search_providers',  # Singular alias maps to plural
     'web-providers': 'web_search_providers',
     'web-enabled': 'web_search_enabled',
     'web-auto': 'web_search_auto_enhance',
@@ -146,7 +146,7 @@ SHORT_ALIASES = {
 # Environment variable mapping
 ENV_VAR_MAPPING = {
     # Web search
-    'web_search_provider': 'EPISODIC_WEB_PROVIDER',
+    'web_search_providers': 'EPISODIC_WEB_PROVIDERS',
     'web_search_enabled': 'EPISODIC_WEB_ENABLED',
     'web_search_auto_enhance': 'EPISODIC_WEB_AUTO',
     'web_search_max_results': 'EPISODIC_WEB_RESULTS',

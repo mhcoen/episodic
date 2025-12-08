@@ -9,7 +9,8 @@ and user-friendly display names (aliases) for better usability.
 PARAM_ALIASES = {
     # Web search parameters
     "web-enabled": "web-search-enabled",
-    "web-provider": "web-search-provider",
+    "web-provider": "web-search-providers",  # Singular alias maps to plural
+    "web-providers": "web-search-providers",
     
     # Topic detection parameters  
     "auto-topics": "automatic-topic-detection",
@@ -52,19 +53,41 @@ DISPLAY_NAMES = {v: k for k, v in PARAM_ALIASES.items()}
 
 # Parameter descriptions for help
 PARAM_DESCRIPTIONS = {
+    # Core settings
     "debug": "Show debug output and verbose information",
     "cost": "Display token costs after each response",
-    "topics": "Show topic transitions in conversation",
+    "model": "Primary LLM model for chat",
     "streaming": "Enable real-time response streaming",
-    "muse-mode": "Enable web search synthesis mode",
-    "muse-style": "Response length (concise/standard/comprehensive/exhaustive)",
-    "muse-detail": "Detail level (minimal/moderate/detailed/maximum)",
     "depth": "Number of conversation turns to include in context",
     "wrap": "Enable text wrapping for long responses",
-    "rag-enabled": "Enable knowledge base search integration",
+
+    # Topic detection
+    "topics": "Show topic transitions in conversation",
+    "auto-topics": "Automatically detect topic changes",
+    "topic-threshold": "Minimum messages before topic change",
+
+    # Muse mode (web synthesis)
+    "muse-mode": "Enable web search synthesis mode",
+    "muse-style": "Response length: concise/standard/comprehensive",
+    "muse-detail": "Detail level: minimal/moderate/detailed/maximum",
+
+    # RAG / Knowledge base
+    "rag-enabled": "Enable knowledge base search",
+    "rag-auto": "Auto-search knowledge base for each query",
+
+    # Web search
     "web-enabled": "Enable web search functionality",
-    "auto-topics": "Automatically detect topic changes in conversation",
-    "topic-threshold": "Minimum messages before allowing topic change",
+    "web-auto": "Auto-enhance responses with web search",
+    "web.providers": "Web search providers (comma-separated)",
+
+    # Voice settings
+    "voice_stt_provider": "Speech-to-text provider",
+    "voice_tts_provider": "Text-to-speech provider",
+    "voice_tts_enabled": "Enable text-to-speech output",
+
+    # Display settings
+    "color_mode": "Color output: full/basic/none",
+    "stream_rate": "Streaming speed (words per second)",
 }
 
 

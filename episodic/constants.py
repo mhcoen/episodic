@@ -26,6 +26,24 @@ COMPRESSION_ACTIONS = ['stats', 'queue', 'compress', 'api-stats', 'reset-api']
 # Voice subcommands
 VOICE_ACTIONS = ['on', 'off', 'status', 'stt', 'tts', 'info']
 
+# RAG subcommands
+RAG_ACTIONS = ['on', 'off', 'stats']
+
+# Docs subcommands
+DOCS_ACTIONS = ['list', 'show', 'remove', 'rm', 'clear']
+
+# Prompt subcommands
+PROMPT_ACTIONS = ['list', 'use', 'show']
+
+# Reset options
+RESET_ACTIONS = ['all']
+
+# Dev subcommands
+DEV_ACTIONS = ['reindex-help']
+
+# Migrate subcommands
+MIGRATE_ACTIONS = ['run', 'dry-run', 'rollback']
+
 # Summary length options
 SUMMARY_LENGTHS = ['brief', 'short', 'standard', 'detailed', 'bulleted']
 

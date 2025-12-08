@@ -141,8 +141,7 @@ CONFIG_DOCS = {
     
     # Web search settings
     "web_search_enabled": "Enable web search functionality for current information",
-    "web_search_provider": "Search provider to use (duckduckgo, searx, google, bing)",
-    "web_search_providers": "Ordered list of providers for fallback (e.g., ['google', 'duckduckgo'])",
+    "web_search_providers": "Ordered list of search providers (first is primary, others are fallbacks)",
     "web_search_fallback_enabled": "Enable automatic fallback to next provider on errors",
     "web_search_fallback_cache_minutes": "Cache working provider for N minutes after successful search",
     "web_search_auto_enhance": "Automatically search web when local results insufficient",

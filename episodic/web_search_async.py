@@ -37,9 +37,8 @@ class AsyncWebSearchManager:
         providers_list = config.get('web_search_providers')
         
         if not providers_list:
-            # Fall back to single provider for backward compatibility
-            provider_name = config.get('web_search_provider', 'duckduckgo')
-            providers_list = [provider_name]
+            # Default to duckduckgo
+            providers_list = ['duckduckgo']
         elif isinstance(providers_list, str):
             # Handle comma-separated string
             providers_list = [p.strip() for p in providers_list.split(',')]

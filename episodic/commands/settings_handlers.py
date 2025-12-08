@@ -263,7 +263,6 @@ PARAM_HANDLERS = {
     'compression_method': lambda v: handle_string_param('compression_method', v, COMPRESSION_METHODS),
     'drift_embedding_provider': lambda v: handle_string_param('drift_embedding_provider', v),
     'drift_embedding_model': lambda v: handle_string_param('drift_embedding_model', v),
-    'web_search_provider': lambda v: handle_string_param('web_search_provider', v, WEB_SEARCH_PROVIDERS),
     'web_search_providers': lambda v: handle_list_param('web_search_providers', v, WEB_SEARCH_PROVIDERS),
     # muse_detail removed - use /detail command instead to avoid duplication
     

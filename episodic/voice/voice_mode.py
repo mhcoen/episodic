@@ -65,7 +65,7 @@ class VoiceModeManager:
         if self._stt_provider is None:
             from episodic.voice.stt_providers import get_stt_provider
 
-            provider_name = config.get("voice_stt_provider", "local_whisper")
+            provider_name = config.get("voice_stt_provider", "openai_whisper")
             kwargs = {}
 
             if provider_name == "local_whisper":
@@ -80,7 +80,7 @@ class VoiceModeManager:
         if self._tts_provider is None:
             from episodic.voice.tts_providers import get_tts_provider
 
-            provider_name = config.get("voice_tts_provider", "local_piper")
+            provider_name = config.get("voice_tts_provider", "openai_tts")
             kwargs = {}
 
             # Speed setting applies to all providers

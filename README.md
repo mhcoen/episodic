@@ -141,7 +141,7 @@ Episodic automatically configures itself based on available providers:
 ## 📖 Documentation
 
 - **[Installation](docs/installation.md)** - Setup instructions
-- **[User Guide](docs/user-guide.md)** - Comprehensive guide
+- **[User Guide](USER_GUIDE.md)** - Comprehensive guide
 - **[Features](docs/features.md)** - Detailed feature documentation
 - **[CLI Reference](docs/cli-reference.md)** - All commands
 - **[Configuration](docs/configuration.md)** - Settings and options
@@ -156,7 +156,7 @@ Voice mode enables speech input and text-to-speech output with wake word detecti
 - TTS (Text-to-Speech): Local Piper (free), OpenAI TTS, ElevenLabs
 - Wake Word: Porcupine (local, low-latency), Local Whisper
 
-See the [User Guide](docs/user-guide.md) for voice mode setup and configuration.
+See the [User Guide](USER_GUIDE.md) for voice mode setup and configuration.
 
 ### 🎭 Muse Mode - Conversational Web Search
 Muse mode transforms Episodic into a Perplexity-like AI research assistant that searches the web and synthesizes comprehensive answers:
@@ -453,7 +453,7 @@ Episodic includes several experimental features for exploration:
 - **Boundary Analysis**: LLM-powered detection of exact topic transition points
 - **Alternative Embeddings**: Pluggable embedding providers for different use cases
 
-See the [User Guide's section on Experimental Features](docs/user-guide.md#experimental-features) for details.
+See the [User Guide's section on Experimental Features](USER_GUIDE.md#experimental-features) for details.
 
 ## 🤝 Contributing
 

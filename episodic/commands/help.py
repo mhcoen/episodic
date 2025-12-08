@@ -82,25 +82,139 @@ def _display_help_output(text: str, color: str):
 
 
 class HelpRAG:
-    """Specialized RAG for help documentation."""
-    
+    """Specialized RAG for help documentation with dedicated collection.
+
+    Uses a completely separate ChromaDB collection to avoid mixing help docs
+    with conversation history or user documents.
+    """
+
     def __init__(self):
-        """Initialize with help-specific collection."""
-        # Import here to avoid module-level import errors
-        from episodic.rag import EpisodicRAG
-        
-        # Use composition instead of inheritance
-        self.rag = EpisodicRAG()
-        # Mark this as a help RAG to skip retrieval tracking
-        self.rag._is_help_rag = True
-        
-        # Skip collection override for now - the adapter doesn't support it
-        # The help documents will be stored in the main user docs collection
-        # This is a temporary fix until we implement proper help collection support
-        self.collection = None
-            
+        """Initialize with dedicated help-only collection."""
+        from pathlib import Path
+        import chromadb
+        from chromadb.utils import embedding_functions
+
+        # Use a separate ChromaDB directory for help docs
+        persist_dir = Path.home() / ".episodic" / "help_chroma"
+        persist_dir.mkdir(parents=True, exist_ok=True)
+
+        self.client = chromadb.PersistentClient(path=str(persist_dir))
+
+        # Use sentence transformers for embeddings (free, local)
+        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="all-MiniLM-L6-v2"
+        )
+
+        # Get or create dedicated help collection
+        try:
+            self.collection = self.client.get_collection(
+                name="episodic_help_docs",
+                embedding_function=self.embedding_function
+            )
+        except:
+            self.collection = self.client.create_collection(
+                name="episodic_help_docs",
+                embedding_function=self.embedding_function,
+                metadata={"description": "Episodic help documentation"}
+            )
+
         self._indexed_docs = set()
-    
+        self._load_indexed_docs()
+
+    def _load_indexed_docs(self):
+        """Load which docs have been indexed from the collection."""
+        try:
+            results = self.collection.get()
+            if results and 'metadatas' in results:
+                for metadata in results['metadatas']:
+                    if metadata and 'doc_name' in metadata:
+                        self._indexed_docs.add(metadata['doc_name'])
+        except Exception:
+            self._indexed_docs = set()
+
+    def _add_document(self, content: str, source: str, metadata: dict) -> tuple:
+        """Add a document to the help collection with chunking."""
+        import hashlib
+
+        # Chunk size and overlap for help docs - smaller chunks for better precision
+        chunk_size = 800
+        overlap = 150
+
+        # Simple chunking
+        chunks = []
+        if len(content) <= chunk_size:
+            chunks.append((content, {"start": 0, "end": len(content)}))
+        else:
+            start = 0
+            while start < len(content):
+                end = min(start + chunk_size, len(content))
+                # Try to break at a newline or space
+                if end < len(content):
+                    last_newline = content.rfind('\n', start, end)
+                    if last_newline > start + chunk_size // 2:
+                        end = last_newline
+                    else:
+                        last_space = content.rfind(' ', start, end)
+                        if last_space > start:
+                            end = last_space
+
+                chunk_text = content[start:end].strip()
+                if chunk_text:
+                    chunks.append((chunk_text, {"start": start, "end": end}))
+
+                start = end - overlap if end < len(content) else end
+                if start <= chunks[-1][1]["start"]:
+                    start = chunks[-1][1]["end"]
+
+        # Generate IDs and prepare data
+        doc_id = hashlib.sha256(source.encode()).hexdigest()[:16]
+        chunk_ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
+        chunk_texts = [c[0] for c in chunks]
+        chunk_metadatas = []
+
+        for i, (text, pos) in enumerate(chunks):
+            meta = {**metadata, "source": source, "chunk_index": i, **pos}
+            chunk_metadatas.append(meta)
+
+        # Add to collection
+        self.collection.add(
+            ids=chunk_ids,
+            documents=chunk_texts,
+            metadatas=chunk_metadatas
+        )
+
+        return doc_id, len(chunks)
+
+    def _search(self, query: str, n_results: int = 5) -> dict:
+        """Search the help collection."""
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=n_results
+            )
+
+            if not results or not results['ids'] or not results['ids'][0]:
+                return {'results': []}
+
+            formatted = []
+            for i in range(len(results['ids'][0])):
+                doc = results['documents'][0][i] if results['documents'] else ""
+                metadata = results['metadatas'][0][i] if results['metadatas'] else {}
+                distance = results['distances'][0][i] if 'distances' in results else 0
+                score = max(0, 1 - distance)
+
+                formatted.append({
+                    'content': doc,
+                    'metadata': metadata,
+                    'relevance_score': score
+                })
+
+            return {'results': formatted}
+        except Exception as e:
+            if config.get("debug"):
+                typer.secho(f"[Help RAG] Search error: {e}", fg=get_error_color())
+            return {'results': []}
+
     def ensure_help_docs_indexed(self):
         """Ensure help documentation is indexed."""
         help_docs = [
@@ -137,32 +251,22 @@ class HelpRAG:
                         # Read file content
                         with open(doc_path, 'r', encoding='utf-8') as f:
                             content = f.read()
-                        
+
                         # Add document with clean metadata
                         doc_metadata = {
                             'title': doc,
                             'type': 'help_documentation',
                             'doc_name': doc
                         }
-                        # Use larger chunks for help documentation
-                        # Temporarily set larger chunk size for help docs
-                        original_chunk_size = config.get('rag_chunk_size', 1000)
-                        original_chunk_overlap = config.get('rag_chunk_overlap', 200)
-                        config.set('rag_chunk_size', 2000)  # Larger chunks for better context
-                        config.set('rag_chunk_overlap', 400)  # More overlap for continuity
-                        
-                        doc_ids = self.rag.add_document(
+
+                        # Use dedicated help collection
+                        doc_id, chunks = self._add_document(
                             content=content,
                             source=doc_path,
                             metadata=doc_metadata
                         )
-                        
-                        # Restore original settings
-                        config.set('rag_chunk_size', original_chunk_size)
-                        config.set('rag_chunk_overlap', original_chunk_overlap)
-                        success = doc_ids is not None and len(doc_ids) > 0
-                        # message = f"Indexed {len(doc_ids)} chunks" if success else "Failed to index"
-                        if success:
+
+                        if doc_id:
                             self._indexed_docs.add(doc)
                     else:
                         self._indexed_docs.add(doc)
@@ -171,37 +275,52 @@ class HelpRAG:
                     typer.secho(f"Error checking/indexing {doc}: {str(e)}", fg=get_error_color())
     
     def search_help(self, query: str, n_results: int = 5) -> list:
-        """Search help documentation."""
+        """Search help documentation using dedicated help collection."""
         # Ensure docs are indexed
         self.ensure_help_docs_indexed()
-        
-        # Search with help-specific prompt
+
+        # Search dedicated help collection (no filtering needed - all results are help docs)
         with suppress_all_output():
-            results = self.rag.search(query, n_results=n_results)
-        
+            results = self._search(query, n_results=n_results)
+
         # Format results for help display
         formatted_results = []
-        
-        # Extract data from search results
-        if results['results'] and len(results['results']) > 0:
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            
-            for i, result in enumerate(results['results']):
-                content = result['content']
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        if results['results']:
+            for result in results['results']:
                 metadata = result.get('metadata', {})
+                content = result['content']
                 score = result.get('relevance_score', 0)
-                
+
                 # Extract source file from metadata
                 source = metadata.get('source', 'Unknown')
                 source = source.replace(project_root + '/', '')
-                
+
                 formatted_results.append({
                     'content': content,
                     'source': source,
                     'score': score
                 })
-        
+
         return formatted_results
+
+    def clear_collection(self):
+        """Clear all documents from the help collection."""
+        try:
+            # Delete and recreate the collection
+            self.client.delete_collection(name="episodic_help_docs")
+            self.collection = self.client.create_collection(
+                name="episodic_help_docs",
+                embedding_function=self.embedding_function,
+                metadata={"description": "Episodic help documentation"}
+            )
+            self._indexed_docs.clear()
+            return True
+        except Exception as e:
+            if config.get("debug"):
+                typer.secho(f"[Help RAG] Clear error: {e}", fg=get_error_color())
+            return False
 
 
 # Global help RAG instance (lazy initialization)
@@ -388,15 +507,15 @@ def help_command(query: str):
             # Search help documentation
             search_results = help_rag.search_help(search_terms, n_results=5)
 
-            # Debug: Show what we found
-            if config.get('debug', False):
-                typer.secho(f"\nDebug: Found {len(search_results)} results", fg=get_text_color())
-                for i, result in enumerate(search_results):
-                    score = result.get('score', 0)
-                    typer.secho(f"Result {i+1} (score: {score:.3f}): {result['content'][:100]}...", fg=get_text_color())
+        # Debug: Show what we found (outside suppress block)
+        if config.get('debug', False):
+            typer.secho(f"\nDebug: Found {len(search_results)} results", fg=get_text_color())
+            for i, result in enumerate(search_results):
+                score = result.get('score', 0)
+                typer.secho(f"Result {i+1} (score: {score:.3f}): {result['content'][:100]}...", fg=get_text_color())
 
         # Check if we have relevant results
-        RELEVANCE_THRESHOLD = 0.5
+        RELEVANCE_THRESHOLD = 0.3
         relevant_results = [r for r in search_results if r.get('score', 0) >= RELEVANCE_THRESHOLD]
 
         if not relevant_results:
@@ -414,31 +533,81 @@ def help_command(query: str):
             typer.secho("  • If documentation was recently updated: /help reindex", fg=get_system_color(), dim=True)
             return
 
-        # Display relevant results
-        typer.echo()
-        for i, result in enumerate(relevant_results[:3]):  # Show top 3
+        # Synthesize answer using LLM (like original implementation)
+        import shutil
+        terminal_width = shutil.get_terminal_size().columns
+        wrap_width = min(terminal_width - 2, 80)
+
+        # Gather context from search results
+        context_parts = []
+        sources = set()
+        for result in relevant_results[:5]:
             content = result['content']
             source = result.get('source', 'Unknown')
-            score = result.get('score', 0)
+            source_name = source.split('/')[-1] if '/' in source else source
+            sources.add(source_name)
+            context_parts.append(content)
 
-            # Display content with word wrapping
-            import shutil
-            import textwrap
-            terminal_width = shutil.get_terminal_size().columns
-            wrap_width = min(terminal_width - 4, 76)  # Leave margin
+        context = "\n\n".join(context_parts)
 
-            # Wrap the content
-            wrapped_lines = textwrap.wrap(content, width=wrap_width)
-            for line in wrapped_lines:
-                typer.secho(f"  {line}", fg=get_text_color())
+        # Build prompt with strict context-only instruction
+        help_prompt = f"""You are the Episodic CLI help system. Answer ONLY using the documentation provided below.
 
-            # Show source if debug enabled
-            if config.get('debug', False):
-                typer.secho(f"  (Source: {source}, Score: {score:.3f})", fg=get_text_color(), dim=True)
+DOCUMENTATION:
+{context}
 
-            # Add spacing between results
-            if i < len(relevant_results[:3]) - 1:
-                typer.echo()
+QUESTION: {query}
+
+RULES:
+1. ONLY use information from the DOCUMENTATION above - never use external knowledge
+2. If the documentation doesn't contain the answer, say "This isn't covered in the documentation"
+3. Be concise - 2-3 short paragraphs max
+4. NEVER use markdown code blocks (no ``` ever)
+5. Show commands on their own line, indented with 2 spaces, like:
+  /muse
+  /chat"""
+
+        typer.echo()
+
+        try:
+            from episodic.llm import query_llm
+            from episodic.unified_streaming import unified_stream_response
+
+            # Use main chat model for help synthesis, with fallback to ollama/phi4
+            model = config.get("model")
+            if not model or model == "test-model":
+                model = "ollama/phi4"
+
+            if config.get('stream_responses', True):
+                # Stream the response
+                stream_tuple = query_llm(help_prompt, model=model, stream=True)
+                stream_gen = stream_tuple[0] if isinstance(stream_tuple, tuple) else stream_tuple
+
+                unified_stream_response(
+                    stream_gen,
+                    model=model,
+                    color=get_system_color(),
+                    wrap_width=wrap_width
+                    # Let unified_stream_response auto-detect formatting
+                )
+            else:
+                # Non-streaming
+                result = query_llm(help_prompt, model=model, stream=False)
+                response_text = result[0] if isinstance(result, tuple) else result
+                _display_help_output(response_text, get_system_color())
+
+            # Show sources
+            typer.echo()
+            typer.secho("─" * min(50, wrap_width), fg=get_text_color(), dim=True)
+            typer.secho("📚 Sources: ", fg=get_heading_color(), nl=False)
+            typer.secho(", ".join(sorted(sources)), fg=get_system_color(), dim=True)
+
+        except Exception as e:
+            if config.get('debug'):
+                typer.secho(f"LLM synthesis failed: {e}", fg=get_warning_color())
+                import traceback
+                traceback.print_exc()
+            typer.secho("Error getting synthesized answer. Try browsing docs directly.", fg=get_warning_color())
 
     except Exception as e:
         typer.secho(f"\n⚠️  Error searching documentation: {str(e)}", fg=get_warning_color())
@@ -451,13 +620,13 @@ def help_command(query: str):
 def help_reindex():
     """
     Reindex all help documentation files.
-    
+
     This command clears the existing help index and re-indexes all documentation
-    files listed in HELP_INDEXED_FILES.md. Useful after documentation updates.
+    files into a dedicated help-only ChromaDB collection. Useful after docs updates.
     """
     typer.secho("\n📚 Reindexing Help Documentation", fg=get_heading_color(), bold=True)
     typer.secho("─" * 50, fg=get_heading_color())
-    
+
     # Check if ChromaDB is available
     try:
         import chromadb  # noqa: F401
@@ -466,103 +635,66 @@ def help_reindex():
         typer.secho("\n⚠️  Documentation indexing requires ChromaDB and sentence-transformers.", fg=get_warning_color())
         typer.secho("Install with: pip install chromadb sentence-transformers", fg=get_text_color())
         return
-    
+
     try:
-        # Skip collection deletion - we're using the main collection now
-        typer.secho("\nPreparing to reindex help documentation...", fg=get_text_color())
-        
-        # Clear help documents from SQLite database
-        try:
-            from episodic.db import get_connection
-            import os
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            
-            # Get all help document paths
-            help_docs = [
-                "USER_GUIDE.md",
-                "docs/cli-reference.md", 
-                "docs/quick-reference.md",
-                "docs/configuration.md",
-                "README.md",
-                "docs/features.md"
-            ]
-            
-            # Delete documents with these sources
-            with get_connection() as conn:
-                for doc in help_docs:
-                    doc_path = os.path.join(project_root, doc)
-                    conn.execute("DELETE FROM rag_documents WHERE source = ?", (doc_path,))
-        except:
-            pass
-        
-        # Clear the global help RAG instance
+        # Clear the global help RAG instance to force fresh initialization
         global _help_rag
         _help_rag = None
-        
-        # Get or create help RAG (will create fresh instance)
+
+        # Get or create help RAG (creates fresh instance)
         help_rag = get_help_rag()
-        
-        # Clear the indexed docs set
-        help_rag._indexed_docs.clear()
-        
+
+        # Clear the dedicated help collection
+        typer.secho("\nClearing existing help index...", fg=get_text_color())
+        help_rag.clear_collection()
+
         # Define help docs
         help_docs = [
             "USER_GUIDE.md",
-            "docs/cli-reference.md", 
+            "docs/cli-reference.md",
             "docs/quick-reference.md",
             "docs/configuration.md",
             "README.md",
             "docs/features.md"
         ]
-        
+
         # Get project root directory
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        
+
         indexed_count = 0
         total_chunks = 0
-        
+
         typer.secho("\nIndexing documentation files:", fg=get_text_color())
-        
+
         for doc in help_docs:
             doc_path = os.path.join(project_root, doc)
             if os.path.exists(doc_path):
                 typer.secho(f"\n  📄 {doc}", fg=get_system_color(), bold=True)
-                
+
                 try:
                     # Read file content
                     with open(doc_path, 'r', encoding='utf-8') as f:
                         content = f.read()
-                    
+
                     # Get file size for display
                     file_size = len(content)
                     typer.secho(f"     Size: {file_size:,} characters", fg=get_text_color(), dim=True)
-                    
+
                     # Add document with clean metadata
                     doc_metadata = {
                         'title': doc,
                         'type': 'help_documentation',
                         'doc_name': doc
                     }
-                    
-                    # Use larger chunks for help documentation
-                    # Temporarily set larger chunk size for help docs
-                    original_chunk_size = config.get('rag_chunk_size', 1000)
-                    original_chunk_overlap = config.get('rag_chunk_overlap', 200)
-                    config.set('rag_chunk_size', 2000)  # Larger chunks for better context
-                    config.set('rag_chunk_overlap', 400)  # More overlap for continuity
-                    
-                    doc_ids = help_rag.rag.add_document(
+
+                    # Use dedicated help collection (has its own chunking)
+                    doc_id, chunks = help_rag._add_document(
                         content=content,
                         source=doc_path,
                         metadata=doc_metadata
                     )
-                    
-                    # Restore original settings
-                    config.set('rag_chunk_size', original_chunk_size)
-                    config.set('rag_chunk_overlap', original_chunk_overlap)
-                    
-                    if doc_ids:
-                        chunks = len(doc_ids)
+
+                    if doc_id:
                         total_chunks += chunks
                         indexed_count += 1
                         typer.secho(f"     ✓ Indexed {chunks} chunks", fg=get_success_color())
@@ -594,7 +726,7 @@ def help_reindex():
             typer.secho(f"   • Files indexed: {indexed_count}/{len(help_docs)}", fg=get_text_color())
             typer.secho(f"   • Total chunks: {total_chunks}", fg=get_text_color())
         
-        typer.secho(f"   • Collection: episodic_help", fg=get_text_color())
+        typer.secho(f"   • Collection: episodic_help_docs (dedicated)", fg=get_text_color())
         
         if config.get('rag_preserve_formatting', True):
             typer.secho(f"   • Format preservation: Enabled", fg=get_text_color())

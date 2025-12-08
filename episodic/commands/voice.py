@@ -65,8 +65,8 @@ def voice_on():
     typer.secho("Voice mode ", nl=False, fg=get_system_color(), bold=True)
     typer.secho("ENABLED", fg="bright_green", bold=True)
 
-    stt = config.get("voice_stt_provider", "local_whisper")
-    tts = config.get("voice_tts_provider", "local_piper")
+    stt = config.get("voice_stt_provider", "openai_whisper")
+    tts = config.get("voice_tts_provider", "openai_tts")
     typer.secho(f"STT: {stt}  |  TTS: {tts}", fg=get_text_color())
     typer.secho("Say 'exit voice' to disable, or use /voice off", fg=typer.colors.WHITE, dim=True)
 
@@ -95,8 +95,8 @@ def voice_status():
 
     typer.echo()
     typer.secho("Providers:", fg=get_system_color())
-    typer.secho(f"  STT: {config.get('voice_stt_provider', 'local_whisper')}", fg=get_text_color())
-    typer.secho(f"  TTS: {config.get('voice_tts_provider', 'local_piper')}", fg=get_text_color())
+    typer.secho(f"  STT: {config.get('voice_stt_provider', 'openai_whisper')}", fg=get_text_color())
+    typer.secho(f"  TTS: {config.get('voice_tts_provider', 'openai_tts')}", fg=get_text_color())
 
     typer.echo()
     typer.secho("Settings:", fg=get_system_color())
@@ -134,7 +134,7 @@ def voice_stt_menu(selection: Optional[str] = None):
     typer.secho("Speech-to-Text Providers", fg=get_system_color(), bold=True)
     typer.secho("-" * 30, fg=get_text_color())
 
-    current = config.get("voice_stt_provider", "local_whisper")
+    current = config.get("voice_stt_provider", "openai_whisper")
 
     for i, (key, name, desc) in enumerate(providers, 1):
         marker = " *" if key == current else ""
@@ -174,7 +174,7 @@ def voice_tts_menu(selection: Optional[str] = None):
     typer.secho("Text-to-Speech Providers", fg=get_system_color(), bold=True)
     typer.secho("-" * 30, fg=get_text_color())
 
-    current = config.get("voice_tts_provider", "local_piper")
+    current = config.get("voice_tts_provider", "openai_tts")
 
     for i, (key, name, desc) in enumerate(providers, 1):
         marker = " *" if key == current else ""

@@ -454,6 +454,6 @@ def reanalyze_topics(
 
         typer.secho(f"✅ Stored {len(topics)} topics", fg="green")
     else:
-        typer.secho("\n💡 Use --apply to save these topics to the database", fg=get_system_color())
+        typer.secho("\n💡 Use /topics reanalyze apply to save these topics to the database", fg=get_system_color())
 
     return topics

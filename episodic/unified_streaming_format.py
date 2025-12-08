@@ -90,11 +90,15 @@ def stream_with_format_preservation(
                     _print_formatted_line(buffer, color, newline=False)
                     line_position += len(buffer)
                     buffer = ""
-            elif len(buffer) > 80 or (buffer and not buffer[-1].isalnum()):
-                # Only flush if it's getting long or looks complete
-                _print_formatted_line(buffer, color, newline=False)
-                line_position += len(buffer)
-                buffer = ""
+            elif len(buffer) > 80:
+                # Only flush if it's getting long
+                # Don't flush based on non-alphanumeric chars as this can split ** markers
+                # Check that we don't have an unclosed ** marker
+                marker_count = buffer.count('**')
+                if marker_count % 2 == 0:  # Even count means all markers are closed
+                    _print_formatted_line(buffer, color, newline=False)
+                    line_position += len(buffer)
+                    buffer = ""
     
     # Final buffer
     if buffer:
@@ -212,8 +216,15 @@ def _print_formatted_line(line: str, color: str, newline: bool = True):
                 'magenta': '\033[35m',
                 'red': '\033[31m',
                 'white': '\033[37m',
+                'bright_cyan': '\033[96m',
+                'bright_green': '\033[92m',
+                'bright_yellow': '\033[93m',
+                'bright_blue': '\033[94m',
+                'bright_magenta': '\033[95m',
+                'bright_red': '\033[91m',
+                'bright_white': '\033[97m',
             }
-            color_code = color_codes.get(color, '\033[37m')
+            color_code = color_codes.get(color, '\033[96m')  # Default to bright_cyan
             sys.stdout.write(f"{color_code}\033[1m{content}\033[0m")
             sys.stdout.flush()
         else:

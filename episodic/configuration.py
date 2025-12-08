@@ -423,8 +423,8 @@ def get_drift_color():
 def get_topic_change_color():
     """Get the color for topic change notifications (standout)."""
     import typer
-    # Use cyan for topic changes (matches system theme)
-    return typer.colors.CYAN
+    # Use bright magenta (purple) for topic changes to stand out from LLM responses
+    return typer.colors.BRIGHT_MAGENTA
 
 # Cost display formatting
 COST_PRECISION = 6  # Number of decimal places for cost display

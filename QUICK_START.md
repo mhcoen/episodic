@@ -186,8 +186,8 @@ export BRAVE_API_KEY="your_brave_key_here"
 ### Conversation Management
 - `/list` - Show recent messages
 - `/topics` - View conversation topics
-- `/out` - Export conversation to markdown
-- `/in <file>` - Import previous conversation
+- `/save` - Export conversation to markdown
+- `/load <file>` - Import previous conversation
 
 ### Cost Tracking
 - `/set show_cost true` - Display token usage
@@ -198,7 +198,7 @@ export BRAVE_API_KEY="your_brave_key_here"
 
 1. **Start with `/style concise`** - Makes responses faster and more focused
 2. **Use `/muse` for current events** - Gets real-time information from the web
-3. **Export important conversations** - Use `/out` to save as markdown
+3. **Export important conversations** - Use `/save` to export as markdown
 4. **Monitor usage** - Enable `/set show_cost true` to track token usage
 
 ## Troubleshooting

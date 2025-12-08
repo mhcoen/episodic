@@ -37,7 +37,7 @@ In Episodic's talk mode:
 - **Commands**: Type `/` and press Tab to see all available commands
 - **Parameters**: Type `/set ` and press Tab to see all configuration parameters
 - **Models**: Type `/model chat ` and press Tab to see available models
-- **Files**: Type `/in ` and press Tab to browse files (shows only .md files for import)
+- **Files**: Type `/load ` and press Tab to browse markdown files for import
 - **Type hints**: Parameters show their expected value type (boolean, number, choice, etc.)
 - To disable: `/set enable_tab_completion false`
 
@@ -246,21 +246,21 @@ The `reanalyze` subcommand uses hierarchical clustering with elbow detection to 
 
 ## Markdown Operations
 
-### /out
+### /save
 Export conversations to markdown
 ```bash
-/out                        # Export current topic
-/out 3                      # Export topic 3
-/out 1-5 summary.md         # Export topics 1-5 to file
-/out all backup.md          # Export entire conversation
+/save                       # Export current topic
+/save 3                     # Export topic 3
+/save 1-5 summary.md        # Export topics 1-5 to file
+/save all backup.md         # Export entire conversation
 ```
 
-### /in
+### /load
 Import markdown conversations
 ```bash
-/in conversation.md         # Import markdown file
-/in exports/backup.md       # Import from exports directory
-/in ~/Documents/chat.md     # Import from path
+/load conversation.md       # Import markdown file
+/load exports/backup.md     # Import from exports directory
+/load ~/Documents/chat.md   # Import from path
 ```
 
 ### /files, /ls

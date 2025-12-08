@@ -97,8 +97,8 @@ Episodic automatically configures itself based on available providers:
 
 # Core Commands  
 /topics          # See how your conversation is organized
-/out             # Save current topic to markdown
-/in file.md      # Load a markdown conversation
+/save            # Save current topic to markdown
+/load file.md    # Load a markdown conversation
 /files           # List markdown files in directory (alias: /ls)
 
 # Knowledge & Search
@@ -277,7 +277,7 @@ Export conversations to markdown for sharing, backup, or continuing later:
 > Tell me about the history of computing
 🤖 The history of computing spans several millennia...
 
-> /out
+> /save
 ✅ Conversation saved to: exports/history-of-computing-2025-10-15.md
 
 # Later, or on another machine:
@@ -287,7 +287,7 @@ Export conversations to markdown for sharing, backup, or continuing later:
    Size: 3.2 KB • Modified: 2 hours ago
    Preview: History of Computing
 
-> /in exports/history-of-computing-2025-10-15.md
+> /load exports/history-of-computing-2025-10-15.md
 ✅ Conversation loaded successfully!
 
 > What about quantum computing?
@@ -296,11 +296,11 @@ Export conversations to markdown for sharing, backup, or continuing later:
 # Export specific topics or entire conversations
 > /topics
 [1] ✓ History of Computing
-[2] ✓ Programming Languages  
+[2] ✓ Programming Languages
 [3] ○ Quantum Computing (ongoing)
 
-> /out 1-2 computing-basics.md  # Export topics 1 and 2
-> /out all full-conversation.md  # Export everything
+> /save 1-2 computing-basics.md  # Export topics 1 and 2
+> /save all full-conversation.md  # Export everything
 ```
 
 ### 🏠 Offline Usage

@@ -96,6 +96,6 @@ def is_simple_mode() -> bool:
 def get_simple_mode_commands() -> set:
     """Get the set of commands available in simple mode."""
     return {
-        "chat", "muse", "voice", "save", "load", "files", "new",
+        "chat", "muse", "voice", "critique", "save", "load", "files", "new",
         "style", "format", "theme", "help", "exit", "quit", "simple", "advanced"
     }

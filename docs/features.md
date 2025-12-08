@@ -37,6 +37,7 @@ Episodic uses different models for different tasks:
 /model detection ollama/phi3     # Topic detection (use instruct model)
 /model compression gpt-3.5-turbo # Compression/summarization
 /model synthesis claude-3-haiku  # Web search synthesis
+/model critic claude-opus-4-5-20251101  # Critique responses (/critique command)
 ```
 
 Configure model parameters:

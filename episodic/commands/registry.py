@@ -202,6 +202,10 @@ def register_all_commands():
     command_registry.register("summary", summary, "Summarize recent conversation", "Conversation")
     command_registry.register("muse", handle_muse, "Enable muse mode (web search synthesis)", "Conversation")
     command_registry.register("chat", handle_chat, "Enable chat mode (normal LLM conversation)", "Conversation")
+
+    # Critique command
+    from episodic.commands.critique import critique_command
+    command_registry.register("critique", critique_command, "Critique last response using critic model", "Conversation")
     command_registry.register("mode", mode_command, "Switch between local and cloud provider modes", "Configuration")
 
     # Voice command with lazy loading

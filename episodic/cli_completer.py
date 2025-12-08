@@ -142,20 +142,38 @@ class EpisodicCompleter(Completer):
         # Check regular registry
         if cmd in command_registry._commands:
             return command_registry._commands[cmd].description
-        
+
         # Check if it's an alias
         if cmd in self.command_aliases:
             full_cmd = self.command_aliases[cmd]
             if full_cmd in command_registry._commands:
                 return command_registry._commands[full_cmd].description
-        
+
         return ''
-    
+
+    def _get_param_meta(self, param: str, param_type: str) -> str:
+        """Get parameter metadata with current value if set."""
+        # Convert display param (with dashes) to config key (with underscores)
+        config_key = param.replace('-', '_')
+
+        try:
+            value = config.get(config_key)
+            if value is not None:
+                # Truncate long values
+                value_str = str(value)
+                if len(value_str) > 20:
+                    value_str = value_str[:17] + '...'
+                return f"={value_str}"
+            else:
+                return param_type
+        except Exception:
+            return param_type
+
     def _complete_model_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /model command."""
         if len(parts) == 2:
             # Complete context names
-            contexts = ['chat', 'detection', 'compression', 'synthesis', 'list']
+            contexts = ['chat', 'detection', 'compression', 'synthesis', 'critic', 'list']
             for ctx in contexts:
                 if ctx.startswith(word.lower()):
                     yield Completion(
@@ -163,7 +181,7 @@ class EpisodicCompleter(Completer):
                         start_position=-len(word),
                         display_meta='model context'
                     )
-        elif len(parts) == 3 and parts[1] in ['chat', 'detection', 'compression', 'synthesis']:
+        elif len(parts) == 3 and parts[1] in ['chat', 'detection', 'compression', 'synthesis', 'critic']:
             # Complete model names
             yield from self._complete_model_names(word)
     
@@ -263,10 +281,12 @@ class EpisodicCompleter(Completer):
 
             for param in sorted(param_types.keys()):
                 if param.startswith(word.lower()):
+                    # Get current value for display
+                    meta = self._get_param_meta(param, param_types[param])
                     yield Completion(
                         param,
                         start_position=-len(word),
-                        display_meta=param_types[param]
+                        display_meta=meta
                     )
         elif len(parts) == 3:
             # Complete parameter values
@@ -442,83 +462,31 @@ class EpisodicCompleter(Completer):
             pass
     
     def _complete_save_command(self, parts: List[str], word: str) -> List[Completion]:
-        """Complete /save command with topic-based names."""
+        """Complete /save command with recent topic names."""
         if len(parts) == 2:
-            suggestions = []
-            
-            # Start simple and add complexity gradually
             try:
-                from episodic.db import get_recent_topics
-                
-                # Get current topic
-                topics = get_recent_topics(limit=1)
-                if topics:
-                    current_topic = topics[0]
-                    topic_name = current_topic.get('name', '')
-                    
-                    # Simple suggestion based on topic
-                    if topic_name and not topic_name.startswith('ongoing-'):
-                        # Clean up topic name for filename
-                        safe_name = ''.join(c for c in topic_name.lower() if c.isalnum() or c in ' -_')
-                        safe_name = safe_name.replace(' ', '-').strip('-')
-                        
-                        if safe_name:
-                            suggestions.append(safe_name)
-                            suggestions.append(f"{safe_name}-final")
-                    elif topic_name.startswith('ongoing-'):
-                        # For ongoing topics, extract keywords from recent messages
-                        from episodic.db import get_recent_nodes
-                        
-                        recent_messages = get_recent_nodes(limit=10)
-                        if recent_messages:
-                            # Focus on user messages
-                            user_messages = [m for m in recent_messages if m.get('role') == 'user']
-                            if user_messages:
-                                # Common words to filter out
-                                common_words = {
-                                    'what', 'this', 'that', 'with', 'from', 'about', 'have', 'been',
-                                    'will', 'would', 'could', 'should', 'there', 'their', 'they',
-                                    'your', 'more', 'some', 'just', 'like', 'into', 'than', 'then',
-                                    'when', 'where', 'which', 'while', 'after', 'before', 'does',
-                                    'particular', 'particularly', 'specifically', 'certain', 'various'
-                                }
-                                
-                                # Extract keywords from last few messages
-                                all_words = []
-                                for msg in user_messages[-3:]:
-                                    words = msg.get('content', '').lower().split()
-                                    all_words.extend(words)
-                                
-                                # Filter for meaningful words
-                                keywords = [w for w in all_words 
-                                          if len(w) > 4 and w not in common_words and w.isalnum()]
-                                
-                                # Count frequency
-                                from collections import Counter
-                                word_counts = Counter(keywords)
-                                
-                                # Use most common keywords as suggestions
-                                for word, count in word_counts.most_common(2):
-                                    if count > 1 or len(word) > 6:
-                                        safe_word = ''.join(c for c in word if c.isalnum())[:20]
-                                        if safe_word:
-                                            suggestions.append(safe_word)
-            except:
+                # Get last 5 topics
+                topics = get_recent_topics(limit=5)
+
+                for topic in topics:
+                    topic_name = topic.get('name', '')
+
+                    # Skip ongoing-* placeholder names
+                    if not topic_name or topic_name.startswith('ongoing-'):
+                        continue
+
+                    # Clean up topic name for filename
+                    safe_name = ''.join(c for c in topic_name.lower() if c.isalnum() or c in ' -_')
+                    safe_name = safe_name.replace(' ', '-').strip('-')
+
+                    if safe_name and safe_name.startswith(word.lower()):
+                        yield Completion(
+                            safe_name,
+                            start_position=-len(word),
+                            display_meta='topic'
+                        )
+            except Exception:
                 pass
-            
-            # Add some fallback suggestions
-            if not suggestions:
-                suggestions = ['conversation', 'chat-export', 'notes']
-            
-            # Yield completions the EXACT same way as the test version
-            for suggestion in suggestions:
-                if suggestion.startswith(word.lower()):
-                    yield Completion(
-                        suggestion,
-                        start_position=-len(word),
-                        display_meta='suggested name'
-                    )
-            return  # End of function
     
     def _complete_style_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /style command arguments."""

@@ -123,6 +123,9 @@ Episodic automatically configures itself based on available providers:
 /new             # Start a new conversation branch
 /clear           # Clear current conversation context
 
+# Analysis
+/critique        # Have another LLM critique the last response
+
 # Configuration
 /model           # Show current AI models
 /config          # Manage configuration settings
@@ -232,6 +235,9 @@ Use different models for different tasks to optimize performance and cost:
 > /model detection ollama/phi3
 > /model compression ollama/phi3
 > /model synthesis ollama/phi3
+
+# Use a sophisticated model for critiques
+> /model critic claude-opus-4-5-20251101
 
 # Configure model parameters
 > /mset chat.temperature 0.7
@@ -424,9 +430,10 @@ Synthesis:   ollama/phi3
 
 Each context serves a specific purpose:
 - **Chat**: Main conversation with the user
-- **Detection**: Identifying topic changes  
+- **Detection**: Identifying topic changes
 - **Compression**: Summarizing conversation branches
 - **Synthesis**: Web search result synthesis
+- **Critic**: Analyzing and critiquing responses (`/critique` command)
 
 ## 🏗️ Architecture
 

@@ -227,7 +227,7 @@
       "display_name": "Anthropic",
       "models": [
         {
-          "name": "claude-opus-4-5-20251022",
+          "name": "claude-opus-4-5-20251101",
           "display_name": "Claude Opus 4.5",
           "type": "both",
           "parameters": null,

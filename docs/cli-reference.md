@@ -426,6 +426,7 @@ Manage language models for all contexts
 /model detection ollama/phi3     # Set topic detection model (use instruct model)
 /model compression gpt-3.5-turbo # Set compression model
 /model synthesis claude-3-haiku  # Set web synthesis model
+/model critic claude-opus-4-5-20251101  # Set critic model for /critique
 
 # Model pricing is shown per 1M tokens (not 1K)
 # Pricing info comes from models.json or litellm database
@@ -448,6 +449,21 @@ Enable multi-step reflection and reasoning
 /reflect "problem" --steps 5  # Custom number of reflection steps
 /reflect off                # Disable reflection mode
 ```
+
+### /critique
+Have another LLM critique the last assistant response
+```bash
+/critique                   # Critique the last response
+/critique <short_id>        # Critique a specific response by ID
+```
+
+The critic model analyzes responses for:
+- Factual accuracy and potential errors
+- Logical gaps or questionable assumptions
+- Missing nuances or oversimplifications
+- Areas that could be improved
+
+Default model: `anthropic/claude-opus-4-5-20251101` (change with `/model critic <model>`)
 
 ### /summary
 Summarize conversation

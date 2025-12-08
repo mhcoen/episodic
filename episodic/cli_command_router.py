@@ -67,7 +67,7 @@ def handle_command(command_str: str) -> bool:
     # In simple mode, restrict to allowed commands (except developer commands)
     if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands() and cmd_without_slash not in developer_commands:
         typer.secho(f"Command {cmd} is not available in simple mode.", fg=get_error_color())
-        typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /help, /exit", fg=get_warning_color())
+        typer.secho("Available: /chat, /muse, /critique, /new, /save, /load, /files, /style, /format, /help, /exit", fg=get_warning_color())
         typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
         return False
     
@@ -187,6 +187,8 @@ def handle_command(command_str: str) -> bool:
             _handle_memory_stats()
         elif cmd == "/migrate":
             _handle_migrate(args)
+        elif cmd == "/critique":
+            _handle_critique(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -959,3 +961,10 @@ def _handle_migrate(args: List[str]):
     """Handle /migrate command."""
     from episodic.commands.migrate import migrate_command
     migrate_command(*args)
+
+
+def _handle_critique(args: List[str]):
+    """Handle /critique command."""
+    from episodic.commands.critique import critique_command
+    target = args[0] if args else None
+    critique_command(target)

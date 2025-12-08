@@ -69,7 +69,7 @@
   "_comment_stream_responses": "Enable streaming responses for better user experience",
   "stream_responses": true,
   "_comment_stream_rate": "Words per second for constant-rate streaming",
-  "stream_rate": 15,
+  "stream_rate": 30,
   "_comment_stream_constant_rate": "Use constant rate streaming instead of token-based streaming",
   "stream_constant_rate": false,
   "_comment_stream_natural_rhythm": "Add natural pauses and rhythm to streaming (commas, periods, etc.)",
@@ -302,6 +302,8 @@
   "muse_model": null,
   "_comment_synthesis_model": "Model for web search synthesis (ollama/phi4 for local, null to use main model)",
   "synthesis_model": "ollama/phi4",
+  "_comment_critic_model": "Model for /critique command (sophisticated model recommended for substantive critiques)",
+  "critic_model": "anthropic/claude-opus-4-5-20251101",
   "_comment_muse_context_depth": "Number of previous messages to include as context in muse mode",
   "muse_context_depth": 5,
   

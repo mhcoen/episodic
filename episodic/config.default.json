@@ -296,6 +296,8 @@
   "muse_model": null,
   "_comment_synthesis_model": "Model for web search synthesis (gpt-4o-mini recommended, or set to local model like ollama/llama3.1:8b)",
   "synthesis_model": "gpt-4o-mini",
+  "_comment_critic_model": "Model for /critique command (sophisticated model recommended for substantive critiques)",
+  "critic_model": "anthropic/claude-opus-4-5-20251101",
   "_comment_muse_context_depth": "Number of previous messages to include as context in muse mode",
   "muse_context_depth": 5,
   

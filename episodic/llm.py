@@ -354,6 +354,9 @@ def _execute_llm_query(
         unsupported_params = ['presence_penalty', 'frequency_penalty']
         for param in unsupported_params:
             api_params.pop(param, None)
+        # Anthropic doesn't allow both temperature and top_p - keep temperature, drop top_p
+        if 'temperature' in api_params and 'top_p' in api_params:
+            api_params.pop('top_p', None)
     
     # Provider-specific handling
     if provider == "lmstudio":

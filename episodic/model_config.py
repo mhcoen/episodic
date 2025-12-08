@@ -93,11 +93,15 @@ class ModelConfig:
     def detect_model_type(self, model_name: str) -> str:
         """Detect model type using patterns and known models."""
         model_lower = model_name.lower()
-        
-        # Check all known models first (exact match)
+
+        # Strip provider prefix if present (e.g., "anthropic/claude-..." -> "claude-...")
+        model_without_prefix = model_lower.split('/')[-1] if '/' in model_lower else model_lower
+
+        # Check all known models first (exact match, with or without provider prefix)
         for provider_name, provider_data in self._models_data.get("providers", {}).items():
             for model in provider_data.get("models", []):
-                if model.get("name", "").lower() == model_lower:
+                known_model = model.get("name", "").lower()
+                if known_model == model_lower or known_model == model_without_prefix:
                     return model.get("type", "unknown")
         
         # Check patterns

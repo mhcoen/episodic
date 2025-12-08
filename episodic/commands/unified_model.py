@@ -31,20 +31,21 @@ except ImportError:
 
 
 def model_command(
-    context: Optional[str] = typer.Argument(None, help="Context (chat/detection/compression/synthesis), 'list', or model number"),
+    context: Optional[str] = typer.Argument(None, help="Context (chat/detection/compression/synthesis/critic), 'list', or model number"),
     model_name: Optional[str] = typer.Argument(None, help="Model name to set")
 ):
     """
     Manage language models for different contexts.
 
     Usage:
-        /model                              # Show all four models in use
+        /model                              # Show all five models in use
         /model list                         # Show available models with pricing
         /model <number>                     # Show detailed info about model #number
         /model chat <number|full-name>      # Set chat model
         /model detection <number|full-name> # Set detection model (instruct recommended)
         /model compression <number|full-name> # Set compression model (instruct recommended)
         /model synthesis <number|full-name>  # Set synthesis model (instruct recommended)
+        /model critic <number|full-name>    # Set critic model (for /critique command)
 
     Examples:
         /model 5                            # Show info about model #5
@@ -70,7 +71,7 @@ def model_command(
         pass  # Not a number, continue with normal flow
     
     # Validate context
-    valid_contexts = ["chat", "detection", "compression", "synthesis"]
+    valid_contexts = ["chat", "detection", "compression", "synthesis", "critic"]
     if context.lower() not in valid_contexts:
         # Check if user is trying to set a model directly (old syntax)
         if "/" in context or context in get_all_available_models():
@@ -79,6 +80,7 @@ def model_command(
             typer.secho("  /model detection <model_name>", fg=get_text_color())
             typer.secho("  /model compression <model_name>", fg=get_text_color())
             typer.secho("  /model synthesis <model_name>", fg=get_text_color())
+            typer.secho("  /model critic <model_name>", fg=get_text_color())
             return
         
         typer.secho(f"Unknown context: {context}", fg="red")
@@ -101,7 +103,8 @@ def show_current_models():
         ("Chat", "model", "chat"),
         ("Detection", "topic_detection_model", "detection"),
         ("Compression", "compression_model", "compression"),
-        ("Synthesis", "synthesis_model", "synthesis")
+        ("Synthesis", "synthesis_model", "synthesis"),
+        ("Critic", "critic_model", "critic")
     ]
     
     typer.secho("\nCurrent models:", fg=get_heading_color(), bold=True)
@@ -344,6 +347,7 @@ def show_available_models():
     typer.secho("  /model detection <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model compression <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
+    typer.secho("  /model critic <number|full-model-name>", fg=get_system_color())
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
     typer.secho("  /model chat 9                         # Select by number from list", fg=get_text_color(), dim=True)
     typer.secho("  /model chat claude-opus-4-1-20250805  # Select by full model name", fg=get_text_color(), dim=True)
@@ -601,14 +605,16 @@ def show_model_for_context(context: str):
         "chat": "model",
         "detection": "topic_detection_model",
         "compression": "compression_model",
-        "synthesis": "synthesis_model"
+        "synthesis": "synthesis_model",
+        "critic": "critic_model"
     }
-    
+
     descriptions = {
         "chat": "Chat model",
         "detection": "Topic detection model",
         "compression": "Compression model",
-        "synthesis": "Web synthesis model"
+        "synthesis": "Web synthesis model",
+        "critic": "Critic model"
     }
     
     config_key = config_keys[context]
@@ -625,14 +631,16 @@ def set_model_for_context(context: str, model_name: str):
         "chat": "model",
         "detection": "topic_detection_model",
         "compression": "compression_model",
-        "synthesis": "synthesis_model"
+        "synthesis": "synthesis_model",
+        "critic": "critic_model"
     }
-    
+
     descriptions = {
         "chat": "chat",
         "detection": "topic detection",
         "compression": "compression",
-        "synthesis": "web synthesis"
+        "synthesis": "web synthesis",
+        "critic": "critic"
     }
     
     # Check if model_name is a number
@@ -669,19 +677,28 @@ def set_model_for_context(context: str, model_name: str):
         # Not a number, use as model name
         pass
     
-    # Validate model exists
-    if not validate_model_exists(model_name):
-        typer.secho(f"Model not found: {model_name}", fg="red")
+    # Check if model is in our local list
+    in_local_list = validate_model_exists(model_name)
+
+    if not in_local_list:
+        typer.secho(f"Model '{model_name}' not in local list, verifying with API...", fg="yellow")
+
+    # Verify model actually works with API
+    typer.secho("Verifying model...", fg=get_text_color(), dim=True)
+    valid, error_msg = verify_model_with_api(model_name)
+
+    if not valid:
+        typer.secho(f"✗ {error_msg}", fg="red")
         typer.secho("Use '/model list' to see available models", fg=get_text_color())
         return
-    
+
     # Set the model
     config_key = config_keys[context]
     config.set(config_key, model_name)
-    
+
     # Clear any cached parameters that might be incompatible
     validate_and_clear_incompatible_params(context, model_name)
-    
+
     model_str = get_model_string(model_name)
     typer.secho(f"✓ {descriptions[context].capitalize()} model set to: {model_str}", fg="green")
 
@@ -692,7 +709,8 @@ def get_default_for_context(context: str) -> str:
         "chat": "gpt-3.5-turbo",
         "detection": "ollama/phi3",
         "compression": "ollama/phi3",
-        "synthesis": "ollama/phi3"
+        "synthesis": "ollama/phi3",
+        "critic": "anthropic/claude-opus-4-5-20251101"
     }
     return defaults.get(context, "gpt-3.5-turbo")
 
@@ -701,6 +719,36 @@ def validate_model_exists(model_name: str) -> bool:
     """Check if a model exists in available providers."""
     all_models = get_all_available_models()
     return model_name in all_models
+
+
+def verify_model_with_api(model_name: str) -> tuple[bool, str]:
+    """
+    Verify a model exists by making a minimal API call.
+    Returns (success, error_message).
+    """
+    from episodic.llm import _execute_llm_query
+
+    try:
+        # Minimal request - just enough to verify model exists
+        _execute_llm_query(
+            messages=[{"role": "user", "content": "hi"}],
+            model=model_name,
+            stream=False,
+            max_tokens=1
+        )
+        return True, ""
+    except Exception as e:
+        error_str = str(e).lower()
+        if "not_found_error" in error_str or "model:" in error_str or "does not exist" in error_str:
+            return False, "Model not found - the model ID may have changed."
+        elif "api_key" in error_str or "authentication" in error_str or "unauthorized" in error_str:
+            return False, "Authentication error - check your API key."
+        elif "invalid_request" in error_str:
+            # Model exists but request had issues - that's ok for validation
+            return True, ""
+        else:
+            # Unknown error - assume model might exist
+            return True, f"Warning: {e}"
 
 
 def get_all_available_models() -> List[str]:

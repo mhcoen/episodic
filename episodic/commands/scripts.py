@@ -8,8 +8,12 @@ import os
 import typer
 from typing import Optional
 from datetime import datetime
+from pathlib import Path
 from episodic.configuration import get_system_color, get_text_color
 from episodic.cli_session import session_commands
+
+# Scripts directory in user's home
+SCRIPTS_DIR = Path.home() / ".episodic" / "scripts"
 
 
 def scripts_command(subcommand: Optional[str] = None, filename: Optional[str] = None):
@@ -48,14 +52,13 @@ def scripts_command(subcommand: Optional[str] = None, filename: Optional[str] = 
 def save_script(filename: str):
     """Save the current session's commands to a script file."""
     # Ensure scripts directory exists
-    scripts_dir = "scripts"
-    os.makedirs(scripts_dir, exist_ok=True)
-    
+    SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
+
     # Add .txt extension if not present
     if not filename.endswith('.txt'):
         filename += '.txt'
-    
-    filepath = os.path.join(scripts_dir, filename)
+
+    filepath = SCRIPTS_DIR / filename
     
     # Get session commands
     commands = session_commands
@@ -96,20 +99,18 @@ def run_script(filename: str):
 
 def list_scripts():
     """List available script files."""
-    scripts_dir = "scripts"
-    
     typer.secho("\n📄 Available Scripts:", fg=get_system_color(), bold=True)
     typer.secho("─" * 50, fg=get_system_color())
-    
-    if not os.path.exists(scripts_dir):
+
+    if not SCRIPTS_DIR.exists():
         typer.secho("No scripts directory found.", fg=get_text_color())
         typer.secho("Save your first script with: /scripts save <filename>", fg=get_text_color())
         return
-    
+
     script_files = []
-    for file in sorted(os.listdir(scripts_dir)):
-        if file.endswith('.txt'):
-            filepath = os.path.join(scripts_dir, file)
+    for file in sorted(SCRIPTS_DIR.iterdir()):
+        if file.suffix == '.txt':
+            filepath = file
             stat = os.stat(filepath)
             size = stat.st_size
             mtime = datetime.fromtimestamp(stat.st_mtime)
@@ -119,16 +120,16 @@ def list_scripts():
                 lines = f.readlines()
                 command_count = len([l for l in lines if l.strip() and not l.strip().startswith('#')])
             
-            script_files.append((file, size, mtime, command_count))
-    
+            script_files.append((file.name, size, mtime, command_count))
+
     if not script_files:
         typer.secho("No script files found.", fg=get_text_color())
         typer.secho("Save your first script with: /scripts save <filename>", fg=get_text_color())
         return
-    
+
     for filename, size, mtime, cmd_count in script_files:
         # Format the display
-        name_display = f"  {filename:<30}"
+        name_display = f"  {filename:<35}"
         size_display = f"{size:>8,} bytes"
         time_display = mtime.strftime("%Y-%m-%d %H:%M")
         cmd_display = f"{cmd_count} commands"

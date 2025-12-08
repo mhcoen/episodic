@@ -31,8 +31,8 @@ def new_command(topic_name: Optional[str] = None):
         if recent_topics and recent_topics[0]['end_node_id'] is None:
             # End the current topic at the current node
             old_topic = recent_topics[0]
-            from episodic.db_topics import update_topic_end
-            update_topic_end(old_topic['id'], current_node_id)
+            from episodic.db_topics import update_topic_end_node
+            update_topic_end_node(old_topic['name'], old_topic['start_node_id'], current_node_id)
             typer.secho(f"✓ Ended topic: {old_topic['name']}", fg=get_text_color(), dim=True)
         
         # Create a system message to mark the boundary
@@ -41,18 +41,13 @@ def new_command(topic_name: Optional[str] = None):
             system_message = f"--- New conversation: {topic_name} ---"
             
         # Add a system node to mark the transition
-        node_data = {
-            'node_type': 'system',
-            'model': 'system',
-            'content': system_message,
-            'parent_id': current_node_id,
-            'tokens_input': 0,
-            'tokens_output': 0,
-            'cost': 0.0
-        }
-        
-        system_node_id = insert_node(node_data)
-        conversation_manager.update_head(system_node_id)
+        system_node_id = insert_node(
+            content=system_message,
+            parent_id=current_node_id,
+            role='system',
+            model='system'
+        )
+        conversation_manager.set_current_node_id(system_node_id)
         
         # Create the new topic starting after the system message
         # The topic will officially start with the user's next message

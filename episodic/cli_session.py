@@ -72,10 +72,15 @@ def save_session_script(filename: str):
 
 def execute_script(filename: str):
     """Execute commands from a script file."""
+    from pathlib import Path
+    home_scripts = Path.home() / ".episodic" / "scripts"
+
     # Look for the file in various locations
     search_paths = [
         filename,  # As given
-        f"scripts/{filename}",  # In scripts directory
+        str(home_scripts / filename),  # In ~/.episodic/scripts/
+        str(home_scripts / f"{filename}.txt"),  # With .txt extension
+        f"scripts/{filename}",  # In local scripts directory
         f"scripts/{filename}.txt",  # With .txt extension
         f"{filename}.txt",  # With .txt extension in current dir
     ]

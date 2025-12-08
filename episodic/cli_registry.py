@@ -465,7 +465,7 @@ def show_history_help():
 
 def show_topics_help():
     """Show topic detection and management commands."""
-    
+
     # Commands
     commands = [
         ("/topics", "List conversation topics (default action)"),
@@ -474,14 +474,18 @@ def show_topics_help():
         ("/topics compress", "Compress current topic to save space"),
         ("/topics index <n>", "Manual topic detection with window size"),
         ("/topics scores", "Show topic detection scores and analysis"),
-        ("/topics stats", "Show topic statistics and completion status")
+        ("/topics stats", "Show topic statistics and completion status"),
+        ("/topics reanalyze", "Re-detect topics using full conversation context"),
+        ("/topics reanalyze apply", "Re-detect topics and save to database"),
+        ("/topics reanalyze verbose", "Re-detect with detailed merge history")
     ]
-    
+
     # Examples
     examples = [
         ("/topics", "List current topics"),
         ("/topics index 5", "Detect topics with 5-node window"),
-        ("/topics stats", "View topic analytics")
+        ("/topics reanalyze", "Preview re-detected topics using elbow detection"),
+        ("/topics reanalyze apply", "Apply re-detected topics to database")
     ]
 
     # Find the longest command across ALL sections for uniform alignment

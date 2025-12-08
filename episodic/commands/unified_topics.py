@@ -162,39 +162,49 @@ def handle_topics_action(action: str = "list", **kwargs):
     elif action == "stats":
         verbose = kwargs.get('verbose', False)
         show_topic_stats(verbose=verbose)
+    elif action == "reanalyze":
+        from episodic.topics.reanalyze import reanalyze_topics
+        min_similarity = kwargs.get('min_similarity')  # None means use elbow detection
+        apply = kwargs.get('apply', False)
+        verbose = kwargs.get('verbose', False)
+        reanalyze_topics(min_similarity=min_similarity, apply=apply, verbose=verbose)
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats", fg="yellow")
+        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze", fg="yellow")
 
 
 def topics_command(
-    action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats"),
+    action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats|reanalyze"),
     # Common options
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information"),
     # Index-specific options
     window_size: Optional[int] = typer.Option(None, "--window-size", "-w", help="Window size for index action"),
-    apply: bool = typer.Option(False, "--apply", "-a", help="Apply changes (for index action)"),
+    apply: bool = typer.Option(False, "--apply", "-a", help="Apply changes (for index/reanalyze action)"),
     # List-specific options
     limit: Optional[int] = typer.Option(None, "--limit", "-n", help="Number of topics to show"),
     # Scores-specific options
-    node_id: Optional[str] = typer.Option(None, "--node", help="Node ID for score analysis")
+    node_id: Optional[str] = typer.Option(None, "--node", help="Node ID for score analysis"),
+    # Reanalyze-specific options
+    min_similarity: Optional[float] = typer.Option(None, "--similarity", "-s", help="Min similarity for reanalyze (0-1, higher = more topics)")
 ):
     """
     Unified topic management command.
-    
+
     Actions:
-      list     - List all topics (default)
-      rename   - Rename ongoing topics based on content
-      compress - Compress the current topic
-      index    - Manually detect topics using sliding windows
-      scores   - Show topic detection scores
-      stats    - Show topic statistics
-    
+      list      - List all topics (default)
+      rename    - Rename ongoing topics based on content
+      compress  - Compress the current topic
+      index     - Manually detect topics using sliding windows
+      scores    - Show topic detection scores
+      stats     - Show topic statistics
+      reanalyze - Re-detect topics using full conversation context
+
     Examples:
-      /topics              # List all topics
-      /topics rename       # Rename ongoing topics
-      /topics index 5      # Detect topics with window size 5
-      /topics stats        # Show topic statistics
+      /topics                    # List all topics
+      /topics rename             # Rename ongoing topics
+      /topics index 5            # Detect topics with window size 5
+      /topics reanalyze          # Re-detect topics with hierarchical clustering
+      /topics reanalyze --apply  # Re-detect and save to database
     """
     
     if action == "list":
@@ -228,10 +238,15 @@ def topics_command(
     elif action == "stats":
         # New implementation for statistics
         show_topic_stats(verbose=verbose)
-        
+
+    elif action == "reanalyze":
+        from episodic.topics.reanalyze import reanalyze_topics
+        sim = min_similarity if min_similarity is not None else 0.5
+        reanalyze_topics(min_similarity=sim, apply=apply, verbose=verbose)
+
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.echo("\nAvailable actions: list, rename, compress, index, scores, stats")
+        typer.echo("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze")
 
 
 def show_topic_stats(verbose: bool = False):

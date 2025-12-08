@@ -29,18 +29,18 @@ class EpisodicCompleter(Completer):
         # Ensure commands are registered
         register_all_commands()
         
-        # Build command list including aliases
+        # Build command list (main commands only, not aliases)
         self.commands = set()
         self.command_aliases = {}  # alias -> full command
-        
+
         # Add all commands from the registry
         for cmd_name, cmd_info in command_registry._commands.items():
-            self.commands.add(cmd_name)
-            # Add aliases
-            if cmd_info.aliases:
-                for alias in cmd_info.aliases:
-                    self.commands.add(alias)
-                    self.command_aliases[alias] = cmd_name
+            # Only add if this is the main command, not an alias
+            if cmd_name == cmd_info.name:
+                self.commands.add(cmd_name)
+            else:
+                # This entry is an alias pointing to the command
+                self.command_aliases[cmd_name] = cmd_info.name
         
         # Cache commonly used completions
         self._model_cache = None
@@ -340,6 +340,19 @@ class EpisodicCompleter(Completer):
                         sub,
                         start_position=-len(word),
                         display_meta='subcommand'
+                    )
+
+        # Complete options for specific subcommands
+        elif len(parts) >= 3 and cmd == 'topics' and parts[1] == 'reanalyze':
+            # Options for /topics reanalyze
+            options = {'apply': 'save to database', 'verbose': 'show merge details'}
+            already_used = set(parts[2:])
+            for opt, desc in options.items():
+                if opt not in already_used and opt.startswith(word.lower()):
+                    yield Completion(
+                        opt,
+                        start_position=-len(word),
+                        display_meta=desc
                     )
 
     def _complete_mode_command(self, parts: List[str], word: str) -> List[Completion]:

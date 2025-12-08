@@ -173,9 +173,9 @@ def handle_debug_param(value: str) -> bool:
     else:
         typer.secho(f"✅ {result}", fg=get_system_color())
         
-        # Update config based on current state
+        # Update config based on current state - only set legacy debug flag when 'all' is enabled
         enabled = debug_system.get_enabled()
-        config.set('debug', 'all' in enabled or bool(enabled))
+        config.set('debug', 'all' in enabled)
         return True
 
 

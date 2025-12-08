@@ -18,7 +18,7 @@ RESPONSE_FORMATS = ['paragraph', 'bulleted', 'mixed', 'academic']
 DETAIL_LEVELS = ['minimal', 'moderate', 'detailed', 'maximum']
 
 # Topic subcommands
-TOPIC_ACTIONS = ['list', 'rename', 'compress', 'index', 'scores', 'stats']
+TOPIC_ACTIONS = ['list', 'rename', 'compress', 'index', 'scores', 'stats', 'reanalyze']
 
 # Compression subcommands
 COMPRESSION_ACTIONS = ['stats', 'queue', 'compress', 'api-stats', 'reset-api']

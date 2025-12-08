@@ -18,6 +18,7 @@ Just type to chat! No prefix needed.
 | `/model list` | View available models |
 | `/cost` | Show token usage |
 | `/topics` | List conversation topics |
+| `/topics reanalyze` | Re-detect topics using full context |
 | `/muse` | Enable web search mode |
 | `/reflect` | Enable multi-step reflection |
 | `/memory` | Search conversation memories |

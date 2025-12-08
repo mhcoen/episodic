@@ -544,22 +544,32 @@ class ConversationManager:
                 typer.echo("")
                 secho_color(memory_indicator, fg=get_system_color())
             
+            # Apply active persona/prompt if set
+            active_prompt_name = config.get("active_prompt")
+            if active_prompt_name:
+                from episodic.prompt_manager import load_prompt
+                prompt_data = load_prompt(active_prompt_name)
+                if prompt_data and prompt_data.get('content'):
+                    # Insert persona as first system message
+                    persona_msg = {"role": "system", "content": prompt_data['content']}
+                    messages.insert(0, persona_msg)
+
             # Add global style and detail prompts to messages for non-muse modes
             if not config.get("muse_mode"):
                 from episodic.commands.style import get_style_prompt
                 from episodic.commands.detail import get_detail_prompt
-                
+
                 style_prompt = get_style_prompt(
-                    has_rag=bool(rag_context), 
+                    has_rag=bool(rag_context),
                     rag_length=len(rag_context) if rag_context else 0,
                     has_web=bool(web_context)
                 )
-                
+
                 detail_prompt = get_detail_prompt()
-                
+
                 # Combine style and detail prompts
                 combined_prompt = f"{style_prompt}\n\n{detail_prompt}"
-                
+
                 # Add combined prompt as a system message before the user's current message
                 if messages and messages[-1]["role"] == "user":
                     # Insert combined instruction before the latest user message

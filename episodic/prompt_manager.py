@@ -68,8 +68,15 @@ class PromptManager:
                 # treat the whole file as prompt content
                 self.prompts[name] = content
 
-    def list(self) -> List[str]:
-        """Return a list of available prompt names."""
+    def list(self, top_level_only: bool = False) -> List[str]:
+        """Return a list of available prompt names.
+
+        Args:
+            top_level_only: If True, only return prompts in the root directory,
+                           not those in subdirectories (which are components).
+        """
+        if top_level_only:
+            return [name for name in self.prompts.keys() if '/' not in name]
         return list(self.prompts.keys())
 
     def get(self, name: str) -> Optional[str]:
@@ -139,9 +146,9 @@ def get_prompt_manager():
 
 
 # Convenience functions for backward compatibility
-def get_available_prompts() -> List[str]:
-    """Get list of available prompt names."""
-    return get_prompt_manager().list()
+def get_available_prompts(top_level_only: bool = True) -> List[str]:
+    """Get list of available prompt names (top-level only by default)."""
+    return get_prompt_manager().list(top_level_only=top_level_only)
 
 
 def load_prompt(name: str) -> Optional[Dict]:

@@ -331,16 +331,17 @@ def config_docs():
     typer.secho("  /debug status           - Show debug categories", fg=get_text_color())
 
 
+def _cost_line(label: str, value: str, fg=None, bold: bool = False):
+    """Print a cost line with consistent alignment.
+
+    Format: 2-space indent, 18-char label (left), 12-char value (right) = 32 chars total
+    """
+    typer.secho(f"  {label:<18}{value:>12}", fg=fg or get_text_color(), bold=bold)
+
+
 def _format_cost(cost_usd: float) -> str:
-    """Format cost with appropriate precision - more decimals for small amounts."""
-    if cost_usd == 0:
-        return "$0.00"
-    elif cost_usd < 0.0001:
-        return f"${cost_usd:.6f}"
-    elif cost_usd < 0.01:
-        return f"${cost_usd:.4f}"
-    else:
-        return f"${cost_usd:.2f}"
+    """Format cost as $X.XXXX (always 4 decimal places)."""
+    return f"${cost_usd:.4f}"
 
 
 def cost():
@@ -356,16 +357,16 @@ def cost():
 
     # LLM section
     typer.secho("LLM Usage:", fg=get_system_color(), bold=True)
-    typer.secho(f"  Input tokens:   {costs['total_input_tokens']:>10,}", fg=get_text_color())
-    typer.secho(f"  Output tokens:  {costs['total_output_tokens']:>10,}", fg=get_text_color())
-    typer.secho(f"  Total tokens:   {costs['total_tokens']:>10,}", fg=get_text_color())
+    _cost_line("Input tokens:", f"{costs['total_input_tokens']:,}")
+    _cost_line("Output tokens:", f"{costs['total_output_tokens']:,}")
+    _cost_line("Total tokens:", f"{costs['total_tokens']:,}")
 
     # Check if using Hugging Face model
     current_model = config.get("model", "")
     if current_model.startswith("huggingface/"):
         typer.secho("  (HuggingFace: Free tier)", fg=get_text_color())
     else:
-        typer.secho(f"  Cost:           {_format_cost(costs['total_cost_usd']):>10}", fg=get_text_color())
+        _cost_line("Cost:", _format_cost(costs['total_cost_usd']))
 
     # Voice section (if any voice usage)
     voice_stt_calls = costs.get('voice_stt_calls', 0)
@@ -378,17 +379,15 @@ def cost():
         if voice_stt_calls > 0:
             stt_seconds = costs.get('voice_stt_seconds', 0)
             stt_cost = costs.get('voice_stt_cost_usd', 0)
-            stt_label = f"STT ({stt_seconds:.0f}s):"
-            typer.secho(f"  {stt_label:<16}{_format_cost(stt_cost):>10}", fg=get_text_color())
+            _cost_line(f"STT ({stt_seconds:.0f}s):", _format_cost(stt_cost))
 
         if voice_tts_calls > 0:
             tts_chars = costs.get('voice_tts_chars', 0)
             tts_cost = costs.get('voice_tts_cost_usd', 0)
-            tts_label = f"TTS ({tts_chars:,} ch):"
-            typer.secho(f"  {tts_label:<16}{_format_cost(tts_cost):>10}", fg=get_text_color())
+            _cost_line(f"TTS ({tts_chars:,} ch):", _format_cost(tts_cost))
 
     # Grand total
     typer.secho("─" * 40, fg=get_text_color())
     grand_total = costs.get('grand_total_cost_usd', costs['total_cost_usd'])
-    typer.secho(f"  {'Total:':<16}{_format_cost(grand_total):>10}", fg="green", bold=True)
+    _cost_line("Total:", _format_cost(grand_total), fg="green", bold=True)
     typer.secho("=" * 40, fg=get_heading_color())

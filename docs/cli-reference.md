@@ -237,7 +237,12 @@ Unified topic management
 /topics index 5             # Manual detection on last 5
 /topics scores              # Show detection scores
 /topics stats               # Topic statistics
+/topics reanalyze           # Re-detect topics using full conversation context
+/topics reanalyze apply     # Re-detect and save to database
+/topics reanalyze verbose   # Re-detect with detailed merge history
 ```
+
+The `reanalyze` subcommand uses hierarchical clustering with elbow detection to find natural topic boundaries across the entire conversation, rather than the real-time sliding window approach used during chat.
 
 ## Markdown Operations
 

@@ -125,9 +125,7 @@ def handle_command(command_str: str) -> bool:
             _handle_mode(args)
         elif cmd == "/prompt":
             _handle_prompt(args)
-        elif cmd == "/script":
-            _handle_script(args)
-        elif cmd == "/scripts":
+        elif cmd == "/script" or cmd == "/scripts":
             _handle_scripts(args)
         elif cmd == "/save":
             _handle_save_new(args)
@@ -404,6 +402,18 @@ def _handle_topics(args: List[str]):
             handle_topics_action(action="stats")
         elif action == "list":
             handle_topics_action(action="list")
+        elif action == "reanalyze":
+            # Parse options: apply, verbose, or a number for threshold
+            apply = "apply" in action_args
+            verbose = "verbose" in action_args
+            min_similarity = None  # None means use elbow detection
+            for arg in action_args:
+                if arg not in ("apply", "verbose"):
+                    try:
+                        min_similarity = float(arg)
+                    except ValueError:
+                        pass
+            handle_topics_action(action="reanalyze", apply=apply, verbose=verbose, min_similarity=min_similarity)
         else:
             typer.secho(f"Unknown topics action: {action}", fg=get_error_color())
             typer.secho(f"Available actions: {', '.join(TOPIC_ACTIONS)}", fg=get_warning_color())
@@ -534,19 +544,18 @@ def _handle_mode(args: List[str]):
 
 def _handle_prompt(args: List[str]):
     """Handle /prompt command."""
-    from episodic.commands.prompt import prompt
-    
+    from episodic.commands.prompts import prompts
+
     if not args:
-        prompt()
+        prompts()
     else:
         action = args[0]
         if action == "list":
-            prompt(action="list")
-        elif action == "set" and len(args) > 1:
-            prompt(action="set", prompt_name=args[1])
-        elif action == "show":
-            prompt_name = args[1] if len(args) > 1 else None
-            prompt(action="show", prompt_name=prompt_name)
+            prompts(action="list")
+        elif action == "use" and len(args) > 1:
+            prompts(action="use", name=args[1])
+        elif action == "show" and len(args) > 1:
+            prompts(action="show", name=args[1])
         else:
             typer.secho(f"Unknown prompt action: {action}", fg=get_error_color())
 

@@ -7,7 +7,6 @@ from typing import Optional
 from episodic.prompt_manager import get_available_prompts, load_prompt, get_active_prompt
 from episodic.config import config
 from episodic.configuration import get_heading_color, get_text_color, get_system_color
-from episodic.conversation import conversation_manager
 
 
 def prompts(action: Optional[str] = None, name: Optional[str] = None):
@@ -53,12 +52,9 @@ def prompts(action: Optional[str] = None, name: Optional[str] = None):
             typer.secho(f"Error: Prompt '{name}' is invalid or empty", fg="red")
             return
         
-        # Update config
+        # Update config (this is what conversation.py reads)
         config.set("active_prompt", name)
-        
-        # Update the conversation manager's system prompt
-        conversation_manager.system_prompt = prompt_data['content']
-        
+
         typer.secho(f"✅ Switched to '{name}' prompt", fg=get_system_color())
         
         if prompt_data.get('description'):

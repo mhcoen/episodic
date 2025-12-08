@@ -263,7 +263,14 @@ The dual-window system uses:
 
 # View topic statistics
 /topics stats
+
+# Re-detect topics using full conversation context (hierarchical clustering)
+/topics reanalyze              # Preview detected topics
+/topics reanalyze apply        # Re-detect and save to database
+/topics reanalyze verbose      # Show detailed merge history
 ```
+
+The `reanalyze` command uses hierarchical clustering with contiguity constraint and elbow detection to find natural topic boundaries across the entire conversation, rather than the real-time sliding window approach used during chat.
 
 ## 6. RAG (Knowledge Base)
 

@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from episodic.ml.drift import ConversationalDrift
 from episodic.config import config
 from episodic.debug_utils import debug_print
-import typer
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +53,15 @@ class DualWindowDetector:
             name="High Precision (4,1)",
             before_window=-4,
             after_window=1,
-            threshold=config.get("dual_window_high_precision_threshold", 0.2),  # Lower = more boundaries
+            threshold=config.get("dual_window_high_precision_threshold", 0.15),  # Conservative: only obvious shifts
             description="Detects boundaries with high precision"
         )
-        
+
         self.safety_net_window = WindowConfig(
             name="Safety Net (4,2)",
             before_window=-4,
             after_window=2,
-            threshold=config.get("dual_window_safety_net_threshold", 0.25),
+            threshold=config.get("dual_window_safety_net_threshold", 0.18),
             description="Catches boundaries missed by high precision"
         )
         

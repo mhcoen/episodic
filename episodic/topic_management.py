@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any, Tuple, List
 import typer
 from episodic.color_utils import secho_color
 from episodic.config import config
-from episodic.configuration import get_system_color
+from episodic.configuration import get_system_color, get_topic_change_color
 from episodic.db import (
     get_recent_topics, update_topic_end_node, store_topic,
     update_topic_name, get_ancestry, store_topic_detection_scores, get_connection
@@ -414,9 +414,9 @@ class TopicHandler:
             if config.get("topic_change_info", True):
                 typer.echo("")
                 if new_topic_name and not new_topic_name.startswith('ongoing-'):
-                    secho_color(f"📌 Topic changed to: {topic_name_to_use}", fg=get_system_color())
+                    secho_color(f"📌 Topic changed to: {topic_name_to_use}", fg=get_topic_change_color())
                 else:
-                    secho_color(f"📌 Topic change detected", fg=get_system_color())
+                    secho_color(f"📌 Topic change detected", fg=get_topic_change_color())
     
     def check_and_create_first_topic(
         self,
@@ -518,7 +518,7 @@ class TopicHandler:
                                 queue_topic_for_compression(first_user_node_id, actual_boundary, topic_name)
                             
                             typer.echo("")
-                            secho_color(f"📌 Created initial topic: {topic_name}", fg=get_system_color())
+                            secho_color(f"📌 Created initial topic: {topic_name}", fg=get_topic_change_color())
             else:
                 if config.get("debug"):
                     typer.echo(f"🔍 DEBUG: Not enough messages for first topic yet")

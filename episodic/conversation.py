@@ -332,9 +332,10 @@ class ConversationManager:
                 drift_emoji = "🎯"
                 drift_desc = "Minimal drift"
             
-            # Display drift information
+            # Display drift information (subtle diagnostic)
+            from episodic.configuration import get_drift_color
             prev_short_id = previous_user.get("short_id", "??")
-            secho_color(f"\n{drift_emoji} Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_system_color())
+            secho_color(f"\n{drift_emoji}  Semantic drift: {drift_score:.3f} ({drift_desc}) from user message {prev_short_id}", fg=get_drift_color(), dim=True)
             
             # Show additional context if debug mode is enabled
             if config.get("debug"):

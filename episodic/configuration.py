@@ -414,6 +414,18 @@ def get_info_color():
     # Use system color for info messages to match theme
     return get_system_color()
 
+def get_drift_color():
+    """Get the color for semantic drift information (subtle diagnostic)."""
+    import typer
+    # Use cyan for drift info (shown dim in display)
+    return typer.colors.CYAN
+
+def get_topic_change_color():
+    """Get the color for topic change notifications (standout)."""
+    import typer
+    # Use cyan for topic changes (matches system theme)
+    return typer.colors.CYAN
+
 # Cost display formatting
 COST_PRECISION = 6  # Number of decimal places for cost display
 ZERO_COST_PRECISION = 1  # Decimal places for zero cost display

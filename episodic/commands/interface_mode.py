@@ -28,6 +28,8 @@ def simple_mode_command():
     typer.secho("Normal conversation mode", fg=get_text_color())
     typer.secho("   /muse   ", fg=get_system_color(), bold=True, nl=False)
     typer.secho("Web-enhanced mode (like Perplexity)", fg=get_text_color())
+    typer.secho("   /voice  ", fg=get_system_color(), bold=True, nl=False)
+    typer.secho("Toggle voice mode (speech input/output)", fg=get_text_color())
     typer.secho("   /new    ", fg=get_system_color(), bold=True, nl=False)
     typer.secho("Start a fresh topic", fg=get_text_color())
     typer.echo()
@@ -94,6 +96,6 @@ def is_simple_mode() -> bool:
 def get_simple_mode_commands() -> set:
     """Get the set of commands available in simple mode."""
     return {
-        "chat", "muse", "save", "load", "files", "new",
+        "chat", "muse", "voice", "save", "load", "files", "new",
         "style", "format", "theme", "help", "exit", "quit", "simple", "advanced"
     }

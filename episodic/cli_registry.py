@@ -67,7 +67,7 @@ def handle_command_with_registry(command_str: str) -> bool:
     # In simple mode, restrict to allowed commands
     if is_simple_mode() and cmd not in get_simple_mode_commands():
         typer.secho(f"Command /{cmd} is not available in simple mode.", fg="red")
-        typer.secho("Available: /chat, /muse, /new, /save, /load, /files, /style, /format, /theme, /help, /exit", fg="yellow")
+        typer.secho("Available: /chat, /muse, /voice, /new, /save, /load, /files, /style, /format, /theme, /help, /exit", fg="yellow")
         typer.secho("💡 Type /advanced to access all commands", fg=get_text_color(), dim=True)
         return False
     

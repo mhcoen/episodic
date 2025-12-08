@@ -328,25 +328,30 @@ def _execute_llm_query(
         unsupported_gpt5_params = ['temperature', 'stop', 'top_p', 'presence_penalty', 'frequency_penalty']
         for param in unsupported_gpt5_params:
             api_params.pop(param, None)
+    else:
+        # Non-GPT-5 models don't support verbosity or reasoning_effort
+        gpt5_only_params = ['verbosity', 'reasoning_effort']
+        for param in gpt5_only_params:
+            api_params.pop(param, None)
     
     # Filter out unsupported parameters for Google/Gemini models
     if provider == "google":
         # Gemini doesn't support presence_penalty or frequency_penalty
-        unsupported_params = ['presence_penalty', 'frequency_penalty', 'verbosity', 'reasoning_effort']
+        unsupported_params = ['presence_penalty', 'frequency_penalty']
         for param in unsupported_params:
             api_params.pop(param, None)
-    
+
     # Filter out unsupported parameters for Ollama models
     if provider == "ollama" or "ollama/" in full_model.lower():
-        # Ollama doesn't support presence_penalty, frequency_penalty, or GPT-5 specific params
-        unsupported_params = ['presence_penalty', 'frequency_penalty', 'verbosity', 'reasoning_effort']
+        # Ollama doesn't support presence_penalty or frequency_penalty
+        unsupported_params = ['presence_penalty', 'frequency_penalty']
         for param in unsupported_params:
             api_params.pop(param, None)
-    
+
     # Filter out unsupported parameters for Anthropic models
     if provider == "anthropic" or "claude" in full_model.lower() or "anthropic" in full_model.lower():
-        # Anthropic doesn't support presence_penalty, frequency_penalty, or GPT-5 specific params
-        unsupported_params = ['presence_penalty', 'frequency_penalty', 'verbosity', 'reasoning_effort']
+        # Anthropic doesn't support presence_penalty or frequency_penalty
+        unsupported_params = ['presence_penalty', 'frequency_penalty']
         for param in unsupported_params:
             api_params.pop(param, None)
     

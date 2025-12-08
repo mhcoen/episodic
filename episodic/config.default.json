@@ -119,16 +119,16 @@
   "benchmark_display": false,
   
   "_comment_compression": "// === COMPRESSION SETTINGS ===",
-  "_comment_compression_model": "Model for topic compression (ollama/phi3 for local, null to use main model)",
-  "compression_model": "ollama/phi3",
+  "_comment_compression_model": "Model for topic compression (ollama/phi4 for local, null to use main model)",
+  "compression_model": "ollama/phi4",
   "_comment_compression_min_nodes": "Minimum nodes required before allowing compression",
   "compression_min_nodes": 10,
   "_comment_show_compression_notifications": "Show notifications when topics are compressed",
   "show_compression_notifications": true,
   
   "_comment_models_detect": "// === MODEL SELECTION ===",
-  "_comment_topic_detection_model": "Model for topic detection (ollama/phi3 for local, null to use main model)",
-  "topic_detection_model": "ollama/phi3",
+  "_comment_topic_detection_model": "Model for topic detection (ollama/phi4 for local, null to use main model)",
+  "topic_detection_model": "ollama/phi4",
   "_comment_model": "Current conversation model (set via /model command)",
   "model": "gpt-4o-mini",
   

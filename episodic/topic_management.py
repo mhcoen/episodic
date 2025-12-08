@@ -119,12 +119,10 @@ class TopicHandler:
 
                     # If topic changed but no name was extracted, extract it now
                     if topic_changed and not new_topic_name:
-                        from episodic.topics.topic_extraction import extract_topic_ollama, build_conversation_segment
-                        # Build conversation segment from recent messages for topic extraction
-                        conversation_segment = build_conversation_segment(recent_nodes[-6:] if len(recent_nodes) > 6 else recent_nodes)
-                        # Add the new user input
-                        conversation_segment += f"\nUser: {user_input}"
-                        extracted_name, _ = extract_topic_ollama(conversation_segment)
+                        from episodic.topics.topic_extraction import extract_topic_ollama
+                        # Extract topic from the NEW user input that triggered the change
+                        # (not the old conversation - that was the previous topic)
+                        extracted_name, _ = extract_topic_ollama(f"User: {user_input}")
                         if extracted_name:
                             new_topic_name = extracted_name
                             if config.get("debug"):

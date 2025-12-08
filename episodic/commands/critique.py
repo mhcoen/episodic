@@ -87,13 +87,15 @@ def critique_command(target: Optional[str] = None):
 
     # Execute the critique with streaming
     # Use minimal parameters to avoid conflicts (e.g., Anthropic doesn't allow temp + top_p)
+    # Use generous max_tokens for thorough critique (ignores chat max_tokens setting)
     try:
         stream_generator, _ = _execute_llm_query(
             messages=messages,
             model=critic_model,
             stream=True,
             temperature=0.7,
-            top_p=None
+            top_p=None,
+            max_tokens=1000
         )
 
         # Stream the response

@@ -102,8 +102,10 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_subcommand(full_cmd, parts, word_before_cursor)
             elif full_cmd == 'mode':
                 yield from self._complete_mode_command(parts, word_before_cursor)
-            elif full_cmd in ['index', 'script']:
+            elif full_cmd == 'index':
                 yield from self._complete_file_path(full_cmd, parts, word_before_cursor)
+            elif full_cmd == 'script':
+                yield from self._complete_script_command(parts, word_before_cursor)
             elif full_cmd == 'save':
                 yield from self._complete_save_command(parts, word_before_cursor)
             elif full_cmd == 'style':
@@ -588,7 +590,49 @@ class EpisodicCompleter(Completer):
             except Exception:
                 # If anything fails, just don't provide completions
                 pass
-    
+
+    def _complete_script_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /script command with scripts from ~/.episodic/scripts/."""
+        if len(parts) == 2:
+            try:
+                import os
+                from pathlib import Path
+                from datetime import datetime
+
+                # Scripts directory in user's home
+                scripts_dir = Path.home() / ".episodic" / "scripts"
+
+                if scripts_dir.exists():
+                    # Get all .txt script files with modification times
+                    script_files = []
+                    for file in scripts_dir.glob("*.txt"):
+                        stat = file.stat()
+                        mtime = stat.st_mtime
+                        script_files.append((file.stem, mtime, file.name))
+
+                    # Sort by modification time (newest first)
+                    script_files.sort(key=lambda x: x[1], reverse=True)
+
+                    # Generate completions
+                    for filename, mtime, full_name in script_files:
+                        if filename.lower().startswith(word.lower()):
+                            # Calculate time ago
+                            time_diff = datetime.now().timestamp() - mtime
+                            if time_diff < 3600:
+                                time_ago = f"{int(time_diff / 60)} min ago"
+                            elif time_diff < 86400:
+                                time_ago = f"{int(time_diff / 3600)} hours ago"
+                            else:
+                                time_ago = f"{int(time_diff / 86400)} days ago"
+
+                            yield Completion(
+                                filename,  # Complete without .txt extension
+                                start_position=-len(word),
+                                display_meta=time_ago
+                            )
+            except Exception:
+                pass
+
     def _complete_summary_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /summary command arguments."""
         if len(parts) >= 2:

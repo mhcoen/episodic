@@ -103,7 +103,7 @@ class SentenceTransformersBackend(EmbeddingBackend):
             self._initialize_model()
         
         try:
-            embedding = self.model.encode(text, convert_to_tensor=False)
+            embedding = self.model.encode(text, convert_to_tensor=False, show_progress_bar=False)
             return embedding.tolist()
         except Exception as e:
             raise RuntimeError(f"Failed to generate embedding: {e}")
@@ -114,7 +114,7 @@ class SentenceTransformersBackend(EmbeddingBackend):
             self._initialize_model()
         
         try:
-            embeddings = self.model.encode(texts, convert_to_tensor=False)
+            embeddings = self.model.encode(texts, convert_to_tensor=False, show_progress_bar=False)
             return embeddings.tolist()
         except Exception as e:
             raise RuntimeError(f"Failed to generate batch embeddings: {e}")

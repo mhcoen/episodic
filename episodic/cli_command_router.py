@@ -127,6 +127,8 @@ def handle_command(command_str: str) -> bool:
             _handle_prompt(args)
         elif cmd == "/script" or cmd == "/scripts":
             _handle_scripts(args)
+        elif cmd == "/pause":
+            _handle_pause()
         elif cmd == "/save":
             _handle_save_new(args)
         elif cmd == "/load":
@@ -641,6 +643,8 @@ def _handle_deprecated_commands(cmd: str, args: List[str]):
         "/api-stats": ("compression", "api-stats"),
         "/reset-api-stats": ("compression", "reset-api"),
         "/count-tokens": ("cost", None),
+        "/model-params": ("mset", None),
+        "/mp": ("mset", None),
     }
     
     if cmd in deprecated_commands:
@@ -654,10 +658,12 @@ def _handle_deprecated_commands(cmd: str, args: List[str]):
             elif new_cmd == "compression":
                 _handle_compression([action] if action else [])
         else:
-            typer.secho(f"⚠️  '{cmd}' is deprecated. Use '/{new_cmd}' instead.", 
+            typer.secho(f"⚠️  '{cmd}' is deprecated. Use '/{new_cmd}' instead.",
                        fg="yellow")
             if new_cmd == "cost":
                 _handle_cost()
+            elif new_cmd == "mset":
+                _handle_mset(args)
     else:
         typer.secho(f"Unknown command: {cmd}. Type /help for available commands.", 
                    fg=get_text_color())
@@ -819,7 +825,7 @@ def _handle_ls(args: List[str]):
 def _handle_scripts(args: List[str]):
     """Handle /scripts command."""
     from episodic.commands.scripts import scripts_command
-    
+
     if not args:
         scripts_command()
     else:
@@ -833,8 +839,13 @@ def _handle_scripts(args: List[str]):
             else:
                 scripts_command(subcommand)
         else:
-            typer.secho(f"Unknown scripts subcommand: {subcommand}", fg=get_error_color())
-            typer.secho("Usage: /scripts [save|run|list]", fg=get_warning_color())
+            # Not a subcommand - treat as filename and run it directly
+            scripts_command("run", subcommand)
+
+
+def _handle_pause():
+    """Handle /pause command - wait for user to press Enter."""
+    input("Press Enter to continue...")
 
 
 def _handle_save_new(args: List[str]):

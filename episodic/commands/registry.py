@@ -222,6 +222,13 @@ def register_all_commands():
     command_registry.register("history", _handle_history, "Show conversation history", "Navigation")
     command_registry.register("tree", _handle_tree, "Show conversation tree structure", "Navigation")
     command_registry.register("script", scripts_command, "Manage session scripts (save/run/list)", "Utility")
+
+    # Pause command for scripts
+    def pause_command():
+        """Pause script execution until user presses Enter."""
+        input("Press Enter to continue...")
+
+    command_registry.register("pause", pause_command, "Pause script execution until Enter is pressed", "Utility")
     command_registry.register("compress", compress, "Compress a topic or branch", "Compression")
     
     # Register simple mode commands

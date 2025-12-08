@@ -384,13 +384,13 @@ class BraveProvider(WebSearchProvider):
                 fg=get_warning_color()
             )
             return []
-        
+
         results = []
-        
+
         try:
             # Initialize Brave Search client
             brave = BraveSearch(api_key=self.api_key)
-            
+
             # Create search request
             request = WebSearchRequest(
                 q=query,
@@ -398,7 +398,7 @@ class BraveProvider(WebSearchProvider):
                 search_lang='en',
                 result_filter='web'
             )
-            
+
             # Perform search
             response = await brave.web(request)
             

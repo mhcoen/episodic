@@ -288,9 +288,10 @@ class Config:
         
         actual_param_set = param_set_map.get(param_set, param_set + '_params')
         
-        # Return parameters, filtering out None values
+        # Return parameters, filtering out None values and comment keys
         params = self.config.get(actual_param_set, {})
-        filtered_params = {k: v for k, v in params.items() if v is not None}
+        filtered_params = {k: v for k, v in params.items()
+                         if v is not None and not k.startswith('_comment')}
         
         # Filter out unsupported parameters for specific providers
         if model and 'ollama' in model.lower():

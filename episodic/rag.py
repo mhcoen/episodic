@@ -135,8 +135,8 @@ class EpisodicRAG:
         
         # Configure ChromaDB client with telemetry disabled
         from chromadb.config import Settings
-        from episodic.rag_utils import suppress_chromadb_telemetry
-        
+        from episodic.rag_utils import suppress_chromadb_telemetry, SilentSentenceTransformerEmbeddingFunction
+
         # Suppress telemetry errors during initialization
         with suppress_chromadb_telemetry():
             self.client = chromadb.PersistentClient(
@@ -147,11 +147,11 @@ class EpisodicRAG:
                 )
             )
         
-        # Get or create collection with embedding function
+        # Get or create collection with embedding function (silent version suppresses tqdm progress bars)
         embedding_model = config.get("rag_embedding_model", "all-MiniLM-L6-v2")
-        
+
         with suppress_chromadb_telemetry():
-            self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+            self.embedding_function = SilentSentenceTransformerEmbeddingFunction(
                 model_name=embedding_model
             )
         

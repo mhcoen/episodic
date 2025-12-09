@@ -11,25 +11,25 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone
 from pathlib import Path
 import chromadb
-from chromadb.utils import embedding_functions
 import hashlib
 
 from episodic.db import get_recent_nodes
 from episodic.config import config
+from episodic.rag_utils import SilentSentenceTransformerEmbeddingFunction
 
 
 class SQLiteMemoryRAG:
     """Memory system that uses existing SQLite data with ChromaDB search"""
-    
+
     def __init__(self):
         # Create separate collection for conversation memories
         persist_dir = Path.home() / ".episodic" / "memory_chroma"
         persist_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.client = chromadb.PersistentClient(path=str(persist_dir))
-        
-        # Use sentence transformers for embeddings (free, local)
-        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+
+        # Use sentence transformers for embeddings (silent version suppresses tqdm progress bars)
+        self.embedding_function = SilentSentenceTransformerEmbeddingFunction(
             model_name="all-MiniLM-L6-v2"
         )
         

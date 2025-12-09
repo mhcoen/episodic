@@ -14,13 +14,12 @@ logging.getLogger('chromadb').setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message=".*telemetry.*")
 
 import chromadb
-from chromadb.utils import embedding_functions
 import typer
 
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_success_color, get_error_color
 from episodic.debug_utils import debug_print
-from episodic.rag_utils import suppress_chromadb_telemetry
+from episodic.rag_utils import suppress_chromadb_telemetry, SilentSentenceTransformerEmbeddingFunction
 
 
 def check_migration_needed() -> bool:
@@ -48,18 +47,18 @@ def count_documents_by_source() -> Dict[str, int]:
     db_path = os.path.expanduser("~/.episodic/rag/chroma")
     client = chromadb.PersistentClient(path=db_path)
     
-    # Get embedding function
+    # Get embedding function (silent version suppresses tqdm progress bars)
     embedding_model = config.get("rag_embedding_model", "all-MiniLM-L6-v2")
-    embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+    embedding_function = SilentSentenceTransformerEmbeddingFunction(
         model_name=embedding_model
     )
-    
+
     try:
         old_collection = client.get_collection(
             name="episodic_docs",
             embedding_function=embedding_function
         )
-        
+
         # Get all documents
         all_data = old_collection.get()
         
@@ -129,12 +128,12 @@ def migrate_to_multi_collection(dry_run: bool = True, verbose: bool = False) -> 
         db_path = os.path.expanduser("~/.episodic/rag/chroma")
         client = chromadb.PersistentClient(path=db_path)
         
-        # Get embedding function
+        # Get embedding function (silent version suppresses tqdm progress bars)
         embedding_model = config.get("rag_embedding_model", "all-MiniLM-L6-v2")
-        embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+        embedding_function = SilentSentenceTransformerEmbeddingFunction(
             model_name=embedding_model
         )
-        
+
         # Get old collection
         old_collection = client.get_collection(
             name="episodic_docs",

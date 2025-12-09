@@ -21,7 +21,7 @@ from chromadb.utils import embedding_functions
 
 from episodic.config import config
 from episodic.debug_utils import debug_print
-from episodic.rag_utils import suppress_chromadb_telemetry
+from episodic.rag_utils import suppress_chromadb_telemetry, SilentSentenceTransformerEmbeddingFunction
 
 
 class CollectionType:
@@ -51,10 +51,10 @@ class MultiCollectionRAG:
                 )
             )
         
-        # Set up embedding function
+        # Set up embedding function (uses our silent version to suppress tqdm progress bars)
         embedding_model = config.get("rag_embedding_model", "all-MiniLM-L6-v2")
         with suppress_chromadb_telemetry():
-            self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+            self.embedding_function = SilentSentenceTransformerEmbeddingFunction(
                 model_name=embedding_model
             )
         

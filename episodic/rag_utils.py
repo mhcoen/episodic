@@ -9,12 +9,76 @@ import io
 from contextlib import contextmanager
 from functools import wraps
 from io import StringIO
-from typing import Optional, List, Dict, Callable
+from typing import Optional, List, Dict, Callable, Any
 
+import numpy as np
 import typer
 
 from episodic.config import config
 from episodic.configuration import get_text_color
+
+
+class SilentSentenceTransformerEmbeddingFunction:
+    """
+    Sentence Transformer embedding function that suppresses tqdm progress bars.
+
+    This wraps ChromaDB's SentenceTransformerEmbeddingFunction but passes
+    show_progress_bar=False to the underlying encode() call to prevent
+    "Batches: 0%|..." output from appearing in the console.
+    """
+
+    models: Dict[str, Any] = {}
+
+    def __init__(
+        self,
+        model_name: str = "all-MiniLM-L6-v2",
+        device: str = "cpu",
+        normalize_embeddings: bool = False,
+        **kwargs: Any,
+    ):
+        """Initialize SilentSentenceTransformerEmbeddingFunction.
+
+        Args:
+            model_name: Identifier of the SentenceTransformer model
+            device: Device used for computation
+            normalize_embeddings: Whether to normalize returned vectors
+            **kwargs: Additional arguments passed to SentenceTransformer
+        """
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            raise ValueError(
+                "sentence_transformers is required. Install with: pip install sentence-transformers"
+            )
+
+        self.model_name = model_name
+        self.device = device
+        self.normalize_embeddings = normalize_embeddings
+        self.kwargs = kwargs
+
+        if model_name not in self.models:
+            self.models[model_name] = SentenceTransformer(
+                model_name_or_path=model_name, device=device, **kwargs
+            )
+        self._model = self.models[model_name]
+
+    def __call__(self, input: List[str]) -> List[np.ndarray]:
+        """Generate embeddings for the given documents.
+
+        Args:
+            input: Documents to generate embeddings for.
+
+        Returns:
+            Embeddings for the documents.
+        """
+        embeddings = self._model.encode(
+            list(input),
+            convert_to_numpy=True,
+            normalize_embeddings=self.normalize_embeddings,
+            show_progress_bar=False,  # Key difference: suppress progress bar
+        )
+
+        return [np.array(embedding, dtype=np.float32) for embedding in embeddings]
 
 
 @contextmanager

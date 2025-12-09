@@ -92,7 +92,7 @@ class HelpRAG:
         """Initialize with dedicated help-only collection."""
         from pathlib import Path
         import chromadb
-        from chromadb.utils import embedding_functions
+        from episodic.rag_utils import SilentSentenceTransformerEmbeddingFunction
 
         # Use a separate ChromaDB directory for help docs
         persist_dir = Path.home() / ".episodic" / "help_chroma"
@@ -100,8 +100,8 @@ class HelpRAG:
 
         self.client = chromadb.PersistentClient(path=str(persist_dir))
 
-        # Use sentence transformers for embeddings (free, local)
-        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+        # Use sentence transformers for embeddings (silent version suppresses tqdm progress bars)
+        self.embedding_function = SilentSentenceTransformerEmbeddingFunction(
             model_name="all-MiniLM-L6-v2"
         )
 

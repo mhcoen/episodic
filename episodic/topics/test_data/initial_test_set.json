@@ -1,0 +1,190 @@
+{
+  "description": "Initial test set for topic detection evaluation",
+  "version": "1.0.0",
+  "created_at": "2024-12-10",
+  "test_cases": [
+    {
+      "id": "clear-boundary-1",
+      "name": "Clear topic change: Books to Cooking",
+      "description": "Obvious topic shift from discussing books to cooking recipes",
+      "difficulty": "easy",
+      "tags": ["clear-boundary", "two-topics"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "What are some good science fiction books you'd recommend?"},
+        {"role": "assistant", "content": "I'd recommend Dune by Frank Herbert, Foundation by Isaac Asimov, and Neuromancer by William Gibson."},
+        {"role": "user", "content": "I've read Dune. What makes Foundation special?"},
+        {"role": "assistant", "content": "Foundation is notable for its grand scope, spanning thousands of years of galactic history and exploring themes of psychohistory."},
+        {"role": "user", "content": "That sounds interesting. Are there any similar books about predicting the future?"},
+        {"role": "assistant", "content": "You might enjoy The Three-Body Problem or Hyperion, both deal with long-term predictions and civilizational cycles."},
+        {"role": "user", "content": "I want to make dinner tonight. What's a good pasta recipe?"},
+        {"role": "assistant", "content": "A simple aglio e olio is quick and delicious - just garlic, olive oil, chili flakes, and parsley with spaghetti."},
+        {"role": "user", "content": "How much garlic should I use?"},
+        {"role": "assistant", "content": "For two servings, use about 4-6 cloves of garlic, thinly sliced."}
+      ],
+      "expected_boundaries": [6],
+      "expected_topic_names": {"6": "cooking"}
+    },
+    {
+      "id": "clear-boundary-2",
+      "name": "Clear topic change: Work to Travel",
+      "description": "Topic shift from work discussion to travel planning",
+      "difficulty": "easy",
+      "tags": ["clear-boundary", "two-topics"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "How do I handle a difficult coworker who keeps taking credit for my work?"},
+        {"role": "assistant", "content": "Document your contributions, communicate clearly in writing, and consider discussing with your manager."},
+        {"role": "user", "content": "What if my manager doesn't take it seriously?"},
+        {"role": "assistant", "content": "You might escalate to HR with documented evidence, or seek mentorship from other leaders."},
+        {"role": "user", "content": "I'm planning a trip to Japan next month. What should I see in Tokyo?"},
+        {"role": "assistant", "content": "Must-sees include Senso-ji Temple, Shibuya Crossing, the Imperial Palace, and Akihabara for electronics."},
+        {"role": "user", "content": "How many days do I need for Tokyo?"},
+        {"role": "assistant", "content": "I'd recommend at least 4-5 days to see the highlights without rushing."}
+      ],
+      "expected_boundaries": [4],
+      "expected_topic_names": {"4": "travel"}
+    },
+    {
+      "id": "gradual-drift-1",
+      "name": "Gradual drift: Programming to Career",
+      "description": "Subtle drift from technical programming to career advice",
+      "difficulty": "medium",
+      "tags": ["gradual-drift", "related-topics"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "What's the best way to learn Python?"},
+        {"role": "assistant", "content": "Start with basics, work through tutorials, and build small projects to practice."},
+        {"role": "user", "content": "What kind of projects should I build?"},
+        {"role": "assistant", "content": "Try a web scraper, a simple API, or automate a repetitive task you do regularly."},
+        {"role": "user", "content": "Would these projects be good for a portfolio?"},
+        {"role": "assistant", "content": "Yes, portfolio projects that solve real problems are very valuable for job applications."},
+        {"role": "user", "content": "Speaking of jobs, how do I get my first programming job?"},
+        {"role": "assistant", "content": "Build a portfolio, contribute to open source, network, and apply to junior positions."},
+        {"role": "user", "content": "What salary should I expect as a junior developer?"},
+        {"role": "assistant", "content": "Junior developer salaries vary by location, typically $50-80k in the US."}
+      ],
+      "expected_boundaries": [6],
+      "expected_topic_names": {"6": "career-advice"}
+    },
+    {
+      "id": "return-to-topic-1",
+      "name": "Topic return: Movies → Food → Movies",
+      "description": "User returns to discussing movies after food digression",
+      "difficulty": "medium",
+      "tags": ["topic-return", "three-topics"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "What are the best movies of 2024?"},
+        {"role": "assistant", "content": "Dune Part Two, Oppenheimer, and Barbie were highly acclaimed."},
+        {"role": "user", "content": "I loved Dune. Is Part Two better than the first?"},
+        {"role": "assistant", "content": "Many consider Part Two superior, with more action and emotional depth."},
+        {"role": "user", "content": "I'm hungry. What should I order for lunch?"},
+        {"role": "assistant", "content": "That depends on your mood - Thai, Mexican, or something light like a salad?"},
+        {"role": "user", "content": "I'll get Thai. What dish is good?"},
+        {"role": "assistant", "content": "Pad Thai is a classic, or try green curry if you like it spicy."},
+        {"role": "user", "content": "Back to movies - who directed Dune?"},
+        {"role": "assistant", "content": "Denis Villeneuve directed both Dune films."},
+        {"role": "user", "content": "What else has he directed?"},
+        {"role": "assistant", "content": "He's known for Arrival, Blade Runner 2049, and Sicario."}
+      ],
+      "expected_boundaries": [4, 8],
+      "expected_topic_names": {"4": "food", "8": "movies"},
+      "retrieval_tests": [
+        {
+          "query": "Back to movies - who directed Dune?",
+          "expected_thread": "movies",
+          "description": "Should retrieve earlier movie discussion"
+        }
+      ]
+    },
+    {
+      "id": "explicit-transition-1",
+      "name": "Explicit transition: 'Changing topics'",
+      "description": "User explicitly signals topic change",
+      "difficulty": "easy",
+      "tags": ["explicit-transition"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "How do I fix a leaky faucet?"},
+        {"role": "assistant", "content": "Usually you need to replace the washer or cartridge. Turn off water first."},
+        {"role": "user", "content": "What tools do I need?"},
+        {"role": "assistant", "content": "An adjustable wrench, screwdrivers, and replacement parts for your faucet type."},
+        {"role": "user", "content": "Changing topics - what's the weather like this week?"},
+        {"role": "assistant", "content": "I don't have access to real-time weather data. Check your local forecast."},
+        {"role": "user", "content": "Will it rain tomorrow?"},
+        {"role": "assistant", "content": "I can't provide weather forecasts. Please check a weather service."}
+      ],
+      "expected_boundaries": [4],
+      "expected_topic_names": {"4": "weather"}
+    },
+    {
+      "id": "no-boundary-1",
+      "name": "Single topic: Extended Python discussion",
+      "description": "Long conversation staying on one topic",
+      "difficulty": "easy",
+      "tags": ["single-topic", "no-boundary"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "How do I read a file in Python?"},
+        {"role": "assistant", "content": "Use open() with a context manager: with open('file.txt', 'r') as f:"},
+        {"role": "user", "content": "What if the file doesn't exist?"},
+        {"role": "assistant", "content": "Use try/except to catch FileNotFoundError, or check with os.path.exists()."},
+        {"role": "user", "content": "How do I write to a file?"},
+        {"role": "assistant", "content": "Use open() with 'w' mode: with open('file.txt', 'w') as f: f.write('text')"},
+        {"role": "user", "content": "Can I append instead of overwriting?"},
+        {"role": "assistant", "content": "Yes, use 'a' mode instead of 'w' to append to the file."},
+        {"role": "user", "content": "How do I read a CSV file?"},
+        {"role": "assistant", "content": "Use the csv module or pandas: import csv or pd.read_csv('file.csv')"}
+      ],
+      "expected_boundaries": [],
+      "expected_topic_names": {}
+    },
+    {
+      "id": "subtle-shift-1",
+      "name": "Subtle shift: General AI to Specific ML",
+      "description": "Subtle topic narrowing that may or may not be a boundary",
+      "difficulty": "hard",
+      "tags": ["subtle-shift", "related-topics"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "What is artificial intelligence?"},
+        {"role": "assistant", "content": "AI is the simulation of human intelligence by computer systems."},
+        {"role": "user", "content": "How is it different from machine learning?"},
+        {"role": "assistant", "content": "ML is a subset of AI focused on learning from data without explicit programming."},
+        {"role": "user", "content": "What algorithms are used in machine learning?"},
+        {"role": "assistant", "content": "Common algorithms include linear regression, decision trees, neural networks, and SVMs."},
+        {"role": "user", "content": "How do neural networks work?"},
+        {"role": "assistant", "content": "Neural networks use layers of interconnected nodes that process and transform data."},
+        {"role": "user", "content": "What is backpropagation?"},
+        {"role": "assistant", "content": "Backpropagation is an algorithm for training neural networks by propagating errors backward."}
+      ],
+      "expected_boundaries": [],
+      "expected_topic_names": {}
+    },
+    {
+      "id": "multi-topic-1",
+      "name": "Multiple topics: Health → Finance → Tech",
+      "description": "Three distinct topic segments",
+      "difficulty": "medium",
+      "tags": ["multi-topic", "three-topics"],
+      "source": "synthetic",
+      "messages": [
+        {"role": "user", "content": "How much water should I drink daily?"},
+        {"role": "assistant", "content": "About 8 glasses or 2 liters per day, though it varies by activity level."},
+        {"role": "user", "content": "Does coffee count toward that?"},
+        {"role": "assistant", "content": "Partially - coffee does hydrate but has diuretic effects."},
+        {"role": "user", "content": "How should I start investing my savings?"},
+        {"role": "assistant", "content": "Start with an emergency fund, then consider index funds for long-term growth."},
+        {"role": "user", "content": "What's the difference between stocks and bonds?"},
+        {"role": "assistant", "content": "Stocks are ownership shares with higher risk/reward, bonds are loans with fixed returns."},
+        {"role": "user", "content": "What programming language should I learn first?"},
+        {"role": "assistant", "content": "Python is great for beginners due to its readable syntax and versatility."},
+        {"role": "user", "content": "How long does it take to learn Python?"},
+        {"role": "assistant", "content": "Basic proficiency takes a few months with consistent practice."}
+      ],
+      "expected_boundaries": [4, 8],
+      "expected_topic_names": {"4": "finance", "8": "programming"}
+    }
+  ]
+}

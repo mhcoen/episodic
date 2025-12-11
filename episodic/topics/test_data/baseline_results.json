@@ -1,0 +1,525 @@
+{
+  "results": [
+    {
+      "test_case_id": "clear-boundary-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 485.98194122314453,
+      "timestamp": "2025-12-10T21:48:59.744675",
+      "metrics": {
+        "true_positives": 1,
+        "false_positives": 1,
+        "true_negatives": 3,
+        "false_negatives": 0,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1_score": 0.6666666666666666,
+        "accuracy": 0.8
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0011920928955078125
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 290.9247875213623
+        },
+        {
+          "message_index": 4,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.04601478576660156
+        },
+        {
+          "message_index": 6,
+          "expected": true,
+          "detected": true,
+          "correct": true,
+          "confidence": "high",
+          "confidence_score": 0.8910954974149973,
+          "processing_time_ms": 114.59112167358398
+        },
+        {
+          "message_index": 8,
+          "expected": false,
+          "detected": true,
+          "correct": false,
+          "confidence": "medium",
+          "confidence_score": 0.8404273337425653,
+          "processing_time_ms": 80.38496971130371
+        }
+      ]
+    },
+    {
+      "test_case_id": "clear-boundary-2",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 126.85799598693848,
+      "timestamp": "2025-12-10T21:48:59.871554",
+      "metrics": {
+        "true_positives": 0,
+        "false_positives": 1,
+        "true_negatives": 2,
+        "false_negatives": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.5
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.09298324584960938
+        },
+        {
+          "message_index": 4,
+          "expected": true,
+          "detected": false,
+          "correct": false,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.03814697265625
+        },
+        {
+          "message_index": 6,
+          "expected": false,
+          "detected": true,
+          "correct": false,
+          "confidence": "medium",
+          "confidence_score": 0.9201448830003666,
+          "processing_time_ms": 126.70707702636719
+        }
+      ]
+    },
+    {
+      "test_case_id": "gradual-drift-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 167.55008697509766,
+      "timestamp": "2025-12-10T21:49:00.039110",
+      "metrics": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "true_negatives": 4,
+        "false_negatives": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.8
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.08893013000488281
+        },
+        {
+          "message_index": 4,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.032901763916015625
+        },
+        {
+          "message_index": 6,
+          "expected": true,
+          "detected": false,
+          "correct": false,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 101.89986228942871
+        },
+        {
+          "message_index": 8,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 65.51194190979004
+        }
+      ]
+    },
+    {
+      "test_case_id": "return-to-topic-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 215.55089950561523,
+      "timestamp": "2025-12-10T21:49:00.254666",
+      "metrics": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "true_negatives": 4,
+        "false_negatives": 1,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1_score": 0.6666666666666666,
+        "accuracy": 0.8333333333333334
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.102996826171875
+        },
+        {
+          "message_index": 4,
+          "expected": true,
+          "detected": false,
+          "correct": false,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.032901763916015625
+        },
+        {
+          "message_index": 6,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 61.61189079284668
+        },
+        {
+          "message_index": 8,
+          "expected": true,
+          "detected": true,
+          "correct": true,
+          "confidence": "high",
+          "confidence_score": 0.9331986280058114,
+          "processing_time_ms": 66.51496887207031
+        },
+        {
+          "message_index": 10,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 87.26906776428223
+        }
+      ]
+    },
+    {
+      "test_case_id": "explicit-transition-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 88.71102333068848,
+      "timestamp": "2025-12-10T21:49:00.343382",
+      "metrics": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "true_negatives": 3,
+        "false_negatives": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.75
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.11110305786132812
+        },
+        {
+          "message_index": 4,
+          "expected": true,
+          "detected": false,
+          "correct": false,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.032901763916015625
+        },
+        {
+          "message_index": 6,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 88.55724334716797
+        }
+      ]
+    },
+    {
+      "test_case_id": "no-boundary-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 147.7959156036377,
+      "timestamp": "2025-12-10T21:49:00.491182",
+      "metrics": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "true_negatives": 5,
+        "false_negatives": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 1.0
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.10895729064941406
+        },
+        {
+          "message_index": 4,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.03409385681152344
+        },
+        {
+          "message_index": 6,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 92.1790599822998
+        },
+        {
+          "message_index": 8,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 55.461883544921875
+        }
+      ]
+    },
+    {
+      "test_case_id": "subtle-shift-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 163.6967658996582,
+      "timestamp": "2025-12-10T21:49:00.654883",
+      "metrics": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "true_negatives": 5,
+        "false_negatives": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 1.0
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.09083747863769531
+        },
+        {
+          "message_index": 4,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.031948089599609375
+        },
+        {
+          "message_index": 6,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 86.4560604095459
+        },
+        {
+          "message_index": 8,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 77.09503173828125
+        }
+      ]
+    },
+    {
+      "test_case_id": "multi-topic-1",
+      "strategy_name": "DualWindowStrategy",
+      "strategy_version": "1.0.0",
+      "total_time_ms": 180.99713325500488,
+      "timestamp": "2025-12-10T21:49:00.835885",
+      "metrics": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "true_negatives": 4,
+        "false_negatives": 2,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "accuracy": 0.6666666666666666
+      },
+      "boundary_results": [
+        {
+          "message_index": 0,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.0
+        },
+        {
+          "message_index": 2,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.10323524475097656
+        },
+        {
+          "message_index": 4,
+          "expected": true,
+          "detected": false,
+          "correct": false,
+          "confidence": "uncertain",
+          "confidence_score": 0.0,
+          "processing_time_ms": 0.04029273986816406
+        },
+        {
+          "message_index": 6,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 72.75795936584473
+        },
+        {
+          "message_index": 8,
+          "expected": true,
+          "detected": false,
+          "correct": false,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 58.33911895751953
+        },
+        {
+          "message_index": 10,
+          "expected": false,
+          "detected": false,
+          "correct": true,
+          "confidence": "low",
+          "confidence_score": 0.3,
+          "processing_time_ms": 49.74079132080078
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "DualWindowStrategy": {
+      "precision": 0.5,
+      "recall": 0.25,
+      "accuracy": 0.8,
+      "num_evaluations": 8
+    }
+  },
+  "saved_at": "2025-12-10T21:49:00.836022"
+}

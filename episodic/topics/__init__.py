@@ -52,6 +52,15 @@ from .topic_retrieval import (
     format_topic_context,
     get_topic_messages,
 )
+from .feedback import (
+    FeedbackStore,
+    FeedbackType,
+    TopicFeedback,
+    get_feedback_store,
+    record_helpful,
+    record_not_helpful,
+    record_missing_context,
+)
 
 # Keep backward compatibility
 from .detector import (
@@ -106,6 +115,13 @@ __all__ = [
     'retrieve_topic_context',
     'format_topic_context',
     'get_topic_messages',
+    'FeedbackStore',
+    'FeedbackType',
+    'TopicFeedback',
+    'get_feedback_store',
+    'record_helpful',
+    'record_not_helpful',
+    'record_missing_context',
 
     # Functions (legacy)
     'detect_topic_change_separately',

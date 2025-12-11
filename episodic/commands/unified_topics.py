@@ -168,13 +168,18 @@ def handle_topics_action(action: str = "list", **kwargs):
         apply = kwargs.get('apply', False)
         verbose = kwargs.get('verbose', False)
         reanalyze_topics(min_similarity=min_similarity, apply=apply, verbose=verbose)
+    elif action == "feedback":
+        feedback_type = kwargs.get('feedback_type', 'stats')
+        note = kwargs.get('note')
+        expected_topic = kwargs.get('expected_topic')
+        show_topic_feedback(feedback_type, note, expected_topic, verbose)
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze", fg="yellow")
+        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze, feedback", fg="yellow")
 
 
 def topics_command(
-    action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats|reanalyze"),
+    action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats|reanalyze|feedback"),
     # Common options
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information"),
     # Index-specific options
@@ -185,7 +190,11 @@ def topics_command(
     # Scores-specific options
     node_id: Optional[str] = typer.Option(None, "--node", help="Node ID for score analysis"),
     # Reanalyze-specific options
-    min_similarity: Optional[float] = typer.Option(None, "--similarity", "-s", help="Min similarity for reanalyze (0-1, higher = more topics)")
+    min_similarity: Optional[float] = typer.Option(None, "--similarity", "-s", help="Min similarity for reanalyze (0-1, higher = more topics)"),
+    # Feedback-specific options
+    feedback_type: Optional[str] = typer.Option(None, "--type", "-t", help="Feedback type: stats|helpful|bad|missing|clear"),
+    note: Optional[str] = typer.Option(None, "--note", help="Note for feedback"),
+    expected_topic: Optional[str] = typer.Option(None, "--topic", help="Expected topic (for 'missing' feedback)")
 ):
     """
     Unified topic management command.
@@ -198,15 +207,19 @@ def topics_command(
       scores    - Show topic detection scores
       stats     - Show topic statistics
       reanalyze - Re-detect topics using full conversation context
+      feedback  - Record/view feedback about topic context retrieval
 
     Examples:
-      /topics                    # List all topics
-      /topics rename             # Rename ongoing topics
-      /topics index 5            # Detect topics with window size 5
-      /topics reanalyze          # Re-detect topics with hierarchical clustering
-      /topics reanalyze --apply  # Re-detect and save to database
+      /topics                      # List all topics
+      /topics rename               # Rename ongoing topics
+      /topics index 5              # Detect topics with window size 5
+      /topics reanalyze            # Re-detect topics with hierarchical clustering
+      /topics reanalyze --apply    # Re-detect and save to database
+      /topics feedback             # Show feedback stats
+      /topics feedback helpful     # Record that context was helpful
+      /topics feedback missing     # Record that expected context was missing
     """
-    
+
     if action == "list":
         # Use existing implementation
         list_topics_impl()
@@ -244,9 +257,14 @@ def topics_command(
         sim = min_similarity if min_similarity is not None else 0.5
         reanalyze_topics(min_similarity=sim, apply=apply, verbose=verbose)
 
+    elif action == "feedback":
+        # Handle feedback subaction
+        fb_type = feedback_type or "stats"
+        show_topic_feedback(fb_type, note, expected_topic, verbose)
+
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.echo("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze")
+        typer.echo("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze, feedback")
 
 
 def show_topic_stats(verbose: bool = False):
@@ -285,11 +303,107 @@ def show_topic_stats(verbose: bool = False):
         
         # Show average messages per topic
         typer.secho("\n📈 Topic Sizes:", fg=get_heading_color())
-        
+
         # This would require counting nodes per topic
         # For now, just show a placeholder
         typer.echo("  Average messages per topic: (calculation pending)")
-        
+
+    typer.echo()
+
+
+def show_topic_feedback(
+    feedback_type: str = "stats",
+    note: Optional[str] = None,
+    expected_topic: Optional[str] = None,
+    verbose: bool = False
+):
+    """
+    Handle topic feedback commands.
+
+    Actions:
+      stats    - Show feedback statistics (default)
+      helpful  - Record that context retrieval was helpful
+      bad      - Record that context retrieval was not helpful
+      missing  - Record that expected context was missing
+      clear    - Clear all feedback
+    """
+    from episodic.topics.feedback import (
+        get_feedback_store,
+        FeedbackType,
+        record_helpful,
+        record_not_helpful,
+        record_missing_context
+    )
+
+    store = get_feedback_store()
+
+    if feedback_type == "stats":
+        stats = store.get_stats()
+
+        typer.secho("\n📊 Topic Feedback Statistics", fg=get_heading_color(), bold=True)
+        typer.secho("=" * 50, fg=get_heading_color())
+
+        if stats['total'] == 0:
+            typer.secho("\nNo feedback recorded yet.", fg=get_system_color())
+            typer.echo("\nRecord feedback with:")
+            typer.echo("  /topics feedback helpful    - Context was useful")
+            typer.echo("  /topics feedback bad        - Context wasn't helpful")
+            typer.echo("  /topics feedback missing    - Expected context wasn't retrieved")
+            return
+
+        typer.echo(f"\nTotal feedback: {stats['total']}")
+
+        if stats['helpful_ratio'] is not None:
+            pct = stats['helpful_ratio'] * 100
+            typer.echo(f"Helpful ratio: {pct:.1f}%")
+
+        typer.secho("\nBy type:", fg=get_heading_color())
+        for fb_type, count in stats['by_type'].items():
+            typer.echo(f"  {fb_type}: {count}")
+
+        if stats['by_strategy']:
+            typer.secho("\nBy strategy:", fg=get_heading_color())
+            for strategy, count in stats['by_strategy'].items():
+                typer.echo(f"  {strategy}: {count}")
+
+        if verbose:
+            # Show recent feedback
+            recent = store.read_feedback(limit=5)
+            if recent:
+                typer.secho("\nRecent feedback:", fg=get_heading_color())
+                for fb in recent:
+                    time_str = fb.timestamp.strftime("%Y-%m-%d %H:%M")
+                    typer.echo(f"  [{time_str}] {fb.feedback_type.value}")
+                    if fb.query:
+                        query_preview = fb.query[:50] + "..." if len(fb.query) > 50 else fb.query
+                        typer.echo(f"    Query: {query_preview}")
+
+    elif feedback_type == "helpful":
+        fb = record_helpful()
+        typer.secho("✓ Recorded: context retrieval was helpful", fg="green")
+
+    elif feedback_type == "bad" or feedback_type == "not_helpful":
+        fb = record_not_helpful(note)
+        typer.secho("✓ Recorded: context retrieval was not helpful", fg="yellow")
+        if note:
+            typer.echo(f"  Note: {note}")
+
+    elif feedback_type == "missing":
+        if not expected_topic:
+            typer.secho("Please specify the expected topic:", fg="yellow")
+            typer.echo("  /topics feedback missing --topic 'topic name'")
+            return
+        fb = record_missing_context(expected_topic, note)
+        typer.secho(f"✓ Recorded: expected context about '{expected_topic}' was missing", fg="yellow")
+
+    elif feedback_type == "clear":
+        store.clear_feedback()
+        typer.secho("✓ Cleared all feedback", fg="green")
+
+    else:
+        typer.secho(f"Unknown feedback type: {feedback_type}", fg="red")
+        typer.echo("\nAvailable types: stats, helpful, bad, missing, clear")
+
     typer.echo()
 
 

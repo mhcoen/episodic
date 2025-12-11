@@ -302,9 +302,14 @@ class NeuralStrategy(TopicStrategy):
             else:
                 before_messages = messages[:-1]  # Whatever we have before last
 
+            # Determine query role based on alternating pattern
+            # If last history message is from user, query is from assistant, and vice versa
+            last_role = messages[-1].get('role', 'user')
+            query_role = 'assistant' if last_role == 'user' else 'user'
+
             after_messages = [
                 messages[-1],  # Last message of history (potential last of old topic)
-                {"role": "user", "content": query}  # Query (potential first of new topic)
+                {"role": query_role, "content": query}  # Query (potential first of new topic)
             ]
 
             # Format as in training

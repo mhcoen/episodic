@@ -178,12 +178,15 @@ class DualWindowDetector:
                 
                 # Combine before window text
                 before_text = " ".join([
-                    f"{msg.get('role', 'user')}: {msg.get('content', '')}" 
+                    f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                     for msg in before_messages
                 ])
-                
+
                 # After window is just the new message
-                after_text = f"user: {new_message}"
+                # Determine role based on alternating pattern
+                last_role = all_messages[0].get('role', 'user') if all_messages else 'user'
+                new_role = 'assistant' if last_role == 'user' else 'user'
+                after_text = f"{new_role}: {new_message}"
                 
             else:  # (4,2) window
                 if len(all_messages) < 4:
@@ -204,10 +207,13 @@ class DualWindowDetector:
                     for msg in before_messages
                 ])
                 
+                # Determine role for new message based on alternating pattern
+                last_role = all_messages[0].get('role', 'user') if all_messages else 'user'
+                new_role = 'assistant' if last_role == 'user' else 'user'
                 after_text = " ".join([
-                    f"{msg.get('role', 'user')}: {msg.get('content', '')}" 
+                    f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                     for msg in after_messages
-                ] + [f"user: {new_message}"])
+                ] + [f"{new_role}: {new_message}"])
             
             # Calculate drift score
             before_node = {"content": before_text}

@@ -126,6 +126,13 @@ def _ensure_strategies_registered() -> None:
         except ImportError as e:
             logger.warning(f"Could not import NeuralStrategy: {e}")
 
+    if 'ensemble' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.ensemble_strategy import EnsembleStrategy
+            register_strategy('ensemble', EnsembleStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import EnsembleStrategy: {e}")
+
 
 # Singleton instance for convenience
 _current_strategy: Optional[TopicStrategy] = None

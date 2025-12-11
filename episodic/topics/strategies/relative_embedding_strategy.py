@@ -97,16 +97,15 @@ class RelativeEmbeddingStrategy(TopicStrategy):
         Returns:
             Tuple of (mean_similarity, std_similarity)
         """
-        user_messages = [m for m in messages if m.get('role') == 'user']
-
-        if len(user_messages) < 2:
+        # Use all messages, not just user messages
+        if len(messages) < 2:
             return 0.5, 0.2  # Default baseline
 
         # Compute pairwise similarities between consecutive messages
         similarities = []
-        for i in range(1, len(user_messages)):
-            prev_emb = self._get_embedding(user_messages[i-1].get('content', ''))
-            curr_emb = self._get_embedding(user_messages[i].get('content', ''))
+        for i in range(1, len(messages)):
+            prev_emb = self._get_embedding(messages[i-1].get('content', ''))
+            curr_emb = self._get_embedding(messages[i].get('content', ''))
             sim = self._cosine_similarity(prev_emb, curr_emb)
             similarities.append(sim)
 
@@ -268,9 +267,8 @@ class RelativeEmbeddingStrategy(TopicStrategy):
         """
         start_time = time.time()
 
-        # Need minimum history
-        user_messages = [m for m in messages if m.get('role') == 'user']
-        if len(user_messages) < 2:
+        # Need minimum history (use all messages, not just user)
+        if len(messages) < 2:
             return TopicDecision(
                 topic_changed=False,
                 new_thread=None,
@@ -279,7 +277,7 @@ class RelativeEmbeddingStrategy(TopicStrategy):
                 confidence=Confidence.UNCERTAIN,
                 confidence_score=0.0,
                 reasoning="Insufficient history for comparison",
-                signals={'user_message_count': len(user_messages)},
+                signals={'message_count': len(messages)},
                 strategy_name=self.name,
                 strategy_version=self.version,
                 processing_time_ms=(time.time() - start_time) * 1000,
@@ -290,8 +288,8 @@ class RelativeEmbeddingStrategy(TopicStrategy):
         # Compute baseline statistics
         baseline_mean, baseline_std = self._compute_baseline_similarity(messages)
 
-        # Similarity to recent messages
-        recent = user_messages[-self.recent_window:]
+        # Similarity to recent messages (use all messages, not just user)
+        recent = messages[-self.recent_window:]
         recent_sims = []
         for msg in recent:
             msg_emb = self._get_embedding(msg.get('content', ''))

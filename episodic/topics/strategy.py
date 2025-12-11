@@ -32,9 +32,12 @@ class Thread:
     id: str
     name: Optional[str]  # Human-readable topic name, may be None initially
     start_node_id: str
-    end_node_id: Optional[str]  # None if thread is ongoing
-    message_count: int
-    created_at: datetime
+    end_node_id: Optional[str] = None  # None if thread is ongoing
+    message_count: int = 0
+    created_at: Optional[datetime] = None
+
+    # Optional: the actual messages in this thread
+    messages: List[Dict[str, Any]] = field(default_factory=list)
 
     # Optional: embedding/centroid for semantic matching
     embedding: Optional[List[float]] = None

@@ -18,11 +18,12 @@ from episodic.benchmark import benchmark_resource
 
 class ContextBuilder:
     """Builds conversation context with optional enhancements."""
-    
+
     def __init__(self):
         """Initialize the context builder."""
         self.rag_context = None
         self.web_context = None
+        self.topic_context = None
         
     def build_conversation_context(
         self,
@@ -41,7 +42,11 @@ class ContextBuilder:
         # Build basic conversation history
         with benchmark_resource("Database", "build context"):
             messages, raw_messages = self._build_basic_context(user_node_id, context_depth)
-        
+
+        # Add topic-aware context retrieval (before RAG)
+        topic_context = self._add_topic_context(user_input, messages)
+        self.topic_context = topic_context
+
         # Add RAG context if enabled
         rag_context = None
         if not skip_rag:
@@ -128,7 +133,66 @@ class ContextBuilder:
             })
         
         return messages, raw_messages
-    
+
+    def _add_topic_context(
+        self,
+        user_input: str,
+        messages: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Add context from related previous topics.
+
+        Uses the topic strategy to detect if the current query relates
+        to a previous topic and retrieves relevant messages.
+        """
+        if not config.get('topic_context_retrieval', False):
+            return None
+
+        try:
+            from episodic.topics.topic_retrieval import (
+                retrieve_topic_context,
+                format_topic_context
+            )
+
+            retrieved_messages, retrieval_info = retrieve_topic_context(
+                query=user_input,
+                current_messages=messages,
+                max_messages=config.get('topic_context_max_messages', 10),
+                max_tokens=config.get('topic_context_max_tokens', 2000)
+            )
+
+            if not retrieved_messages:
+                return retrieval_info
+
+            # Format the retrieved context
+            context_text = format_topic_context(
+                retrieved_messages,
+                thread_name=retrieval_info.get('links', [{}])[0].get('thread_name')
+            )
+
+            if context_text:
+                # Insert as a system message before the conversation
+                topic_message = {
+                    "role": "system",
+                    "content": context_text
+                }
+
+                # Insert at the beginning (before conversation history)
+                messages.insert(0, topic_message)
+
+                if config.get("debug"):
+                    debug_print(
+                        f"Added topic context: {retrieval_info.get('total_messages', 0)} messages, "
+                        f"{retrieval_info.get('total_tokens', 0)} tokens"
+                    )
+
+            return retrieval_info
+
+        except Exception as e:
+            if config.get("debug"):
+                debug_print(f"Topic context error: {e}")
+            return {'error': str(e)}
+
     def _add_rag_context(
         self,
         user_input: str,
@@ -296,4 +360,10 @@ class ContextBuilder:
             info['rag_context_length'] = len(self.rag_context)
         if self.web_context:
             info['web_context_length'] = len(self.web_context)
+        if self.topic_context and isinstance(self.topic_context, dict):
+            info['topic_context'] = {
+                'messages': self.topic_context.get('total_messages', 0),
+                'tokens': self.topic_context.get('total_tokens', 0),
+                'threads': len(self.topic_context.get('links', []))
+            }
         return info

@@ -61,10 +61,15 @@ CONFIG_DOCS = {
     "manual_index_threshold": "Drift score threshold for detecting topic boundaries",
     
     # Topic strategy (new experimental system)
-    "topic_strategy": "Strategy for topic detection/retrieval: 'dual_window', 'null', or future strategies",
+    "topic_strategy": "Strategy for topic detection/retrieval: 'dual_window', 'keyword', 'relative_embedding'",
     "topic_strategy_params": "Strategy-specific parameters (varies by strategy)",
     "topic_decision_logging": "Log all topic decisions for debugging and evaluation",
     "topic_decision_log_path": "Path to write topic decision logs (relative to ~/.episodic/)",
+
+    # Topic context retrieval (experimental)
+    "topic_context_retrieval": "Enable automatic retrieval of context from previous topics when returning to them",
+    "topic_context_max_messages": "Maximum messages to retrieve from previous topics",
+    "topic_context_max_tokens": "Maximum tokens to retrieve from previous topics",
 
     # Topic detection methods (legacy)
     "use_hybrid_topic_detection": "Use multi-signal topic detection (combines drift, keywords, etc)",

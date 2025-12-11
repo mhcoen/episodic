@@ -45,6 +45,14 @@
   "_comment_topic_decision_log_path": "Path to write topic decision logs (relative to ~/.episodic/)",
   "topic_decision_log_path": "logs/topic_decisions.jsonl",
 
+  "_comment_retrieval": "// === TOPIC CONTEXT RETRIEVAL (EXPERIMENTAL) ===",
+  "_comment_topic_context_retrieval": "Enable automatic retrieval of context from previous topics when returning to them",
+  "topic_context_retrieval": false,
+  "_comment_topic_context_max_messages": "Maximum messages to retrieve from previous topics",
+  "topic_context_max_messages": 10,
+  "_comment_topic_context_max_tokens": "Maximum tokens to retrieve from previous topics",
+  "topic_context_max_tokens": 2000,
+
   "_comment_hybrid": "// === HYBRID TOPIC DETECTION (LEGACY) ===",
   "_comment_use_hybrid_topic_detection": "Use multi-signal topic detection (combines drift, keywords, gaps, etc.)",
   "use_hybrid_topic_detection": false,

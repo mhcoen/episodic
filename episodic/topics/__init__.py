@@ -47,6 +47,11 @@ from .decision_logging import (
     get_decision_logger,
     log_topic_decision,
 )
+from .topic_retrieval import (
+    retrieve_topic_context,
+    format_topic_context,
+    get_topic_messages,
+)
 
 # Keep backward compatibility
 from .detector import (
@@ -98,6 +103,9 @@ __all__ = [
     'DecisionLogger',
     'get_decision_logger',
     'log_topic_decision',
+    'retrieve_topic_context',
+    'format_topic_context',
+    'get_topic_messages',
 
     # Functions (legacy)
     'detect_topic_change_separately',

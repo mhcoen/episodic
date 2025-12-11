@@ -119,6 +119,13 @@ def _ensure_strategies_registered() -> None:
         except ImportError as e:
             logger.warning(f"Could not import RelativeEmbeddingStrategy: {e}")
 
+    if 'neural' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.neural_strategy import NeuralStrategy
+            register_strategy('neural', NeuralStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import NeuralStrategy: {e}")
+
 
 # Singleton instance for convenience
 _current_strategy: Optional[TopicStrategy] = None

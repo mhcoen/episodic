@@ -6,6 +6,12 @@ This module provides various approaches to topic detection and management:
 - HybridTopicDetector: Multi-signal topic detection
 - SlidingWindowDetector: Window-based drift detection
 - TransitionDetector: Keyword and transition detection
+
+New strategy-based architecture (experimental):
+- TopicStrategy: Abstract base class for pluggable strategies
+- DualWindowStrategy: Dual-window (4,1)+(4,2) strategy
+- strategy_registry: Factory for creating strategies by name
+- decision_logging: Log decisions for debugging/evaluation
 """
 
 from .detector import TopicManager
@@ -17,6 +23,29 @@ from .utils import (
     build_conversation_segment,
     is_node_in_topic_range,
     count_nodes_in_topic,
+)
+
+# New strategy-based architecture
+from .strategy import (
+    TopicStrategy,
+    Thread,
+    ThreadLink,
+    RetrievedContext,
+    TopicDecision,
+    Confidence,
+    NullStrategy,
+)
+from .strategy_registry import (
+    get_strategy,
+    get_current_strategy,
+    list_strategies,
+    register_strategy,
+    reset_strategy,
+)
+from .decision_logging import (
+    DecisionLogger,
+    get_decision_logger,
+    log_topic_decision,
 )
 
 # Keep backward compatibility
@@ -47,13 +76,30 @@ def detect_topic_change_hybrid(
 
 
 __all__ = [
-    # Main classes
+    # Main classes (legacy)
     'TopicManager',
-    'HybridTopicDetector', 
+    'HybridTopicDetector',
     'SlidingWindowDetector',
     'TransitionDetector',
-    
-    # Functions
+
+    # New strategy-based architecture
+    'TopicStrategy',
+    'Thread',
+    'ThreadLink',
+    'RetrievedContext',
+    'TopicDecision',
+    'Confidence',
+    'NullStrategy',
+    'get_strategy',
+    'get_current_strategy',
+    'list_strategies',
+    'register_strategy',
+    'reset_strategy',
+    'DecisionLogger',
+    'get_decision_logger',
+    'log_topic_decision',
+
+    # Functions (legacy)
     'detect_topic_change_separately',
     'extract_topic_ollama',
     'should_create_first_topic',

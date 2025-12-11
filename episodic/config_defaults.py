@@ -60,7 +60,13 @@ CONFIG_DOCS = {
     "manual_index_window_size": "Default sliding window size for manual topic indexing",
     "manual_index_threshold": "Drift score threshold for detecting topic boundaries",
     
-    # Topic detection methods
+    # Topic strategy (new experimental system)
+    "topic_strategy": "Strategy for topic detection/retrieval: 'dual_window', 'null', or future strategies",
+    "topic_strategy_params": "Strategy-specific parameters (varies by strategy)",
+    "topic_decision_logging": "Log all topic decisions for debugging and evaluation",
+    "topic_decision_log_path": "Path to write topic decision logs (relative to ~/.episodic/)",
+
+    # Topic detection methods (legacy)
     "use_hybrid_topic_detection": "Use multi-signal topic detection (combines drift, keywords, etc)",
     "use_sliding_window_detection": "Use sliding window detection (compares groups of messages)",
     "sliding_window_size": "Size of sliding windows for topic detection (default: 3)",

@@ -105,6 +105,20 @@ def _ensure_strategies_registered() -> None:
         except ImportError as e:
             logger.warning(f"Could not import DualWindowStrategy: {e}")
 
+    if 'keyword' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.keyword_strategy import KeywordStrategy
+            register_strategy('keyword', KeywordStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import KeywordStrategy: {e}")
+
+    if 'relative_embedding' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.relative_embedding_strategy import RelativeEmbeddingStrategy
+            register_strategy('relative_embedding', RelativeEmbeddingStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import RelativeEmbeddingStrategy: {e}")
+
 
 # Singleton instance for convenience
 _current_strategy: Optional[TopicStrategy] = None

@@ -268,8 +268,9 @@ class NeuralStrategy(TopicStrategy):
                 processing_time_ms=(time.time() - start_time) * 1000,
             )
 
-        # Need at least 4 messages before
-        if len(messages) < 4:
+        # Need at least 1 message for group2 (last history msg + query)
+        # Ideally 5+ for full (4,2) window, but can work with less
+        if len(messages) < 1:
             return TopicDecision(
                 topic_changed=False,
                 new_thread=None,
@@ -277,7 +278,7 @@ class NeuralStrategy(TopicStrategy):
                 retrieved_context=None,
                 confidence=Confidence.UNCERTAIN,
                 confidence_score=0.0,
-                reasoning=f"Insufficient history: {len(messages)} < 4",
+                reasoning=f"Insufficient history: {len(messages)} < 1",
                 signals={'message_count': len(messages)},
                 strategy_name=self.name,
                 strategy_version=self.version,
@@ -287,11 +288,23 @@ class NeuralStrategy(TopicStrategy):
         try:
             import torch
 
-            # Build window: last 4 messages + query + placeholder
-            before_messages = messages[-4:]
+            # Build window matching training format:
+            # In training, boundary at position i means:
+            #   group1 = messages[i-4:i] (4 messages BEFORE position i)
+            #   group2 = messages[i:i+2] (messages[i] = last of old, messages[i+1] = first of new)
+            #
+            # For inference, checking if query starts new topic:
+            #   Boundary position = last message of history
+            #   group1 = 4 messages BEFORE the last history message
+            #   group2 = [last history message, query] (straddles potential boundary)
+            if len(messages) >= 5:
+                before_messages = messages[-5:-1]  # 4 messages before the last one
+            else:
+                before_messages = messages[:-1]  # Whatever we have before last
+
             after_messages = [
-                {"role": "user", "content": query},
-                {"role": "assistant", "content": ""}  # Placeholder
+                messages[-1],  # Last message of history (potential last of old topic)
+                {"role": "user", "content": query}  # Query (potential first of new topic)
             ]
 
             # Format as in training

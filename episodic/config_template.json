@@ -35,9 +35,9 @@
   "_comment_manual_index_threshold": "Drift score threshold for detecting topic boundaries (0.0-1.0, higher = more sensitive)",
   "manual_index_threshold": 0.75,
   
-  "_comment_strategy": "// === TOPIC STRATEGY (NEW EXPERIMENTAL SYSTEM) ===",
-  "_comment_topic_strategy": "Strategy for topic detection/retrieval: 'dual_window', 'null', or future strategies",
-  "topic_strategy": "dual_window",
+  "_comment_strategy": "// === TOPIC STRATEGY ===",
+  "_comment_topic_strategy": "Strategy for topic detection: 'default' (Neural+Commitment), 'neural', 'dual_window', etc.",
+  "topic_strategy": "default",
   "_comment_topic_strategy_params": "Strategy-specific parameters (varies by strategy)",
   "topic_strategy_params": {},
   "_comment_topic_granularity": "Topic detection granularity: fine (many boundaries), medium (balanced), coarse (major themes only)",

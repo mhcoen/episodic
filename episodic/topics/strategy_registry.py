@@ -50,7 +50,7 @@ def get_strategy(
     """
     # Get from config if not provided
     if name is None:
-        name = config.get('topic_strategy', 'dual_window')
+        name = config.get('topic_strategy', 'default')
 
     if strategy_params is None:
         strategy_params = config.get('topic_strategy_params', {})
@@ -174,6 +174,13 @@ def _ensure_strategies_registered() -> None:
             register_strategy('summary_probe', SummaryProbeStrategy)
         except ImportError as e:
             logger.warning(f"Could not import SummaryProbeStrategy: {e}")
+
+    if 'default' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.default_strategy import DefaultStrategy
+            register_strategy('default', DefaultStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import DefaultStrategy: {e}")
 
 
 # Singleton instance for convenience

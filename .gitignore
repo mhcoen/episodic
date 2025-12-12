@@ -90,3 +90,4 @@ datasets/topical_chat/
 # Generated plots
 *.png
 .aider*
+paper/

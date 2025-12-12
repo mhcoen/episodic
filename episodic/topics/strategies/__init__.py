@@ -10,6 +10,11 @@ from episodic.topics.strategies.keyword_strategy import KeywordStrategy
 from episodic.topics.strategies.relative_embedding_strategy import RelativeEmbeddingStrategy
 from episodic.topics.strategies.neural_strategy import NeuralStrategy
 from episodic.topics.strategies.ensemble_strategy import EnsembleStrategy
+from episodic.topics.strategies.commitment_strategy import (
+    CommitmentPolicyStrategy,
+    CommitmentPolicy,
+    CommitmentState,
+)
 
 __all__ = [
     'DualWindowStrategy',
@@ -17,4 +22,7 @@ __all__ = [
     'RelativeEmbeddingStrategy',
     'NeuralStrategy',
     'EnsembleStrategy',
+    'CommitmentPolicyStrategy',
+    'CommitmentPolicy',
+    'CommitmentState',
 ]

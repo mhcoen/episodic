@@ -161,6 +161,13 @@ def _ensure_strategies_registered() -> None:
         except ImportError as e:
             logger.warning(f"Could not import TimeAwareStrategy: {e}")
 
+    if 'commitment' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.commitment_strategy import CommitmentPolicyStrategy
+            register_strategy('commitment', CommitmentPolicyStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import CommitmentPolicyStrategy: {e}")
+
 
 # Singleton instance for convenience
 _current_strategy: Optional[TopicStrategy] = None

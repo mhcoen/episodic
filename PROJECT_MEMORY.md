@@ -143,6 +143,79 @@ Common configurations in `ALIGNMENT_PRESETS`:
 - `after_message`: Boundary after the labeled message
 - `canonical`: Already in between-messages form
 
+## Future Topic Detection Architecture
+
+### Five-Level Decision Stack
+The current architecture conflates salience detection with boundary commitment. A more principled
+approach separates these concerns into distinct stages:
+
+1. **Salience Estimation** - Per-message energy/surprisal score (continuous)
+2. **Shift Classification** - What kind of shift: micro-phase, structural, clarification, return
+3. **Commitment Policy** - When to materialize a boundary given the shift type
+4. **Hysteresis/Smoothing** - Prevent rapid oscillation between topic states
+5. **Boundary Output** - Final materialized boundaries
+
+### Improvement Priorities
+
+#### 1. Hysteresis / Commitment Cost (Highest Leverage)
+**Problem**: Current system commits boundaries too eagerly, leading to oversegmentation.
+
+**Solution**: Model commitment cost, not just detection confidence.
+- Minimum distance between committed boundaries (adaptive, not fixed)
+- Accumulate evidence across 2-3 turns before committing
+- Penalize rapid alternation of topic states
+- This is commitment modeling, not smoothing
+
+**Implementation approach**:
+```python
+class CommitmentPolicy:
+    min_gap: int = 3  # Minimum turns between boundaries
+    evidence_window: int = 2  # Turns to accumulate evidence
+    commitment_threshold: float = 0.7  # Higher than detection threshold
+```
+
+#### 2. Separate Salience from Commitment
+**Problem**: Energy score directly becomes boundary decision.
+
+**Solution**: Two-stage process:
+- **Energy function**: Continuous salience score per message
+- **Policy layer**: Decides whether to commit based on energy pattern + context
+
+This allows the energy function to detect all potential shifts while the policy
+layer applies domain-appropriate filtering.
+
+#### 3. Micro vs Structural Shift Distinction
+**Problem**: Treating all shifts equally causes granularity mismatch across datasets.
+
+**Solution**: Classify shift types:
+- **Structural shifts**: True topic changes (commit at all granularities)
+- **Micro-phase shifts**: Subtopics, clarifications (commit only at fine granularity)
+- **Returns**: Circling back to previous topic (may not need new boundary)
+
+#### 4. Context-Adaptive Granularity
+**Problem**: Fixed granularity doesn't match varying annotation conventions.
+
+**Solution**: Let context drive granularity:
+- Task-oriented conversations: Coarser boundaries
+- Open-domain chat: Finer boundaries
+- User preferences: Configurable per-conversation
+
+#### 5. Selective Supervision
+**Problem**: Training on sparse labels teaches model to under-segment.
+
+**Solution**: Train on shift detection, not just labeled boundaries.
+- Auxiliary loss for shift type classification
+- Multi-task learning: boundary + shift type
+- Use unlabeled data for contrastive pre-training
+
+### Why This Matters
+Current high BOR on open-domain datasets isn't failure—it's the model detecting real
+conversational structure that datasets don't annotate. The architecture improvements
+above would allow:
+- Preserving detection sensitivity while controlling commitment
+- Adapting to different annotation conventions without retraining
+- Distinguishing "correct detection, sparse labels" from "true oversegmentation"
+
 ## Development Guidelines
 
 - **File Length**: Maximum 500 lines per file (hard cap at 600)
@@ -164,11 +237,17 @@ Common configurations in `ALIGNMENT_PRESETS`:
   - Added `BoundaryAlignment` config with presets for common conventions
   - W-F1 (windowed F1) properly accounts for detection timing
   - 21 unit tests in `tests/unit/topics/test_boundary_alignment.py`
+- **Commitment Policy / Hysteresis (December 2025)**:
+  - Added `CommitmentPolicyStrategy` wrapper for any base detection strategy
+  - Separates salience detection from commitment decisions
+  - Prevents oversegmentation with: minimum gap between boundaries, evidence accumulation,
+    higher commitment threshold than detection threshold
+  - 15 unit tests in `tests/unit/topics/test_commitment_strategy.py`
 - **Topic Detection Calibration & Strategies (December 2025)**:
   - Added granularity levels (fine/medium/coarse) to NeuralStrategy
   - Added adaptive z-score thresholds to DualWindowStrategy
   - Added operational metrics: Windowed F1, BOR, WindowDiff, Purity/Coverage
-  - New strategies: CUSUM, Delta, SpeechAct, TimeAware
+  - New strategies: CUSUM, Delta, SpeechAct, TimeAware, Commitment
   - Calibration module for domain-specific threshold tuning
 - **Muse Mode Context Preservation Fix (2025-01-12)**:
   - Fixed critical issue where muse mode was not maintaining conversation context

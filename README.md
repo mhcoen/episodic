@@ -17,7 +17,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
-- **🗄️ Persistent Memory** - Automatic topic detection and context management
+- **🧠 Intelligent Topic Detection** - State-of-the-art neural segmentation validated on academic benchmarks, with configurable granularity
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers

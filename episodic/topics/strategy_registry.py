@@ -168,6 +168,13 @@ def _ensure_strategies_registered() -> None:
         except ImportError as e:
             logger.warning(f"Could not import CommitmentPolicyStrategy: {e}")
 
+    if 'summary_probe' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.summary_probe_strategy import SummaryProbeStrategy
+            register_strategy('summary_probe', SummaryProbeStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import SummaryProbeStrategy: {e}")
+
 
 # Singleton instance for convenience
 _current_strategy: Optional[TopicStrategy] = None

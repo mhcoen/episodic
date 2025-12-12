@@ -8,6 +8,7 @@ This is the recommended strategy for general use.
 """
 
 from typing import Dict, Any, Optional, List
+from datetime import datetime
 import logging
 
 from episodic.topics.strategy import (
@@ -21,6 +22,10 @@ from episodic.topics.strategies.neural_strategy import NeuralStrategy
 from episodic.topics.strategies.commitment_strategy import (
     CommitmentPolicyStrategy,
     CommitmentPolicy,
+)
+from episodic.topics.diagnostics import (
+    DiagnosticsCollector,
+    record_decision_diagnostics,
 )
 
 logger = logging.getLogger(__name__)
@@ -112,6 +117,10 @@ class DefaultStrategy(TopicStrategy):
             self._has_commitment = True
             logger.info(f"DefaultStrategy: Neural({granularity}) + Commitment(min_evidence={policy.min_evidence})")
 
+        # Diagnostics collector for observability
+        self._diagnostics = DiagnosticsCollector()
+        self._last_message_time: Optional[datetime] = None
+
     def get_decision(
         self,
         query: str,
@@ -120,6 +129,22 @@ class DefaultStrategy(TopicStrategy):
     ) -> TopicDecision:
         """Get topic decision using neural + commitment pipeline."""
         decision = self._strategy.get_decision(query, messages, current_thread)
+
+        # Compute time gap for diagnostics
+        now = datetime.now()
+        time_gap_seconds = 0.0
+        if self._last_message_time is not None:
+            time_gap_seconds = (now - self._last_message_time).total_seconds()
+        self._last_message_time = now
+
+        # Collect diagnostics
+        snapshot = record_decision_diagnostics(
+            decision.signals,
+            time_gap_seconds=time_gap_seconds
+        )
+
+        # Add diagnostics to decision signals
+        decision.signals['diagnostics'] = snapshot.to_dict()
 
         # Override strategy name to show it's the default
         decision.strategy_name = self.name
@@ -131,6 +156,8 @@ class DefaultStrategy(TopicStrategy):
         """Reset strategy state."""
         if hasattr(self._strategy, 'reset'):
             self._strategy.reset()
+        self._diagnostics.reset()
+        self._last_message_time = None
 
     def segment_conversation(
         self,

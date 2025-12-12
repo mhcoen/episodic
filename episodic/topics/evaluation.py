@@ -76,6 +76,235 @@ class OperationalMetrics:
         return asdict(self)
 
 
+# ============================================================================
+# CANONICAL BOUNDARY REPRESENTATION
+# ============================================================================
+
+@dataclass
+class BoundaryAlignment:
+    """
+    Configuration for how a dataset labels topic boundaries.
+
+    Canonical representation: A boundary at index t means "boundary between
+    message t-1 and message t" (i.e., the topic changes AT message t).
+    Valid boundary indices for T messages: [1, T-1].
+
+    Different datasets label boundaries differently:
+    - "message": boundary labeled on a specific message
+    - "between": boundary labeled between messages (already canonical)
+    - "turn_pair": boundary after a user+assistant pair
+
+    The anchor specifies interpretation:
+    - "after": label on message i means boundary AFTER message i (canonical: i+1)
+    - "before": label on message i means boundary BEFORE message i (canonical: i)
+
+    The speaker filter restricts which messages can have boundaries:
+    - None: any message
+    - "user": only user messages
+    - "assistant": only assistant messages
+    """
+    label_type: str = "message"  # "message", "between", "turn_pair"
+    anchor: str = "before"  # "after" or "before"
+    speaker: Optional[str] = None  # None, "user", or "assistant"
+
+    def __post_init__(self):
+        valid_types = {"message", "between", "turn_pair"}
+        valid_anchors = {"after", "before"}
+        valid_speakers = {None, "user", "assistant"}
+
+        if self.label_type not in valid_types:
+            raise ValueError(f"label_type must be one of {valid_types}, got {self.label_type}")
+        if self.anchor not in valid_anchors:
+            raise ValueError(f"anchor must be one of {valid_anchors}, got {self.anchor}")
+        if self.speaker not in valid_speakers:
+            raise ValueError(f"speaker must be one of {valid_speakers}, got {self.speaker}")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'label_type': self.label_type,
+            'anchor': self.anchor,
+            'speaker': self.speaker,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'BoundaryAlignment':
+        return cls(
+            label_type=data.get('label_type', 'message'),
+            anchor=data.get('anchor', 'before'),
+            speaker=data.get('speaker'),
+        )
+
+
+# Common alignment presets
+ALIGNMENT_PRESETS = {
+    # Boundary labeled on user message that starts new topic
+    'user_starts_topic': BoundaryAlignment(
+        label_type='message',
+        anchor='before',
+        speaker='user'
+    ),
+    # Boundary labeled on assistant message that starts new topic
+    'assistant_starts_topic': BoundaryAlignment(
+        label_type='message',
+        anchor='before',
+        speaker='assistant'
+    ),
+    # Boundary labeled on message AFTER which topic changes
+    'after_message': BoundaryAlignment(
+        label_type='message',
+        anchor='after',
+        speaker=None
+    ),
+    # Already canonical (between messages)
+    'canonical': BoundaryAlignment(
+        label_type='between',
+        anchor='before',
+        speaker=None
+    ),
+    # SuperDialseg/TIAGE style: boundary on the message that starts new segment
+    'segment_start': BoundaryAlignment(
+        label_type='message',
+        anchor='before',
+        speaker=None
+    ),
+}
+
+
+def to_canonical_boundaries(
+    boundaries: List[int],
+    messages: List[Any],
+    alignment: BoundaryAlignment
+) -> Set[int]:
+    """
+    Convert boundaries from dataset format to canonical representation.
+
+    Canonical: boundary at t means "topic changes AT message t"
+    (between message t-1 and message t).
+
+    Args:
+        boundaries: List of boundary indices in dataset format
+        messages: List of messages (need role info for speaker filtering)
+        alignment: How the dataset labels boundaries
+
+    Returns:
+        Set of canonical boundary indices
+    """
+    num_messages = len(messages)
+    canonical = set()
+
+    for b in boundaries:
+        if b < 0 or b >= num_messages:
+            continue  # Skip out-of-range
+
+        # Get the message role at this position
+        msg = messages[b]
+        role = msg.role if hasattr(msg, 'role') else msg.get('role', 'user')
+
+        # Check speaker filter
+        if alignment.speaker and role != alignment.speaker:
+            # This boundary is on wrong speaker type - might need adjustment
+            # For now, still include it but log warning
+            pass
+
+        if alignment.label_type == 'between':
+            # Already canonical
+            canonical_idx = b
+        elif alignment.label_type == 'message':
+            if alignment.anchor == 'before':
+                # Boundary at message b means topic starts at b
+                canonical_idx = b
+            else:  # anchor == 'after'
+                # Boundary after message b means topic starts at b+1
+                canonical_idx = b + 1
+        elif alignment.label_type == 'turn_pair':
+            # Boundary after turn pair - find next user message
+            canonical_idx = b + 1
+        else:
+            canonical_idx = b
+
+        # Validate range: canonical boundaries are in [1, T-1]
+        if 1 <= canonical_idx < num_messages:
+            canonical.add(canonical_idx)
+
+    return canonical
+
+
+def from_canonical_boundaries(
+    canonical_boundaries: Set[int],
+    messages: List[Any],
+    alignment: BoundaryAlignment
+) -> List[int]:
+    """
+    Convert canonical boundaries back to dataset format.
+
+    Useful for comparing predictions in the format expected by a dataset.
+
+    Args:
+        canonical_boundaries: Set of canonical boundary indices
+        messages: List of messages
+        alignment: Target dataset format
+
+    Returns:
+        List of boundary indices in dataset format
+    """
+    result = []
+    num_messages = len(messages)
+
+    for c in sorted(canonical_boundaries):
+        if alignment.label_type == 'between':
+            idx = c
+        elif alignment.label_type == 'message':
+            if alignment.anchor == 'before':
+                idx = c
+            else:  # anchor == 'after'
+                idx = c - 1
+        elif alignment.label_type == 'turn_pair':
+            idx = c - 1
+        else:
+            idx = c
+
+        # Apply speaker filter if needed
+        if alignment.speaker and 0 <= idx < num_messages:
+            msg = messages[idx]
+            role = msg.role if hasattr(msg, 'role') else msg.get('role', 'user')
+            if role != alignment.speaker:
+                # Find nearest message with correct speaker
+                # For now, just use the index anyway
+                pass
+
+        if 0 <= idx < num_messages:
+            result.append(idx)
+
+    return result
+
+
+def normalize_strategy_output(
+    predictions: List[int],
+    messages: List[Any],
+    strategy_alignment: BoundaryAlignment = None
+) -> Set[int]:
+    """
+    Normalize strategy predictions to canonical boundary indices.
+
+    Strategies typically detect boundaries at user messages where they
+    decide a topic change occurred. This converts to canonical form.
+
+    Args:
+        predictions: List of message indices where strategy detected boundaries
+        messages: List of messages
+        strategy_alignment: How the strategy reports boundaries
+                           (default: user_starts_topic)
+
+    Returns:
+        Set of canonical boundary indices
+    """
+    if strategy_alignment is None:
+        # Default: strategies detect on user messages, boundary means topic starts
+        strategy_alignment = ALIGNMENT_PRESETS['user_starts_topic']
+
+    return to_canonical_boundaries(predictions, messages, strategy_alignment)
+
+
 def compute_windowed_metrics(
     gold_boundaries: Set[int],
     predicted_boundaries: Set[int],
@@ -594,14 +823,24 @@ class TestCase:
 
     Contains a conversation with labeled topic boundaries and
     expected retrieval behavior.
+
+    Boundary alignment specifies how expected_boundaries are labeled
+    in the source dataset. Use get_canonical_boundaries() to convert
+    to the canonical representation for evaluation.
     """
     id: str
     name: str
     description: str
     messages: List[Message]
 
-    # Expected topic boundaries (indices of messages that start new topics)
+    # Expected topic boundaries (indices in dataset's format)
     expected_boundaries: List[int]
+
+    # How boundaries are labeled in this test case
+    # Default: boundaries mark message where new topic starts (canonical)
+    boundary_alignment: BoundaryAlignment = field(
+        default_factory=lambda: ALIGNMENT_PRESETS['segment_start']
+    )
 
     # Expected topic names at each boundary (optional)
     expected_topic_names: Dict[int, str] = field(default_factory=dict)
@@ -614,6 +853,22 @@ class TestCase:
     difficulty: str = "medium"  # easy, medium, hard
     source: str = "synthetic"  # synthetic, real, imported
 
+    def get_canonical_boundaries(self) -> Set[int]:
+        """
+        Convert expected_boundaries to canonical representation.
+
+        Canonical: boundary at t means topic changes AT message t
+        (between message t-1 and message t).
+
+        Returns:
+            Set of canonical boundary indices
+        """
+        return to_canonical_boundaries(
+            self.expected_boundaries,
+            self.messages,
+            self.boundary_alignment
+        )
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'id': self.id,
@@ -621,6 +876,7 @@ class TestCase:
             'description': self.description,
             'messages': [m.to_dict() for m in self.messages],
             'expected_boundaries': self.expected_boundaries,
+            'boundary_alignment': self.boundary_alignment.to_dict(),
             'expected_topic_names': self.expected_topic_names,
             'retrieval_tests': self.retrieval_tests,
             'tags': self.tags,
@@ -639,12 +895,22 @@ class TestCase:
             )
             for m in data['messages']
         ]
+
+        # Parse boundary alignment if present
+        alignment_data = data.get('boundary_alignment')
+        if alignment_data:
+            boundary_alignment = BoundaryAlignment.from_dict(alignment_data)
+        else:
+            # Default to segment_start for backwards compatibility
+            boundary_alignment = ALIGNMENT_PRESETS['segment_start']
+
         return cls(
             id=data['id'],
             name=data['name'],
             description=data['description'],
             messages=messages,
             expected_boundaries=data['expected_boundaries'],
+            boundary_alignment=boundary_alignment,
             expected_topic_names=data.get('expected_topic_names', {}),
             retrieval_tests=data.get('retrieval_tests', []),
             tags=data.get('tags', []),
@@ -813,15 +1079,22 @@ class EvaluationHarness:
         self,
         strategy: TopicStrategy,
         test_case: TestCase,
-        verbose: bool = False
+        verbose: bool = False,
+        strategy_alignment: BoundaryAlignment = None
     ) -> EvaluationResult:
         """
-        Evaluate a strategy on a single test case.
+        Evaluate a strategy on a single test case using canonical boundaries.
+
+        Both gold boundaries (from test case) and predicted boundaries (from
+        strategy) are converted to canonical representation before comparison.
 
         Args:
             strategy: The strategy to evaluate
             test_case: The test case to run
             verbose: Print progress
+            strategy_alignment: How the strategy reports boundaries
+                               (default: user_starts_topic - boundaries detected
+                               on user messages where topic changes)
 
         Returns:
             EvaluationResult with metrics
@@ -829,53 +1102,79 @@ class EvaluationHarness:
         boundary_results = []
         total_start = time.time()
 
-        # Convert expected boundaries to a set for O(1) lookup
-        expected_boundary_set = set(test_case.expected_boundaries)
+        # Convert expected boundaries to canonical form
+        canonical_expected = test_case.get_canonical_boundaries()
+
+        # Default strategy alignment: detects on user messages
+        if strategy_alignment is None:
+            strategy_alignment = ALIGNMENT_PRESETS['user_starts_topic']
+
+        # Track predicted boundaries (in strategy's native format)
+        predicted_indices = []
 
         # Build message history incrementally and check each point
         message_history = []
+        detection_results = {}  # Map message index -> detection info
 
         for i, message in enumerate(test_case.messages):
-            # Skip assistant messages for boundary detection
-            # (boundaries are detected on user messages)
-            if message.role != 'user':
-                message_history.append(message.to_dict())
-                continue
-
-            # Determine if this is an expected boundary
-            expected_boundary = i in expected_boundary_set
-
-            # Run detection
-            start_time = time.time()
-
-            if len(message_history) < 2:
-                # Not enough history for detection
-                detected_boundary = False
-                confidence = Confidence.UNCERTAIN
-                confidence_score = 0.0
-                signals = {}
-            else:
+            # Strategies typically run detection on user messages
+            # but we record results for all positions
+            if message.role == 'user' and len(message_history) >= 2:
+                # Run detection
+                start_time = time.time()
                 decision = strategy.get_decision(
                     query=message.content,
                     messages=message_history,
                     current_thread=None
                 )
-                detected_boundary = decision.topic_changed
-                confidence = decision.confidence
-                confidence_score = decision.confidence_score
-                signals = decision.signals
+                processing_time = (time.time() - start_time) * 1000
 
-            processing_time = (time.time() - start_time) * 1000
+                detection_results[i] = {
+                    'detected': decision.topic_changed,
+                    'confidence': decision.confidence,
+                    'confidence_score': decision.confidence_score,
+                    'signals': decision.signals,
+                    'processing_time_ms': processing_time
+                }
 
-            # Record result
+                if decision.topic_changed:
+                    predicted_indices.append(i)
+            else:
+                detection_results[i] = {
+                    'detected': False,
+                    'confidence': Confidence.UNCERTAIN,
+                    'confidence_score': 0.0,
+                    'signals': {},
+                    'processing_time_ms': 0.0
+                }
+
+            # Add to history after detection
+            message_history.append(message.to_dict())
+
+        # Convert predictions to canonical form
+        canonical_predicted = normalize_strategy_output(
+            predicted_indices,
+            test_case.messages,
+            strategy_alignment
+        )
+
+        # Create boundary results for all potential boundary positions
+        # Canonical boundaries are in range [1, T-1]
+        for i in range(1, len(test_case.messages)):
+            expected_boundary = i in canonical_expected
+            detected_boundary = i in canonical_predicted
+
+            # Get detection info (might be from this position or adjacent)
+            det_info = detection_results.get(i, detection_results.get(i-1, {}))
+
             result = BoundaryResult(
                 message_index=i,
                 expected_boundary=expected_boundary,
                 detected_boundary=detected_boundary,
-                confidence=confidence,
-                confidence_score=confidence_score,
-                processing_time_ms=processing_time,
-                signals=signals
+                confidence=det_info.get('confidence', Confidence.UNCERTAIN),
+                confidence_score=det_info.get('confidence_score', 0.0),
+                processing_time_ms=det_info.get('processing_time_ms', 0.0),
+                signals=det_info.get('signals', {})
             )
             boundary_results.append(result)
 
@@ -883,10 +1182,8 @@ class EvaluationHarness:
                 status = "✓" if result.is_correct else "✗"
                 exp = "B" if expected_boundary else "-"
                 det = "B" if detected_boundary else "-"
-                print(f"  [{i}] {status} expected={exp} detected={det} conf={confidence_score:.2f}")
-
-            # Add to history after detection
-            message_history.append(message.to_dict())
+                conf = det_info.get('confidence_score', 0.0)
+                print(f"  [{i}] {status} expected={exp} detected={det} conf={conf:.2f}")
 
         total_time = (time.time() - total_start) * 1000
 

@@ -440,7 +440,10 @@ Each context serves a specific purpose:
 Episodic uses a modular architecture:
 
 - **Conversation DAG**: Messages stored as nodes in a directed acyclic graph
-- **Topic Detection**: Multiple algorithms including sliding window and hybrid detection
+- **Topic Detection**: Pluggable strategy framework with multiple approaches:
+  - *Neural detection*: Fine-tuned DistilBERT model (~80% W-F1 on benchmarks)
+  - *Embedding-based*: Dual-window with adaptive thresholds
+  - *Granularity control*: Fine/medium/coarse segmentation for different use cases
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Brave, Searx)
 
@@ -456,8 +459,8 @@ pytest
 
 Episodic includes several experimental features for exploration:
 
-- **Hybrid Topic Detection**: Combines embedding similarity, keywords, and conversation patterns
-- **Boundary Analysis**: LLM-powered detection of exact topic transition points
+- **Advanced Topic Strategies**: CUSUM, Delta-embedding, Speech-act, and Time-aware detection
+- **Calibration Framework**: Domain-specific threshold tuning for optimal segmentation
 - **Alternative Embeddings**: Pluggable embedding providers for different use cases
 
 See the [User Guide's section on Experimental Features](USER_GUIDE.md#experimental-features) for details.

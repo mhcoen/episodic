@@ -14,6 +14,8 @@ from episodic.topics.strategies.commitment_strategy import (
     CommitmentPolicyStrategy,
     CommitmentPolicy,
     CommitmentState,
+    AdaptiveCommitmentStrategy,
+    AdaptivePolicy,
 )
 
 __all__ = [
@@ -25,4 +27,6 @@ __all__ = [
     'CommitmentPolicyStrategy',
     'CommitmentPolicy',
     'CommitmentState',
+    'AdaptiveCommitmentStrategy',
+    'AdaptivePolicy',
 ]

@@ -242,7 +242,10 @@ above would allow:
   - Separates salience detection from commitment decisions
   - Prevents oversegmentation with: minimum gap between boundaries, evidence accumulation,
     higher commitment threshold than detection threshold
-  - 15 unit tests in `tests/unit/topics/test_commitment_strategy.py`
+  - Added `AdaptiveCommitmentStrategy` that self-adjusts based on observed segmentation rate
+  - Evaluation results: Commit(medium) reduces BOR by 12-25% with only 4-6% W-F1 loss
+  - Best for datasets that oversegment (BOR > 1.2); skip for well-calibrated datasets
+  - 23 unit tests in `tests/unit/topics/test_commitment_strategy.py`
 - **Topic Detection Calibration & Strategies (December 2025)**:
   - Added granularity levels (fine/medium/coarse) to NeuralStrategy
   - Added adaptive z-score thresholds to DualWindowStrategy

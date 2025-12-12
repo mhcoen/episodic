@@ -362,48 +362,77 @@ class CommitmentPolicyStrategy(TopicStrategy):
 
 @dataclass
 class AdaptivePolicy:
-    """Configuration for adaptive commitment."""
+    """
+    Configuration for adaptive commitment.
 
-    # Target boundaries per N messages (ideal segmentation rate)
+    Rate Semantics:
+        target_rate is defined as "committed boundaries per canonical message position".
+        Canonical positions are between-message indices [1, T-1] for T messages.
+        This is speaker-agnostic: a dialogue with 10 messages has 9 potential
+        boundary positions, so target_rate=0.1 means ~1 boundary per dialogue.
+
+        To convert from typical annotation density:
+        - If dataset has avg 3 boundaries per 30-message dialogue: rate = 3/30 = 0.1
+        - BOR relates to this: BOR = observed_rate / gold_rate
+
+    Single-Knob Control:
+        Only min_evidence is adapted. min_gap stays fixed.
+        This avoids coupled dynamics and oscillation.
+    """
+
+    # Target boundaries per canonical message position
     # E.g., target_rate=0.1 means 1 boundary per 10 messages
+    # Typical values: 0.08-0.15 for task-oriented, 0.05-0.10 for open-domain
     target_rate: float = 0.1
 
-    # Window size for measuring current rate
+    # Window size for measuring current rate (in messages)
     rate_window: int = 50
 
-    # How aggressively to adjust (0-1, higher = faster adaptation)
-    adaptation_rate: float = 0.3
+    # How aggressively to adjust min_evidence (0-1, higher = faster adaptation)
+    # Recommended: 0.1-0.2 for stability
+    adaptation_rate: float = 0.15
 
-    # Bounds for min_gap adjustment
-    min_gap_bounds: tuple = (1, 6)
-
-    # Bounds for min_evidence adjustment
+    # Bounds for min_evidence adjustment (single knob)
     min_evidence_bounds: tuple = (0.3, 1.5)
 
+    # Fixed min_gap (not adapted, for stability)
+    fixed_min_gap: int = 2
+
     # Tolerance band around target rate (no adjustment within this band)
-    # E.g., 0.2 means ±20% of target rate is acceptable
-    tolerance: float = 0.2
+    # E.g., 0.25 means ±25% of target rate is acceptable
+    tolerance: float = 0.25
+
+    # Cold-start warmup: number of messages to observe before adapting
+    # During warmup, uses initial min_evidence; after warmup, begins adaptation
+    warmup_messages: int = 10
+
+    # If True, initialize min_evidence from warmup salience distribution
+    warmup_calibrate: bool = True
 
 
 class AdaptiveCommitmentStrategy(TopicStrategy):
     """
     Self-adjusting commitment strategy that adapts to observed segmentation rate.
 
-    Monitors the ratio of boundaries to messages and adjusts commitment
-    parameters to keep the rate near a target:
+    Design Principles:
+        1. Single-knob control: Only min_evidence is adapted, min_gap stays fixed.
+           This avoids coupled dynamics and oscillation.
+        2. Cold-start warmup: Observes base salience for N messages before adapting.
+           This removes startup transient in short dialogues.
+        3. Canonical rate: Rate computed on between-message positions, speaker-agnostic.
 
-    - If oversegmenting (rate > target): Tighten commitment (increase min_gap, min_evidence)
-    - If undersegmenting (rate < target): Loosen commitment (decrease min_gap, min_evidence)
-    - Within tolerance band: No adjustment
+    Behavior:
+        - If oversegmenting (rate > target): Increase min_evidence (tighten)
+        - If undersegmenting (rate < target): Decrease min_evidence (loosen)
+        - Within tolerance band: No adjustment
 
-    This allows the strategy to automatically calibrate for different
-    conversation styles and domains without manual tuning.
+    Use Cases:
+        - Static policy (CommitmentPolicyStrategy) is better for offline batch evaluation
+        - Adaptive policy is better for streaming/live usage (steady-state self-calibration)
 
     Example usage:
         base = NeuralStrategy({'granularity': 'fine'})
-        adaptive = AdaptiveCommitmentStrategy(base, target_rate=0.1)
-
-        # Strategy will self-adjust to produce ~1 boundary per 10 messages
+        adaptive = AdaptiveCommitmentStrategy(base, AdaptivePolicy(target_rate=0.1))
     """
 
     def __init__(
@@ -419,7 +448,7 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         Args:
             base_strategy: The underlying detection strategy
             adaptive_policy: Adaptive behavior configuration
-            initial_policy: Starting commitment policy (will be adjusted)
+            initial_policy: Starting commitment policy (min_evidence will be adapted)
             params: Optional override params:
                 - target_rate: Override adaptive_policy.target_rate
                 - adaptation_rate: Override adaptive_policy.adaptation_rate
@@ -428,12 +457,15 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         self.adaptive = adaptive_policy or AdaptivePolicy()
 
         # Start with medium commitment policy
+        # min_gap is fixed from adaptive policy, only min_evidence adapts
         self.policy = initial_policy or CommitmentPolicy(
-            min_gap=2,
+            min_gap=self.adaptive.fixed_min_gap,
             evidence_window=2,
             min_evidence=0.7,
             evidence_decay=0.85,
         )
+        # Ensure min_gap matches fixed value
+        self.policy.min_gap = self.adaptive.fixed_min_gap
 
         self._state = CommitmentState()
 
@@ -441,6 +473,14 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         self._message_count = 0
         self._boundary_count = 0
         self._recent_boundaries = deque(maxlen=self.adaptive.rate_window)
+
+        # Warmup tracking
+        self._warmup_saliences: List[float] = []
+        self._warmup_complete = False
+
+        # Volatility metrics
+        self._adjustment_count = 0
+        self._rate_history: List[float] = []
 
         # Apply param overrides
         params = params or {}
@@ -455,7 +495,7 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
 
     @property
     def version(self) -> str:
-        return f"1.0.0+{self.base_strategy.version}"
+        return f"2.0.0+{self.base_strategy.version}"
 
     def reset(self):
         """Reset state for new conversation."""
@@ -463,9 +503,19 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         self._message_count = 0
         self._boundary_count = 0
         self._recent_boundaries.clear()
+        self._warmup_saliences = []
+        self._warmup_complete = False
+        self._adjustment_count = 0
+        self._rate_history = []
+        # Reset min_evidence to initial value
+        self.policy.min_evidence = 0.7
 
     def _current_rate(self) -> float:
-        """Calculate current boundary rate from recent history."""
+        """
+        Calculate current boundary rate from recent history.
+
+        Rate is boundaries per canonical message position (speaker-agnostic).
+        """
         if len(self._recent_boundaries) < 10:
             # Not enough data yet, return target to avoid adjustment
             return self.adaptive.target_rate
@@ -473,10 +523,58 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         boundaries_in_window = sum(self._recent_boundaries)
         return boundaries_in_window / len(self._recent_boundaries)
 
+    def _rate_volatility(self) -> float:
+        """Calculate standard deviation of rate over recent history."""
+        if len(self._rate_history) < 5:
+            return 0.0
+
+        import statistics
+        return statistics.stdev(self._rate_history[-20:])
+
+    def _complete_warmup(self):
+        """
+        Complete warmup phase and optionally calibrate min_evidence.
+
+        If warmup_calibrate is True, sets min_evidence so that approximately
+        target_rate fraction of warmup saliences would commit.
+        """
+        self._warmup_complete = True
+
+        if not self.adaptive.warmup_calibrate or not self._warmup_saliences:
+            return
+
+        # Sort saliences and find threshold that gives target_rate
+        sorted_saliences = sorted(self._warmup_saliences, reverse=True)
+        target_count = max(1, int(len(sorted_saliences) * self.adaptive.target_rate))
+
+        if target_count < len(sorted_saliences):
+            # Set min_evidence to the salience at the target percentile
+            threshold = sorted_saliences[target_count - 1]
+            # Clamp to bounds
+            self.policy.min_evidence = max(
+                self.adaptive.min_evidence_bounds[0],
+                min(self.adaptive.min_evidence_bounds[1], threshold)
+            )
+            logger.debug(
+                f"Adaptive warmup: calibrated min_evidence={self.policy.min_evidence:.2f} "
+                f"from {len(sorted_saliences)} samples"
+            )
+
     def _adapt_policy(self):
-        """Adjust policy based on observed rate vs target."""
+        """
+        Adjust min_evidence based on observed rate vs target.
+
+        Single-knob control: only min_evidence changes, min_gap stays fixed.
+        """
+        # Don't adapt during warmup
+        if not self._warmup_complete:
+            return
+
         current_rate = self._current_rate()
         target = self.adaptive.target_rate
+
+        # Track rate history for volatility calculation
+        self._rate_history.append(current_rate)
 
         # Calculate rate ratio
         if target > 0:
@@ -494,19 +592,12 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
 
         # Calculate adjustment factor
         alpha = self.adaptive.adaptation_rate
+        self._adjustment_count += 1
 
         if ratio > upper_bound:
-            # Oversegmenting: tighten commitment
+            # Oversegmenting: increase min_evidence (tighten)
             adjustment = 1.0 + alpha * (ratio - 1.0)
 
-            # Increase min_gap
-            new_gap = min(
-                self.adaptive.min_gap_bounds[1],
-                int(self.policy.min_gap * adjustment)
-            )
-            self.policy.min_gap = max(self.adaptive.min_gap_bounds[0], new_gap)
-
-            # Increase min_evidence
             new_evidence = min(
                 self.adaptive.min_evidence_bounds[1],
                 self.policy.min_evidence * adjustment
@@ -517,21 +608,13 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
 
             logger.debug(
                 f"Adaptive: tightening (rate={current_rate:.3f} > target={target:.3f}), "
-                f"min_gap={self.policy.min_gap}, min_evidence={self.policy.min_evidence:.2f}"
+                f"min_evidence={self.policy.min_evidence:.2f}"
             )
 
         elif ratio < lower_bound:
-            # Undersegmenting: loosen commitment
+            # Undersegmenting: decrease min_evidence (loosen)
             adjustment = 1.0 - alpha * (1.0 - ratio)
 
-            # Decrease min_gap
-            new_gap = max(
-                self.adaptive.min_gap_bounds[0],
-                int(self.policy.min_gap * adjustment)
-            )
-            self.policy.min_gap = min(self.adaptive.min_gap_bounds[1], new_gap)
-
-            # Decrease min_evidence
             new_evidence = max(
                 self.adaptive.min_evidence_bounds[0],
                 self.policy.min_evidence * adjustment
@@ -542,7 +625,7 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
 
             logger.debug(
                 f"Adaptive: loosening (rate={current_rate:.3f} < target={target:.3f}), "
-                f"min_gap={self.policy.min_gap}, min_evidence={self.policy.min_evidence:.2f}"
+                f"min_evidence={self.policy.min_evidence:.2f}"
             )
 
     def segment_conversation(self, messages: List[Dict[str, Any]]) -> List[Thread]:
@@ -582,10 +665,10 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         Make topic decision with adaptive commitment.
 
         Process:
-        1. Get detection from base strategy
-        2. Apply current commitment policy
-        3. Track boundary/message counts
-        4. Periodically adapt policy based on observed rate
+        1. Get detection from base strategy (salience)
+        2. During warmup: collect saliences for calibration
+        3. After warmup: apply commitment policy and adapt
+        4. Track rate and volatility metrics
         """
         # Get base detection
         base_decision = self.base_strategy.get_decision(query, messages, current_thread)
@@ -593,6 +676,12 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         # Update state
         self._state.current_idx = len(messages)
         self._message_count += 1
+
+        # Warmup phase: collect saliences for calibration
+        if not self._warmup_complete:
+            self._warmup_saliences.append(base_decision.confidence_score)
+            if self._message_count >= self.adaptive.warmup_messages:
+                self._complete_warmup()
 
         # Add to evidence buffer if boundary detected
         if base_decision.topic_changed or base_decision.confidence_score > 0.3:
@@ -616,20 +705,23 @@ class AdaptiveCommitmentStrategy(TopicStrategy):
         if should_commit:
             self._boundary_count += 1
 
-        # Adapt policy periodically (every 10 messages)
-        if self._message_count % 10 == 0:
+        # Adapt policy periodically (every 10 messages, after warmup)
+        if self._message_count % 10 == 0 and self._warmup_complete:
             self._adapt_policy()
 
-        # Build signals
+        # Build signals with volatility metrics
         signals = dict(base_decision.signals)
         signals.update({
             'accumulated_evidence': accumulated_evidence,
             'evidence_buffer_size': len(self._state.evidence_buffer),
             'turns_since_boundary': self._turns_since_boundary(),
-            'current_min_gap': self.policy.min_gap,
+            'min_gap': self.policy.min_gap,  # Fixed, not adapted
             'current_min_evidence': self.policy.min_evidence,
             'current_rate': self._current_rate(),
             'target_rate': self.adaptive.target_rate,
+            'rate_volatility': self._rate_volatility(),
+            'adjustment_count': self._adjustment_count,
+            'warmup_complete': self._warmup_complete,
             'base_detected': base_decision.topic_changed,
             'committed': should_commit,
         })

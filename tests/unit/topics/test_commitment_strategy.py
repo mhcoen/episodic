@@ -354,8 +354,11 @@ class TestAdaptivePolicyBasics:
         policy = AdaptivePolicy()
         assert policy.target_rate == 0.1
         assert policy.rate_window == 50
-        assert policy.adaptation_rate == 0.3
-        assert policy.tolerance == 0.2
+        assert policy.adaptation_rate == 0.15  # Lower for stability
+        assert policy.tolerance == 0.25
+        assert policy.fixed_min_gap == 2  # Single-knob: gap is fixed
+        assert policy.warmup_messages == 10
+        assert policy.warmup_calibrate is True
 
     def test_custom_values(self):
         """AdaptivePolicy accepts custom values."""
@@ -363,10 +366,14 @@ class TestAdaptivePolicyBasics:
             target_rate=0.15,
             rate_window=30,
             adaptation_rate=0.2,
-            tolerance=0.25,
+            tolerance=0.3,
+            fixed_min_gap=3,
+            warmup_messages=15,
         )
         assert policy.target_rate == 0.15
         assert policy.rate_window == 30
+        assert policy.fixed_min_gap == 3
+        assert policy.warmup_messages == 15
 
 
 class TestAdaptiveRateTracking:
@@ -403,31 +410,55 @@ class TestAdaptiveRateTracking:
 
 
 class TestAdaptivePolicyAdjustment:
-    """Test policy self-adjustment behavior."""
+    """Test policy self-adjustment behavior (single-knob: only min_evidence)."""
 
-    def test_tightens_on_oversegmentation(self):
-        """Policy tightens when rate exceeds target."""
-        # High detection rate
-        mock = MockDetectionStrategy({i: (True, 0.9) for i in range(2, 30)})
+    def test_single_knob_only_evidence_changes(self):
+        """Only min_evidence is adapted, min_gap stays fixed."""
+        mock = MockDetectionStrategy({i: (True, 0.9) for i in range(2, 40)})
         policy = AdaptivePolicy(
-            target_rate=0.05,  # Very low target
+            target_rate=0.05,
             rate_window=15,
-            adaptation_rate=0.5,
+            adaptation_rate=0.3,
             tolerance=0.1,
+            fixed_min_gap=2,
+            warmup_messages=5,
         )
         adaptive = AdaptiveCommitmentStrategy(mock, policy)
 
         initial_min_gap = adaptive.policy.min_gap
+
+        # Process many messages
+        messages = []
+        for i in range(35):
+            messages.append({'role': 'user', 'content': f'msg{i}'})
+            adaptive.get_decision(f"query{i}", messages)
+
+        # min_gap should remain fixed
+        assert adaptive.policy.min_gap == initial_min_gap == 2
+        # min_evidence should have increased (tightened)
+        assert adaptive.policy.min_evidence > 0.7
+
+    def test_tightens_on_oversegmentation(self):
+        """min_evidence increases when rate exceeds target."""
+        mock = MockDetectionStrategy({i: (True, 0.9) for i in range(2, 40)})
+        policy = AdaptivePolicy(
+            target_rate=0.05,
+            rate_window=15,
+            adaptation_rate=0.3,
+            tolerance=0.1,
+            warmup_messages=5,
+        )
+        adaptive = AdaptiveCommitmentStrategy(mock, policy)
+
         initial_min_evidence = adaptive.policy.min_evidence
 
         # Process many messages to trigger adaptation
         messages = []
-        for i in range(25):
+        for i in range(35):
             messages.append({'role': 'user', 'content': f'msg{i}'})
             adaptive.get_decision(f"query{i}", messages)
 
-        # Policy should have tightened
-        assert adaptive.policy.min_gap >= initial_min_gap
+        # Policy should have tightened (min_evidence increased)
         assert adaptive.policy.min_evidence >= initial_min_evidence
 
     def test_no_adjustment_within_tolerance(self):
@@ -435,22 +466,19 @@ class TestAdaptivePolicyAdjustment:
         mock = MockDetectionStrategy()  # No detections
         policy = AdaptivePolicy(
             target_rate=0.1,
-            tolerance=0.5,  # Very wide tolerance
+            tolerance=0.5,
+            warmup_messages=5,
         )
         adaptive = AdaptiveCommitmentStrategy(mock, policy)
 
-        initial_min_gap = adaptive.policy.min_gap
-        initial_min_evidence = adaptive.policy.min_evidence
-
-        # Process messages without detections
+        # Process messages past warmup
         messages = []
         for i in range(20):
             messages.append({'role': 'user', 'content': f'msg{i}'})
             adaptive.get_decision(f"query{i}", messages)
 
-        # Should not have changed much due to wide tolerance
-        # (rate of 0 is within 50% tolerance of 0.1 in terms of no adjustment)
-        assert adaptive.policy.min_gap <= initial_min_gap + 2
+        # Should have minimal adjustments
+        assert adaptive._adjustment_count < 3
 
 
 class TestAdaptiveReset:
@@ -462,8 +490,8 @@ class TestAdaptiveReset:
         adaptive = AdaptiveCommitmentStrategy(mock, AdaptivePolicy())
 
         # Make some decisions
-        messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(5)]
-        for i in range(5):
+        messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(15)]
+        for i in range(15):
             adaptive.get_decision(f"q{i}", messages[:i+1])
 
         # Reset
@@ -472,17 +500,96 @@ class TestAdaptiveReset:
         assert adaptive._message_count == 0
         assert adaptive._boundary_count == 0
         assert len(adaptive._recent_boundaries) == 0
+        assert adaptive._warmup_complete is False
+        assert len(adaptive._warmup_saliences) == 0
+        assert adaptive._adjustment_count == 0
+
+
+class TestAdaptiveWarmup:
+    """Test cold-start warmup behavior."""
+
+    def test_warmup_collects_saliences(self):
+        """During warmup, saliences are collected."""
+        mock = MockDetectionStrategy({i: (True, 0.5 + i * 0.02) for i in range(3, 15)})
+        policy = AdaptivePolicy(warmup_messages=10, warmup_calibrate=True)
+        adaptive = AdaptiveCommitmentStrategy(mock, policy)
+
+        messages = []
+        for i in range(8):
+            messages.append({'role': 'user', 'content': f'msg{i}'})
+            adaptive.get_decision(f"q{i}", messages)
+
+        # Should still be in warmup
+        assert not adaptive._warmup_complete
+        assert len(adaptive._warmup_saliences) == 8
+
+    def test_warmup_calibrates_threshold(self):
+        """After warmup, min_evidence is calibrated from salience distribution."""
+        # Create mock with known salience distribution
+        mock = MockDetectionStrategy({i: (True, 0.8) for i in range(3, 20)})
+        policy = AdaptivePolicy(
+            warmup_messages=10,
+            warmup_calibrate=True,
+            target_rate=0.1,
+        )
+        adaptive = AdaptiveCommitmentStrategy(mock, policy)
+
+        messages = []
+        for i in range(12):
+            messages.append({'role': 'user', 'content': f'msg{i}'})
+            adaptive.get_decision(f"q{i}", messages)
+
+        # Warmup should be complete
+        assert adaptive._warmup_complete
+
+
+class TestAdaptiveVolatility:
+    """Test volatility tracking metrics."""
+
+    def test_adjustment_count_tracked(self):
+        """Number of policy adjustments is tracked."""
+        mock = MockDetectionStrategy({i: (True, 0.9) for i in range(2, 50)})
+        policy = AdaptivePolicy(
+            target_rate=0.05,
+            rate_window=15,
+            adaptation_rate=0.3,
+            tolerance=0.1,
+            warmup_messages=5,
+        )
+        adaptive = AdaptiveCommitmentStrategy(mock, policy)
+
+        messages = []
+        for i in range(40):
+            messages.append({'role': 'user', 'content': f'msg{i}'})
+            adaptive.get_decision(f"q{i}", messages)
+
+        # Should have made some adjustments
+        assert adaptive._adjustment_count > 0
+
+    def test_rate_volatility_computed(self):
+        """Rate volatility (std dev) is computed."""
+        mock = MockDetectionStrategy({i: (True, 0.9) for i in range(2, 50)})
+        policy = AdaptivePolicy(warmup_messages=5)
+        adaptive = AdaptiveCommitmentStrategy(mock, policy)
+
+        messages = []
+        for i in range(30):
+            messages.append({'role': 'user', 'content': f'msg{i}'})
+            decision = adaptive.get_decision(f"q{i}", messages)
+
+        # Volatility should be in signals
+        assert 'rate_volatility' in decision.signals
 
 
 class TestAdaptiveSignals:
     """Test that adaptive strategy includes useful signals."""
 
     def test_signals_include_rate_info(self):
-        """Decision signals include rate and adaptation info."""
+        """Decision signals include rate, adaptation, and volatility info."""
         mock = MockDetectionStrategy({3: (True, 0.9)})
         adaptive = AdaptiveCommitmentStrategy(
             mock,
-            AdaptivePolicy(target_rate=0.1)
+            AdaptivePolicy(target_rate=0.1, warmup_messages=2)
         )
 
         messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(4)]
@@ -490,5 +597,8 @@ class TestAdaptiveSignals:
 
         assert 'current_rate' in decision.signals
         assert 'target_rate' in decision.signals
-        assert 'current_min_gap' in decision.signals
+        assert 'min_gap' in decision.signals  # Fixed, not current_min_gap
         assert 'current_min_evidence' in decision.signals
+        assert 'rate_volatility' in decision.signals
+        assert 'adjustment_count' in decision.signals
+        assert 'warmup_complete' in decision.signals

@@ -258,34 +258,26 @@ def run_evaluation():
     # Also test with coarse granularity for comparison
     coarse_strategy = NeuralStrategy({'granularity': 'coarse'})
 
-    # Adaptive commitment - self-adjusting based on observed rate
-    # Conservative target - reduces oversegmentation gently
-    adaptive_conservative = AdaptiveCommitmentStrategy(
+    # Adaptive v2: single-knob control with warmup calibration
+    # Uses fixed min_gap, adapts only min_evidence for stability
+    adaptive_v2 = AdaptiveCommitmentStrategy(
         NeuralStrategy({'granularity': 'fine'}),
         AdaptivePolicy(
-            target_rate=0.15,  # ~1 boundary per 7 messages (allows more than typical)
+            target_rate=0.12,  # ~1 boundary per 8 messages
             rate_window=40,
-            adaptation_rate=0.15,  # Slower adaptation
-            tolerance=0.35,  # Wider tolerance band
-        )
-    )
-
-    # Aggressive adaptive - targets tight alignment with typical annotations
-    adaptive_aggressive = AdaptiveCommitmentStrategy(
-        NeuralStrategy({'granularity': 'fine'}),
-        AdaptivePolicy(
-            target_rate=0.10,  # ~1 boundary per 10 messages
-            rate_window=30,
-            adaptation_rate=0.3,
-            tolerance=0.2,
+            adaptation_rate=0.15,  # Conservative for stability
+            tolerance=0.25,
+            fixed_min_gap=2,
+            warmup_messages=10,
+            warmup_calibrate=True,
         )
     )
 
     strategies = [
         ("Neural(fine)", base_strategy),
         ("Commit(medium)", medium_commit),
-        ("Adaptive(cons)", adaptive_conservative),
-        ("Adaptive(aggr)", adaptive_aggressive),
+        ("Adaptive(v2)", adaptive_v2),
+        ("Neural(coarse)", coarse_strategy),
     ]
 
     # Results storage

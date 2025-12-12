@@ -47,7 +47,8 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 - **Granularity Control**:
   - Three levels: `fine` (0.3), `medium` (0.5), `coarse` (0.7)
   - Configurable via `topic_granularity` setting or strategy params
-  - Coarse granularity aligns best with human annotation conventions
+  - Coarse matches sparse, high-level annotation schemes (e.g., SuperDialseg)
+  - Finer granularities capture additional latent conversational structure
 - **Calibration** (`episodic/topics/calibration.py`):
   - `BoundaryCalibrator` for domain-specific threshold tuning
   - Supports BOR-targeting, length-targeting, and F1-maximizing strategies

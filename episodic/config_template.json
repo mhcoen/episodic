@@ -40,6 +40,8 @@
   "topic_strategy": "dual_window",
   "_comment_topic_strategy_params": "Strategy-specific parameters (varies by strategy)",
   "topic_strategy_params": {},
+  "_comment_topic_granularity": "Topic detection granularity: fine (many boundaries), medium (balanced), coarse (major themes only)",
+  "topic_granularity": "medium",
   "_comment_topic_decision_logging": "Log all topic decisions for debugging and evaluation",
   "topic_decision_logging": false,
   "_comment_topic_decision_log_path": "Path to write topic decision logs (relative to ~/.episodic/)",

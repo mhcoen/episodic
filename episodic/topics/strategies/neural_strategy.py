@@ -17,6 +17,7 @@ from episodic.topics.strategy import (
     RetrievedContext,
     Confidence,
 )
+from episodic.topics.calibration import GRANULARITY_LEVELS
 from episodic.config import config
 
 logger = logging.getLogger(__name__)
@@ -39,13 +40,24 @@ class NeuralStrategy(TopicStrategy):
         Args:
             params: Optional parameters:
                 - model_path: Path to model weights (default: auto-detect)
-                - confidence_threshold: Min confidence to report change (default: 0.8)
+                - confidence_threshold: Min confidence to report change (default: 0.5)
+                - granularity: Topic detection granularity: fine, medium, coarse
+                              (overrides confidence_threshold if provided)
                 - device: Force device (cuda/mps/cpu, default: auto)
         """
         params = params or {}
         self.model_path = params.get('model_path')
-        self.confidence_threshold = params.get('confidence_threshold', 0.8)
         self._force_device = params.get('device')
+
+        # Determine threshold from granularity or explicit confidence_threshold
+        # Priority: params['granularity'] > params['confidence_threshold'] > config > default
+        granularity = params.get('granularity') or config.get('topic_granularity')
+        if granularity and granularity in GRANULARITY_LEVELS:
+            self.confidence_threshold = GRANULARITY_LEVELS[granularity]
+            self._granularity = granularity
+        else:
+            self.confidence_threshold = params.get('confidence_threshold', 0.5)
+            self._granularity = 'medium'  # Default
 
         # Lazy load model
         self._model = None
@@ -379,6 +391,7 @@ class NeuralStrategy(TopicStrategy):
                     'no_boundary_probability': probs[0][0].item(),
                     'predicted_class': pred_class,
                     'threshold': self.confidence_threshold,
+                    'granularity': self._granularity,
                     'device': str(self._device),
                 },
                 strategy_name=self.name,

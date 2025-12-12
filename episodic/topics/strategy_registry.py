@@ -133,6 +133,34 @@ def _ensure_strategies_registered() -> None:
         except ImportError as e:
             logger.warning(f"Could not import EnsembleStrategy: {e}")
 
+    if 'cusum' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.cusum_strategy import CUSUMStrategy
+            register_strategy('cusum', CUSUMStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import CUSUMStrategy: {e}")
+
+    if 'delta' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.delta_strategy import DeltaStrategy
+            register_strategy('delta', DeltaStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import DeltaStrategy: {e}")
+
+    if 'speech_act' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.speech_act_strategy import SpeechActStrategy
+            register_strategy('speech_act', SpeechActStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import SpeechActStrategy: {e}")
+
+    if 'time_aware' not in _STRATEGY_REGISTRY:
+        try:
+            from episodic.topics.strategies.time_aware_strategy import TimeAwareStrategy
+            register_strategy('time_aware', TimeAwareStrategy)
+        except ImportError as e:
+            logger.warning(f"Could not import TimeAwareStrategy: {e}")
+
 
 # Singleton instance for convenience
 _current_strategy: Optional[TopicStrategy] = None

@@ -28,16 +28,39 @@ class DualWindowStrategy(TopicStrategy):
 
     This wraps the existing DualWindowDetector implementation to
     conform to the TopicStrategy interface for pluggable experimentation.
+
+    Supports adaptive thresholds that calibrate based on each conversation's
+    similarity distribution, making it more robust across different datasets.
     """
 
     def __init__(self, strategy_config: Dict[str, Any] = None):
-        """Initialize with optional configuration overrides."""
+        """
+        Initialize with optional configuration overrides.
+
+        Args:
+            strategy_config: Optional parameters:
+                - adaptive_threshold: Use self-calibrating thresholds (default: False)
+                - threshold_z_score: Z-score for adaptive threshold (default: 1.5)
+                - fixed_threshold: Fixed similarity threshold if not adaptive (default: 0.15)
+        """
         super().__init__(strategy_config)
+        strategy_config = strategy_config or {}
+
         self.name = "DualWindowStrategy"
-        self.version = "1.0.0"
+        self.version = "1.1.0"
+
+        # Threshold configuration
+        self.adaptive_threshold = strategy_config.get('adaptive_threshold', False)
+        self.threshold_z_score = strategy_config.get('threshold_z_score', 1.5)
+        self.fixed_threshold = strategy_config.get('fixed_threshold', 0.15)
 
         # Initialize the underlying detector
         self.detector = DualWindowDetector()
+
+        # For adaptive mode: track similarity baseline
+        self._similarity_history: List[float] = []
+        self._baseline_mean: float = 0.5
+        self._baseline_std: float = 0.15
 
         # Track detected threads (in-memory for now)
         self._threads: Dict[str, Thread] = {}
@@ -196,6 +219,24 @@ class DualWindowStrategy(TopicStrategy):
 
         return signals
 
+    def _update_baseline(self, similarity: float) -> None:
+        """Update the similarity baseline with a new data point."""
+        self._similarity_history.append(similarity)
+        # Keep last 20 similarities for baseline
+        if len(self._similarity_history) > 20:
+            self._similarity_history = self._similarity_history[-20:]
+
+        if len(self._similarity_history) >= 3:
+            import numpy as np
+            self._baseline_mean = float(np.mean(self._similarity_history))
+            self._baseline_std = float(np.std(self._similarity_history))
+            # Ensure minimum std to avoid division issues
+            self._baseline_std = max(self._baseline_std, 0.05)
+
+    def _get_adaptive_threshold(self) -> float:
+        """Calculate adaptive threshold based on current baseline."""
+        return self._baseline_mean - self.threshold_z_score * self._baseline_std
+
     def get_decision(
         self,
         query: str,
@@ -205,8 +246,8 @@ class DualWindowStrategy(TopicStrategy):
         """
         Make a topic decision using dual-window detection.
 
-        Overrides base implementation to use the detector directly
-        for better integration with existing code.
+        If adaptive_threshold is enabled, uses self-calibrating thresholds
+        based on the conversation's similarity distribution.
         """
         import time
         start_time = time.time()
@@ -217,8 +258,8 @@ class DualWindowStrategy(TopicStrategy):
         # Recent context for detection (newest first, as detector expects)
         recent_context = messages[-10:][::-1] if messages else []
 
-        # Run detection
-        topic_changed, new_topic_name, detection_info = self.detector.detect_topic_change(
+        # Run detection to get similarity scores
+        _, new_topic_name, detection_info = self.detector.detect_topic_change(
             recent_messages=recent_context,
             new_message=query,
             current_topic=None
@@ -227,14 +268,57 @@ class DualWindowStrategy(TopicStrategy):
         # Store for signal collection
         self._last_detection_info = detection_info
 
+        # Get similarity from detection info
+        similarity = None
+        if detection_info and detection_info.get('high_precision'):
+            similarity = detection_info['high_precision'].get('similarity')
+
+        # Determine topic change based on threshold mode
+        if self.adaptive_threshold and similarity is not None:
+            # Adaptive mode: compare to baseline
+            adaptive_thresh = self._get_adaptive_threshold()
+            topic_changed = similarity < adaptive_thresh
+
+            # Update baseline with this similarity (after decision)
+            self._update_baseline(similarity)
+
+            # Calculate z-score for this similarity
+            z_score = (similarity - self._baseline_mean) / self._baseline_std if self._baseline_std > 0 else 0
+        else:
+            # Fixed threshold mode: use detector's decision
+            topic_changed = detection_info.get('is_boundary', False) if detection_info else False
+            adaptive_thresh = self.fixed_threshold
+            z_score = 0
+
         # Build signals
         signals = self._collect_signals(query, recent_context, threads)
+
+        # Add adaptive threshold signals
+        if self.adaptive_threshold:
+            signals['adaptive_threshold'] = adaptive_thresh
+            signals['baseline_mean'] = self._baseline_mean
+            signals['baseline_std'] = self._baseline_std
+            signals['z_score'] = z_score
 
         # Determine confidence
         confidence = Confidence.UNCERTAIN
         confidence_score = 0.0
 
-        if detection_info:
+        if self.adaptive_threshold and similarity is not None:
+            # Confidence based on how far below threshold
+            if z_score < -2.0:
+                confidence = Confidence.HIGH
+                confidence_score = min(1.0, abs(z_score) / 3.0)
+            elif z_score < -1.5:
+                confidence = Confidence.MEDIUM
+                confidence_score = 0.6
+            elif z_score < -1.0:
+                confidence = Confidence.LOW
+                confidence_score = 0.4
+            else:
+                confidence = Confidence.UNCERTAIN
+                confidence_score = 0.2
+        elif detection_info:
             detection_type = detection_info.get('detection_type')
             if detection_type == 'high_precision':
                 confidence = Confidence.HIGH
@@ -249,7 +333,13 @@ class DualWindowStrategy(TopicStrategy):
                 confidence_score = 0.3
 
         # Build reasoning
-        reasoning = self._build_reasoning_from_detection(detection_info, topic_changed)
+        if self.adaptive_threshold and similarity is not None:
+            if topic_changed:
+                reasoning = f"Adaptive: similarity={similarity:.3f} < threshold={adaptive_thresh:.3f} (z={z_score:.2f})"
+            else:
+                reasoning = f"Adaptive: similarity={similarity:.3f} >= threshold={adaptive_thresh:.3f} (z={z_score:.2f})"
+        else:
+            reasoning = self._build_reasoning_from_detection(detection_info, topic_changed)
 
         # Create new thread if topic changed
         new_thread = None

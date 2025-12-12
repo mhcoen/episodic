@@ -80,4 +80,13 @@ evaluation/
 # Large dataset files
 datasets/superseg/topic_segmentation_cr_train.txt
 datasets/tiage/topic_segmentation_cr_train.txt
+datasets/dailydialog/
+datasets/multiwoz/
+datasets/qmsum/
+datasets/qmsum_repo/
+datasets/taskmaster/
+datasets/topical_chat/
+
+# Generated plots
+*.png
 .aider*

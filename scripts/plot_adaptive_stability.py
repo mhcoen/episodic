@@ -287,82 +287,92 @@ def run_with_granularity(dialogues: List[List[Dict]], granularity: str) -> Dict[
 
 
 def plot_comparison(metrics_fine: Dict, metrics_coarse: Dict, output_path: str = "adaptive_comparison.png"):
-    """Generate side-by-side comparison plot."""
+    """Generate side-by-side comparison plot with clear axis labels."""
 
     fig, axes = plt.subplots(3, 2, figsize=(14, 10))
 
-    target = 0.10
-    tolerance = 0.30
+    # Increase base font size
+    plt.rcParams.update({'font.size': 13})
 
-    for col, (metrics, title, granularity) in enumerate([
-        (metrics_fine, "Neural(fine) Base - threshold=0.3", "fine"),
-        (metrics_coarse, "Neural(coarse) Base - threshold=0.7", "coarse")
+    target = 0.10
+
+    # Column titles
+    column_titles = ["Fine base scoring", "Coarse base scoring"]
+
+    for col, (metrics, granularity) in enumerate([
+        (metrics_fine, "fine"),
+        (metrics_coarse, "coarse")
     ]):
         x = metrics['message_idx']
 
-        # Row 1: Committed Rate vs Target
-        ax1 = axes[0, col]
-        ax1.plot(x, metrics['current_rate'], 'b-', alpha=0.7, linewidth=1)
-        ax1.axhline(y=target, color='r', linestyle='--', linewidth=1.5)
-        ax1.axhspan(target * (1 - tolerance), target * (1 + tolerance),
-                    alpha=0.15, color='green')
-
-        for boundary in metrics['dialogue_boundaries'][1:]:
-            ax1.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
-
-        ax1.set_ylabel('Committed Rate')
-        ax1.set_title(f'{title}')
-        ax1.set_ylim(0, 0.35)
-        ax1.grid(True, alpha=0.3)
-
-        # Calculate rolling base rate
+        # Calculate rolling base rate (window=30)
         window = 30
         base_rolling = []
         for i in range(len(metrics['base_detected'])):
             start = max(0, i - window)
             base_rolling.append(sum(metrics['base_detected'][start:i+1]) / (i - start + 1) if i > start else 0)
 
-        # Row 2: Base Detection Rate
+        # Row 1: Candidate boundary rate (rolling)
+        ax1 = axes[0, col]
+        ax1.plot(x, base_rolling, 'b-', alpha=0.7, linewidth=1.5, label='Candidate rate')
+        ax1.axhline(y=target, color='r', linestyle='--', linewidth=2, label='Target rate')
+
+        for boundary in metrics['dialogue_boundaries'][1:]:
+            ax1.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
+
+        ax1.set_ylabel('Candidate boundary rate\n(rolling window=30)', fontsize=13)
+        ax1.set_title(column_titles[col], fontsize=15, fontweight='bold')
+        ax1.set_ylim(0, 0.6)
+        ax1.set_yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+        ax1.tick_params(axis='both', labelsize=11)
+        ax1.grid(True, alpha=0.3)
+        if col == 0:
+            ax1.legend(loc='upper right', fontsize=12)
+
+        # Row 2: Adaptive threshold (min_evidence)
         ax2 = axes[1, col]
-        ax2.plot(x, base_rolling, 'purple', alpha=0.7, linewidth=1)
-        ax2.axhline(y=target, color='r', linestyle='--', alpha=0.5)
+        ax2.plot(x, metrics['min_evidence'], 'g-', alpha=0.7, linewidth=1.5, label='min_evidence')
+        ax2.axhline(y=0.5, color='orange', linestyle='--', linewidth=1.5, alpha=0.7, label='Initial value')
+        ax2.axhline(y=0.3, color='red', linestyle=':', linewidth=1.5, alpha=0.5, label='Lower bound')
+        ax2.axhline(y=1.2, color='red', linestyle=':', linewidth=1.5, alpha=0.5, label='Upper bound')
 
         for boundary in metrics['dialogue_boundaries'][1:]:
             ax2.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
 
-        ax2.set_ylabel('Base Det. Rate')
-        ax2.set_ylim(0, 0.6)
+        ax2.set_ylabel('Selection threshold\n(min_evidence)', fontsize=13)
+        ax2.set_ylim(0.2, 1.3)
+        ax2.tick_params(axis='both', labelsize=11)
         ax2.grid(True, alpha=0.3)
+        if col == 0:
+            ax2.legend(loc='upper right', fontsize=11)
 
-        # Row 3: min_evidence
+        # Row 3: Output boundary rate (committed)
         ax3 = axes[2, col]
-        ax3.plot(x, metrics['min_evidence'], 'g-', alpha=0.7, linewidth=1)
-        ax3.axhline(y=0.5, color='orange', linestyle='--', linewidth=1, alpha=0.7)
-        ax3.axhline(y=0.3, color='red', linestyle=':', linewidth=1, alpha=0.5)
-        ax3.axhline(y=1.2, color='red', linestyle=':', linewidth=1, alpha=0.5)
+        ax3.plot(x, metrics['current_rate'], 'purple', alpha=0.7, linewidth=1.5, label='Output rate')
+        ax3.axhline(y=target, color='r', linestyle='--', alpha=0.7, linewidth=2, label='Target rate')
 
         for boundary in metrics['dialogue_boundaries'][1:]:
             ax3.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
 
-        ax3.set_ylabel('min_evidence')
-        ax3.set_xlabel('Message Index')
-        ax3.set_ylim(0.2, 1.3)
+        ax3.set_ylabel('Output boundary rate\n(committed)', fontsize=13)
+        ax3.set_xlabel('Canonical boundary index', fontsize=13)
+        ax3.set_ylim(0, 0.35)
+        ax3.set_yticks([0, 0.1, 0.2, 0.3])
+        ax3.tick_params(axis='both', labelsize=11)
         ax3.grid(True, alpha=0.3)
+        if col == 0:
+            ax3.legend(loc='upper right', fontsize=12)
 
-        # Stats
+        # Stats annotation
         base_det = sum(metrics['base_detected'])
         committed = sum(metrics['boundary_committed'])
         final_rate = metrics['current_rate'][-1] if metrics['current_rate'] else 0
-        in_band = target * (1 - tolerance) <= final_rate <= target * (1 + tolerance)
 
-        ax1.text(0.02, 0.95, f"Base: {100*base_det/len(metrics['base_detected']):.0f}%\n"
-                              f"Committed: {committed}\n"
-                              f"Final rate: {final_rate:.3f}\n"
-                              f"In band: {'✓' if in_band else '✗'}",
-                 transform=ax1.transAxes, fontsize=9, verticalalignment='top',
+        ax1.text(0.02, 0.95, f"Candidates: {100*base_det/len(metrics['base_detected']):.0f}%\n"
+                              f"Committed: {committed}",
+                 transform=ax1.transAxes, fontsize=12, verticalalignment='top',
                  bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
-    fig.suptitle('Adaptive Commitment: Effect of Base Granularity on DialSeg711', fontsize=12, fontweight='bold')
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"Saved comparison plot to {output_path}")
@@ -386,4 +396,5 @@ if __name__ == "__main__":
     print(f"  Committed: {sum(metrics_coarse['boundary_committed'])}")
 
     print("\nGenerating comparison plot...")
-    plot_comparison(metrics_fine, metrics_coarse, "adaptive_comparison.png")
+    output_path = Path(__file__).parent.parent / "paper" / "figures" / "adaptive_commitment_granularity.png"
+    plot_comparison(metrics_fine, metrics_coarse, str(output_path))

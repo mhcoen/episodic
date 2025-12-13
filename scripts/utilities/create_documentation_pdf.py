@@ -4,6 +4,7 @@ Script to compile all documentation files in the Episodic project into a single 
 """
 
 import os
+from pathlib import Path
 import markdown2
 from weasyprint import HTML, CSS
 from datetime import datetime
@@ -237,9 +238,13 @@ a:hover {
 }
 """
 
+def get_project_root():
+    """Get the project root directory."""
+    return Path(__file__).parent.parent.parent
+
 def read_file(filepath):
     """Read a markdown file and return its content."""
-    full_path = os.path.join('/Users/mhcoen/proj/episodic', filepath)
+    full_path = get_project_root() / filepath
     if os.path.exists(full_path):
         with open(full_path, 'r', encoding='utf-8') as f:
             return f.read()
@@ -329,7 +334,7 @@ def main():
     html = HTML(string=html_content)
     css = CSS(string=PDF_CSS)
     
-    output_path = '/Users/mhcoen/proj/episodic/example.pdf'
+    output_path = get_project_root() / 'documentation.pdf'
     html.write_pdf(output_path, stylesheets=[css])
     
     print(f"PDF successfully generated: {output_path}")

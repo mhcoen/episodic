@@ -17,7 +17,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
-- **🧠 Intelligent Topic Detection** - State-of-the-art neural segmentation validated on academic benchmarks, with configurable granularity
+- **🧠 Intelligent Topic Detection** - Neural segmentation validated on academic benchmarks, with configurable granularity
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
@@ -26,6 +26,17 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 ## 🚀 Quick Start
 
 📖 **New users: See [QUICK_START.md](QUICK_START.md) for a complete 5-minute setup guide using free services!**
+
+## Paper
+
+The paper *“When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation”*
+and its fully reproducible experiments are located in the [`paper/`](paper/) directory.
+
+This includes:
+- LaTeX source and compiled PDF
+- All figures used in the paper
+- Training and evaluation code
+- Dataset download and preprocessing scripts
 
 ### Installation
 

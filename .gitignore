@@ -68,8 +68,8 @@ config.json
 *.swp
 *.swo
 
-# Evaluation directory (training and testing)
-evaluation/
+# Evaluation directory (training and testing) - top level only
+/evaluation/
 .cache/
 
 # Large model files
@@ -77,17 +77,20 @@ evaluation/
 *.safetensors
 *.bin
 
-# Large dataset files
-datasets/superseg/topic_segmentation_cr_train.txt
-datasets/tiage/topic_segmentation_cr_train.txt
-datasets/dailydialog/
-datasets/multiwoz/
-datasets/qmsum/
-datasets/qmsum_repo/
-datasets/taskmaster/
-datasets/topical_chat/
+# Large dataset files (download via paper/experiments/data/download_datasets.py)
+datasets/
 
-# Generated plots
+# Generated plots (except paper figures)
 *.png
+!paper/figures/*.png
 .aider*
-paper/
+
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+
+# Paper: track source and figures, ignore build artifacts and large model files
+# Model checkpoint: use download script or host on HuggingFace

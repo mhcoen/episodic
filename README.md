@@ -23,20 +23,11 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
+ If you’re here regarding the paper *“When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation”*, see the [`paper/`](paper/) directory.
+
 ## 🚀 Quick Start
 
 📖 **New users: See [QUICK_START.md](QUICK_START.md) for a complete 5-minute setup guide using free services!**
-
-## Paper
-
-The paper *“When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation”*
-and its fully reproducible experiments are located in the [`paper/`](paper/) directory.
-
-This includes:
-- LaTeX source and compiled PDF
-- All figures used in the paper
-- Training and evaluation code
-- Dataset download and preprocessing scripts
 
 ### Installation
 

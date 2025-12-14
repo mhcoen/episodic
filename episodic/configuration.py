@@ -349,6 +349,7 @@ MODEL_CONTEXT_LIMITS = {
     "mistral": 32768,
     "codellama": 16384,
     "phi3": 4096,
+    "phi4": 16384,
     "local-model": 8192
 }
 

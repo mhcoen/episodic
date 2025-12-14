@@ -24,7 +24,7 @@ This document describes all configuration options available in Episodic.
 
 # Set models for different contexts
 > /model chat gpt-4.1-2025-04-14
-> /model detection ollama/phi3      # Use instruct model
+> /model detection ollama/phi4      # Use instruct model
 > /model compression gpt-3.5-turbo
 > /model synthesis claude-3-haiku
 ```
@@ -314,7 +314,7 @@ This memory persists across sessions and helps maintain context for development.
 /set min-messages-before-topic-change 6
 /set use-dual-window-detection true
 /debug on topic  # See detection details
-/model detection ollama/phi3  # Use instruct model
+/model detection ollama/phi4  # Use instruct model
 /mset detection.temperature 0.0
 ```
 

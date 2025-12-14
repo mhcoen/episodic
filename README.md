@@ -64,7 +64,7 @@ python -m episodic
 ```
 
 Episodic automatically configures itself based on available providers:
-- **With Ollama**: Uses phi3 for background tasks (free and local)
+- **With Ollama**: Uses phi4 for background tasks (free and local)
 - **With OpenAI**: Uses GPT-4o-mini by default for chat, GPT-3.5-Turbo-Instruct for analysis
 - **With Ollama**: Uses local models for complete privacy
 
@@ -234,9 +234,9 @@ Use different models for different tasks to optimize performance and cost:
 > /model chat gpt-5
 
 # Use instruct models for background tasks
-> /model detection ollama/phi3
-> /model compression ollama/phi3
-> /model synthesis ollama/phi3
+> /model detection ollama/phi4
+> /model compression ollama/phi4
+> /model synthesis ollama/phi4
 
 # Use a sophisticated model for critiques
 > /model critic claude-opus-4-5-20251101
@@ -247,7 +247,7 @@ Use different models for different tasks to optimize performance and cost:
 > /mset compression.max_tokens 500
 
 > Explain the halting problem
-🤖 [GPT-5 provides detailed explanation while phi3 manages topics]
+🤖 [GPT-5 provides detailed explanation while phi4 manages topics]
 ```
 
 ### 💾 Long Conversation Management
@@ -317,9 +317,9 @@ Run completely offline with local models:
 ```text
 # Set all contexts to use local models
 > /model chat ollama/llama3
-> /model detection ollama/phi3  # Instruct model for detection
+> /model detection ollama/phi4  # Instruct model for detection
 > /model compression ollama/mistral  # Instruct model for compression
-> /model synthesis ollama/phi3  # Instruct model for synthesis
+> /model synthesis ollama/phi4  # Instruct model for synthesis
 
 # Disable online features (stay in chat mode)
 > /rag off
@@ -425,9 +425,9 @@ Use '/mset <context>.<param> default' to reset to default value
 🤖 Current Models:
 ─────────────────────────────────────────────────────────────
 Chat:        gpt-5
-Detection:   ollama/phi3
-Compression: ollama/phi3
-Synthesis:   ollama/phi3
+Detection:   ollama/phi4
+Compression: ollama/phi4
+Synthesis:   ollama/phi4
 ```
 
 Each context serves a specific purpose:

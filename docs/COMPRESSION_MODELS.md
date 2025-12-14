@@ -48,7 +48,7 @@ For privacy-conscious users or offline usage:
 
 3. **Phi-3**
    ```bash
-   /model compression ollama/phi3
+   /model compression ollama/phi4
    ```
 
 ## Why Instruct Models for Compression?

@@ -25,9 +25,9 @@
 
 3. **Phi-3**
    ```bash
-   ollama pull phi3
-   ollama pull phi3:mini
-   ollama pull phi3:medium
+   ollama pull phi4
+   ollama pull phi4:mini
+   ollama pull phi4:medium
    ```
    - Microsoft's efficient model
    - Excellent instruction following
@@ -61,7 +61,7 @@
 # Install recommended models for Episodic
 ollama pull llama3:instruct
 ollama pull mistral:instruct
-ollama pull phi3
+ollama pull phi4
 
 # Verify installation
 ollama list
@@ -76,7 +76,7 @@ Edit `~/.episodic/config.json` or the template files:
 {
   "topic_detection_model": "ollama/llama3:instruct",
   "compression_model": "ollama/mistral:instruct",
-  "synthesis_model": "ollama/phi3"
+  "synthesis_model": "ollama/phi4"
 }
 ```
 
@@ -85,7 +85,7 @@ Edit `~/.episodic/config.json` or the template files:
 # Set instruct models for all non-chat contexts
 /model detection ollama/llama3:instruct
 /model compression ollama/mistral:instruct
-/model synthesis ollama/phi3
+/model synthesis ollama/phi4
 
 # Configure for optimal performance
 /mset detection.temperature 0.1
@@ -96,7 +96,7 @@ Edit `~/.episodic/config.json` or the template files:
 ## Model Selection by Task
 
 ### Topic Detection
-- **Best**: `llama3:instruct` or `phi3`
+- **Best**: `llama3:instruct` or `phi4`
 - **Why**: Need consistent Yes/No answers
 - **Config**: Very low temperature (0.1)
 
@@ -114,7 +114,7 @@ Edit `~/.episodic/config.json` or the template files:
 
 | Model | Size | Speed | Quality | Best For |
 |-------|------|-------|---------|----------|
-| phi3 | 3.8B | Very Fast | Good | Detection |
+| phi4 | 3.8B | Very Fast | Good | Detection |
 | mistral:instruct | 7B | Fast | Excellent | All tasks |
 | llama3:instruct | 8B | Fast | Excellent | All tasks |
 | gemma:instruct | 7B | Fast | Good | Structured tasks |
@@ -128,7 +128,7 @@ Edit `~/.episodic/config.json` or the template files:
 # Install all recommended instruct models
 ollama pull llama3:instruct
 ollama pull mistral:instruct
-ollama pull phi3
+ollama pull phi4
 
 echo "Instruct models installed successfully!"
 ```

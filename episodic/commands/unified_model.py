@@ -716,9 +716,9 @@ def get_default_for_context(context: str) -> str:
     """Get the default model for a context."""
     defaults = {
         "chat": "gpt-3.5-turbo",
-        "detection": "ollama/phi3",
-        "compression": "ollama/phi3",
-        "synthesis": "ollama/phi3",
+        "detection": "ollama/phi4",
+        "compression": "ollama/phi4",
+        "synthesis": "ollama/phi4",
         "critic": "anthropic/claude-opus-4-5-20251101"
     }
     return defaults.get(context, "gpt-3.5-turbo")

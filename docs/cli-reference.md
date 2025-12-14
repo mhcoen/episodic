@@ -453,7 +453,7 @@ Manage language models for all contexts
 /model                      # Show all four models in use
 /model list                 # Show available models with pricing
 /model chat gpt-4.1-2025-04-14  # Set chat (main) model
-/model detection ollama/phi3     # Set topic detection model (use instruct model)
+/model detection ollama/phi4     # Set topic detection model (use instruct model)
 /model compression gpt-3.5-turbo # Set compression model
 /model synthesis claude-3-haiku  # Set web synthesis model
 /model critic claude-opus-4-5-20251101  # Set critic model for /critique
@@ -638,9 +638,9 @@ Use /mset command to manage model-specific parameters:
 ### Offline Mode
 ```bash
 /model chat ollama/llama3
-/model detection ollama/phi3     # Use instruct model for detection
+/model detection ollama/phi4     # Use instruct model for detection
 /model compression ollama/mistral # Use instruct model for compression
-/model synthesis ollama/phi3      # Use instruct model for synthesis
+/model synthesis ollama/phi4      # Use instruct model for synthesis
 /rag off
 /chat
 ```

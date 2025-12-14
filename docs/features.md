@@ -34,7 +34,7 @@ Episodic uses different models for different tasks:
 
 # Set models for specific contexts
 /model chat gpt-4.1-2025-04-14  # Main conversation
-/model detection ollama/phi3     # Topic detection (use instruct model)
+/model detection ollama/phi4     # Topic detection (use instruct model)
 /model compression gpt-3.5-turbo # Compression/summarization
 /model synthesis claude-3-haiku  # Web search synthesis
 /model critic claude-opus-4-5-20251101  # Critique responses (/critique command)

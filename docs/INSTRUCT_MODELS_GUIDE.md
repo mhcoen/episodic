@@ -41,7 +41,7 @@ Episodic uses different models for different tasks. While chat models are great 
   ```bash
   /model synthesis gpt-3.5-turbo-instruct
   /model synthesis anthropic/claude-3-haiku-20240307
-  /model synthesis ollama/phi3
+  /model synthesis ollama/phi4
   ```
 
 ## Why Use Instruct Models?
@@ -101,7 +101,7 @@ Episodic uses different models for different tasks. While chat models are great 
 /mset compression.temperature 0.3
 
 # Synthesis: Local instruct
-/model synthesis ollama/phi3
+/model synthesis ollama/phi4
 /mset synthesis.temperature 0.5
 ```
 
@@ -111,7 +111,7 @@ Episodic uses different models for different tasks. While chat models are great 
 /model chat ollama/llama3
 /model detection ollama/llama3:instruct
 /model compression ollama/mistral:instruct
-/model synthesis ollama/phi3
+/model synthesis ollama/phi4
 ```
 
 ## Model Parameters by Context

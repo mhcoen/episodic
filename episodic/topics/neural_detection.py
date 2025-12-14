@@ -49,17 +49,21 @@ def _load_model(model_path: str = None) -> Tuple[Any, Any, Any]:
     
     # Default to DistilBERT model if not specified
     if model_path is None:
-        # Look for model in evaluation directory first (development)
-        dev_path = os.path.expanduser("~/proj/episodic/evaluation/finetuned_models_42/distilbert_base_uncased_42_window.pt")
+        # Look for model in paper experiments (calibrated model from paper)
+        paper_path = os.path.expanduser("~/proj/episodic/paper/experiments/models/final_calibrated.pt")
         # Then check user's .episodic directory (production)
-        prod_path = os.path.expanduser("~/.episodic/models/distilbert_base_uncased_42_window.pt")
-        
-        if os.path.exists(dev_path):
-            model_path = dev_path
+        prod_path = os.path.expanduser("~/.episodic/models/topic_boundary_model.pt")
+        # Legacy path for backward compatibility
+        legacy_path = os.path.expanduser("~/proj/episodic/evaluation/finetuned_models_42/distilbert_base_uncased_42_window.pt")
+
+        if os.path.exists(paper_path):
+            model_path = paper_path
         elif os.path.exists(prod_path):
             model_path = prod_path
+        elif os.path.exists(legacy_path):
+            model_path = legacy_path
         else:
-            logger.warning(f"Neural topic detection model not found at {dev_path} or {prod_path}")
+            logger.warning(f"Neural topic detection model not found. Checked: {paper_path}, {prod_path}")
             return None, None, None
     
     # Check cache
@@ -69,27 +73,30 @@ def _load_model(model_path: str = None) -> Tuple[Any, Any, Any]:
     try:
         device = _get_device()
         logger.info(f"Loading neural topic detection model from {model_path} on {device}")
-        
-        # Load tokenizer
+
+        # Load tokenizer (standard, no special tokens - matches paper training)
         tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-        
-        # Add special tokens as done during training
-        special_tokens = {'additional_special_tokens': ['[BOUNDARY?]']}
-        tokenizer.add_special_tokens(special_tokens)
-        
-        # Load model with correct vocab size
+
+        # Load model architecture
         model = AutoModelForSequenceClassification.from_pretrained(
-            "distilbert-base-uncased", 
+            "distilbert-base-uncased",
             num_labels=2,
             ignore_mismatched_sizes=True
         )
-        
-        # Resize embeddings to match tokenizer
-        model.resize_token_embeddings(len(tokenizer))
-        
+
         # Load fine-tuned weights
-        checkpoint = torch.load(model_path, map_location=device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+
+        # Handle different checkpoint formats
+        if 'model_state_dict' in checkpoint:
+            state_dict = checkpoint['model_state_dict']
+        elif 'state_dict' in checkpoint:
+            state_dict = checkpoint['state_dict']
+        else:
+            # Assume checkpoint is the state dict directly
+            state_dict = checkpoint
+
+        model.load_state_dict(state_dict)
         model.to(device)
         model.eval()
         

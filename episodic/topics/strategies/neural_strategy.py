@@ -44,10 +44,14 @@ class NeuralStrategy(TopicStrategy):
                 - granularity: Topic detection granularity: fine, medium, coarse
                               (overrides confidence_threshold if provided)
                 - device: Force device (cuda/mps/cpu, default: auto)
+                - temperature: Softmax temperature for calibration (default: 1.0)
+                              T > 1 softens probabilities, T < 1 sharpens
         """
         params = params or {}
         self.model_path = params.get('model_path')
         self._force_device = params.get('device')
+        # Temperature: params > config > default (1.0)
+        self.temperature = params.get('temperature') or config.get('topic_temperature', 1.0)
 
         # Determine threshold from granularity or explicit confidence_threshold
         # Priority: params['granularity'] > params['confidence_threshold'] > config > default
@@ -205,10 +209,11 @@ class NeuralStrategy(TopicStrategy):
             )
             inputs = {k: v.to(self._device) for k, v in inputs.items()}
 
-            # Inference
+            # Inference with temperature scaling
             with torch.no_grad():
                 outputs = self._model(**inputs)
-                probs = torch.softmax(outputs.logits, dim=-1)
+                logits = outputs.logits / self.temperature
+                probs = torch.softmax(logits, dim=-1)
                 pred_class = torch.argmax(probs, dim=-1).item()
                 confidence = probs[0][pred_class].item()
 
@@ -346,10 +351,11 @@ class NeuralStrategy(TopicStrategy):
             )
             inputs = {k: v.to(self._device) for k, v in inputs.items()}
 
-            # Inference
+            # Inference with temperature scaling
             with torch.no_grad():
                 outputs = self._model(**inputs)
-                probs = torch.softmax(outputs.logits, dim=-1)
+                logits = outputs.logits / self.temperature
+                probs = torch.softmax(logits, dim=-1)
                 pred_class = torch.argmax(probs, dim=-1).item()
                 boundary_prob = probs[0][1].item()  # Probability of boundary
                 confidence = probs[0][pred_class].item()
@@ -392,6 +398,7 @@ class NeuralStrategy(TopicStrategy):
                     'predicted_class': pred_class,
                     'threshold': self.confidence_threshold,
                     'granularity': self._granularity,
+                    'temperature': self.temperature,
                     'device': str(self._device),
                 },
                 strategy_name=self.name,

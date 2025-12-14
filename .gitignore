@@ -67,6 +67,7 @@ config.json
 ~/.episodic/
 *.swp
 *.swo
+WARP.md
 
 # Evaluation directory (training and testing) - top level only
 /evaluation/

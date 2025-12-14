@@ -273,6 +273,22 @@ The dual-window system uses:
 
 The `reanalyze` command uses hierarchical clustering with contiguity constraint and elbow detection to find natural topic boundaries across the entire conversation, rather than the real-time sliding window approach used during chat.
 
+### Neural Segmentation Calibration
+
+Fine-tune topic boundary detection:
+
+```bash
+# Granularity: how many boundaries to detect
+/set topic-granularity fine      # Many boundaries (threshold: 0.3)
+/set topic-granularity medium    # Balanced (threshold: 0.5, default)
+/set topic-granularity coarse    # Major themes only (threshold: 0.7)
+
+# Temperature: confidence calibration
+/set topic-temperature 1.0       # Default (no scaling)
+/set topic-temperature 0.7       # More confident predictions
+/set topic-temperature 1.5       # Less confident predictions
+```
+
 ## 6. RAG (Knowledge Base)
 
 ### Index Your Documents

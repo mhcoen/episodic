@@ -14,7 +14,8 @@ from episodic.configuration import (
 from episodic.llm import enable_cache, disable_cache
 from episodic.debug_system import debug_system
 from episodic.constants import (
-    WEB_SEARCH_PROVIDERS, COLOR_MODES, COMPRESSION_METHODS, PORCUPINE_KEYWORDS
+    WEB_SEARCH_PROVIDERS, COLOR_MODES, COMPRESSION_METHODS, PORCUPINE_KEYWORDS,
+    TOPIC_GRANULARITY_LEVELS
 )
 
 
@@ -100,6 +101,49 @@ def handle_rag_embedding_model(value: str) -> bool:
     typer.secho("⚠️  Restart required for this change to take effect", fg="yellow")
     typer.secho("⚠️  Existing RAG documents will need to be re-indexed", fg="yellow")
     return True
+
+
+def handle_topic_granularity(value: str) -> bool:
+    """Handle topic granularity setting for neural segmentation."""
+    if value not in TOPIC_GRANULARITY_LEVELS:
+        typer.secho(f"Invalid granularity. Must be one of: {', '.join(TOPIC_GRANULARITY_LEVELS)}", fg="red")
+        return False
+
+    config.set("topic_granularity", value)
+
+    # Show what threshold this maps to
+    from episodic.topics.calibration import GRANULARITY_LEVELS
+    threshold = GRANULARITY_LEVELS.get(value, 0.5)
+
+    typer.secho(f"✅ Set topic_granularity = {value}", fg=get_system_color())
+    typer.secho(f"   Neural threshold: {threshold} (more boundaries at lower values)", fg=get_system_color(), dim=True)
+    return True
+
+
+def handle_topic_temperature(value: str) -> bool:
+    """Handle topic temperature setting for neural calibration."""
+    try:
+        temp = float(value)
+        if temp <= 0:
+            typer.secho("Temperature must be positive", fg="red")
+            return False
+        if temp > 5.0:
+            typer.secho("Temperature > 5.0 is extreme. Use with caution.", fg="yellow")
+
+        config.set("topic_temperature", temp)
+        typer.secho(f"✅ Set topic_temperature = {temp}", fg=get_system_color())
+
+        if temp < 1.0:
+            typer.secho("   T < 1.0: Sharper predictions (more confident)", fg=get_system_color(), dim=True)
+        elif temp > 1.0:
+            typer.secho("   T > 1.0: Softer predictions (more uncertain)", fg=get_system_color(), dim=True)
+        else:
+            typer.secho("   T = 1.0: Default (no scaling)", fg=get_system_color(), dim=True)
+
+        return True
+    except ValueError:
+        typer.secho(f"Invalid temperature value: {value}", fg="red")
+        return False
 
 
 def handle_list_param(param: str, value: str, valid_values: Optional[list] = None) -> bool:
@@ -272,4 +316,8 @@ PARAM_HANDLERS = {
 
     # RAG embedding model (requires restart and re-indexing)
     'rag_embedding_model': handle_rag_embedding_model,
+
+    # Topic segmentation settings
+    'topic_granularity': handle_topic_granularity,
+    'topic_temperature': handle_topic_temperature,
 }

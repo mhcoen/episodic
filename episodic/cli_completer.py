@@ -355,6 +355,36 @@ class EpisodicCompleter(Completer):
                                 start_position=-len(word),
                                 display_meta='color mode'
                             )
+                elif param == 'topic-granularity':
+                    # Topic granularity options
+                    granularity_meta = {
+                        'fine': 'many boundaries (0.3)',
+                        'medium': 'balanced (0.5)',
+                        'coarse': 'major themes (0.7)'
+                    }
+                    for level, desc in granularity_meta.items():
+                        if level.startswith(word.lower()):
+                            yield Completion(
+                                level,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
+                elif param == 'topic-temperature':
+                    # Topic temperature suggestions
+                    temp_suggestions = {
+                        '0.5': 'sharper (more confident)',
+                        '0.7': 'slightly sharper',
+                        '1.0': 'default (no scaling)',
+                        '1.5': 'softer (less confident)',
+                        '2.0': 'much softer'
+                    }
+                    for temp, desc in temp_suggestions.items():
+                        if temp.startswith(word):
+                            yield Completion(
+                                temp,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
     
     def _complete_subcommand(self, cmd: str, parts: List[str], word: str) -> List[Completion]:
         """Complete subcommands for unified commands."""

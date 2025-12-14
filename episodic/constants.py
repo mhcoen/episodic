@@ -20,6 +20,9 @@ DETAIL_LEVELS = ['minimal', 'moderate', 'detailed', 'maximum']
 # Topic subcommands
 TOPIC_ACTIONS = ['list', 'rename', 'compress', 'index', 'scores', 'stats', 'reanalyze']
 
+# Topic granularity levels for neural segmentation
+TOPIC_GRANULARITY_LEVELS = ['fine', 'medium', 'coarse']
+
 # Compression subcommands
 COMPRESSION_ACTIONS = ['stats', 'queue', 'compress', 'api-stats', 'reset-api']
 

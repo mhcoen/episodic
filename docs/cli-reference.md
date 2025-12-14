@@ -244,6 +244,36 @@ Unified topic management
 
 The `reanalyze` subcommand uses hierarchical clustering with elbow detection to find natural topic boundaries across the entire conversation, rather than the real-time sliding window approach used during chat.
 
+### Topic Segmentation Settings
+
+Configure neural topic boundary detection:
+
+```bash
+# Granularity controls how many topic boundaries are detected
+/set topic-granularity fine      # Many boundaries, micro-shifts (threshold: 0.3)
+/set topic-granularity medium    # Balanced detection (threshold: 0.5, default)
+/set topic-granularity coarse    # Major themes only (threshold: 0.7)
+
+# Temperature controls prediction confidence calibration
+/set topic-temperature 1.0       # Default (no scaling)
+/set topic-temperature 0.7       # Sharper predictions (more confident)
+/set topic-temperature 1.5       # Softer predictions (less confident)
+```
+
+**Granularity Levels:**
+| Level | Threshold | Description |
+|-------|-----------|-------------|
+| `fine` | 0.3 | Detects subtle topic shifts, many boundaries |
+| `medium` | 0.5 | Balanced detection (recommended default) |
+| `coarse` | 0.7 | Only major theme changes, few boundaries |
+
+**Temperature Scaling:**
+- `T < 1.0`: Sharper predictions (model is more confident in boundary decisions)
+- `T = 1.0`: No scaling (default)
+- `T > 1.0`: Softer predictions (model is less confident, more uniform probabilities)
+
+Temperature calibration is useful for fine-tuning when the model is under-confident or over-confident on your specific conversation style.
+
 ## Markdown Operations
 
 ### /save

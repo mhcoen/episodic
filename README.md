@@ -251,7 +251,7 @@ Model Types:
 > /model critic claude-opus-4-5-20251101
 ```
 
-**Custom Models**: You can add your own fine-tuned models for specialized tasks like topic detection. See [Model Configuration](docs/models-configuration.md#custom-local-models) for setup.
+**Custom Models**: You can add your own fine-tuned local models for any purpose—topic detection, domain-specific chat, specialized summarization, etc. See [Model Configuration](docs/models-configuration.md#custom-local-models) for setup.
 
 ### 💾 Long Conversation Management
 Episodic automatically manages long conversations by detecting topic changes and compressing old topics:

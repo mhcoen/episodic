@@ -13,7 +13,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 ## ✨ Features
 
-- **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
+- **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, 20+ providers, and custom local models
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation

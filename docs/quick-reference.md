@@ -125,8 +125,8 @@ Just type to chat! No prefix needed.
 ```bash
 /voice on                 # Enable voice mode
 /voice info               # Check audio devices
-/set voice_stt_provider local_whisper  # Free local STT
-/set voice_tts_provider local_piper    # Free local TTS
+/set voice-stt-provider local_whisper  # Free local STT
+/set voice-tts-provider local_piper    # Free local TTS
 ```
 
 ### Parameter Profiles via Scripts

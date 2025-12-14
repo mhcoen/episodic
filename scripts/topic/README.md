@@ -58,6 +58,6 @@ Then check results with:
 ## Configuration
 
 These tests assume:
-- Topic detection model: `gpt-3.5-turbo` (can be changed with `/set topic_detection_model`)
+- Topic detection model: `gpt-3.5-turbo` (can be changed with `/set topic-detection-model`)
 - Topic detection v3 prompt is enabled (default)
 - Default minimum messages before topic change threshold

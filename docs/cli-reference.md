@@ -39,7 +39,7 @@ In Episodic's talk mode:
 - **Models**: Type `/model chat ` and press Tab to see available models
 - **Files**: Type `/load ` and press Tab to browse markdown files for import
 - **Type hints**: Parameters show their expected value type (boolean, number, choice, etc.)
-- To disable: `/set enable_tab_completion false`
+- To disable: `/set enable-tab-completion false`
 
 ### Interrupting Responses (Ctrl-C)
 - **During streaming**: Press Ctrl-C once to interrupt the LLM response
@@ -50,8 +50,8 @@ In Episodic's talk mode:
 - User input is displayed in a styled box after pressing Enter
 - Box automatically sizes to fit content (up to 80 characters wide)
 - Long inputs wrap within the box
-- Disable with: `/set show_input_box false`
-- Use ASCII boxes for basic terminals: `/set use_unicode_boxes false`
+- Disable with: `/set show-input-box false`
+- Use ASCII boxes for basic terminals: `/set use-unicode-boxes false`
 
 ### Exit Options
 - `/exit` or `/quit` - Normal exit with cleanup
@@ -429,8 +429,8 @@ Script files are plain text files that can contain:
 ```bash
 # Development profile - fast responses, debug info
 /set debug true
-/set stream_responses false
-/set show_cost true
+/set stream-responses false
+/set show-cost true
 /set main.temperature 0.7
 /set main.max_tokens 500
 /model chat gpt-3.5-turbo
@@ -629,10 +629,10 @@ Use /mset command to manage model-specific parameters:
 
 ### Long Conversation Mode
 ```bash
-/set automatic_topic_detection true  # or: /set topic-auto true
-/set auto_compress_topics true       # or: /set comp-auto true
-/set show_topics true
-/set show_cost true
+/set automatic-topic-detection true  # or: /set topic-auto true
+/set auto-compress-topics true       # or: /set comp-auto true
+/set show-topics true
+/set show-cost true
 ```
 
 ### Offline Mode
@@ -648,9 +648,9 @@ Use /mset command to manage model-specific parameters:
 ### Debug Mode
 ```bash
 /set debug true
-/set show_drift true
+/set show-drift true
 /set benchmark true
-/set benchmark_display true
+/set benchmark-display true
 ```
 
 ## Script Execution

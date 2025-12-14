@@ -9,7 +9,7 @@ This document describes all configuration options available in Episodic.
 > /config-docs
 
 # Show specific parameter value
-> /set topic_detection_model
+> /set topic-detection-model
 ```
 
 ## Setting Configuration
@@ -49,11 +49,11 @@ This document describes all configuration options available in Episodic.
 ```bash
 # Set general configuration values
 > /set debug true
-> /set min_messages_before_topic_change 10
+> /set min-messages-before-topic-change 10
 
 # Alternative shorter syntax still works
 > /set debug true
-> /set min_messages_before_topic_change 10
+> /set min-messages-before-topic-change 10
 ```
 
 ## Configuration Categories
@@ -231,8 +231,8 @@ This memory persists across sessions and helps maintain context for development.
 
 ### For Better Topic Detection
 ```bash
-/set min_messages_before_topic_change 6
-/set use_dual_window_detection true
+/set min-messages-before-topic-change 6
+/set use-dual-window-detection true
 /debug on topic  # See detection details
 /model detection ollama/phi3  # Use instruct model
 /mset detection.temperature 0.0
@@ -240,24 +240,24 @@ This memory persists across sessions and helps maintain context for development.
 
 ### For Faster Responses
 ```bash
-/set stream_responses false
-/set context_depth 3
-/set cache_prompts true
+/set stream-responses false
+/set context-depth 3
+/set cache-prompts true
 ```
 
 ### For Cost Savings
 ```bash
-/set show_cost true
+/set show-cost true
 /model compression gpt-3.5-turbo
 /model detection ollama/llama3
-/set context_depth 3
+/set context-depth 3
 ```
 
 ### For Debugging
 ```bash
 /set debug true
-/set show_drift true
-/set show_benchmarks true
+/set show-drift true
+/set show-benchmarks true
 ```
 
 ## Resetting Configuration

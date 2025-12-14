@@ -115,8 +115,8 @@ The prompt template supports variables:
 /mset compression.frequency_penalty 0.2
 
 # Enable automatic compression
-/set auto_compress_topics true
-/set compression_min_nodes 10
+/set auto-compress-topics true
+/set compression-min-nodes 10
 ```
 
 This setup will automatically compress topics with 10+ messages using an instruct model optimized for summarization.

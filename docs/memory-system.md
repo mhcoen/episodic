@@ -46,10 +46,10 @@ Think of this as your "personal knowledge base" - for your documents and files:
 ### System Memory Configuration
 ```bash
 # System memory is always on by default
-/set system_memory_enabled true        # Cannot be disabled in normal use
-/set system_memory_auto_store true     # Auto-store conversations
-/set system_memory_auto_context true   # Auto-use in responses
-/set memory_relevance_threshold 0.3    # Minimum relevance (0.0-1.0)
+/set system-memory-enabled true        # Cannot be disabled in normal use
+/set system-memory-auto-store true     # Auto-store conversations
+/set system-memory-auto-context true   # Auto-use in responses
+/set memory-relevance-threshold 0.3    # Minimum relevance (0.0-1.0)
 ```
 
 ### User RAG Configuration
@@ -59,9 +59,9 @@ Think of this as your "personal knowledge base" - for your documents and files:
 /rag off                               # Disable document search
 
 # Configure RAG behavior
-/set rag_auto_search true              # Auto-search on queries
-/set rag_search_threshold 0.7          # Relevance threshold
-/set rag_max_results 5                 # Max results to include
+/set rag-auto-search true              # Auto-search on queries
+/set rag-search-threshold 0.7          # Relevance threshold
+/set rag-max-results 5                 # Max results to include
 ```
 
 ### Configure Auto-Enhancement

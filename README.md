@@ -256,7 +256,7 @@ Episodic automatically manages long conversations by detecting topic changes and
 ```text
 > /set topic-auto true
 > /set comp-auto true
-> /set show_topics true  # See topic evolution
+> /set show-topics true  # See topic evolution
 
 > What's the best way to implement retry logic in Python?
 📌 New topic: python-retry-patterns
@@ -339,10 +339,10 @@ Episodic is highly configurable. While many settings can be changed interactivel
 Common settings that can be changed via the CLI:
 
 ```bash
-/set stream_responses true    # Enable response streaming
+/set stream-responses true    # Enable response streaming
 /set comp-auto true           # Automatic topic compression
 /set topic-auto true          # Automatic topic detection
-/set show_cost true           # Display token costs
+/set show-cost true           # Display token costs
 /set debug true               # Enable debug output
 /style comprehensive          # Set detailed response style globally
 /format academic              # Use academic format for all responses
@@ -365,15 +365,15 @@ Voice mode requires a free Picovoice access key for wake word detection.
 export PICOVOICE_ACCESS_KEY="your_access_key_here"
 
 # Option 2: In Episodic
-> /set porcupine_access_key your_access_key_here
+> /set porcupine-access-key your_access_key_here
 ```
 
 **Voice Mode Settings:**
 ```bash
-/set voice_wake_word computer          # Wake word (computer, jarvis, alexa, etc.)
-/set voice_wake_word_sensitivity 0.5   # Detection sensitivity (0.0-1.0)
-/set voice_idle_timeout 60             # Seconds before entering idle mode (0 = never)
-/set voice_wake_word_enabled true      # Enable/disable wake word feature
+/set voice-wake-word computer          # Wake word (computer, jarvis, alexa, etc.)
+/set voice-wake-word-sensitivity 0.5   # Detection sensitivity (0.0-1.0)
+/set voice-idle-timeout 60             # Seconds before entering idle mode (0 = never)
+/set voice-wake-word-enabled true      # Enable/disable wake word feature
 ```
 
 The wake word detection runs locally with minimal CPU usage (~1-2%) and works completely offline after initial setup.

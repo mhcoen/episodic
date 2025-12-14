@@ -112,16 +112,16 @@ Voice mode enables hands-free conversation with speech input and text-to-speech 
 
 ```bash
 # Set providers
-/set voice_stt_provider local_whisper
-/set voice_tts_provider local_piper
+/set voice-stt-provider local_whisper
+/set voice-tts-provider local_piper
 
 # TTS settings
-/set voice_tts_enabled true      # Enable/disable TTS output
-/set voice_audio_cues true       # Enable state transition sounds
+/set voice-tts-enabled true      # Enable/disable TTS output
+/set voice-audio-cues true       # Enable state transition sounds
 
 # VAD tuning
-/set voice_silence_threshold_ms 1000  # Silence to end speech
-/set voice_vad_aggressiveness 2       # 0-3 (higher = more filtering)
+/set voice-silence-threshold-ms 1000  # Silence to end speech
+/set voice-vad-aggressiveness 2       # 0-3 (higher = more filtering)
 ```
 
 ### Dependencies
@@ -234,18 +234,18 @@ Episodic uses a dual-window detection system with 95% precision to automatically
 /topics
 
 # See topic info in responses
-/set show_topics true
+/set show-topics true
 
 # Enable debug mode to see detection details
 /debug on topic
 
 # Configure dual-window detection (default: enabled)
-/set use_dual_window_detection true
-/set dual_window_high_precision_threshold 0.65  # (4,1) window
-/set dual_window_safety_net_threshold 0.75      # (4,2) window
+/set use-dual-window-detection true
+/set dual-window-high-precision-threshold 0.65  # (4,1) window
+/set dual-window-safety-net-threshold 0.75      # (4,2) window
 
 # Configure minimum messages before topic change
-/set min_messages_before_topic_change 8
+/set min-messages-before-topic-change 8
 ```
 
 The dual-window system uses:
@@ -317,7 +317,7 @@ Build a personal knowledge base:
 
 # Configure automatic search
 /set rag-auto true              # Auto-search on every query
-/set rag_relevance_threshold 0.7 # Minimum relevance score
+/set rag-relevance-threshold 0.7 # Minimum relevance score
 ```
 
 ### Smart Fallback

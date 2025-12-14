@@ -333,7 +333,7 @@ what's new in quantum computing
    - Better for certain types of queries
    
 4. **Searx** (Privacy-focused, can self-host)
-   - Configure with `/set searx_instance_url`
+   - Configure with `/set searx-instance-url`
    - No API key needed
 
 ### How Fallback Works
@@ -655,7 +655,7 @@ Combines multiple signals with configurable weights:
 
 ### Running Topic Prediction
 ```bash
-/set running_topic_guess true  # Not implemented yet
+/set running-topic-guess true  # Not implemented yet
 ```
 Planned feature to show topic predictions in real-time.
 
@@ -679,12 +679,12 @@ What are the latest developments in quantum computing?
 ### Long Conversation Management
 ```bash
 # Enable automatic topic management
-/set automatic_topic_detection true  # or: /set topic-auto true
-/set auto_compress_topics true       # or: /set comp-auto true
-/set show_topics true                # See topic evolution
+/set automatic-topic-detection true  # or: /set topic-auto true
+/set auto-compress-topics true       # or: /set comp-auto true
+/set show-topics true                # See topic evolution
 
 # Monitor context usage
-/set show_cost true
+/set show-cost true
 ```
 
 ### Offline Usage with Ollama
@@ -756,7 +756,7 @@ Create reproducible test cases:
 **scripts/test-topics.txt:**
 ```bash
 /init --erase
-/set min_messages_before_topic_change 2
+/set min-messages-before-topic-change 2
 Tell me about space exploration.
 What are the challenges of Mars colonization?
 Now let's discuss Italian cooking.
@@ -811,11 +811,11 @@ The saved script includes all commands from your session (except the `/save` com
    - Use `/reset all` to restore defaults
 
 2. **Topic detection too sensitive/insensitive**
-   - Adjust `/set drift_threshold 0.9` (higher = less sensitive)
-   - Try `/set min_messages_before_topic_change 8`
+   - Adjust `/set drift-threshold 0.9` (higher = less sensitive)
+   - Try `/set min-messages-before-topic-change 8`
 
 3. **Context window exceeded**
-   - Enable compression: `/set auto_compress_topics true`
+   - Enable compression: `/set auto-compress-topics true`
    - Reduce context depth: `/set depth 3`
 
 ### Debug Mode

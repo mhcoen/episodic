@@ -190,7 +190,7 @@ export BRAVE_API_KEY="your_brave_key_here"
 - `/load <file>` - Import previous conversation
 
 ### Cost Tracking
-- `/set show_cost true` - Display token usage
+- `/set show-cost true` - Display token usage
 - Hugging Face free tier: ~30,000 tokens/month
 - Brave free tier: 2,000 searches/month
 
@@ -199,7 +199,7 @@ export BRAVE_API_KEY="your_brave_key_here"
 1. **Start with `/style concise`** - Makes responses faster and more focused
 2. **Use `/muse` for current events** - Gets real-time information from the web
 3. **Export important conversations** - Use `/save` to export as markdown
-4. **Monitor usage** - Enable `/set show_cost true` to track token usage
+4. **Monitor usage** - Enable `/set show-cost true` to track token usage
 
 ## Troubleshooting
 
@@ -246,7 +246,7 @@ Voice mode can listen for a wake word (like "computer") so you can leave it runn
 **Configure in Episodic:**
 ```bash
 # Set your access key
-> /set porcupine_access_key your_access_key_here
+> /set porcupine-access-key your_access_key_here
 
 # Enable voice mode
 > /voice on
@@ -263,7 +263,7 @@ Voice mode can listen for a wake word (like "computer") so you can leave it runn
 
 **Change the Wake Word:**
 ```bash
-> /set voice_wake_word jarvis
+> /set voice-wake-word jarvis
 ```
 
 **Voice Commands to Enter Idle:**

@@ -74,14 +74,14 @@ The `/dev reindex-help` command should be run after:
    - Topic boundary detection
 
 ### LLM Response Issues
-1. Enable LLM debugging: `/set debug_llm_api on`
+1. Enable LLM debugging: `/set debug-llm-api on`
 2. Look for:
    - Model being used
    - API errors
    - Cost calculation failures
 
 ### Streaming/Formatting Issues
-1. Enable streaming debug: `/set debug_streaming_verbose on`
+1. Enable streaming debug: `/set debug-streaming-verbose on`
 2. Look for:
    - Word parsing decisions
    - Bold/header detection
@@ -189,7 +189,7 @@ The system prevents creating databases in the project directory:
 2. **Database issues**: Run `/verify` and check `~/.episodic/` exists
 3. **Model errors**: Verify API keys are set in environment
 4. **Web search failing**: Check provider configuration and API keys
-5. **Formatting issues**: Try `/set text_wrap off` temporarily
+5. **Formatting issues**: Try `/set text-wrap off` temporarily
 
 ## Adding New Debug Flags
 
@@ -202,4 +202,4 @@ When adding new debug functionality:
 ## Log File Locations
 
 Currently, Episodic doesn't write log files. All debug output goes to stderr.
-Future enhancement: Add file logging with `/set log_file <path>`
+Future enhancement: Add file logging with `/set log-file <path>`

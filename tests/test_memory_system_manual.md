@@ -36,7 +36,7 @@ This guide provides comprehensive manual testing procedures for the Episodic mem
 2. **Partial match**: Search for related keywords
 3. **No match**: Search for unrelated term
 4. **Relevance threshold**:
-   - Set threshold to 0.5: `/set memory_relevance_threshold 0.5`
+   - Set threshold to 0.5: `/set memory-relevance-threshold 0.5`
    - Search for marginal match
    - Verify filtering works
 

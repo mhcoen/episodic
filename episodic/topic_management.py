@@ -66,52 +66,43 @@ class TopicHandler:
         if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
             try:
                 with benchmark_operation("Topic Detection"):
-                    # Debug: show which detector will be used
+                    # Get the configured strategy
+                    strategy_name = config.get("topic_strategy", "default")
+
                     if config.get("debug"):
-                        debug_print(f"Detection config: hybrid={config.get('use_hybrid_topic_detection')}, sliding={config.get('use_sliding_window_detection')}", indent=True)
-                    
-                    # Use hybrid detection if enabled
-                    if config.get("use_hybrid_topic_detection"):
-                        if config.get("debug"):
-                            debug_print("Using HYBRID detection", indent=True)
-                        from episodic.topics.hybrid import HybridTopicDetector
-                        detector = HybridTopicDetector()
-                        topic_changed, new_topic_name, topic_cost_info = detector.detect_topic_change(
-                            recent_nodes,
-                            user_input,
-                            current_topic=self.conversation_manager.current_topic
-                        )
-                    elif config.get("use_dual_window_detection"):
-                        if config.get("debug"):
-                            debug_print("Using DUAL WINDOW detection", indent=True)
-                        # Use dual-window detection ((4,1) + (4,2))
-                        from episodic.topics.dual_window_detector import DualWindowDetector
-                        detector = DualWindowDetector()
-                        topic_changed, new_topic_name, topic_cost_info = detector.detect_topic_change(
-                            recent_nodes,
-                            user_input,
-                            current_topic=self.conversation_manager.current_topic
-                        )
-                    elif config.get("use_sliding_window_detection"):
-                        if config.get("debug"):
-                            debug_print("Using SLIDING WINDOW detection", indent=True)
-                        # Use sliding window detection (3-3 windows)
-                        from episodic.topics.realtime_windows import RealtimeWindowDetector
-                        window_size = config.get("sliding_window_size", 3)
-                        detector = RealtimeWindowDetector(window_size=window_size)
-                        topic_changed, new_topic_name, topic_cost_info = detector.detect_topic_change(
-                            recent_nodes,
-                            user_input,
-                            current_topic=self.conversation_manager.current_topic
-                        )
-                    else:
-                        # Use standard LLM-based detection
-                        from episodic.topics.detector import topic_manager
-                        topic_changed, new_topic_name, topic_cost_info = topic_manager.detect_topic_change_separately(
-                            recent_nodes, 
-                            user_input,
-                            current_topic=self.conversation_manager.current_topic
-                        )
+                        debug_print(f"Using strategy: {strategy_name}", indent=True)
+
+                    # Use strategy registry for topic detection
+                    from episodic.topics.strategy_registry import get_strategy
+                    strategy = get_strategy(strategy_name)
+
+                    # Convert recent_nodes to the format expected by strategies
+                    messages = [
+                        {
+                            'role': node.get('role', 'user'),
+                            'content': node.get('content', ''),
+                            'node_id': node.get('id'),
+                            'short_id': node.get('short_id'),
+                        }
+                        for node in recent_nodes
+                    ]
+
+                    # Get decision from strategy
+                    decision = strategy.get_decision(user_input, messages)
+
+                    # Map decision to expected return format
+                    topic_changed = decision.topic_changed
+                    new_topic_name = None  # Strategy doesn't extract names; done separately
+
+                    # Build cost_info from decision for compatibility
+                    topic_cost_info = {
+                        'method': 'strategy',
+                        'strategy_name': decision.strategy_name,
+                        'confidence_score': decision.confidence_score,
+                        'reasoning': decision.reasoning,
+                        'signals': decision.signals,
+                        'processing_time_ms': decision.processing_time_ms,
+                    }
                     if config.get("debug"):
                         debug_print(f"Topic change detected: {topic_changed}", indent=True)
                         if topic_changed:

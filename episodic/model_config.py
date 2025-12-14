@@ -77,18 +77,47 @@ class ModelConfig:
     def get_model_info(self, provider: str, model_name: str) -> Optional[Dict[str, Any]]:
         """Get information about a specific model."""
         models = self.get_provider_models(provider)
-        
+
         # First try exact match
         for model in models:
             if model.get("name") == model_name:
                 return model
-        
+
         # Try partial match
         for model in models:
             if model_name in model.get("name", ""):
                 return model
-        
+
+        # Fall back to template for models not in user config
+        # This allows new providers/models in template to work without user updating their config
+        template_model = self._get_model_from_template(provider, model_name)
+        if template_model:
+            return template_model
+
         return None
+
+    def _get_model_from_template(self, provider: str, model_name: str) -> Optional[Dict[str, Any]]:
+        """Get model info from template file as fallback."""
+        try:
+            package_dir = Path(__file__).parent
+            template_path = package_dir / "models_template.json"
+
+            if not template_path.exists():
+                return None
+
+            with open(template_path, 'r') as f:
+                template_data = json.load(f)
+
+            provider_config = template_data.get("providers", {}).get(provider, {})
+            models = provider_config.get("models", [])
+
+            for model in models:
+                if model.get("name") == model_name:
+                    return model
+
+            return None
+        except Exception:
+            return None
     
     def detect_model_type(self, model_name: str) -> str:
         """Detect model type using patterns and known models."""

@@ -230,25 +230,25 @@ GPT-5 introduces unique controls for output generation:
 Use different models for different tasks to optimize performance and cost:
 
 ```text
-# Use GPT-5 for complex reasoning
+> /model
+Current models:
+  Chat         [C]  openai/gpt-4o-mini (8B)
+  Detection    [D]  custom/topic-boundary-distilbert
+  Compression  [I]  ollama/phi4
+  Synthesis    [I]  ollama/phi4
+  Critic       [CI] anthropic/claude-opus-4-5-20251101
+
+Model Types:
+  [D]  = Detection model (local, boundary detection)
+  [C]  = Chat model (best for conversations)
+  [I]  = Instruct model (best for detection/compression/synthesis)
+  [CI] = Chat & Instruct model (works for both)
+
+# Change individual models
 > /model chat gpt-5
-
-# Use local custom model for topic detection (no API calls)
 > /model detection custom/topic-boundary-distilbert
-
-# Use instruct models for other background tasks
 > /model compression ollama/phi4
-> /model synthesis ollama/phi4
-
-# Use a sophisticated model for critiques
 > /model critic claude-opus-4-5-20251101
-
-# Configure model parameters
-> /mset chat.temperature 0.7
-> /mset compression.max_tokens 500
-
-> Explain the halting problem
-🤖 [GPT-5 provides detailed explanation while local model manages topics]
 ```
 
 **Custom Models**: You can add your own fine-tuned models for specialized tasks like topic detection. See [Model Configuration](docs/models-configuration.md#custom-local-models) for setup.

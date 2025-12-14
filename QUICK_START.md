@@ -236,7 +236,7 @@ Voice mode allows hands-free conversation with speech input and text-to-speech o
 
 ### Enable Wake Word Detection
 
-Voice mode can listen for a wake word (like "computer") so you can leave it running hands-free. This requires a free Picovoice account.
+Voice mode can listen for a wake word (like "computer") so you can leave it running hands-free. Wake word detection can run locally, but for faster and lower-latency detection, you can use a free Picovoice account.
 
 **Get Your Free Access Key (2 minutes):**
 1. Go to https://console.picovoice.ai/

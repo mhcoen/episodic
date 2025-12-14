@@ -267,6 +267,12 @@ class EpisodicCompleter(Completer):
                 else:
                     param_types[display_param] = 'value'
 
+            # GPT-5 specific parameters (always available, ignored for non-GPT-5)
+            param_types.update({
+                'gpt.verbosity': 'low/medium/high',
+                'gpt.reasoning-effort': 'minimal/low/medium/high'
+            })
+
             # For /mset, add model parameter options
             if parts[0] == '/mset':
                 param_types.update({
@@ -382,6 +388,35 @@ class EpisodicCompleter(Completer):
                         if temp.startswith(word):
                             yield Completion(
                                 temp,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
+                elif param == 'gpt.verbosity':
+                    # GPT-5 verbosity options
+                    verbosity_meta = {
+                        'low': 'concise answers, code generation',
+                        'medium': 'standard responses (default)',
+                        'high': 'detailed explanations'
+                    }
+                    for level, desc in verbosity_meta.items():
+                        if level.startswith(word.lower()):
+                            yield Completion(
+                                level,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
+                elif param == 'gpt.reasoning-effort':
+                    # GPT-5 reasoning effort options
+                    effort_meta = {
+                        'minimal': 'fastest, fewest reasoning tokens',
+                        'low': 'favors speed',
+                        'medium': 'balanced (default)',
+                        'high': 'thorough reasoning'
+                    }
+                    for level, desc in effort_meta.items():
+                        if level.startswith(word.lower()):
+                            yield Completion(
+                                level,
                                 start_position=-len(word),
                                 display_meta=desc
                             )

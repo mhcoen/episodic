@@ -190,7 +190,8 @@ class Config:
                 'main': 'main_params',
                 'topic': 'topic_params',
                 'comp': 'compression_params',
-                'compression': 'compression_params'
+                'compression': 'compression_params',
+                'gpt': 'gpt'  # GPT-5 specific params (verbosity, reasoning_effort)
             }
             
             # Map abbreviated parameter names
@@ -202,7 +203,8 @@ class Config:
                 'freq': 'frequency_penalty',
                 'verbosity': 'verbosity',
                 'reasoning': 'reasoning_effort',
-                'reasoning_effort': 'reasoning_effort'
+                'reasoning_effort': 'reasoning_effort',
+                'reasoning-effort': 'reasoning_effort'  # Allow dash version
             }
             
             # Get the actual parameter set name
@@ -218,9 +220,12 @@ class Config:
             # Get the actual parameter name
             actual_param_name = param_name_map.get(param_name, param_name)
             
-            # Ensure the parameter set exists
+            # Ensure the parameter set exists (auto-create for gpt)
             if actual_param_set not in self.config:
-                raise ValueError(f"Unknown parameter set: {param_set}")
+                if actual_param_set == 'gpt':
+                    self.config['gpt'] = {}
+                else:
+                    raise ValueError(f"Unknown parameter set: {param_set}")
             
             # Validate parameter values
             if actual_param_name == 'temperature' and not (0 <= float(value) <= 2):

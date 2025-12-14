@@ -28,7 +28,7 @@ Best for concise answers, simple code generation, and SQL queries.
 
 ```bash
 # In an Episodic session:
-/set main.verbosity low
+/set gpt.verbosity low
 ```
 
 ### Medium Verbosity (Default)
@@ -36,7 +36,7 @@ The standard setting used by previous models. Balanced responses.
 
 ```bash
 # In an Episodic session:
-/set main.verbosity medium
+/set gpt.verbosity medium
 ```
 
 ### High Verbosity
@@ -44,7 +44,7 @@ Ideal for thorough explanations, extensive code refactoring, and detailed analys
 
 ```bash
 # In an Episodic session:
-/set main.verbosity high
+/set gpt.verbosity high
 ```
 
 ## Reasoning Effort Levels
@@ -56,7 +56,7 @@ Produces very few reasoning tokens for fastest time-to-first-token.
 
 ```bash
 # In an Episodic session:
-/set main.reasoning_effort minimal
+/set gpt.reasoning-effort minimal
 ```
 
 ### Low
@@ -64,7 +64,7 @@ Favors speed and fewer tokens while maintaining quality.
 
 ```bash
 # In an Episodic session:
-/set main.reasoning_effort low
+/set gpt.reasoning-effort low
 ```
 
 ### Medium (Default)
@@ -72,7 +72,7 @@ The standard balance between speed and reasoning depth.
 
 ```bash
 # In an Episodic session:
-/set main.reasoning_effort medium
+/set gpt.reasoning-effort medium
 ```
 
 ### High
@@ -80,7 +80,7 @@ Favors more thorough reasoning for complex problems.
 
 ```bash
 # In an Episodic session:
-/set main.reasoning_effort high
+/set gpt.reasoning-effort high
 ```
 
 ## Usage Examples
@@ -91,8 +91,8 @@ For rapid code generation with minimal explanation:
 ```bash
 python -m episodic
 # In the session:
-/set main.verbosity low
-/set main.reasoning_effort minimal
+/set gpt.verbosity low
+/set gpt.reasoning-effort minimal
 Write a Python function to sort a list
 ```
 
@@ -102,8 +102,8 @@ For comprehensive code reviews or architectural discussions:
 ```bash
 python -m episodic
 # In the session:
-/set main.verbosity high
-/set main.reasoning_effort high
+/set gpt.verbosity high
+/set gpt.reasoning-effort high
 Analyze the architecture of this codebase and suggest improvements
 ```
 
@@ -113,8 +113,8 @@ For general conversation and standard tasks:
 ```bash
 python -m episodic
 # In the session:
-/set main.verbosity medium
-/set main.reasoning_effort medium
+/set gpt.verbosity medium
+/set gpt.reasoning-effort medium
 ```
 
 ## Checking Current Settings
@@ -124,11 +124,11 @@ View your current GPT-5 parameter settings:
 ```bash
 python -m episodic
 # In the session:
-/config show main_params
+/config show gpt
 
 # Or check individual settings:
-/config get main.verbosity
-/config get main.reasoning_effort
+/config get gpt.verbosity
+/config get gpt.reasoning-effort
 ```
 
 ## Important Notes
@@ -157,7 +157,7 @@ To reset all main parameters to defaults:
 ```bash
 python -m episodic
 # In the session:
-/set main.reset
+/set gpt.reset
 ```
 
 This will restore:

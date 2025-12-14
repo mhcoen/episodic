@@ -213,17 +213,17 @@ GPT-5 introduces unique controls for output generation:
 
 **Verbosity Control** - Adjust response length and detail:
 ```text
-> /set main.verbosity low      # Concise answers, code generation
-> /set main.verbosity medium   # Standard responses (default)
-> /set main.verbosity high     # Detailed explanations, analysis
+> /set gpt.verbosity low      # Concise answers, code generation
+> /set gpt.verbosity medium   # Standard responses (default)
+> /set gpt.verbosity high     # Detailed explanations, analysis
 ```
 
 **Reasoning Effort** - Control reasoning depth:
 ```text
-> /set main.reasoning_effort minimal  # Fastest responses
-> /set main.reasoning_effort low      # Quick with good quality
-> /set main.reasoning_effort medium   # Balanced (default)
-> /set main.reasoning_effort high     # Thorough reasoning
+> /set gpt.reasoning-effort minimal  # Fastest responses
+> /set gpt.reasoning-effort low      # Quick with good quality
+> /set gpt.reasoning-effort medium   # Balanced (default)
+> /set gpt.reasoning-effort high     # Thorough reasoning
 ```
 
 ### 🧩 Multi-Model Workflows

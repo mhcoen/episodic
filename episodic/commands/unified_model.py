@@ -50,7 +50,7 @@ def model_command(
     Examples:
         /model 5                            # Show info about model #5
         /model chat 9                       # Select by number from list
-        /model chat claude-opus-4-1-20250805  # Select by full model name
+        /model chat <full-model-name>       # Select by full model name
     """
     # No arguments - show all models in use
     if not context:
@@ -349,8 +349,17 @@ def show_available_models():
     typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model critic <number|full-model-name>", fg=get_system_color())
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat 9                         # Select by number from list", fg=get_text_color(), dim=True)
-    typer.secho("  /model chat claude-opus-4-1-20250805  # Select by full model name", fg=get_text_color(), dim=True)
+    # Use model #9 for both examples so number and name correspond
+    example_idx = 8  # 0-indexed, so model #9
+    if len(model_info_list) > example_idx:
+        example_model = model_info_list[example_idx]['model_name']
+        typer.secho(f"  /model chat 9                         # Select by number from list", fg=get_text_color(), dim=True)
+        typer.secho(f"  /model chat {example_model:<25} # Select by full model name", fg=get_text_color(), dim=True)
+    else:
+        # Fallback if fewer than 9 models available
+        typer.secho("  /model chat 1                         # Select by number from list", fg=get_text_color(), dim=True)
+        example_model = model_info_list[0]['model_name'] if model_info_list else "gpt-4o"
+        typer.secho(f"  /model chat {example_model:<25} # Select by full model name", fg=get_text_color(), dim=True)
 
 
 def show_model_info(model_number: int):

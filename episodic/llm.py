@@ -322,8 +322,11 @@ def _execute_llm_query(
 
     # Handle GPT-5 specific parameters
     if "gpt-5" in full_model.lower():
-        # GPT-5 supports verbosity and reasoning_effort parameters
-        # These are passed through if set in config
+        # GPT-5 supports verbosity and reasoning_effort parameters from 'gpt' config
+        gpt_params = config.get('gpt', {})
+        if gpt_params:
+            api_params.update(gpt_params)
+
         # GPT-5 only supports default temperature (1.0) and doesn't support stop sequences
         unsupported_gpt5_params = ['temperature', 'stop', 'top_p', 'presence_penalty', 'frequency_penalty']
         for param in unsupported_gpt5_params:

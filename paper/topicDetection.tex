@@ -40,7 +40,25 @@ This paper addresses that mismatch by changing what we report and what we optimi
 
 \subsection{Motivation: Conversational Memory in AI Chat Systems}
 
-Large language model (LLM) based chat systems often exceed a model's context window. Practical systems must decide which earlier turns to drop or summarize, and segmentation decisions directly determine what information is retained. The absence of robust episodic memory remains a major limitation of current LLM-based chat systems, particularly across multi-session interactions. This work is motivated by the development of \emph{Episodic}, a conversational memory system that organizes dialogue into topic-structured representations to support persistent conversations with LLM-based assistants~\cite{episodic_github}.
+Large language model (LLM) based chat systems operate under fixed context window
+constraints, which force practical systems to manage conversational history
+explicitly. As conversations grow longer, earlier turns must be dropped,
+summarized, or selectively retrieved, and topic segmentation decisions directly
+determine which portions of prior dialogue are preserved or reintroduced.
+
+In this setting, topic segmentation functions as a memory control mechanism
+rather than a purely linguistic task. Poor segmentation can cause relevant
+context to be discarded prematurely or unrelated context to be retained,
+degrading long-horizon conversational coherence. The absence of robust episodic
+memory remains a major limitation of current LLM-based systems, particularly in
+multi-session interactions.
+
+This work is motivated by the development of \emph{Episodic}, a conversational
+memory system that organizes dialogue into topic-structured representations to
+support persistent interactions with LLM-based assistants~\cite{episodic_github}.
+Within such systems, boundary placement governs summarization, retrieval, and
+context reintegration, making segmentation granularity a first-order systems
+design decision rather than an evaluation detail.
 
 \section{Background and Related Work}
 
@@ -463,7 +481,7 @@ effects arise from evaluation practice rather than dataset-specific artifacts.
 
 This work does not introduce a new neural backbone for dialogue segmentation. Instead, it contributes (i) an evaluation objective that makes boundary density and coherence explicit and (ii) a topic segmentation algorithm that separates boundary scoring from boundary selection. We do not include a direct ablation comparing synthetic pretraining against training from scratch. Preliminary experiments suggest that splice-boundary pretraining primarily stabilizes early training dynamics rather than improving final performance, but a systematic ablation remains future work.
 
-Future work includes evaluating published dialogue segmentation methods under the proposed evaluation objective to confirm that the observed granularity effects are method-agnostic, and exploring alternative boundary selection rules that adapt boundary density to application constraints rather than annotation conventions. Additional study is also needed to relate boundary density preferences to specific downstream uses such as summarization, retrieval, or conversational memory. Finally, future work could replace discrete boundary representations with continuous or multi-scale topic representations (e.g., topic clouds) that better capture overlapping, gradual, or revisited conversational structure.
+Additional future work includes evaluating published dialogue segmentation methods under the proposed evaluation objective to confirm that the observed granularity effects are method-agnostic, and exploring alternative boundary selection rules that adapt boundary density to application constraints rather than annotation conventions. Further study is also needed to relate boundary density preferences to specific downstream uses such as summarization, retrieval, or conversational memory. Finally, future work could replace discrete boundary representations with continuous or multi-scale topic representations (e.g., topic clouds) that better capture overlapping, gradual, or revisited conversational structure.
 
 \section{Conclusion}
 

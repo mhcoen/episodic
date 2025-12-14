@@ -2,7 +2,11 @@
 Detection models package.
 
 Provides a unified interface for custom local detection models
-used for topic boundary detection.
+used for topic boundary detection and other tasks.
+
+Supported wrappers:
+- distilbert: For models saved as PyTorch state_dict (.pt files)
+- huggingface: For models saved in HuggingFace format (recommended)
 """
 
 import os
@@ -11,12 +15,14 @@ from typing import Optional, Dict, Any
 
 from .base import DetectionModel
 from .distilbert import DistilBertDetector
+from .huggingface import HuggingFaceDetector
 
 logger = logging.getLogger(__name__)
 
 # Registry of available wrapper types
 WRAPPER_REGISTRY = {
     "distilbert": DistilBertDetector,
+    "huggingface": HuggingFaceDetector,
 }
 
 # Model cache to avoid reloading
@@ -76,6 +82,13 @@ def get_detector(
                 model_path=model_path,
                 architecture=model_config.get("architecture", "distilbert-base-uncased"),
                 temperature=model_config.get("temperature", 1.0)
+            )
+        elif wrapper_type == "huggingface":
+            detector = wrapper_class(
+                model_path=model_path,
+                task=model_config.get("task", "sequence-classification"),
+                temperature=model_config.get("temperature", 1.0),
+                max_length=model_config.get("max_length", 512)
             )
         else:
             # Generic instantiation for future wrappers
@@ -140,6 +153,7 @@ def list_available_wrappers() -> list:
 __all__ = [
     "DetectionModel",
     "DistilBertDetector",
+    "HuggingFaceDetector",
     "get_detector",
     "clear_cache",
     "list_available_wrappers",

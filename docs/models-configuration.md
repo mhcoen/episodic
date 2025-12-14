@@ -205,11 +205,20 @@ To change properties of existing models:
 
 ## Custom Local Models
 
-Episodic supports custom local models for specialized tasks like topic boundary detection. These models run locally without API calls.
+Episodic supports custom local models for any purpose—topic detection, domain-specific chat, specialized summarization, etc. These models run locally without API calls.
 
-### Adding a Custom Detection Model
+### Wrapper Types
 
-Custom models use the `custom/` provider prefix and are defined in `~/.episodic/models.json`:
+Episodic provides two wrappers for loading custom models:
+
+| Wrapper | Format | Use Case |
+|---------|--------|----------|
+| `huggingface` | HuggingFace format (directory with config.json, model files) | **Recommended** - works with any fine-tuned transformer |
+| `distilbert` | Raw PyTorch state_dict (.pt file) | Legacy - for specific DistilBERT checkpoints |
+
+### Adding a HuggingFace Model (Recommended)
+
+Most fine-tuned models are saved in HuggingFace format. Add them to `~/.episodic/models.json`:
 
 ```json
 {
@@ -219,13 +228,22 @@ Custom models use the `custom/` provider prefix and are defined in `~/.episodic/
       "local": true,
       "models": [
         {
-          "name": "topic-boundary-distilbert",
-          "display_name": "Topic Boundary DistilBERT",
+          "name": "my-domain-classifier",
+          "display_name": "Domain-Specific Classifier",
           "type": "detection",
-          "path": "~/.episodic/models/final_calibrated.pt",
-          "wrapper": "distilbert",
-          "architecture": "distilbert-base-uncased",
-          "parameters": "66M"
+          "path": "~/.episodic/models/my-fine-tuned-bert",
+          "wrapper": "huggingface",
+          "task": "sequence-classification",
+          "parameters": "110M"
+        },
+        {
+          "name": "my-chat-model",
+          "display_name": "Custom Chat Model",
+          "type": "chat",
+          "path": "~/.episodic/models/my-fine-tuned-llama",
+          "wrapper": "huggingface",
+          "task": "text-generation",
+          "parameters": "7B"
         }
       ]
     }
@@ -233,36 +251,78 @@ Custom models use the `custom/` provider prefix and are defined in `~/.episodic/
 }
 ```
 
-### Custom Model Properties
+### HuggingFace Model Properties
 
 - `name`: Model identifier (used as `custom/<name>`)
 - `display_name`: Human-readable name shown in the UI
-- `type`: Must be `detection` for boundary detection models
-- `path`: Path to the model weights file (`.pt`), supports `~` expansion
-- `wrapper`: The wrapper type to use (`distilbert` for DistilBERT-based models)
-- `architecture`: Base model architecture for tokenizer (e.g., `distilbert-base-uncased`)
+- `type`: Model type (`detection`, `chat`, `instruct`, etc.)
+- `path`: Path to HuggingFace model directory (contains `config.json`, model weights, tokenizer)
+- `wrapper`: Must be `huggingface`
+- `task`: HuggingFace task type:
+  - `sequence-classification` - For classifiers (topic detection, sentiment, etc.)
+  - `text-generation` - For causal LMs (chat, completion)
+  - `summarization` - For seq2seq models (summarization, translation)
+- `temperature`: Optional softmax temperature (default: 1.0)
+- `max_length`: Optional max sequence length (default: 512)
 - `parameters`: Model size for display
+
+### Adding a Legacy DistilBERT Model
+
+For raw PyTorch checkpoints (`.pt` files with state_dict):
+
+```json
+{
+  "name": "topic-boundary-distilbert",
+  "display_name": "Topic Boundary DistilBERT",
+  "type": "detection",
+  "path": "~/.episodic/models/final_calibrated.pt",
+  "wrapper": "distilbert",
+  "architecture": "distilbert-base-uncased",
+  "parameters": "66M"
+}
+```
 
 ### Using Custom Models
 
 ```bash
 # Set detection model to custom local model
-/model detection custom/topic-boundary-distilbert
+/model detection custom/my-domain-classifier
 
-# View current models (shows [D] for detection models)
+# Set chat model to custom local model
+/model chat custom/my-chat-model
+
+# View current models
 /model
 ```
 
 ### Model Storage
 
-Store your model weight files in `~/.episodic/models/`:
+Store your models in `~/.episodic/models/`:
 ```
 ~/.episodic/
 ├── models/
-│   ├── final_calibrated.pt      # Detection model weights
-│   └── other_model.pt           # Other custom models
-└── models.json                   # Model configuration
+│   ├── my-fine-tuned-bert/       # HuggingFace format directory
+│   │   ├── config.json
+│   │   ├── pytorch_model.bin     # or model.safetensors
+│   │   ├── tokenizer.json
+│   │   └── ...
+│   ├── my-fine-tuned-llama/      # Another HuggingFace model
+│   │   └── ...
+│   └── legacy_model.pt           # Legacy .pt format
+└── models.json                    # Model configuration
 ```
+
+### Saving Models in HuggingFace Format
+
+If you fine-tune a model, save it in HuggingFace format:
+
+```python
+# After training
+model.save_pretrained("~/.episodic/models/my-model")
+tokenizer.save_pretrained("~/.episodic/models/my-model")
+```
+
+This creates the directory structure Episodic expects.
 
 ## Example: Complete User Configuration
 

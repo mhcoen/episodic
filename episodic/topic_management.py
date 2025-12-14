@@ -27,10 +27,11 @@ from episodic.benchmark import benchmark_operation
 
 class TopicHandler:
     """Handles topic detection and management for conversations."""
-    
+
     def __init__(self, conversation_manager):
         """Initialize with reference to conversation manager."""
         self.conversation_manager = conversation_manager
+        self._messages_in_current_topic = 0  # Track messages since last topic change
         
     def detect_and_handle_topic_change(
         self,
@@ -48,7 +49,10 @@ class TopicHandler:
         new_topic_name = None
         topic_cost_info = None
         topic_change_info = None
-        
+
+        # Increment message count for current topic
+        self.increment_message_count()
+
         # Check if automatic topic detection is enabled
         if not config.get("automatic_topic_detection"):
             if config.get("debug"):
@@ -66,6 +70,18 @@ class TopicHandler:
         if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
             try:
                 with benchmark_operation("Topic Detection"):
+                    # Check minimum messages before allowing topic change
+                    min_messages = config.get("min_messages_before_topic_change", 8)
+                    current_topic_messages = self._count_messages_in_current_topic()
+
+                    if current_topic_messages < min_messages:
+                        if config.get("debug"):
+                            debug_print(
+                                f"Skipping detection: only {current_topic_messages}/{min_messages} messages in topic",
+                                indent=True
+                            )
+                        return topic_changed, new_topic_name, topic_cost_info, topic_change_info
+
                     # Get the configured strategy
                     strategy_name = config.get("topic_strategy", "default")
 
@@ -119,8 +135,10 @@ class TopicHandler:
                             if config.get("debug"):
                                 debug_print(f"Extracted topic name: {new_topic_name}", indent=True)
 
-                    # Store topic change info to display later
+                    # Store topic change info to display later and reset counter
                     if topic_changed:
+                        # Reset message count for new topic (starts at 1 since this message triggered it)
+                        self._messages_in_current_topic = 1
                         topic_change_info = {
                             'changed': True,
                             'detection_info': topic_cost_info
@@ -136,7 +154,19 @@ class TopicHandler:
                 secho_color("   ⚠️  Not enough history for topic detection", fg='yellow', bold=True)
                 
         return topic_changed, new_topic_name, topic_cost_info, topic_change_info
-    
+
+    def _count_messages_in_current_topic(self) -> int:
+        """Count user messages in the current topic."""
+        return self._messages_in_current_topic
+
+    def increment_message_count(self) -> None:
+        """Increment the message count for current topic. Call after each user message."""
+        self._messages_in_current_topic += 1
+
+    def reset_message_count(self) -> None:
+        """Reset message count when a new topic starts."""
+        self._messages_in_current_topic = 0
+
     def store_topic_detection_scores(
         self,
         recent_nodes: List[Dict[str, Any]],

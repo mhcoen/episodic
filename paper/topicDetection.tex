@@ -48,18 +48,25 @@ downstream applications.
 
 \subsection{Motivation: Conversational Memory in AI Chat Systems}
 
-Large language model (LLM) based chat systems operate under fixed context window
-constraints, which force practical systems to manage conversational history
+Large language model (LLM) based chat systems operate under finite context
+windows, which require practical systems to manage conversational history
 explicitly. As conversations grow longer, earlier turns must be dropped,
-summarized, or selectively retrieved, and topic segmentation decisions directly
-determine which portions of prior dialogue are preserved or reintroduced.
+summarized, or selectively retrieved. Topic segmentation decisions therefore
+directly determine which portions of prior dialogue are preserved, compressed,
+or reintroduced.
+
+Importantly, this challenge does not disappear as context windows grow larger.
+Unstructured accumulation of prior turns increases computational cost, dilutes
+relevant context, and degrades the model’s ability to focus on salient
+information. As a result, effective conversational systems must impose
+structure on dialogue history rather than relying on raw context expansion.
 
 In this setting, topic segmentation functions as a memory control mechanism
 rather than a purely linguistic task. Poor segmentation can cause relevant
-context to be discarded prematurely or unrelated context to be retained,
-degrading long-horizon conversational coherence. The absence of robust episodic
-memory remains a major limitation of current LLM-based systems, particularly in
-multi-session interactions.
+context to be discarded prematurely or irrelevant context to be retained,
+leading to degraded long-horizon coherence and unstable behavior across turns.
+The absence of robust episodic memory remains a major limitation of current
+LLM-based systems, particularly in multi-session interactions.
 
 This work is motivated by the development of \emph{Episodic}, a conversational
 memory system that organizes dialogue into topic-structured representations to

@@ -64,7 +64,7 @@ python -m episodic
 ```
 
 Episodic automatically configures itself based on available providers:
-- **With Ollama**: Uses phi3 for background tasks (free and local)
+- **With Ollama**: Uses phi4 for background tasks (free and local)
 - **With OpenAI**: Uses GPT-4o-mini by default for chat, GPT-3.5-Turbo-Instruct for analysis
 - **With Ollama**: Uses local models for complete privacy
 
@@ -213,17 +213,17 @@ GPT-5 introduces unique controls for output generation:
 
 **Verbosity Control** - Adjust response length and detail:
 ```text
-> /set main.verbosity low      # Concise answers, code generation
-> /set main.verbosity medium   # Standard responses (default)
-> /set main.verbosity high     # Detailed explanations, analysis
+> /set gpt.verbosity low      # Concise answers, code generation
+> /set gpt.verbosity medium   # Standard responses (default)
+> /set gpt.verbosity high     # Detailed explanations, analysis
 ```
 
 **Reasoning Effort** - Control reasoning depth:
 ```text
-> /set main.reasoning_effort minimal  # Fastest responses
-> /set main.reasoning_effort low      # Quick with good quality
-> /set main.reasoning_effort medium   # Balanced (default)
-> /set main.reasoning_effort high     # Thorough reasoning
+> /set gpt.reasoning-effort minimal  # Fastest responses
+> /set gpt.reasoning-effort low      # Quick with good quality
+> /set gpt.reasoning-effort medium   # Balanced (default)
+> /set gpt.reasoning-effort high     # Thorough reasoning
 ```
 
 ### 🧩 Multi-Model Workflows
@@ -233,22 +233,25 @@ Use different models for different tasks to optimize performance and cost:
 # Use GPT-5 for complex reasoning
 > /model chat gpt-5
 
-# Use instruct models for background tasks
-> /model detection ollama/phi3
-> /model compression ollama/phi3
-> /model synthesis ollama/phi3
+# Use local custom model for topic detection (no API calls)
+> /model detection custom/topic-boundary-distilbert
+
+# Use instruct models for other background tasks
+> /model compression ollama/phi4
+> /model synthesis ollama/phi4
 
 # Use a sophisticated model for critiques
 > /model critic claude-opus-4-5-20251101
 
 # Configure model parameters
 > /mset chat.temperature 0.7
-> /mset detection.temperature 0  # Deterministic topic detection
 > /mset compression.max_tokens 500
 
 > Explain the halting problem
-🤖 [GPT-5 provides detailed explanation while phi3 manages topics]
+🤖 [GPT-5 provides detailed explanation while local model manages topics]
 ```
+
+**Custom Models**: You can add your own fine-tuned models for specialized tasks like topic detection. See [Model Configuration](docs/models-configuration.md#custom-local-models) for setup.
 
 ### 💾 Long Conversation Management
 Episodic automatically manages long conversations by detecting topic changes and compressing old topics:
@@ -317,9 +320,9 @@ Run completely offline with local models:
 ```text
 # Set all contexts to use local models
 > /model chat ollama/llama3
-> /model detection ollama/phi3  # Instruct model for detection
+> /model detection custom/topic-boundary-distilbert  # Local detection model
 > /model compression ollama/mistral  # Instruct model for compression
-> /model synthesis ollama/phi3  # Instruct model for synthesis
+> /model synthesis ollama/phi4  # Instruct model for synthesis
 
 # Disable online features (stay in chat mode)
 > /rag off

@@ -42,8 +42,14 @@ Conversation:
 
 Topic name:"""
 
-        # Get the topic detection model from config (default to main model or qwen2.5:7b)
-        topic_model = config.get("topic_detection_model") or config.get("model") or "ollama/qwen2.5:7b"
+        # Get the topic naming model from config
+        # Priority: topic_naming_model > compression_model > main model
+        topic_model = (
+            config.get("topic_naming_model") or
+            config.get("compression_model") or
+            config.get("model") or
+            "ollama/phi4"
+        )
         
         # Use configured model for topic extraction
         if config.get("debug"):

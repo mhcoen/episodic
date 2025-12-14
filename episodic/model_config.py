@@ -94,6 +94,10 @@ class ModelConfig:
         """Detect model type using patterns and known models."""
         model_lower = model_name.lower()
 
+        # Custom local models are always detection type
+        if model_lower.startswith('custom/'):
+            return "detection"
+
         # Strip provider prefix if present (e.g., "anthropic/claude-..." -> "claude-...")
         model_without_prefix = model_lower.split('/')[-1] if '/' in model_lower else model_lower
 
@@ -138,8 +142,16 @@ class ModelConfig:
     
     def get_type_indicator(self, model_type: str) -> str:
         """Get the type indicator string for a model type."""
+        # Built-in fallback indicators
+        default_indicators = {
+            "detection": "[D]",
+            "chat": "[C]",
+            "instruct": "[I]",
+            "chat_instruct": "[CI]",
+            "base": "[B]",
+        }
         indicators = self._models_data.get("type_indicators", {})
-        return indicators.get(model_type, "[?]")
+        return indicators.get(model_type) or default_indicators.get(model_type, "[?]")
     
     def get_model_parameters(self, provider: str, model_name: str) -> Optional[str]:
         """Get parameter count for a model."""
@@ -151,6 +163,45 @@ class ModelConfig:
     def reload(self):
         """Reload model configuration from disk."""
         self.load_models()
+
+    def is_local_model(self, model_name: str) -> bool:
+        """
+        Check if a model is a local/custom model (not API-based).
+
+        Args:
+            model_name: Full model name (e.g., "custom/topic-boundary-distilbert")
+
+        Returns:
+            True if the model is local, False if it's API-based
+        """
+        if "/" in model_name:
+            provider = model_name.split("/")[0]
+        else:
+            provider = "custom"
+
+        provider_config = self.get_provider_config(provider)
+        return provider_config.get("local", False)
+
+    def get_model_path(self, model_name: str) -> Optional[str]:
+        """
+        Get the file path for a local model.
+
+        Args:
+            model_name: Full model name (e.g., "custom/topic-boundary-distilbert")
+
+        Returns:
+            Expanded file path, or None if not a local model or path not found
+        """
+        if "/" in model_name:
+            provider, name = model_name.split("/", 1)
+        else:
+            provider = "custom"
+            name = model_name
+
+        model_info = self.get_model_info(provider, name)
+        if model_info and "path" in model_info:
+            return os.path.expanduser(model_info["path"])
+        return None
 
 
 # Global instance

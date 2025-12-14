@@ -19,6 +19,7 @@ from episodic.topics.strategy import (
 )
 from episodic.topics.calibration import GRANULARITY_LEVELS
 from episodic.config import config
+from episodic.detection_models import get_detector, DetectionModel
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,9 @@ class NeuralStrategy(TopicStrategy):
 
         Args:
             params: Optional parameters:
-                - model_path: Path to model weights (default: auto-detect)
+                - model_name: Model name (e.g., 'custom/topic-boundary-distilbert')
+                             Falls back to config topic_detection_model
+                - model_path: Legacy: Path to model weights (deprecated, use model_name)
                 - confidence_threshold: Min confidence to report change (default: 0.5)
                 - granularity: Topic detection granularity: fine, medium, coarse
                               (overrides confidence_threshold if provided)
@@ -48,8 +51,16 @@ class NeuralStrategy(TopicStrategy):
                               T > 1 softens probabilities, T < 1 sharpens
         """
         params = params or {}
-        self.model_path = params.get('model_path')
+
+        # Model name: params > config > default
+        self.model_name = params.get('model_name') or config.get(
+            'topic_detection_model', 'custom/topic-boundary-distilbert'
+        )
+
+        # Legacy support: if model_path provided but no model_name, use old path
+        self._legacy_model_path = params.get('model_path')
         self._force_device = params.get('device')
+
         # Temperature: params > config > default (1.0)
         self.temperature = params.get('temperature') or config.get('topic_temperature', 1.0)
 
@@ -63,10 +74,8 @@ class NeuralStrategy(TopicStrategy):
             self.confidence_threshold = params.get('confidence_threshold', 0.5)
             self._granularity = 'medium'  # Default
 
-        # Lazy load model
-        self._model = None
-        self._tokenizer = None
-        self._device = None
+        # Lazy load detector
+        self._detector: Optional[DetectionModel] = None
         self._available = None
 
     @property
@@ -83,6 +92,25 @@ class NeuralStrategy(TopicStrategy):
             return self._available
 
         try:
+            # Use detector factory for custom/ models
+            if self.model_name.startswith("custom/"):
+                self._detector = get_detector(self.model_name)
+                if self._detector is None:
+                    logger.warning(f"Could not load detector: {self.model_name}")
+                    self._available = False
+                    return False
+
+                # Load the model
+                if not self._detector.load():
+                    logger.warning(f"Failed to load model: {self.model_name}")
+                    self._available = False
+                    return False
+
+                self._available = True
+                logger.info(f"Neural strategy loaded: {self._detector.name}")
+                return True
+
+            # Legacy fallback for non-custom models (direct model loading)
             from episodic.topics.neural_detection import (
                 _load_model,
                 TORCH_AVAILABLE
@@ -93,15 +121,17 @@ class NeuralStrategy(TopicStrategy):
                 self._available = False
                 return False
 
-            self._model, self._tokenizer, self._device = _load_model(self.model_path)
-            self._available = self._model is not None
-
-            if self._available:
-                logger.info(f"Neural strategy loaded on {self._device}")
-            else:
+            model, tokenizer, device = _load_model(self._legacy_model_path)
+            if model is None:
                 logger.warning("Neural model not found")
+                self._available = False
+                return False
 
-            return self._available
+            # Create a simple wrapper for legacy models
+            self._detector = _LegacyDetectorWrapper(model, tokenizer, device, self.temperature)
+            self._available = True
+            logger.info(f"Neural strategy (legacy) loaded on {device}")
+            return True
 
         except Exception as e:
             logger.error(f"Failed to load neural model: {e}")
@@ -177,8 +207,6 @@ class NeuralStrategy(TopicStrategy):
     ) -> bool:
         """Check if there's a topic boundary at the given position."""
         try:
-            import torch
-
             # Get 4 messages before and 2 after (including position)
             before_start = max(0, position - 4)
             before_messages = messages[before_start:position]
@@ -187,38 +215,21 @@ class NeuralStrategy(TopicStrategy):
             if len(before_messages) < 2 or len(after_messages) < 1:
                 return False
 
-            # Format as in training
-            group1_text = " [SEP] ".join([
+            # Format messages for detector
+            before_texts = [
                 f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                 for msg in before_messages
-            ])
-            group2_text = " [SEP] ".join([
+            ]
+            after_texts = [
                 f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                 for msg in after_messages
-            ])
+            ]
 
-            window_text = group1_text + " [BOUNDARY?] " + group2_text
+            # Use detector's predict method
+            is_boundary, confidence = self._detector.predict(before_texts, after_texts)
 
-            # Tokenize
-            inputs = self._tokenizer(
-                window_text,
-                truncation=True,
-                max_length=512,
-                padding="max_length",
-                return_tensors="pt"
-            )
-            inputs = {k: v.to(self._device) for k, v in inputs.items()}
-
-            # Inference with temperature scaling
-            with torch.no_grad():
-                outputs = self._model(**inputs)
-                logits = outputs.logits / self.temperature
-                probs = torch.softmax(logits, dim=-1)
-                pred_class = torch.argmax(probs, dim=-1).item()
-                confidence = probs[0][pred_class].item()
-
-            # Class 1 = boundary
-            return pred_class == 1 and confidence >= self.confidence_threshold
+            # Apply threshold
+            return is_boundary and confidence >= self.confidence_threshold
 
         except Exception as e:
             logger.error(f"Boundary check error: {e}")
@@ -303,8 +314,6 @@ class NeuralStrategy(TopicStrategy):
             )
 
         try:
-            import torch
-
             # Build window matching training format:
             # In training, boundary at position i means:
             #   group1 = messages[i-4:i] (4 messages BEFORE position i)
@@ -329,46 +338,28 @@ class NeuralStrategy(TopicStrategy):
                 {"role": query_role, "content": query}  # Query (potential first of new topic)
             ]
 
-            # Format as in training
-            group1_text = " [SEP] ".join([
+            # Format messages for detector
+            before_texts = [
                 f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                 for msg in before_messages
-            ])
-            group2_text = " [SEP] ".join([
+            ]
+            after_texts = [
                 f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                 for msg in after_messages
-            ])
+            ]
 
-            window_text = group1_text + " [BOUNDARY?] " + group2_text
+            # Use detector's predict method
+            is_boundary, boundary_prob = self._detector.predict(before_texts, after_texts)
 
-            # Tokenize
-            inputs = self._tokenizer(
-                window_text,
-                truncation=True,
-                max_length=512,
-                padding="max_length",
-                return_tensors="pt"
-            )
-            inputs = {k: v.to(self._device) for k, v in inputs.items()}
-
-            # Inference with temperature scaling
-            with torch.no_grad():
-                outputs = self._model(**inputs)
-                logits = outputs.logits / self.temperature
-                probs = torch.softmax(logits, dim=-1)
-                pred_class = torch.argmax(probs, dim=-1).item()
-                boundary_prob = probs[0][1].item()  # Probability of boundary
-                confidence = probs[0][pred_class].item()
-
-            # Determine topic change
-            topic_changed = pred_class == 1 and confidence >= self.confidence_threshold
+            # Apply threshold for topic_changed decision
+            topic_changed = is_boundary and boundary_prob >= self.confidence_threshold
 
             # Map confidence to levels
-            if confidence >= 0.9:
+            if boundary_prob >= 0.9:
                 conf_level = Confidence.HIGH
-            elif confidence >= 0.7:
+            elif boundary_prob >= 0.7:
                 conf_level = Confidence.MEDIUM
-            elif confidence >= 0.5:
+            elif boundary_prob >= 0.5:
                 conf_level = Confidence.LOW
             else:
                 conf_level = Confidence.UNCERTAIN
@@ -377,7 +368,7 @@ class NeuralStrategy(TopicStrategy):
             if topic_changed:
                 reasoning = f"Neural model detected boundary (p={boundary_prob:.3f})"
             else:
-                if pred_class == 1:
+                if is_boundary:
                     reasoning = f"Boundary detected but below threshold (p={boundary_prob:.3f} < {self.confidence_threshold})"
                 else:
                     reasoning = f"No boundary detected (p={boundary_prob:.3f})"
@@ -394,12 +385,10 @@ class NeuralStrategy(TopicStrategy):
                 reasoning=reasoning,
                 signals={
                     'boundary_probability': boundary_prob,
-                    'no_boundary_probability': probs[0][0].item(),
-                    'predicted_class': pred_class,
                     'threshold': self.confidence_threshold,
                     'granularity': self._granularity,
                     'temperature': self.temperature,
-                    'device': str(self._device),
+                    'model_name': self.model_name,
                 },
                 strategy_name=self.name,
                 strategy_version=self.version,
@@ -421,3 +410,104 @@ class NeuralStrategy(TopicStrategy):
                 strategy_version=self.version,
                 processing_time_ms=(time.time() - start_time) * 1000,
             )
+
+
+class _LegacyDetectorWrapper(DetectionModel):
+    """
+    Wrapper for legacy direct-loaded models to conform to DetectionModel interface.
+
+    Used for backward compatibility when model_path is specified directly
+    instead of using the model registry.
+    """
+
+    def __init__(self, model, tokenizer, device, temperature: float = 1.0):
+        """
+        Initialize wrapper with pre-loaded model components.
+
+        Args:
+            model: Pre-loaded transformer model
+            tokenizer: Pre-loaded tokenizer
+            device: torch device
+            temperature: Softmax temperature for calibration
+        """
+        self._model = model
+        self._tokenizer = tokenizer
+        self._device = device
+        self._temperature = temperature
+
+    @property
+    def name(self) -> str:
+        return "LegacyDetector"
+
+    @property
+    def is_loaded(self) -> bool:
+        return self._model is not None
+
+    def load(self) -> bool:
+        # Already loaded in __init__
+        return self._model is not None
+
+    def predict(
+        self,
+        before_messages: List[str],
+        after_messages: List[str]
+    ) -> tuple:
+        """
+        Predict boundary using legacy model.
+
+        Args:
+            before_messages: List of formatted message strings before boundary
+            after_messages: List of formatted message strings after boundary
+
+        Returns:
+            Tuple of (is_boundary, confidence)
+        """
+        try:
+            import torch
+
+            # Format as in training
+            group1_text = " [SEP] ".join(before_messages)
+            group2_text = " [SEP] ".join(after_messages)
+            window_text = group1_text + " [BOUNDARY?] " + group2_text
+
+            # Tokenize
+            inputs = self._tokenizer(
+                window_text,
+                truncation=True,
+                max_length=512,
+                padding="max_length",
+                return_tensors="pt"
+            )
+            inputs = {k: v.to(self._device) for k, v in inputs.items()}
+
+            # Inference with temperature scaling
+            with torch.no_grad():
+                outputs = self._model(**inputs)
+                logits = outputs.logits / self._temperature
+                probs = torch.softmax(logits, dim=-1)
+                pred_class = torch.argmax(probs, dim=-1).item()
+                boundary_prob = probs[0][1].item()
+
+            # Class 1 = boundary
+            return pred_class == 1, boundary_prob
+
+        except Exception as e:
+            logger.error(f"Legacy detector prediction error: {e}")
+            return False, 0.0
+
+    def unload(self) -> None:
+        """Unload model from memory."""
+        if self._model is not None:
+            del self._model
+            self._model = None
+        if self._tokenizer is not None:
+            del self._tokenizer
+            self._tokenizer = None
+
+    def get_info(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "is_loaded": self.is_loaded,
+            "device": str(self._device) if self._device else None,
+            "temperature": self._temperature,
+        }

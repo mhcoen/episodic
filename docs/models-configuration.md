@@ -197,10 +197,72 @@ To change properties of existing models:
 
 ## Model Types
 
+- **[D] Detection**: Local models for topic boundary detection (e.g., fine-tuned DistilBERT)
 - **[C] Chat**: Models optimized for conversation
 - **[I] Instruct**: Models optimized for following instructions
 - **[B] Base**: Base/completion models without special training
 - **[CI] Both**: Models that work well for both chat and instructions
+
+## Custom Local Models
+
+Episodic supports custom local models for specialized tasks like topic boundary detection. These models run locally without API calls.
+
+### Adding a Custom Detection Model
+
+Custom models use the `custom/` provider prefix and are defined in `~/.episodic/models.json`:
+
+```json
+{
+  "providers": {
+    "custom": {
+      "display_name": "Custom Models (local)",
+      "local": true,
+      "models": [
+        {
+          "name": "topic-boundary-distilbert",
+          "display_name": "Topic Boundary DistilBERT",
+          "type": "detection",
+          "path": "~/.episodic/models/final_calibrated.pt",
+          "wrapper": "distilbert",
+          "architecture": "distilbert-base-uncased",
+          "parameters": "66M"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Custom Model Properties
+
+- `name`: Model identifier (used as `custom/<name>`)
+- `display_name`: Human-readable name shown in the UI
+- `type`: Must be `detection` for boundary detection models
+- `path`: Path to the model weights file (`.pt`), supports `~` expansion
+- `wrapper`: The wrapper type to use (`distilbert` for DistilBERT-based models)
+- `architecture`: Base model architecture for tokenizer (e.g., `distilbert-base-uncased`)
+- `parameters`: Model size for display
+
+### Using Custom Models
+
+```bash
+# Set detection model to custom local model
+/model detection custom/topic-boundary-distilbert
+
+# View current models (shows [D] for detection models)
+/model
+```
+
+### Model Storage
+
+Store your model weight files in `~/.episodic/models/`:
+```
+~/.episodic/
+├── models/
+│   ├── final_calibrated.pt      # Detection model weights
+│   └── other_model.pt           # Other custom models
+└── models.json                   # Model configuration
+```
 
 ## Example: Complete User Configuration
 

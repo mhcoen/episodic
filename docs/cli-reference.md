@@ -450,17 +450,41 @@ The saved script will include all commands from the current session (excluding t
 ### /model
 Manage language models for all contexts
 ```bash
-/model                      # Show all four models in use
+/model                      # Show all five models in use
 /model list                 # Show available models with pricing
 /model chat gpt-4.1-2025-04-14  # Set chat (main) model
-/model detection ollama/phi3     # Set topic detection model (use instruct model)
-/model compression gpt-3.5-turbo # Set compression model
-/model synthesis claude-3-haiku  # Set web synthesis model
+/model detection custom/topic-boundary-distilbert  # Set detection model (local or API)
+/model compression ollama/phi4   # Set compression model
+/model synthesis ollama/phi4     # Set web synthesis model
 /model critic claude-opus-4-5-20251101  # Set critic model for /critique
 
 # Model pricing is shown per 1M tokens (not 1K)
 # Pricing info comes from models.json or litellm database
 ```
+
+Example `/model` output:
+```
+Current models:
+  Chat         [C]  openai/gpt-4o-mini (8B)
+  Detection    [D]  custom/topic-boundary-distilbert
+  Compression  [I]  ollama/phi4
+  Synthesis    [I]  ollama/phi4
+  Critic       [CI] anthropic/claude-opus-4-5-20251101
+
+Model Types:
+  [D]  = Detection model (local, boundary detection)
+  [C]  = Chat model (best for conversations)
+  [I]  = Instruct model (best for detection/compression/synthesis)
+  [CI] = Chat & Instruct model (works for both)
+
+Use '/model list' to see available models
+```
+
+**Custom Detection Models**: You can use local models for topic boundary detection:
+```bash
+/model detection custom/topic-boundary-distilbert  # Local fine-tuned model
+```
+See [Model Configuration Guide](models-configuration.md#custom-local-models) for setup.
 
 ### /prompt, /prompts
 Manage system prompts
@@ -638,9 +662,9 @@ Use /mset command to manage model-specific parameters:
 ### Offline Mode
 ```bash
 /model chat ollama/llama3
-/model detection ollama/phi3     # Use instruct model for detection
+/model detection custom/topic-boundary-distilbert  # Local detection model
 /model compression ollama/mistral # Use instruct model for compression
-/model synthesis ollama/phi3      # Use instruct model for synthesis
+/model synthesis ollama/phi4      # Use instruct model for synthesis
 /rag off
 /chat
 ```

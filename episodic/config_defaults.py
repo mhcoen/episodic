@@ -195,7 +195,8 @@ CONFIG_DOCS = {
     "show_compression_notifications": "Display notifications when topics are automatically compressed",
     
     # Model selection
-    "topic_detection_model": "Specific model to use for topic detection (can differ from main model)",
+    "topic_detection_model": "Model for topic boundary detection (custom/topic-boundary-distilbert for local neural model, or API model for LLM-based detection)",
+    "topic_naming_model": "Model for topic naming (null = use compression_model, can be specialized model for naming rules)",
     "model": "Current conversation model (default: gpt-4o-mini, change via /model command)",
     
     # Display settings

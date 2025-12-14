@@ -13,7 +13,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 
 ## ✨ Features
 
-- **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, and 20+ providers
+- **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, 20+ providers, and custom local models
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
@@ -230,25 +230,28 @@ GPT-5 introduces unique controls for output generation:
 Use different models for different tasks to optimize performance and cost:
 
 ```text
-# Use GPT-5 for complex reasoning
+> /model
+Current models:
+  Chat         [C]  openai/gpt-4o-mini (8B)
+  Detection    [D]  custom/topic-boundary-distilbert
+  Compression  [I]  ollama/phi4
+  Synthesis    [I]  ollama/phi4
+  Critic       [CI] anthropic/claude-opus-4-5-20251101
+
+Model Types:
+  [D]  = Detection model (local, boundary detection)
+  [C]  = Chat model (best for conversations)
+  [I]  = Instruct model (best for detection/compression/synthesis)
+  [CI] = Chat & Instruct model (works for both)
+
+# Change individual models
 > /model chat gpt-5
-
-# Use instruct models for background tasks
-> /model detection ollama/phi4
+> /model detection custom/topic-boundary-distilbert
 > /model compression ollama/phi4
-> /model synthesis ollama/phi4
-
-# Use a sophisticated model for critiques
 > /model critic claude-opus-4-5-20251101
-
-# Configure model parameters
-> /mset chat.temperature 0.7
-> /mset detection.temperature 0  # Deterministic topic detection
-> /mset compression.max_tokens 500
-
-> Explain the halting problem
-🤖 [GPT-5 provides detailed explanation while phi4 manages topics]
 ```
+
+**Custom Models**: You can add your own fine-tuned local models for any purpose—topic detection, domain-specific chat, specialized summarization, etc. See [Model Configuration](docs/models-configuration.md#custom-local-models) for setup.
 
 ### 💾 Long Conversation Management
 Episodic automatically manages long conversations by detecting topic changes and compressing old topics:
@@ -315,18 +318,16 @@ Export conversations to markdown for sharing, backup, or continuing later:
 Run completely offline with local models:
 
 ```text
-# Set all contexts to use local models
-> /model chat ollama/llama3
-> /model detection ollama/phi4  # Instruct model for detection
-> /model compression ollama/mistral  # Instruct model for compression
-> /model synthesis ollama/phi4  # Instruct model for synthesis
-
-# Disable online features (stay in chat mode)
-> /rag off
-> /chat
+# Switch to local mode (sets all models to local, disables online features)
+> /mode local
+🏠 Switched to local mode
 
 > Explain how neural networks learn
 # Works completely offline with local models
+
+# Switch back to cloud mode when needed
+> /mode cloud
+☁️ Switched to cloud mode
 ```
 
 ## 🔧 Configuration

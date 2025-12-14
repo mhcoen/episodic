@@ -151,8 +151,10 @@
   "show_compression_notifications": true,
   
   "_comment_models_detect": "// === MODEL SELECTION ===",
-  "_comment_topic_detection_model": "Model for topic detection (ollama/phi4 for local, null to use main model)",
-  "topic_detection_model": "ollama/phi4",
+  "_comment_topic_detection_model": "Model for topic boundary detection (custom/topic-boundary-distilbert for local neural model, or API model)",
+  "topic_detection_model": "custom/topic-boundary-distilbert",
+  "_comment_topic_naming_model": "Model for topic naming (null = use compression_model, can be specialized model)",
+  "topic_naming_model": null,
   "_comment_model": "Current conversation model (set via /model command)",
   "model": "gpt-4o-mini",
   

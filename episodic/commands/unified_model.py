@@ -8,6 +8,7 @@ This module provides a single command for managing all model selections:
 - synthesis (web search synthesis)
 """
 
+import os
 import typer
 from typing import Optional, List
 from episodic.config import config
@@ -134,8 +135,11 @@ def show_current_models():
         # Display the model info
         typer.secho(f"  {description:<12} ", fg=get_text_color(), nl=False)
         
-        # Show type indicator with color
-        if type_indicator == '[I]':
+        # Show type indicator with color (pad to 4 chars for alignment)
+        padding = " " * (4 - len(type_indicator))
+        if type_indicator == '[D]':
+            typer.secho(type_indicator, nl=False, fg=typer.colors.YELLOW, bold=True)
+        elif type_indicator == '[I]':
             typer.secho(type_indicator, nl=False, fg=typer.colors.GREEN, bold=True)
         elif type_indicator == '[C]':
             typer.secho(type_indicator, nl=False, fg=typer.colors.BLUE, bold=True)
@@ -145,8 +149,8 @@ def show_current_models():
             typer.secho(type_indicator, nl=False, fg=typer.colors.MAGENTA, bold=True)
         else:
             typer.secho(type_indicator, nl=False, fg=get_text_color(), dim=True)
-            
-        typer.secho(f" {model_str}", fg=get_heading_color(), nl=False)
+
+        typer.secho(f"{padding} {model_str}", fg=get_heading_color(), nl=False)
         
         # Show technical info if available
         if tech_info:
@@ -158,15 +162,16 @@ def show_current_models():
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
     
     type_info = {
+        '[D]': ("Detection model (local, boundary detection)", typer.colors.YELLOW),
         '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
         '[I]': ("Instruct model (best for detection/compression/synthesis)", typer.colors.GREEN),
         '[CI]': ("Chat & Instruct model (works for both)", typer.colors.CYAN),
         '[B]': ("Base/Completion model", typer.colors.MAGENTA),
         '[?]': ("Unknown type", None)  # No color, will use dim
     }
-    
-    # Only show types that were actually seen (C first as it's most familiar)
-    for type_indicator in ['[C]', '[I]', '[CI]', '[B]', '[?]']:
+
+    # Only show types that were actually seen (D first for detection, then C as most familiar)
+    for type_indicator in ['[D]', '[C]', '[I]', '[CI]', '[B]', '[?]']:
         if type_indicator in seen_types:
             description, color = type_info[type_indicator]
             # Pad indicator to align equals signs (longest is [CI] at 4 chars)
@@ -266,7 +271,9 @@ def show_available_models():
             typer.secho(f". ", nl=False, fg=get_text_color())
             
             # Show type indicator with color
-            if info['type_indicator'] == '[I]':
+            if info['type_indicator'] == '[D]':
+                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.YELLOW, bold=True)
+            elif info['type_indicator'] == '[I]':
                 typer.secho(info['type_indicator'], nl=False, fg=typer.colors.GREEN, bold=True)
             elif info['type_indicator'] == '[C]':
                 typer.secho(info['type_indicator'], nl=False, fg=typer.colors.BLUE, bold=True)
@@ -322,15 +329,16 @@ def show_available_models():
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
     
     type_info = {
+        '[D]': ("Detection model (local, boundary detection)", typer.colors.YELLOW),
         '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
         '[I]': ("Instruct model (best for detection/compression/synthesis)", typer.colors.GREEN),
         '[CI]': ("Chat & Instruct model (works for both)", typer.colors.CYAN),
         '[B]': ("Base/Completion model", typer.colors.MAGENTA),
         '[?]': ("Unknown type", None)  # No color, will use dim
     }
-    
-    # Only show types that were actually seen (C first as it's most familiar)
-    for type_indicator in ['[C]', '[I]', '[CI]', '[B]', '[?]']:
+
+    # Only show types that were actually seen (D first for detection, then C as most familiar)
+    for type_indicator in ['[D]', '[C]', '[I]', '[CI]', '[B]', '[?]']:
         if type_indicator in seen_types:
             description, color = type_info[type_indicator]
             # Pad indicator to align equals signs (longest is [CI] at 4 chars)
@@ -427,6 +435,7 @@ def show_model_info(model_number: int):
 
     # Map type indicators to full descriptions
     type_descriptions = {
+        '[D]': 'Detection (local)',
         '[C]': 'Chat',
         '[I]': 'Instruct',
         '[CI]': 'Chat & Instruct',
@@ -452,7 +461,10 @@ def show_model_info(model_number: int):
     typer.secho(creator or "Unknown", fg=get_heading_color())
 
     typer.secho("Type:           ", fg=get_text_color(), nl=False)
-    if type_indicator == '[I]':
+    if type_indicator == '[D]':
+        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.YELLOW, bold=True)
+        typer.secho(type_indicator, fg=typer.colors.YELLOW, bold=True)
+    elif type_indicator == '[I]':
         typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.GREEN, bold=True)
         typer.secho(type_indicator, fg=typer.colors.GREEN, bold=True)
     elif type_indicator == '[C]':
@@ -685,21 +697,38 @@ def set_model_for_context(context: str, model_name: str):
     except ValueError:
         # Not a number, use as model name
         pass
-    
-    # Check if model is in our local list
-    in_local_list = validate_model_exists(model_name)
 
-    if not in_local_list:
-        typer.secho(f"Model '{model_name}' not in local list, verifying with API...", fg="yellow")
+    # Handle custom local models differently - verify file exists instead of API call
+    if model_name.startswith("custom/"):
+        from episodic.model_config import get_model_config
+        mc = get_model_config()
+        model_path = mc.get_model_path(model_name)
 
-    # Verify model actually works with API
-    typer.secho("Verifying model...", fg=get_text_color(), dim=True)
-    valid, error_msg = verify_model_with_api(model_name)
+        if not model_path:
+            typer.secho(f"✗ Model '{model_name}' not found in models.json", fg="red")
+            typer.secho("Add it to ~/.episodic/models.json under the 'custom' provider", fg=get_text_color())
+            return
 
-    if not valid:
-        typer.secho(f"✗ {error_msg}", fg="red")
-        typer.secho("Use '/model list' to see available models", fg=get_text_color())
-        return
+        if not os.path.exists(model_path):
+            typer.secho(f"✗ Model file not found: {model_path}", fg="red")
+            return
+
+        typer.secho(f"✓ Found local model at: {model_path}", fg="green", dim=True)
+    else:
+        # Check if model is in our local list
+        in_local_list = validate_model_exists(model_name)
+
+        if not in_local_list:
+            typer.secho(f"Model '{model_name}' not in local list, verifying with API...", fg="yellow")
+
+        # Verify model actually works with API
+        typer.secho("Verifying model...", fg=get_text_color(), dim=True)
+        valid, error_msg = verify_model_with_api(model_name)
+
+        if not valid:
+            typer.secho(f"✗ {error_msg}", fg="red")
+            typer.secho("Use '/model list' to see available models", fg=get_text_color())
+            return
 
     # Set the model
     config_key = config_keys[context]
@@ -715,13 +744,13 @@ def set_model_for_context(context: str, model_name: str):
 def get_default_for_context(context: str) -> str:
     """Get the default model for a context."""
     defaults = {
-        "chat": "gpt-3.5-turbo",
-        "detection": "ollama/phi4",
+        "chat": "gpt-4o-mini",
+        "detection": "custom/topic-boundary-distilbert",
         "compression": "ollama/phi4",
         "synthesis": "ollama/phi4",
         "critic": "anthropic/claude-opus-4-5-20251101"
     }
-    return defaults.get(context, "gpt-3.5-turbo")
+    return defaults.get(context, "gpt-4o-mini")
 
 
 def validate_model_exists(model_name: str) -> bool:

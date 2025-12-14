@@ -1458,6 +1458,33 @@
           "recommended_for": ["synthesis"]
         }
       ]
+    },
+    "custom": {
+      "display_name": "Custom Models (local)",
+      "local": true,
+      "models": [
+        {
+          "name": "topic-boundary-distilbert",
+          "display_name": "Topic Boundary DistilBERT",
+          "type": "detection",
+          "path": "~/.episodic/models/final_calibrated.pt",
+          "wrapper": "distilbert",
+          "architecture": "distilbert-base-uncased",
+          "parameters": "66M",
+          "context_window": 512,
+          "description": "Fine-tuned DistilBERT for topic boundary detection using (4,2) window configuration.",
+          "strengths": [
+            "Fast local inference",
+            "No API calls needed",
+            "Trained on conversational data"
+          ],
+          "weaknesses": [
+            "Requires PyTorch",
+            "Limited to boundary detection"
+          ],
+          "recommended_for": ["detection"]
+        }
+      ]
     }
   },
   "type_patterns": {
@@ -1530,6 +1557,7 @@
     ]
   },
   "type_indicators": {
+    "detection": "[D]",
     "instruct": "[I]",
     "chat": "[C]",
     "base": "[B]",

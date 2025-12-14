@@ -4,7 +4,7 @@ This file provides guidance for AI assistants when working with code in this rep
 
 **IMPORTANT**: Always read `PROJECT_MEMORY.md` at the start of each session for current context, recent decisions, and user preferences.
 
-**DEBUGGING**: See `DEBUG.md` for comprehensive debugging guide, including debug flags, troubleshooting steps, and development utilities.
+**HELP**: See `HELP.md` for troubleshooting, common errors, debug flags, and development utilities.
 
 ## Project Overview
 
@@ -93,7 +93,7 @@ Episodic is a conversational DAG-based memory agent that creates persistent, nav
 
 ### Debugging Issues
 1. Enable debug mode: `/set debug true`
-2. Check `DEBUG.md` for specific debugging guides
+2. Check `HELP.md` for specific debugging guides
 3. Use `debug_utils.py` for debug output
 4. Review logs for detailed error traces
 

@@ -1,6 +1,37 @@
-# DEBUG.md - Debugging Guide for Episodic
+# Help & Troubleshooting
 
-This file documents debugging flags, troubleshooting steps, and development utilities for the Episodic project.
+This guide covers common issues, error messages, and debugging tools for Episodic.
+
+## Common API Errors
+
+When using cloud-based models, you may encounter these errors:
+
+| Error | Meaning | Solution |
+|-------|---------|----------|
+| **Overloaded** | Provider servers are busy | Wait a moment and retry, or switch to a different model |
+| **Rate limited** | Too many requests | Wait before retrying, or upgrade your API plan |
+| **Authentication** | Invalid or missing API key | Check your API key is set correctly |
+| **Model not found** | Model ID doesn't exist | Use `/model list` to see available models |
+| **Context too long** | Conversation exceeds model limit | Use `/clear` or enable auto-compression with `/set comp-auto true` |
+| **Timeout** | Request took too long | Retry, or try a faster model |
+| **Internal Server Error** | Provider-side issue | Wait and retry, or try a different provider |
+
+### Example Error Messages
+
+```
+Error processing stream: litellm.InternalServerError: AnthropicError - Overloaded
+```
+This means Anthropic's servers are under heavy load. Wait a few seconds and try again.
+
+```
+litellm.AuthenticationError: OpenAIError - Invalid API Key
+```
+Your OpenAI API key is missing or incorrect. Set it with `export OPENAI_API_KEY="sk-..."`.
+
+```
+litellm.NotFoundError: OpenAIError - Model 'gpt-5' does not exist
+```
+The model name is wrong or has changed. Use `/model list` to see valid model names.
 
 ## Debug System
 

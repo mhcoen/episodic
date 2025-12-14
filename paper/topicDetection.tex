@@ -24,11 +24,37 @@ mhcoen@alum.mit.edu
 \maketitle
 
 \begin{abstract}
-Dialogue topic segmentation supports summarization, retrieval, memory management, and conversational continuity. Despite decades of prior work, evaluation practice in dialogue topic segmentation remains dominated by strict boundary matching and F1-based metrics~\cite{vanrijsbergen1979,liu2024dialogseg}, even as conversational systems increasingly rely on segmentation when conversations exceed a model's context window.
+Dialogue topic segmentation supports summarization, retrieval, memory
+management, and conversational continuity. Despite decades of prior
+work, evaluation practice in dialogue topic segmentation remains
+dominated by strict boundary matching and F1-based
+metrics~\cite{vanrijsbergen1979,liu2024dialogseg}, even as modern
+LLM-based conversational systems increasingly rely on segmentation to
+manage conversation history beyond the model’s fixed context window,
+where unstructured context accumulation degrades efficiency and
+coherence.
 
-This paper introduces an evaluation objective for dialogue topic segmentation that treats boundary density and segment coherence as primary evaluation criteria, used alongside tolerance-based boundary accuracy. Through extensive cross-dataset empirical evaluation, we show that apparent performance differences across dialogue segmentation benchmarks are driven not by model quality, but by mismatches in annotation granularity and sparsely annotated topic boundaries.
+This paper introduces an evaluation objective for dialogue topic
+segmentation that treats boundary density and segment coherence as
+primary evaluation criteria, used alongside tolerance-based boundary
+accuracy. Through extensive cross-dataset empirical evaluation, we
+show that apparent performance differences across dialogue
+segmentation benchmarks are driven not by model quality, but by
+mismatches in annotation granularity and sparsely annotated topic
+boundaries.
 
-We evaluated multiple, structurally distinct dialogue segmentation strategies across eight dialogue datasets spanning task-oriented, open-domain, meeting-style, and synthetic interactions. Across these settings, we observe high segment coherence combined with extreme oversegmentation relative to sparse labels, producing misleadingly low exact-match F1 scores. We show that topic segmentation is best understood as selecting an appropriate granularity rather than predicting a single correct boundary set. We also propose a topic segmentation algorithm that separates boundary scoring from boundary selection, and demonstrate that this separation makes boundary density a controllable design choice and clarifies why thresholds fail to transfer across datasets.
+We evaluated multiple, structurally distinct dialogue segmentation
+strategies across eight dialogue datasets spanning task-oriented,
+open-domain, meeting-style, and synthetic interactions. Across these
+settings, we observe high segment coherence combined with extreme
+oversegmentation relative to sparse labels, producing misleadingly low
+exact-match F1 scores. We show that topic segmentation is best
+understood as selecting an appropriate granularity rather than
+predicting a single correct boundary set. We also propose a topic
+segmentation algorithm that separates boundary scoring from boundary
+selection, and demonstrate that this separation makes boundary density
+a controllable design choice and clarifies why thresholds fail to
+transfer across datasets.
 \end{abstract}
 
 \section{Introduction}

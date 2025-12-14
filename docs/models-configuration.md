@@ -76,7 +76,7 @@ You can edit this file to:
 
 ```bash
 # Use latest OpenAI models
-/model chat gpt-5.1
+/model chat gpt-5.2
 /model chat o3  # For reasoning tasks
 
 # Use latest Anthropic models
@@ -105,8 +105,8 @@ Edit `~/.episodic/models.json` and add to the appropriate provider:
     "openai": {
       "models": [
         {
-          "name": "gpt-5.1",
-          "display_name": "GPT-5.1",
+          "name": "gpt-5.2",
+          "display_name": "GPT-5.2",
           "type": "chat",
           "context_window": 272000,
           "pricing": {

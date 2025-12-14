@@ -13,7 +13,7 @@ Episodic uses a JSON-based model configuration system that allows you to:
 ### Latest Available Models
 
 **OpenAI:**
-- GPT-5.1 (November 2025) - Latest flagship model
+- GPT-5.2 (December 2025) - Latest flagship model
 - GPT-5 (August 2025)
 - o3 (June 2025) - Advanced reasoning model
 - o4-mini (April 2025) - Compact reasoning model

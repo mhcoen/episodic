@@ -208,7 +208,7 @@
           },
           "creator": "OpenAI",
           "released": "2025",
-          "description": "Incremental update to GPT-5 with refined capabilities and improved reliability. GPT-5.1 addresses early feedback on GPT-5, offering better consistency and reduced hallucinations while maintaining the same powerful feature set.",
+          "description": "Incremental update to GPT-5 with refined capabilities and improved reliability. GPT-5.2 addresses early feedback on GPT-5, offering better consistency and reduced hallucinations while maintaining the same powerful feature set.",
           "strengths": [
             "Refined GPT-5 capabilities",
             "272K context window",

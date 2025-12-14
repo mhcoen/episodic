@@ -661,12 +661,8 @@ Use /mset command to manage model-specific parameters:
 
 ### Offline Mode
 ```bash
-/model chat ollama/llama3
-/model detection custom/topic-boundary-distilbert  # Local detection model
-/model compression ollama/mistral # Use instruct model for compression
-/model synthesis ollama/phi4      # Use instruct model for synthesis
-/rag off
-/chat
+/mode local    # Switch all models to local, disable online features
+/chat          # Start chatting offline
 ```
 
 ### Debug Mode

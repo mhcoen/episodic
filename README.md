@@ -318,18 +318,16 @@ Export conversations to markdown for sharing, backup, or continuing later:
 Run completely offline with local models:
 
 ```text
-# Set all contexts to use local models
-> /model chat ollama/llama3
-> /model detection custom/topic-boundary-distilbert  # Local detection model
-> /model compression ollama/mistral  # Instruct model for compression
-> /model synthesis ollama/phi4  # Instruct model for synthesis
-
-# Disable online features (stay in chat mode)
-> /rag off
-> /chat
+# Switch to local mode (sets all models to local, disables online features)
+> /mode local
+🏠 Switched to local mode
 
 > Explain how neural networks learn
 # Works completely offline with local models
+
+# Switch back to cloud mode when needed
+> /mode cloud
+☁️ Switched to cloud mode
 ```
 
 ## 🔧 Configuration

@@ -201,16 +201,96 @@ Example:
 
 ## Environment Variables
 
+Environment variables provide an alternative to CLI configuration, useful for automation, containers, and shell profiles.
+
+### API Keys
+
 | Variable | Description |
 |----------|-------------|
-| `EPISODIC_DB_PATH` | Custom database location |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `GOOGLE_API_KEY` | Google AI API key |
+| `HUGGINGFACE_API_KEY` | Hugging Face API key |
 | `AZURE_API_KEY` | Azure OpenAI key |
-| `AZURE_API_BASE` | Azure endpoint |
-| `GOOGLE_SEARCH_ENGINE_ID` | Google search engine ID for web search |
-| `BING_API_KEY` | Bing API key for web search |
+| `AZURE_API_BASE` | Azure OpenAI endpoint |
+| `PICOVOICE_ACCESS_KEY` | Picovoice access key (for wake word detection) |
+
+### Web Search Provider Keys
+
+| Variable | Description |
+|----------|-------------|
+| `GOOGLE_SEARCH_ENGINE_ID` | Google Custom Search engine ID |
+| `BING_API_KEY` | Bing Search API key |
+| `BRAVE_API_KEY` | Brave Search API key |
+| `SEARX_INSTANCE_URL` | Self-hosted Searx instance URL |
+
+### Episodic Configuration
+
+These `EPISODIC_*` variables map directly to `/set` parameters:
+
+| Variable | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `EPISODIC_DB_PATH` | - | Custom database location |
+| `EPISODIC_DEBUG` | `debug` | Enable debug output |
+| `EPISODIC_CACHE` | `use-context-cache` | Enable prompt caching |
+| `EPISODIC_PROMPT` | `active-prompt` | Active system prompt name |
+
+#### Web Search
+
+| Variable | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `EPISODIC_WEB_ENABLED` | `web-search-enabled` | Enable web search |
+| `EPISODIC_WEB_AUTO` | `web-search-auto-enhance` | Auto-enhance responses with web |
+| `EPISODIC_WEB_PROVIDERS` | `web-search-providers` | Comma-separated provider list |
+| `EPISODIC_WEB_RESULTS` | `web-search-max-results` | Max results per search |
+
+#### RAG (Knowledge Base)
+
+| Variable | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `EPISODIC_RAG_ENABLED` | `rag-enabled` | Enable RAG |
+| `EPISODIC_RAG_AUTO` | `rag-auto-search` | Auto-search knowledge base |
+| `EPISODIC_RAG_THRESHOLD` | `rag-search-threshold` | Relevance threshold (0.0-1.0) |
+| `EPISODIC_RAG_RESULTS` | `rag-max-results` | Max results to include |
+
+#### Topic Detection
+
+| Variable | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `EPISODIC_TOPIC_MODEL` | `topic-detection-model` | Model for topic detection |
+| `EPISODIC_TOPIC_AUTO` | `automatic-topic-detection` | Enable auto topic detection |
+| `EPISODIC_TOPIC_MIN` | `min-messages-before-topic-change` | Min messages per topic |
+
+#### Compression
+
+| Variable | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `EPISODIC_COMPRESSION_MODEL` | `compression-model` | Model for compression |
+| `EPISODIC_COMPRESS_AUTO` | `auto-compress-topics` | Enable auto compression |
+| `EPISODIC_COMPRESS_MIN` | `compression-min-nodes` | Min nodes to compress |
+
+#### Display
+
+| Variable | CLI Equivalent | Description |
+|----------|----------------|-------------|
+| `EPISODIC_COLOR_MODE` | `color-mode` | Color mode (full/basic/none) |
+| `EPISODIC_STREAM_RATE` | `stream-rate` | Streaming speed (words/sec) |
+| `EPISODIC_SHOW_COST` | `show-cost` | Show token costs |
+| `EPISODIC_SHOW_TOPICS` | `show-topics` | Show topic info |
+
+### Example Usage
+
+```bash
+# In your shell profile (~/.bashrc, ~/.zshrc, etc.)
+export OPENAI_API_KEY="sk-..."
+export EPISODIC_DEBUG=true
+export EPISODIC_SHOW_COST=true
+export EPISODIC_TOPIC_AUTO=true
+export EPISODIC_WEB_PROVIDERS="duckduckgo,brave"
+
+# Or for a single session
+EPISODIC_DEBUG=true python -m episodic
+```
 
 ## Configuration Storage
 

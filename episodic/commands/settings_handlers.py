@@ -146,6 +146,33 @@ def handle_topic_temperature(value: str) -> bool:
         return False
 
 
+def handle_topic_strategy(value: str) -> bool:
+    """Handle topic strategy setting."""
+    from episodic.topics.strategy_registry import list_strategies
+
+    # Get available strategies
+    available = list(list_strategies().keys())
+
+    if value not in available:
+        typer.secho(f"Invalid strategy. Must be one of: {', '.join(available)}", fg="red")
+        return False
+
+    config.set("topic_strategy", value)
+
+    # Reset cached strategy so next detection uses the new one
+    from episodic.topics.strategy_registry import reset_strategy
+    reset_strategy()
+
+    typer.secho(f"✅ Set topic_strategy = {value}", fg=get_system_color())
+
+    # Show description
+    descriptions = list_strategies()
+    if value in descriptions:
+        typer.secho(f"   {descriptions[value]}", fg=get_system_color(), dim=True)
+
+    return True
+
+
 def handle_list_param(param: str, value: str, valid_values: Optional[list] = None) -> bool:
     """Handle list parameter setting (comma-separated values)."""
     # Parse comma-separated values
@@ -320,4 +347,5 @@ PARAM_HANDLERS = {
     # Topic segmentation settings
     'topic_granularity': handle_topic_granularity,
     'topic_temperature': handle_topic_temperature,
+    'topic_strategy': handle_topic_strategy,
 }

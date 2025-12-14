@@ -391,6 +391,26 @@ class EpisodicCompleter(Completer):
                                 start_position=-len(word),
                                 display_meta=desc
                             )
+                elif param == 'topic-strategy':
+                    # Topic strategy options - get from registry
+                    strategy_meta = {
+                        'default': 'Neural + Commitment (recommended)',
+                        'neural': 'Fine-tuned DistilBERT',
+                        'dual_window': 'Embedding drift (4,1)+(4,2)',
+                        'ensemble': 'Weighted combination',
+                        'time_aware': 'Temporal gap detection',
+                        'cusum': 'CUSUM change detection',
+                        'delta': 'Delta change detection',
+                        'keyword': 'Keyword-based detection',
+                        'null': 'No detection (testing)',
+                    }
+                    for strategy, desc in strategy_meta.items():
+                        if strategy.startswith(word.lower()):
+                            yield Completion(
+                                strategy,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
                 elif param == 'gpt.verbosity':
                     # GPT-5 verbosity options
                     verbosity_meta = {

@@ -786,11 +786,19 @@ def _handle_list(args: List[str]):
 
 
 def _handle_last(args: List[str]):
-    """Handle /last command - show the last conversation exchange."""
+    """Handle /last command - show recent conversation nodes."""
     from episodic.commands.navigation import list as list_command
-    
-    # Show just the last exchange (count=1)
-    list_command(count=1)
+    from episodic.configuration import DEFAULT_LIST_COUNT
+
+    # Parse count from args, default to DEFAULT_LIST_COUNT
+    count = DEFAULT_LIST_COUNT
+    if args:
+        try:
+            count = int(args[0])
+        except ValueError:
+            typer.secho(f"Invalid count: {args[0]}. Using default.", fg="yellow")
+
+    list_command(count=count)
 
 
 def _handle_out(args: List[str]):

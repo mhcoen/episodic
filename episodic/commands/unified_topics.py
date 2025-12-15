@@ -63,23 +63,35 @@ def handle_topics_action(action: str = "list", **kwargs):
                 except:
                     pass
             
-            # Node range
-            from episodic.db import get_node
-            typer.secho(f"    Range: ", fg=get_text_color(), nl=False)
+            # Node range with message count
+            from episodic.db import get_node, get_ancestry
             start_node = get_node(topic['start_node_id'])
             end_node = get_node(topic['end_node_id']) if topic['end_node_id'] else None
-            
-            if start_node:
-                typer.secho(f"{start_node['short_id']}", fg=get_system_color(), nl=False)
-            else:
-                typer.secho(f"{topic['start_node_id'][:8]}...", fg=get_system_color(), nl=False)
-            
-            typer.secho(" → ", fg=get_text_color(), nl=False)
-            
+
+            # Calculate message count in this topic
+            msg_count = 0
             if end_node:
-                typer.secho(f"{end_node['short_id']}", fg=get_system_color())
+                ancestry = get_ancestry(end_node['id'])
+                # Count from start to end
+                counting = False
+                for node in ancestry:
+                    if node['id'] == topic['start_node_id']:
+                        counting = True
+                    if counting:
+                        msg_count += 1
+                    if node['id'] == topic['end_node_id']:
+                        break
+
+            typer.secho(f"    Messages: ", fg=get_text_color(), nl=False)
+            if end_node and msg_count > 0:
+                typer.secho(f"{msg_count}", fg=get_system_color(), nl=False)
+                typer.secho(f" (nodes {start_node['short_id']} → {end_node['short_id']})",
+                           fg=get_text_color(), dim=True)
+            elif start_node:
+                typer.secho("ongoing", fg="yellow", nl=False)
+                typer.secho(f" (from {start_node['short_id']})", fg=get_text_color(), dim=True)
             else:
-                typer.secho("ongoing", fg="yellow")
+                typer.secho("unknown", fg="red")
                 
         typer.echo()
     elif action == "rename":

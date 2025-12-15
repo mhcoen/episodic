@@ -265,8 +265,9 @@ def talk_loop() -> None:
                 # Get user input using the enhanced prompt
                 user_input = session.prompt()
 
-            # Skip empty input
-            if not user_input.strip():
+            # Skip empty input and strip whitespace (including invisible chars from copy-paste)
+            user_input = user_input.strip()
+            if not user_input:
                 continue
             
             # Save to session commands (internal only, no file history)

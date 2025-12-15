@@ -20,7 +20,7 @@ from episodic.topics import (
     extract_topic_ollama, should_create_first_topic,
     build_conversation_segment
 )
-from episodic.topic_boundary_analyzer import analyze_topic_boundary
+# Note: analyze_topic_boundary removed - using simpler parent-based boundary logic
 from episodic.debug_utils import debug_print
 from episodic.benchmark import benchmark_operation
 
@@ -103,6 +103,15 @@ class TopicHandler:
                         for node in recent_nodes
                     ]
 
+                    # Add the current user's message to the messages array
+                    # This ensures the strategy can track which node triggered the detection
+                    messages.append({
+                        'role': 'user',
+                        'content': user_input,
+                        'node_id': user_node_id,
+                        'short_id': None,  # Will be set later
+                    })
+
                     # Get decision from strategy
                     decision = strategy.get_decision(user_input, messages)
 
@@ -149,6 +158,16 @@ class TopicHandler:
                             'changed': True,
                             'detection_info': topic_cost_info
                         }
+
+                        # If the strategy provided a boundary_node_id, use it directly
+                        # This is where the topic change was first detected, not where it
+                        # was committed after evidence accumulation
+                        signals = decision.signals or {}
+                        boundary_node_id = signals.get('boundary_node_id')
+                        if boundary_node_id:
+                            topic_change_info['boundary_node_id'] = boundary_node_id
+                            if config.get("debug"):
+                                debug_print(f"Using boundary from original detection point: {boundary_node_id[:8]}...", indent=True)
                         
             except Exception as e:
                 if config.get("debug"):
@@ -347,23 +366,24 @@ class TopicHandler:
                     start_node_id = None
             
             if topic_name and start_node_id:
-                # Analyze where the actual topic boundary should be
-                if config.get("analyze_topic_boundaries", True):
-                    actual_boundary = analyze_topic_boundary(start_node_id, assistant_node_id, user_node_id)
+                # Determine where the topic change was first detected
+                # If commitment policy accumulated evidence, boundary_node_id points to the
+                # original detection point, not where it was eventually committed
+                boundary_reference_node = user_node_id
+                if topic_change_info and topic_change_info.get('boundary_node_id'):
+                    boundary_reference_node = topic_change_info['boundary_node_id']
+                    if config.get("debug"):
+                        debug_print(f"Using original boundary detection point: {boundary_reference_node[:8]}...", indent=True)
+
+                # The old topic ends at the parent of the boundary reference node
+                # (the last response before the new topic started)
+                ancestry = get_ancestry(boundary_reference_node)
+                if len(ancestry) >= 2:
+                    # The last node in ancestry is boundary_reference_node, the one before it is its parent
+                    actual_boundary = ancestry[-2]['id']
                 else:
-                    # Use simple heuristic - topic ends at last assistant response before change
-                    # If no assistant response exists, find the previous node
-                    if assistant_node_id:
-                        actual_boundary = assistant_node_id
-                    else:
-                        # Find the node before user_node_id to avoid overlap
-                        ancestry = get_ancestry(user_node_id)
-                        if len(ancestry) >= 2:
-                            # Get the node just before user_node_id
-                            actual_boundary = ancestry[-2]['id']
-                        else:
-                            # Edge case: this is the very first exchange
-                            actual_boundary = None
+                    # Edge case: this is the very first exchange
+                    actual_boundary = None
                 
                 # Close the previous topic at the determined boundary
                 if actual_boundary:
@@ -427,7 +447,13 @@ class TopicHandler:
         
         # Always create new topic if topic_changed is True
         if topic_changed:
-            # Create a new topic starting from this user message
+            # Determine where the new topic starts
+            # If we have a boundary_node_id from delayed commitment, the new topic
+            # starts there (where the change was first detected), not at user_node_id
+            new_topic_start = user_node_id
+            if topic_change_info and topic_change_info.get('boundary_node_id'):
+                new_topic_start = topic_change_info['boundary_node_id']
+
             # Use the detected topic name if available, otherwise use placeholder
             if new_topic_name and not new_topic_name.startswith('ongoing-'):
                 # We have a proper name from detection
@@ -438,12 +464,12 @@ class TopicHandler:
                 topic_name_to_use = f"ongoing-{timestamp}"
                 if config.get("debug"):
                     debug_print(f"Warning: No topic name from detection, using placeholder: {topic_name_to_use}", indent=True)
-            
+
             # Create the topic - keep it open!
-            store_topic(topic_name_to_use, user_node_id, None, 'detected')
-            
+            store_topic(topic_name_to_use, new_topic_start, None, 'detected')
+
             # Set as current topic
-            self.conversation_manager.set_current_topic(topic_name_to_use, user_node_id)
+            self.conversation_manager.set_current_topic(topic_name_to_use, new_topic_start)
             
             if config.get("topic_change_info", True):
                 typer.echo("")
@@ -515,42 +541,13 @@ class TopicHandler:
                             if not topic_name:
                                 topic_name = "initial-conversation"
                             
-                            # Store the initial topic - don't set end_node_id yet!
+                            # Store the initial topic - leave it OPEN (end_node_id = None)
+                            # It will be closed by handle_topic_boundaries() when a
+                            # topic change is detected
                             store_topic(topic_name, first_user_node_id, None, 'initial')
-                            # Set as current topic
+                            # Set as current topic so handle_topic_boundaries knows to close it
                             self.conversation_manager.set_current_topic(topic_name, first_user_node_id)
-                            
-                            # Determine the actual boundary for the initial topic
-                            if config.get("analyze_topic_boundaries", True):
-                                actual_boundary = analyze_topic_boundary(
-                                    first_user_node_id, 
-                                    assistant_node_id, 
-                                    user_node_id
-                                )
-                            else:
-                                # Use simple heuristic - if no assistant response, use previous node
-                                if assistant_node_id:
-                                    actual_boundary = assistant_node_id
-                                else:
-                                    # Get the node before user_node_id
-                                    ancestry = get_ancestry(user_node_id)
-                                    if len(ancestry) >= 2:
-                                        actual_boundary = ancestry[-2]['id']
-                                    else:
-                                        actual_boundary = None
-                            
-                            # Now close the initial topic at the actual boundary
-                            if actual_boundary:
-                                update_topic_end_node(topic_name, first_user_node_id, actual_boundary)
-                            else:
-                                if config.get("debug"):
-                                    debug_print(f"Warning: Could not determine topic boundary for initial topic", indent=True)
-                            
-                            # Queue for compression
-                            if actual_boundary:
-                                from episodic.compression import queue_topic_for_compression
-                                queue_topic_for_compression(first_user_node_id, actual_boundary, topic_name)
-                            
+
                             typer.echo("")
                             secho_color(f"📌 Created initial topic: {topic_name}", fg=get_topic_change_color())
             else:

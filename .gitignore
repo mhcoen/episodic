@@ -95,3 +95,12 @@ datasets/
 
 # Paper: track source and figures, ignore build artifacts and large model files
 # Model checkpoint: use download script or host on HuggingFace
+
+# AI tool state files
+CLAUDE.md
+PROJECT_MEMORY.md
+DEBUG.md
+.claude/
+.cursor/
+.github/copilot/
+extract_claude_session.py

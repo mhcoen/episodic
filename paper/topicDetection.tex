@@ -1,3 +1,4 @@
+
 \documentclass[11pt]{article}
 
 \usepackage{times}
@@ -13,8 +14,8 @@
 \title{\bf When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation}
 
 \author{
-Michael H. Coen\
-Independent Researcher\
+Michael H. Coen\\
+Independent Researcher\\
 mhcoen@alum.mit.edu
 }
 
@@ -35,7 +36,8 @@ where unstructured context accumulation degrades efficiency and
 coherence.
 
 This paper introduces an evaluation objective for dialogue topic
-segmentation that treats boundary density and segment coherence as
+segmentation that treats boundary density, the frequency with which
+boundaries are placed along a dialogue, and segment coherence as
 primary evaluation criteria, used alongside tolerance-based boundary
 accuracy. Through extensive cross-dataset empirical evaluation, we
 show that apparent performance differences across dialogue
@@ -63,7 +65,7 @@ Dialogue topic segmentation is commonly framed as identifying points in a conver
 
 Despite this, many dialogue segmentation benchmarks treat annotated boundaries as objective ground truth and evaluate systems using strict boundary matching and F1-based metrics~\cite{vanrijsbergen1979}. These metrics collapse distinct failure modes into a single number. Small boundary shifts are often harmless when the goal is coherent topic blocks, while missing or adding a few boundaries can be catastrophic if boundaries drive downstream actions such as summarizing or dropping earlier turns.
 
-This paper addresses that mismatch by changing what we report and what we optimize. We define an evaluation objective that jointly reports (i) tolerant boundary accuracy, (ii) boundary density, and (iii) segment coherence. We also propose an algorithmic separation between boundary scoring and boundary selection that makes boundary density explicit and controllable. Together, these contributions let us distinguish detection failures from granularity mismatches and explain why a single global threshold fails to transfer across datasets.
+This paper addresses that mismatch by changing what we report and what we optimize. We define an evaluation objective that jointly reports (i) tolerant boundary accuracy, (ii) boundary density, and (iii) segment coherence. We also propose an algorithmic separation between boundary scoring and boundary selection that makes boundary density explicit and controllable. Together, these contributions let us distinguish detection failures from granularity mismatches (i.e., discrepancies between the segmentation resolution at which boundaries are produced and that implied by the annotation scheme) and explain why a single global threshold fails to transfer across datasets.
 
 We emphasize, however, that boundary-based metrics such as F1 are
 appropriate when annotation granularity is consistent between training,
@@ -128,7 +130,7 @@ Task-oriented dialogue datasets include SuperDialseg~\cite{superdialseg2023}, Di
 
 Our approach outputs a score for each canonical between-message position indicating the likelihood of a topic boundary. We map all gold and predicted boundaries to canonical between-message indices to avoid speaker-based off-by-one artifacts.
 
-The key methodological choice is to separate boundary scoring from boundary selection. Scoring aims to generalize: it should rank likely topic transitions above unlikely ones. Selection is a decision rule: it chooses boundary density and spacing to match an annotation regime or an application requirement. In deployed use, selection may be implemented as a commitment policy that accumulates boundary evidence over time and decides when to commit to a boundary, rather than emitting boundaries directly from the scoring model.
+The key methodological choice is to separate boundary scoring from boundary selection. Scoring aims to generalize: it should rank likely topic transitions above unlikely ones. Selection is a decision rule: it chooses boundary density and spacing to match an annotation regime or an application requirement. In deployed use, selection may be implemented as a commitment policy, which is a decision rule that accumulates evidence over time and determines when to emit a boundary, rather than emitting boundaries directly from the scoring model.
 
 \subsection{Topic Segmentation Algorithm}
 
@@ -143,7 +145,7 @@ Given a dialogue consisting of messages $m_1,\dots,m_T$, define candidate positi
 \end{enumerate}
 The output boundary set is $B \subseteq {1,\dots,T-1}$.
 
-For Figure~\ref{fig:adaptive_commitment}, we use the same selection rule but adapt the threshold over time; the adaptive threshold is logged as \emph{min\_evidence}. During evidence accumulation, scores are evaluated with respect to a fixed pre-change reference that freezes (i) the pre-boundary context and (ii) a boundary-adjacent anchor turn, so the policy measures persistence of topic departure rather than repeatedly scoring successive topic transitions.
+For Figure~\ref{fig:adaptive_commitment}, we use the same selection rule but adapt the threshold over time; the adaptive threshold is logged as \texttt{min\_evidence}. During evidence accumulation, scores are evaluated against a fixed pre-change reference. Freezing the pre-boundary context and a boundary-adjacent anchor turn ensures that the policy measures persistence of topic departure rather than repeated topic transitions.
 
 \subsection{Scoring Model Architecture}
 

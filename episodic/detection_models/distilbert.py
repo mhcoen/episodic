@@ -97,12 +97,21 @@ class DistilBertDetector(DetectionModel):
             # Load tokenizer
             self._tokenizer = AutoTokenizer.from_pretrained(self._architecture)
 
+            # Suppress the "weights not initialized" warning - we load fine-tuned weights next
+            import logging as std_logging
+            transformers_logger = std_logging.getLogger("transformers.modeling_utils")
+            prev_level = transformers_logger.level
+            transformers_logger.setLevel(std_logging.ERROR)
+
             # Load model architecture
             self._model = AutoModelForSequenceClassification.from_pretrained(
                 self._architecture,
                 num_labels=2,
                 ignore_mismatched_sizes=True
             )
+
+            # Restore logging level
+            transformers_logger.setLevel(prev_level)
 
             # Load fine-tuned weights
             checkpoint = torch.load(self._model_path, map_location=self._device, weights_only=False)

@@ -31,13 +31,29 @@ from episodic.topics.diagnostics import (
 logger = logging.getLogger(__name__)
 
 
-# Default commitment policy: medium strictness
-# Validated on SuperSeg, DialSeg711, TIAGE benchmarks
+# Default commitment policy: prioritizes precision over recall
+#
+# The neural model is trained on content-based topic shifts. It gives:
+# - Low-moderate confidence (~0.5-0.7) for explicit "let's switch" statements
+# - High confidence (~0.8-0.95) for actual content changes (new questions on new topics)
+#
+# This means boundaries typically trigger on the FIRST CONTENT MESSAGE of a
+# new topic, not on meta-linguistic switch announcements. This matches how
+# most real conversations work - users naturally start asking about new topics
+# without announcing "let's switch."
+#
+# These defaults prevent oversegmentation while still detecting real topic shifts:
+# - min_gap=6 requires 3 exchanges (6 messages) between boundaries
+# - min_evidence=1.35 requires ~2 consecutive high-confidence signals
+# - evidence_decay=0.7 gives moderate decay to prevent false accumulation
+#
+# For more sensitive detection, use granularity='fine' or lower min_evidence.
+# For stricter detection, use granularity='coarse' or higher min_evidence.
 DEFAULT_COMMITMENT_POLICY = CommitmentPolicy(
-    min_gap=2,           # Minimum 2 messages between boundaries
+    min_gap=6,           # Minimum 6 messages (3 exchanges) between boundaries
     evidence_window=2,   # Look at 2 consecutive signals
-    min_evidence=0.7,    # Require 0.7 cumulative evidence
-    evidence_decay=0.85, # Decay old evidence by 15% per message
+    min_evidence=1.35,   # Require ~2 consecutive high signals (0.9 + 0.9*0.7 = 1.5)
+    evidence_decay=0.7,  # Moderate decay
 )
 
 

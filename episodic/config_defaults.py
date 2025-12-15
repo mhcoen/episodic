@@ -52,6 +52,7 @@ CONFIG_DOCS = {
     # Topic detection
     "automatic_topic_detection": "Enable automatic topic detection during conversations",
     "auto_compress_topics": "Automatically compress topics when they end",
+    "resummarize_completed_topics": "Re-extract topic name when topic ends (uses full context for better naming)",
     "min_messages_before_topic_change": "Minimum user messages required before allowing a topic change",
     "running_topic_guess": "Show ongoing topic predictions (not yet implemented)",
     "show_topics": "Display topic evolution in responses",

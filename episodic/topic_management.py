@@ -373,12 +373,13 @@ class TopicHandler:
                     if config.get("debug"):
                         debug_print(f"Warning: Could not determine topic boundary for {topic_name}", indent=True)
                 
-                # Extract a proper name for the topic now that it's complete
-                if topic_name.startswith('ongoing-'):
+                # Re-extract topic name now that we have the full conversation
+                # This gives a more accurate name based on complete context
+                if config.get("resummarize_completed_topics", True):
                     # Get nodes in the completed topic
                     topic_nodes = []
                     ancestry = get_ancestry(actual_boundary)
-                    
+
                     # Collect nodes from topic start to boundary
                     found_start = False
                     for node in ancestry:
@@ -388,27 +389,33 @@ class TopicHandler:
                             topic_nodes.append(node)
                         if node['id'] == actual_boundary:
                             break
-                    
+
                     if topic_nodes and len(topic_nodes) >= 4:  # At least 2 exchanges
-                        # Build segment and extract name
-                        segment = build_conversation_segment(topic_nodes, max_length=1500)
-                        
+                        # Build segment from full topic conversation
+                        segment = build_conversation_segment(topic_nodes, max_length=2000)
+
                         if config.get("debug"):
                             secho_color(f"\n🔍 DEBUG:", fg='yellow', bold=True, nl=False)
-                            secho_color(f" Extracting name for completed topic '{topic_name}'")
-                        
+                            secho_color(f" Re-summarizing completed topic '{topic_name}' ({len(topic_nodes)} nodes)")
+
                         topic_extracted, extract_cost_info = extract_topic_ollama(segment)
-                        
+
                         if topic_extracted and topic_extracted != topic_name:
                             # Update the topic name
                             rows = update_topic_name(topic_name, start_node_id, topic_extracted)
                             if rows > 0:
                                 if config.get("debug"):
-                                    typer.echo(f"   ✅ Renamed completed topic: '{topic_name}' → '{topic_extracted}'")
+                                    typer.echo(f"   ✅ Updated topic name: '{topic_name}' → '{topic_extracted}'")
+                                else:
+                                    # Show user the refined name (helpful feedback)
+                                    if topic_name.startswith('ongoing-'):
+                                        secho_color(f"📝 Completed topic: {topic_extracted}", fg=get_system_color())
                                 topic_name = topic_extracted
                             else:
                                 if config.get("debug"):
-                                    typer.echo(f"   ⚠️  Failed to rename topic")
+                                    typer.echo(f"   ⚠️  Failed to update topic name")
+                        elif config.get("debug"):
+                            typer.echo(f"   ℹ️  Topic name unchanged: '{topic_name}'")
                 
                 # Queue the closed topic for compression
                 if config.get("auto_compress_topics", True) and actual_boundary:

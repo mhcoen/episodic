@@ -20,6 +20,8 @@
   "automatic_topic_detection": true,
   "_comment_auto_compress_topics": "Automatically compress topics when they end (reduces context size)",
   "auto_compress_topics": true,
+  "_comment_resummarize_completed_topics": "Re-extract topic name when topic ends (uses full context for better naming)",
+  "resummarize_completed_topics": true,
   "_comment_min_messages_before_topic_change": "Minimum user messages required before allowing a topic change",
   "min_messages_before_topic_change": 8,
   "_comment_running_topic_guess": "Show topic predictions in responses (not yet implemented)",

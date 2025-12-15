@@ -116,6 +116,11 @@ class DistilBertDetector(DetectionModel):
                 state_dict = checkpoint
 
             self._model.load_state_dict(state_dict)
+
+            # Use calibration temperature from checkpoint if not explicitly overridden
+            if self._temperature == 1.0 and 'temperature' in checkpoint:
+                self._temperature = checkpoint['temperature']
+                logger.info(f"Using calibration temperature from checkpoint: {self._temperature:.4f}")
             self._model.to(self._device)
             self._model.eval()
 

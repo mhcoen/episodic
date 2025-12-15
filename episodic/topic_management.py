@@ -139,6 +139,12 @@ class TopicHandler:
                     if topic_changed:
                         # Reset message count for new topic (starts at 1 since this message triggered it)
                         self._messages_in_current_topic = 1
+
+                        # Reset strategy state so next detection starts fresh
+                        # (prevents evidence from old topic affecting new topic)
+                        from episodic.topics.strategy_registry import reset_strategy
+                        reset_strategy()
+
                         topic_change_info = {
                             'changed': True,
                             'detection_info': topic_cost_info

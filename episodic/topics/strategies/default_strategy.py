@@ -89,8 +89,9 @@ class DefaultStrategy(TopicStrategy):
         self.name = "DefaultStrategy"
         self.version = "1.0.0"
 
-        # Build neural base
-        granularity = strategy_config.get('granularity', 'fine')
+        # Build neural base - respect user's config granularity
+        from episodic.config import config
+        granularity = strategy_config.get('granularity') or config.get('topic_granularity', 'medium')
         self._neural = NeuralStrategy({'granularity': granularity})
 
         # Build commitment wrapper (unless disabled)

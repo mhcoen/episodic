@@ -18,6 +18,10 @@ _STRATEGY_REGISTRY: Dict[str, Type[TopicStrategy]] = {
     'null': NullStrategy,
 }
 
+# Cached strategy instance (for maintaining state across calls)
+_cached_strategy: Optional[TopicStrategy] = None
+_cached_strategy_name: Optional[str] = None
+
 
 def register_strategy(name: str, strategy_class: Type[TopicStrategy]) -> None:
     """
@@ -36,24 +40,33 @@ def get_strategy(
     strategy_params: Optional[Dict[str, Any]] = None
 ) -> TopicStrategy:
     """
-    Get a strategy instance by name.
+    Get a strategy instance by name, with caching.
+
+    The strategy instance is cached to maintain state (like commitment
+    policy evidence buffers) across multiple calls within a conversation.
 
     Args:
         name: Strategy name (if None, uses config value)
         strategy_params: Strategy-specific parameters (if None, uses config value)
 
     Returns:
-        Instantiated strategy
+        Instantiated strategy (cached if same name requested)
 
     Raises:
         ValueError: If strategy name is not registered
     """
+    global _cached_strategy, _cached_strategy_name
+
     # Get from config if not provided
     if name is None:
         name = config.get('topic_strategy', 'default')
 
     if strategy_params is None:
         strategy_params = config.get('topic_strategy_params', {})
+
+    # Return cached strategy if same name
+    if _cached_strategy is not None and _cached_strategy_name == name:
+        return _cached_strategy
 
     # Lazy import strategies to avoid circular imports
     _ensure_strategies_registered()
@@ -66,7 +79,11 @@ def get_strategy(
         )
 
     strategy_class = _STRATEGY_REGISTRY[name]
-    return strategy_class(strategy_params)
+    _cached_strategy = strategy_class(strategy_params)
+    _cached_strategy_name = name
+    logger.debug(f"Created and cached strategy: {name}")
+
+    return _cached_strategy
 
 
 def list_strategies() -> Dict[str, str]:
@@ -183,30 +200,34 @@ def _ensure_strategies_registered() -> None:
             logger.warning(f"Could not import DefaultStrategy: {e}")
 
 
-# Singleton instance for convenience
-_current_strategy: Optional[TopicStrategy] = None
-
-
 def get_current_strategy() -> TopicStrategy:
     """
     Get the currently configured strategy (cached).
 
+    This is the preferred way to get a strategy for use in conversation
+    detection, as it maintains state (like commitment policy evidence).
+
     Returns:
-        The current strategy instance
+        The current strategy instance (cached)
     """
-    global _current_strategy
-
-    if _current_strategy is None:
-        _current_strategy = get_strategy()
-
-    return _current_strategy
+    # Just delegate to get_strategy which handles caching
+    return get_strategy()
 
 
 def reset_strategy() -> None:
     """
     Reset the cached strategy.
 
-    Call this if configuration changes and you need a new strategy instance.
+    Call this when:
+    - Configuration changes (e.g., /set topic-strategy)
+    - Starting a new conversation
+    - Clearing the conversation history
     """
-    global _current_strategy
-    _current_strategy = None
+    global _cached_strategy, _cached_strategy_name
+    if _cached_strategy is not None:
+        # Reset internal state if strategy supports it
+        if hasattr(_cached_strategy, 'reset'):
+            _cached_strategy.reset()
+        _cached_strategy = None
+        _cached_strategy_name = None
+        logger.debug("Strategy cache cleared")

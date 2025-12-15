@@ -323,8 +323,18 @@ class NeuralStrategy(TopicStrategy):
             #   Boundary position = last message of history
             #   group1 = 4 messages BEFORE the last history message
             #   group2 = [last history message, query] (straddles potential boundary)
+            #
+            # Important: Try to start before window with a USER message to preserve
+            # topic context. Assistant-only windows lose the topic-setting question.
             if len(messages) >= 5:
-                before_messages = messages[-5:-1]  # 4 messages before the last one
+                # Try to start with a user message for better topic context
+                start_idx = len(messages) - 5
+                # If starting with assistant, try to include one more message
+                if messages[start_idx].get('role') == 'assistant' and start_idx > 0:
+                    start_idx -= 1
+                # Take 4 messages starting from start_idx (or fewer if not enough)
+                end_idx = min(start_idx + 4, len(messages) - 1)
+                before_messages = messages[start_idx:end_idx]
             else:
                 before_messages = messages[:-1]  # Whatever we have before last
 

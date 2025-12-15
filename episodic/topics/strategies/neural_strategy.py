@@ -271,7 +271,9 @@ class NeuralStrategy(TopicStrategy):
         self,
         query: str,
         messages: List[Dict[str, Any]],
-        current_thread: Optional[Thread] = None
+        current_thread: Optional[Thread] = None,
+        frozen_before_context: Optional[List[Dict[str, Any]]] = None,
+        frozen_straddle_msg: Optional[Dict[str, Any]] = None
     ) -> TopicDecision:
         """
         Decide if query represents a topic change using neural model.
@@ -324,9 +326,18 @@ class NeuralStrategy(TopicStrategy):
             #   group1 = 4 messages BEFORE the last history message
             #   group2 = [last history message, query] (straddles potential boundary)
             #
+            # If frozen_before_context is provided (e.g., during evidence accumulation),
+            # use that instead of building from the sliding window. This allows the
+            # commitment policy to freeze the reference context when accumulating
+            # evidence for a suspected topic change.
+            #
             # Important: Try to start before window with a USER message to preserve
             # topic context. Assistant-only windows lose the topic-setting question.
-            if len(messages) >= 5:
+            if frozen_before_context is not None:
+                # Use the frozen context - this is the "before" state captured when
+                # a topic change was first suspected
+                before_messages = frozen_before_context
+            elif len(messages) >= 5:
                 # Try to start with a user message for better topic context
                 start_idx = len(messages) - 5
                 # If starting with assistant, try to include one more message
@@ -340,11 +351,13 @@ class NeuralStrategy(TopicStrategy):
 
             # Determine query role based on alternating pattern
             # If last history message is from user, query is from assistant, and vice versa
-            last_role = messages[-1].get('role', 'user')
+            # Use frozen straddle message if provided (during SUSPECT state evidence accumulation)
+            straddle_msg = frozen_straddle_msg if frozen_straddle_msg is not None else messages[-1]
+            last_role = straddle_msg.get('role', 'user')
             query_role = 'assistant' if last_role == 'user' else 'user'
 
             after_messages = [
-                messages[-1],  # Last message of history (potential last of old topic)
+                straddle_msg,  # Last message of old topic (frozen during SUSPECT)
                 {"role": query_role, "content": query}  # Query (potential first of new topic)
             ]
 

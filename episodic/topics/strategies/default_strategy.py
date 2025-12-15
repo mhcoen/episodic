@@ -31,29 +31,35 @@ from episodic.topics.diagnostics import (
 logger = logging.getLogger(__name__)
 
 
-# Default commitment policy: prioritizes precision over recall
+# Default commitment policy using frozen reference state machine
 #
 # The neural model is trained on content-based topic shifts. It gives:
 # - Low-moderate confidence (~0.5-0.7) for explicit "let's switch" statements
 # - High confidence (~0.8-0.95) for actual content changes (new questions on new topics)
 #
-# This means boundaries typically trigger on the FIRST CONTENT MESSAGE of a
-# new topic, not on meta-linguistic switch announcements. This matches how
-# most real conversations work - users naturally start asking about new topics
-# without announcing "let's switch."
+# State machine approach:
+# - STABLE: Normal sliding window comparison
+# - SUSPECT: On first high signal (>= suspect_threshold), freeze the "before" context
+#            Compare subsequent messages against frozen context to ask:
+#            "are we still far from the old topic?" (not "did we change again?")
+# - COMMIT: When accumulated evidence >= min_evidence
+# - ABORT: If confidence drops below abort_threshold for abort_streak turns
+#
+# This ensures stable score semantics during evidence accumulation by keeping
+# the reference context fixed, rather than letting it slide and mix old/new topics.
 #
 # These defaults prevent oversegmentation while still detecting real topic shifts:
 # - min_gap=6 requires 3 exchanges (6 messages) between boundaries
-# - min_evidence=1.35 requires ~2 consecutive high-confidence signals
-# - evidence_decay=0.7 gives moderate decay to prevent false accumulation
-#
-# For more sensitive detection, use granularity='fine' or lower min_evidence.
-# For stricter detection, use granularity='coarse' or higher min_evidence.
+# - suspect_threshold=0.5 enters SUSPECT on moderate+ confidence
+# - min_evidence=1.2 requires ~2 turns of high confidence against frozen reference
+# - abort_streak=3 returns to STABLE if low confidence for 3 consecutive turns
 DEFAULT_COMMITMENT_POLICY = CommitmentPolicy(
-    min_gap=6,           # Minimum 6 messages (3 exchanges) between boundaries
-    evidence_window=2,   # Look at 2 consecutive signals
-    min_evidence=1.35,   # Require ~2 consecutive high signals (0.9 + 0.9*0.7 = 1.5)
-    evidence_decay=0.7,  # Moderate decay
+    min_gap=6,              # Minimum 6 messages (3 exchanges) between boundaries
+    suspect_threshold=0.5,  # Enter SUSPECT state when confidence >= this
+    abort_threshold=0.3,    # ABORT if confidence stays below this
+    abort_streak=3,         # ABORT after this many low-confidence turns
+    evidence_decay=0.7,     # Decay factor for accumulated evidence
+    min_evidence=1.2,       # Evidence needed to COMMIT (allows ~2 high signals)
 )
 
 
@@ -123,9 +129,11 @@ class DefaultStrategy(TopicStrategy):
             if isinstance(commitment_config, dict) and commitment_config:
                 policy = CommitmentPolicy(
                     min_gap=commitment_config.get('min_gap', DEFAULT_COMMITMENT_POLICY.min_gap),
-                    evidence_window=commitment_config.get('evidence_window', DEFAULT_COMMITMENT_POLICY.evidence_window),
-                    min_evidence=commitment_config.get('min_evidence', DEFAULT_COMMITMENT_POLICY.min_evidence),
+                    suspect_threshold=commitment_config.get('suspect_threshold', DEFAULT_COMMITMENT_POLICY.suspect_threshold),
+                    abort_threshold=commitment_config.get('abort_threshold', DEFAULT_COMMITMENT_POLICY.abort_threshold),
+                    abort_streak=commitment_config.get('abort_streak', DEFAULT_COMMITMENT_POLICY.abort_streak),
                     evidence_decay=commitment_config.get('evidence_decay', DEFAULT_COMMITMENT_POLICY.evidence_decay),
+                    min_evidence=commitment_config.get('min_evidence', DEFAULT_COMMITMENT_POLICY.min_evidence),
                 )
             else:
                 policy = DEFAULT_COMMITMENT_POLICY

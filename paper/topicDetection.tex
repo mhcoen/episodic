@@ -13,8 +13,8 @@
 \title{\bf When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation}
 
 \author{
-Michael H. Coen\\
-Independent Researcher\\
+Michael H. Coen\
+Independent Researcher\
 mhcoen@alum.mit.edu
 }
 
@@ -59,7 +59,7 @@ transfer across datasets.
 
 \section{Introduction}
 
-Dialogue topic segmentation is commonly framed as identifying points in a conversation where ``the subject changes.'' This framing is appealingly simple. It is also incorrect. Topic structure is often gradual, nested, and perspective-dependent.
+Dialogue topic segmentation is commonly framed as identifying points in a conversation where ``the subject changes.’’ This framing is appealingly simple. It is also incorrect. Topic structure is often gradual, nested, and perspective-dependent.
 
 Despite this, many dialogue segmentation benchmarks treat annotated boundaries as objective ground truth and evaluate systems using strict boundary matching and F1-based metrics~\cite{vanrijsbergen1979}. These metrics collapse distinct failure modes into a single number. Small boundary shifts are often harmless when the goal is coherent topic blocks, while missing or adding a few boundaries can be catastrophic if boundaries drive downstream actions such as summarizing or dropping earlier turns.
 
@@ -122,35 +122,34 @@ Collapsing these operations into a single evaluation target makes boundary densi
 
 We evaluated multiple, structurally distinct dialogue segmentation strategies across eight dialogue datasets spanning diverse dialogue regimes. The purpose of cross-dataset evaluation here is not only to compare performance, but to expose how annotation philosophy and boundary density interact with evaluation metrics.
 
-Task-oriented dialogue datasets include SuperDialseg~\cite{superdialseg2023}, DialSeg711~\cite{dialseg711}, TIAGE~\cite{tiage}, and MultiWOZ~\cite{budzianowski2018multiwoz}. Open-domain and semi-structured datasets include DailyDialog (synthetic concatenations)~\cite{li2020dailydialog}, Taskmaster~\cite{byrne2019taskmaster}, Topical-Chat~\cite{topicalchat}, and QMSum~\cite{zhong2021qmsum}. Several datasets provide sparse boundaries by design or annotate boundaries with intent (e.g., summarization units), which is precisely the setting where exact-match F1 becomes fragile.
+Task-oriented dialogue datasets include SuperDialseg~\cite{superdialseg2023}, DialSeg711~\cite{dialseg711}, TIAGE~\cite{tiage}, and MultiWOZ~\cite{budzianowski2018multiwoz}. Open-domain and semi-structured datasets include DailyDialog (synthetic concatenations)\cite{li2020dailydialog}, Taskmaster\cite{byrne2019taskmaster}, Topical-Chat~\cite{topicalchat}, and QMSum~\cite{zhong2021qmsum}. Several datasets provide sparse boundaries by design or annotate boundaries with intent (e.g., summarization units), which is precisely the setting where exact-match F1 becomes fragile.
 
 \section{Methodology}
 
 Our approach outputs a score for each canonical between-message position indicating the likelihood of a topic boundary. We map all gold and predicted boundaries to canonical between-message indices to avoid speaker-based off-by-one artifacts.
 
-The key methodological choice is to separate boundary scoring from boundary selection. Scoring aims to generalize: it should rank likely topic transitions above unlikely ones. Selection is a decision rule: it chooses boundary density and spacing to match an annotation regime or an application requirement.
+The key methodological choice is to separate boundary scoring from boundary selection. Scoring aims to generalize: it should rank likely topic transitions above unlikely ones. Selection is a decision rule: it chooses boundary density and spacing to match an annotation regime or an application requirement. In deployed use, selection may be implemented as a commitment policy that accumulates boundary evidence over time and decides when to commit to a boundary, rather than emitting boundaries directly from the scoring model.
 
 \subsection{Topic Segmentation Algorithm}
 
-Given a dialogue consisting of messages $m_1,\dots,m_T$, define candidate positions $i \in \{1,\dots,T-1\}$ between adjacent messages.
+Given a dialogue consisting of messages $m_1,\dots,m_T$, define candidate positions $i \in {1,\dots,T-1}$ between adjacent messages.
 
-\textbf{Boundary scoring.} Compute scores $s_i \in \mathbb{R}$ for all candidate positions. Larger $s_i$ indicates stronger evidence of a topic boundary.
+\textbf{Boundary scoring.} Compute scores $s_i \in \mathbb{R}$ for all candidate positions. Larger $s_i$ indicates stronger evidence of a topic boundary. Scores are computed by comparing a window of turns preceding $i$ to a window of turns following $i$ (window-vs-window), rather than from the adjacent pair alone.
 
-\textbf{Boundary selection (rule used in experiments).} We use thresholding with minimum spacing:
+\textbf{Boundary selection (rule used in experiments).} We use a commitment-style selection policy whose decision rule reduces to thresholding with minimum spacing:
 \begin{enumerate}
 \item Select all candidates $i$ with $s_i \ge \tau$.
 \item Enforce minimum spacing $g$ by greedy non-maximum suppression: process selected candidates in descending score order and accept $i$ only if no previously accepted boundary lies within $g$ positions.
 \end{enumerate}
-The output boundary set is $B \subseteq \{1,\dots,T-1\}$.
+The output boundary set is $B \subseteq {1,\dots,T-1}$.
 
-For Figure~\ref{fig:adaptive_commitment}, we use the same selection rule but adapt the threshold over time; the adaptive threshold is logged as \emph{min\_evidence}.
+For Figure~\ref{fig:adaptive_commitment}, we use the same selection rule but adapt the threshold over time; the adaptive threshold is logged as \emph{min\_evidence}. During evidence accumulation, scores are evaluated with respect to a fixed pre-change reference that freezes (i) the pre-boundary context and (ii) a boundary-adjacent anchor turn, so the policy measures persistence of topic departure rather than repeatedly scoring successive topic transitions.
 
 \subsection{Scoring Model Architecture}
 
 The boundary scoring model is a fine-tuned DistilBERT-based binary classifier.
-For each candidate boundary position $i$, the model encodes the adjacent message
-pair $(m_i, m_{i+1})$ using the input format
-\texttt{[CLS] $m_i$ [SEP] $m_{i+1}$ [SEP]}.
+For each candidate boundary position $i$, the model encodes a left context window and a right context window around $i$ using the input format
+\texttt{[CLS] pre-window [SEP] post-window [SEP]}.
 The final hidden state of the \texttt{[CLS]} token is passed through a linear
 projection layer to produce a scalar score $s_i \in \mathbb{R}$ representing
 boundary confidence.
@@ -230,7 +229,7 @@ across datasets or applications.
 We report three evaluation measures:
 \begin{itemize}
 \item \textbf{W-F1:} window-tolerant F1~\cite{pevzner2002critique}, matching predicted boundaries to gold boundaries within a fixed window.
-\item \textbf{BOR:} boundary oversegmentation ratio, $\text{BOR} = \#B_{\text{pred}} / \#B_{\text{gold}}$.
+\item \textbf{BOR:} boundary oversegmentation ratio, $\mathrm{BOR} = \#B_{\mathrm{pred}} / \#B_{\mathrm{gold}}$.
 \item \textbf{Purity/Coverage:} segment coherence diagnostics from clustering evaluation.
 \end{itemize}
 
@@ -251,8 +250,6 @@ predicted segment. These measures assess whether segments are internally
 coherent, independent of exact boundary placement.
 
 Strict exact-match boundary F1 is reported only as a baseline, because it collapses under coarse or sparse annotation and penalizes coherent segmentations at a different granularity. The evaluation objective in this paper treats boundary density (BOR) and segment coherence (purity/coverage) as primary criteria alongside tolerant boundary accuracy (W-F1).
-
-
 
 \paragraph{Interpreting metrics through failure modes.}
 W-F1 detects gross misalignment; BOR exposes systematic over- or under-segmentation; purity/coverage indicate whether the resulting segments are coherent and usable. Low F1 with high purity and high BOR typically indicates granularity mismatch rather than incoherent segmentation.
@@ -275,12 +272,6 @@ metrics: when boundary density is matched to the gold annotation, even strategie
 that ignore the underlying distribution of gold boundaries can achieve
 deceptively strong F1 and W-F1 scores.
 
-\begin{itemize}
-\item \textbf{No-boundary:} predict no boundaries.
-\item \textbf{Every-$N$:} predict a boundary every $N$ positions.
-\item \textbf{Random-at-rate:} predict boundaries at a fixed rate matched to the gold boundary density.
-\end{itemize}
-
 \begin{table}[t]
 \centering
 \begin{tabular}{llcccc}
@@ -291,13 +282,13 @@ No-boundary & DialSeg711 & 0.000 & 0.00 & 0.438 & 1.000 \\
             & SuperSeg   & 0.113 & 0.00 & 0.568 & 1.000 \\
             & TIAGE      & 0.140 & 0.00 & 0.541 & 1.000 \\
 \midrule
-Every-$N$  & DialSeg711 ($N{=}4$) & 0.639 & 0.97 & 0.812 & 0.823 \\
-           & SuperSeg ($N{=}2$)   & 0.623 & 1.10 & 0.830 & 0.775 \\
-           & TIAGE ($N{=}3$)      & 0.610 & 0.97 & 0.849 & 0.774 \\
+Every-$N$   & DialSeg711 ($N{=}4$) & 0.639 & 0.97 & 0.812 & 0.823 \\
+            & SuperSeg ($N{=}2$)   & 0.623 & 1.10 & 0.830 & 0.775 \\
+            & TIAGE ($N{=}3$)      & 0.610 & 0.97 & 0.849 & 0.774 \\
 \midrule
-Random     & DialSeg711 & 0.528 & 1.00 & 0.839 & 0.833 \\
-(BOR=1)    & SuperSeg   & 0.678 & 1.00 & 0.883 & 0.884 \\
-           & TIAGE      & 0.664 & 1.00 & 0.873 & 0.869 \\
+Random      & DialSeg711 & 0.528 & 1.00 & 0.839 & 0.833 \\
+(BOR=1)     & SuperSeg   & 0.678 & 1.00 & 0.883 & 0.884 \\
+            & TIAGE      & 0.664 & 1.00 & 0.873 & 0.869 \\
 \bottomrule
 \end{tabular}
 \caption{Baseline segmentation results.
@@ -327,18 +318,15 @@ Epoch & F1 & W-F1 & BOR & Salience & Neg.\ Ctrl.\\
 \midrule
 1 & 0.265 & 0.420 & 0.31 & 0.007 & 0.000 \\
 2 & 0.453 & 0.688 & 0.67 & 0.009 & 0.032 \\
-3 & 0.489 & 0.733 & 0.87 & 0.010 & ---  \\
+3 & 0.489 & 0.733 & 0.87 & 0.010 & —  \\
 \bottomrule
 \end{tabular}
 \caption{Stage 1 synthetic pretraining on splice boundaries.
-``Salience'' denotes the mean boundary score magnitude $\mathbb{E}[|s_i|]$ on the
-validation set and serves as a diagnostic for score collapse.
-Negative control (``Neg.\ Ctrl.'') reports the predicted boundary rate on single-segment dialogues,
+Salience'' denotes the mean boundary score magnitude $\mathbb{E}[|s_i|]$ on the validation set and serves as a diagnostic for score collapse. Negative control (Neg.\ Ctrl.’’) reports the predicted boundary rate on single-segment dialogues,
 which should be near zero; it was not rerun for epoch 3, as the model had already passed this sanity check at epoch 2.
 }
 \label{tab:stage1}
 \end{table}
-
 
 \subsection{Stage 2: Supervised Fine-Tuning on Benchmarks}
 This stage evaluates how supervised fine-tuning aligns the scoring model with
@@ -388,7 +376,6 @@ TIAGE      & 0.368 & 0.512 & 0.76 & 157/207 \\
 coherence diagnostics in Table~\ref{tab:purity_coverage}.}
 \label{tab:stage3}
 \end{table}
-
 
 \noindent\textbf{Calibration.}
 We learned a single global temperature of $T = 0.976$ for this run.
@@ -458,13 +445,12 @@ Gold annotations mark a single coarse topic boundary (browsing $\rightarrow$ boo
 while the model identifies multiple semantically meaningful subtopic transitions.
 The fine-grained boundaries correspond to coherent conversational phases and are
 not boundary-positioning errors. Under exact-match evaluation, three valid
-boundaries are counted as false positives, yielding F1\,=\,0.40 despite correct
+boundaries are counted as false positives, yielding F1,=,0.40 despite correct
 identification of the coarse transition. The error arises from a mismatch in
 boundary \emph{density} and segmentation granularity rather than from incorrect
 boundary detection.}
 \label{fig:worked_example}
 \end{figure}
-
 
 \section{Discussion}
 
@@ -574,13 +560,13 @@ decoupling of boundary scoring from boundary selection.}
 
 \subsection{Computational Cost}
 
-Boundary selection is computationally negligible: it operates on a vector of scores and applies thresholding and minimum spacing. Boundary scoring dominates cost because it requires running the neural model over candidate positions (message pairs). The separation therefore has practical value in deployed systems: selection can be retuned per dataset or application without recomputing scores, while recomputing scores requires model inference.
+Boundary selection is computationally negligible: it operates on a vector of scores and applies thresholding and minimum spacing. Boundary scoring dominates cost because it requires running the neural model over candidate positions (window-vs-window inputs around each position). The separation therefore has practical value in deployed systems: selection can be retuned per dataset or application without recomputing scores, while recomputing scores requires model inference. Evidence accumulation within a commitment policy is likewise lightweight relative to scoring, since it reuses the fixed-reference scores and maintains only decision state.
 
 \subsection{On Dataset Choice and External Validity}
 
-Public dialogue datasets are necessarily imperfect proxies for real human--AI
+Public dialogue datasets are necessarily imperfect proxies for real human–AI
 interactions. While several conversational AI datasets have been released, we
-are not aware of any publicly available corpus of long, open-ended human--AI
+are not aware of any publicly available corpus of long, open-ended human–AI
 conversations with turn-level topic boundary annotations suitable for evaluating
 segmentation granularity. Our claims therefore concern evaluation behavior under
 heterogeneous annotation schemes rather than direct modeling of user behavior.

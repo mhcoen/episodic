@@ -375,7 +375,7 @@ class TopicHandler:
                 
                 # Re-extract topic name now that we have the full conversation
                 # This gives a more accurate name based on complete context
-                if config.get("resummarize_completed_topics", True):
+                if config.get("resummarize_completed_topics", True) and actual_boundary:
                     # Get nodes in the completed topic
                     topic_nodes = []
                     ancestry = get_ancestry(actual_boundary)

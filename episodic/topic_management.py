@@ -18,10 +18,11 @@ from episodic.db import (
 )
 from episodic.topics import (
     extract_topic_ollama, should_create_first_topic,
-    build_conversation_segment
+    build_conversation_segment, log_topic_decision
 )
 # Note: analyze_topic_boundary removed - using simpler parent-based boundary logic
 from episodic.debug_utils import debug_print
+from episodic.debug_system import debug_enabled
 from episodic.benchmark import benchmark_operation
 
 
@@ -37,7 +38,8 @@ class TopicHandler:
         self,
         recent_nodes: List[Dict[str, Any]],
         user_input: str,
-        user_node_id: str
+        user_node_id: str,
+        semantic_drift: Optional[float] = None
     ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
         """
         Detect topic change and handle topic management.
@@ -93,6 +95,8 @@ class TopicHandler:
                     strategy = get_strategy(strategy_name)
 
                     # Convert recent_nodes to the format expected by strategies
+                    # NOTE: recent_nodes is in reverse chronological order (newest first)
+                    # but strategies expect chronological order (oldest first)
                     messages = [
                         {
                             'role': node.get('role', 'user'),
@@ -100,7 +104,7 @@ class TopicHandler:
                             'node_id': node.get('id'),
                             'short_id': node.get('short_id'),
                         }
-                        for node in recent_nodes
+                        for node in reversed(recent_nodes)  # Reverse to chronological order
                     ]
 
                     # Add the current user's message to the messages array
@@ -113,7 +117,23 @@ class TopicHandler:
                     })
 
                     # Get decision from strategy
-                    decision = strategy.get_decision(user_input, messages)
+                    # Pass semantic_drift for hybrid trigger (high drift can fast-path to SUSPECT)
+                    decision = strategy.get_decision(
+                        user_input, messages, semantic_drift=semantic_drift
+                    )
+
+                    # Log decision for analysis (drift calibration, debugging, evaluation)
+                    # Enable with: /set topic_decision_logging true
+                    log_topic_decision(
+                        decision=decision,
+                        query=user_input,
+                        recent_context=messages,
+                        additional_context={
+                            'user_node_id': user_node_id,
+                            'semantic_drift': semantic_drift,
+                            'messages_in_topic': self._messages_in_current_topic,
+                        }
+                    )
 
                     # Map decision to expected return format
                     topic_changed = decision.topic_changed
@@ -164,10 +184,13 @@ class TopicHandler:
                         # was committed after evidence accumulation
                         signals = decision.signals or {}
                         boundary_node_id = signals.get('boundary_node_id')
+                        if debug_enabled("topic"):
+                            debug_print(f"boundary_node_id from signals: {boundary_node_id}", category="topic")
+                            debug_print(f"signals keys: {list(signals.keys())}", category="topic")
                         if boundary_node_id:
                             topic_change_info['boundary_node_id'] = boundary_node_id
-                            if config.get("debug"):
-                                debug_print(f"Using boundary from original detection point: {boundary_node_id[:8]}...", indent=True)
+                            if debug_enabled("topic"):
+                                debug_print(f"Using boundary from original detection point: {boundary_node_id[:8]}...", category="topic")
                         
             except Exception as e:
                 if config.get("debug"):
@@ -453,6 +476,17 @@ class TopicHandler:
             new_topic_start = user_node_id
             if topic_change_info and topic_change_info.get('boundary_node_id'):
                 new_topic_start = topic_change_info['boundary_node_id']
+                if debug_enabled("topic"):
+                    debug_print(
+                        f"Topic start: boundary_node_id={new_topic_start[:8]}... "
+                        f"(user_node_id was {user_node_id[:8]}...)",
+                        category="topic"
+                    )
+            elif debug_enabled("topic"):
+                debug_print(
+                    f"Topic start: user_node_id={user_node_id[:8]}... (no boundary_node_id)",
+                    category="topic"
+                )
 
             # Use the detected topic name if available, otherwise use placeholder
             if new_topic_name and not new_topic_name.startswith('ongoing-'):

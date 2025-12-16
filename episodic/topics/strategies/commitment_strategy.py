@@ -26,6 +26,7 @@ from episodic.topics.strategy import (
     RetrievedContext,
     Confidence,
 )
+from episodic.debug_system import debug_print
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,11 @@ class CommitmentPolicy:
 
     # Minimum accumulated evidence to commit
     min_evidence: float = 1.2
+
+    # Drift threshold for fast-path SUSPECT entry (hybrid trigger)
+    # High embedding drift can trigger SUSPECT even if neural confidence is low
+    # Set to None to disable drift fast-path
+    drift_suspect_threshold: Optional[float] = 0.95
 
 
 # State machine states
@@ -243,7 +249,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self,
         query: str,
         messages: List[Dict[str, Any]],
-        current_thread: Optional[Thread] = None
+        current_thread: Optional[Thread] = None,
+        semantic_drift: Optional[float] = None,
+        **kwargs
     ) -> TopicDecision:
         """
         Make topic decision with commitment policy using frozen reference state machine.
@@ -254,6 +262,11 @@ class CommitmentPolicyStrategy(TopicStrategy):
         - SUSPECT: Compare new messages against frozen pre-change context. Accumulate
           evidence. COMMIT if evidence >= min_evidence. ABORT if confidence stays
           below abort_threshold for abort_streak consecutive turns.
+
+        Hybrid Trigger:
+        - If semantic_drift >= drift_suspect_threshold, enter SUSPECT immediately
+          even if neural confidence is low. This catches sharp topic transitions
+          that the neural model misses on the first turn.
 
         This ensures "are we still far from the old topic?" rather than "did we
         change topics again?" - the frozen reference gives stable score semantics
@@ -269,6 +282,12 @@ class CommitmentPolicyStrategy(TopicStrategy):
         current_node_id = None
         if messages and self._state.current_idx < len(messages):
             current_node_id = messages[self._state.current_idx].get('node_id')
+            if current_node_id is None:
+                debug_print(
+                    f"WARNING: messages[{self._state.current_idx}] has no node_id! "
+                    f"Keys: {list(messages[self._state.current_idx].keys())}",
+                    category="topic"
+                )
 
         # === STATE MACHINE ===
 
@@ -277,21 +296,73 @@ class CommitmentPolicyStrategy(TopicStrategy):
             base_decision = self.base_strategy.get_decision(query, messages, current_thread)
             confidence = base_decision.confidence_score
 
-            # Check if we should enter SUSPECT state
-            gap = self._turns_since_boundary()
-            if confidence >= self.policy.suspect_threshold and gap >= self.policy.min_gap:
-                # Enter SUSPECT: freeze the "before" context
+            # Check for drift fast-path (hybrid trigger)
+            drift_triggered = False
+            if (semantic_drift is not None and
+                self.policy.drift_suspect_threshold is not None and
+                semantic_drift >= self.policy.drift_suspect_threshold):
+                drift_triggered = True
+
+            debug_print(
+                f"[STABLE] idx={self._state.current_idx} conf={confidence:.3f} "
+                f"threshold={self.policy.suspect_threshold}"
+                + (f" drift={semantic_drift:.3f}" if semantic_drift is not None else ""),
+                category="topic"
+            )
+
+            # Enter SUSPECT via drift fast-path OR neural confidence
+            # Drift catches sharp topic shifts that neural model misses on first turn
+            if drift_triggered:
+                # DRIFT-triggered SUSPECT entry: freeze context but seed evidence=0
+                # Require neural model to build evidence normally (it may still catch
+                # the boundary on subsequent turns once the new topic stabilizes)
+                self._enter_suspect_drift(messages, current_node_id, semantic_drift)
+                debug_print(
+                    f"[STABLE→SUSPECT] Drift fast-path! drift={semantic_drift:.3f} "
+                    f">= {self.policy.drift_suspect_threshold}, neural_conf={confidence:.3f}",
+                    category="topic"
+                )
+                return self._build_suspect_decision(
+                    base_decision, start_time, "entered SUSPECT via drift",
+                    semantic_drift=semantic_drift, drift_triggered=True
+                )
+
+            elif confidence >= self.policy.suspect_threshold:
+                # NEURAL-triggered SUSPECT entry: use confidence as initial evidence
                 self._enter_suspect(messages, current_node_id, confidence)
 
-                # Check if we can commit immediately (single high signal)
+                # Check if we can commit immediately (single high signal + min_gap satisfied)
                 if self._state.accumulated_evidence >= self.policy.min_evidence:
-                    return self._commit_boundary(base_decision, start_time)
+                    gap = self._turns_since_boundary()
+                    if gap >= self.policy.min_gap:
+                        debug_print(
+                            f"[STABLE→COMMIT] Immediate commit! evidence={self._state.accumulated_evidence:.3f} "
+                            f">= {self.policy.min_evidence}, gap={gap}",
+                            category="topic"
+                        )
+                        return self._commit_boundary(base_decision, start_time)
+                    else:
+                        debug_print(
+                            f"[STABLE→SUSPECT] Evidence sufficient but gap={gap} < min_gap={self.policy.min_gap}",
+                            category="topic"
+                        )
 
                 # Not enough evidence yet, stay in SUSPECT
-                return self._build_suspect_decision(base_decision, start_time, "entered SUSPECT")
+                debug_print(
+                    f"[STABLE→SUSPECT] Entered SUSPECT, evidence={self._state.accumulated_evidence:.3f} "
+                    f"< {self.policy.min_evidence}",
+                    category="topic"
+                )
+                return self._build_suspect_decision(
+                    base_decision, start_time, "entered SUSPECT",
+                    semantic_drift=semantic_drift, drift_triggered=False
+                )
 
             # No detection, stay STABLE
-            return self._build_stable_decision(base_decision, start_time)
+            return self._build_stable_decision(
+                base_decision, start_time,
+                semantic_drift=semantic_drift, drift_triggered=False
+            )
 
         else:  # SUSPECT state
             # Compare against frozen reference context with frozen straddle message
@@ -303,27 +374,65 @@ class CommitmentPolicyStrategy(TopicStrategy):
             )
             confidence = base_decision.confidence_score
 
+            debug_print(
+                f"[SUSPECT] idx={self._state.current_idx} conf_vs_frozen={confidence:.3f}",
+                category="topic"
+            )
+
             # Accumulate evidence with decay
+            prev_evidence = self._state.accumulated_evidence
             self._state.accumulated_evidence = (
-                self._state.accumulated_evidence * self.policy.evidence_decay + confidence
+                prev_evidence * self.policy.evidence_decay + confidence
+            )
+
+            debug_print(
+                f"  evidence: {prev_evidence:.3f}*{self.policy.evidence_decay} + "
+                f"{confidence:.3f} = {self._state.accumulated_evidence:.3f} "
+                f"(need {self.policy.min_evidence})",
+                category="topic"
             )
 
             # Check ABORT condition: confidence below threshold?
             if confidence < self.policy.abort_threshold:
                 self._state.low_confidence_streak += 1
+                debug_print(
+                    f"  low conf streak: {self._state.low_confidence_streak}/{self.policy.abort_streak}",
+                    category="topic"
+                )
                 if self._state.low_confidence_streak >= self.policy.abort_streak:
                     # ABORT: return to original topic, false alarm
+                    debug_print("[SUSPECT→ABORT] Too many low confidence turns", category="topic")
                     self._abort_suspect()
-                    return self._build_stable_decision(base_decision, start_time, "ABORT: returned to topic")
+                    return self._build_stable_decision(
+                        base_decision, start_time, "ABORT: returned to topic",
+                        semantic_drift=semantic_drift
+                    )
             else:
                 self._state.low_confidence_streak = 0
 
-            # Check COMMIT condition: enough evidence?
+            # Check COMMIT condition: enough evidence AND min_gap satisfied
             if self._state.accumulated_evidence >= self.policy.min_evidence:
-                return self._commit_boundary(base_decision, start_time)
+                gap = self._turns_since_boundary()
+                if gap >= self.policy.min_gap:
+                    node_preview = self._state.suspect_start_node_id[:8] if self._state.suspect_start_node_id else "None"
+                    debug_print(
+                        f"[SUSPECT→COMMIT] evidence={self._state.accumulated_evidence:.3f} "
+                        f">= {self.policy.min_evidence}, gap={gap}, boundary_node={node_preview}...",
+                        category="topic"
+                    )
+                    return self._commit_boundary(base_decision, start_time)
+                else:
+                    debug_print(
+                        f"[SUSPECT] evidence sufficient ({self._state.accumulated_evidence:.3f}) "
+                        f"but gap={gap} < min_gap={self.policy.min_gap}",
+                        category="topic"
+                    )
 
             # Stay in SUSPECT, continue accumulating
-            return self._build_suspect_decision(base_decision, start_time, "accumulating evidence")
+            return self._build_suspect_decision(
+                base_decision, start_time, "accumulating evidence",
+                semantic_drift=semantic_drift
+            )
 
     def _enter_suspect(
         self,
@@ -337,36 +446,105 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.accumulated_evidence = initial_confidence
         self._state.low_confidence_streak = 0
 
-        # Capture the "before" context - the 4 messages before the current one
-        # This is what NeuralStrategy would use as its before_messages
-        if len(messages) >= 5:
-            start_idx = len(messages) - 5
-            # Try to start with a user message
-            if messages[start_idx].get('role') == 'assistant' and start_idx > 0:
+        if node_id is None:
+            debug_print(
+                "⚠️ ENTER_SUSPECT: node_id is None! Boundary placement will be incorrect.",
+                category="topic"
+            )
+
+        # Capture the "before" context - the 4 messages BEFORE the straddle
+        # messages layout: [...history..., straddle, query]
+        # straddle = messages[-2], query = messages[-1]
+        # We want messages[-6:-2] (4 messages before straddle)
+        if len(messages) >= 6:
+            start_idx = len(messages) - 6
+            # Try to start with a user message for better topic context
+            if start_idx > 0 and messages[start_idx].get('role') == 'assistant':
                 start_idx -= 1
-            end_idx = min(start_idx + 4, len(messages) - 1)
-            self._state.frozen_before = messages[start_idx:end_idx]
+            end_idx = len(messages) - 2  # Stop before straddle
+            self._state.frozen_before = messages[max(0, start_idx):end_idx]
+            # Ensure we don't take more than 4
+            if len(self._state.frozen_before) > 4:
+                self._state.frozen_before = self._state.frozen_before[-4:]
         else:
-            self._state.frozen_before = messages[:-1] if len(messages) > 1 else []
+            # Not enough messages for full window
+            self._state.frozen_before = messages[:-2] if len(messages) >= 2 else []
 
         # Capture the "straddle" message - the last message before the suspected change
         # This preserves the training format: after = [straddle_msg, query]
-        # The straddle message is the last message in the current context (messages[-1])
-        if messages:
+        # Note: messages[-1] is the CURRENT query (already appended by topic_management)
+        # We want messages[-2] which is the last message of the OLD topic
+        if len(messages) >= 2:
+            self._state.frozen_straddle_msg = messages[-2]
+        elif messages:
             self._state.frozen_straddle_msg = messages[-1]
         else:
             self._state.frozen_straddle_msg = None
 
-        logger.debug(
-            f"Entered SUSPECT: frozen {len(self._state.frozen_before)} messages + straddle, "
-            f"initial evidence={initial_confidence:.3f}"
+        debug_print(
+            f"[ENTER_SUSPECT] node={node_id[:8] if node_id else 'None'}... "
+            f"initial_evidence={initial_confidence:.3f}, "
+            f"frozen {len(self._state.frozen_before)} msgs",
+            category="topic"
+        )
+
+    def _enter_suspect_drift(
+        self,
+        messages: List[Dict[str, Any]],
+        node_id: Optional[str],
+        drift_value: float
+    ):
+        """
+        Enter SUSPECT state via drift fast-path.
+
+        Unlike neural-triggered entry, drift-triggered entry seeds evidence=0.
+        This requires the neural model to still build evidence - drift just
+        gets us into SUSPECT faster so we don't miss the window.
+        """
+        self._state.state = CommitState.SUSPECT
+        self._state.suspect_start_node_id = node_id
+        self._state.accumulated_evidence = 0.0  # Neural must build evidence
+        self._state.low_confidence_streak = 0
+
+        if node_id is None:
+            debug_print(
+                "⚠️ ENTER_SUSPECT_DRIFT: node_id is None! Boundary placement will be incorrect.",
+                category="topic"
+            )
+
+        # Capture the "before" context - same logic as _enter_suspect
+        if len(messages) >= 6:
+            start_idx = len(messages) - 6
+            if start_idx > 0 and messages[start_idx].get('role') == 'assistant':
+                start_idx -= 1
+            end_idx = len(messages) - 2
+            self._state.frozen_before = messages[max(0, start_idx):end_idx]
+            if len(self._state.frozen_before) > 4:
+                self._state.frozen_before = self._state.frozen_before[-4:]
+        else:
+            self._state.frozen_before = messages[:-2] if len(messages) >= 2 else []
+
+        # Capture the "straddle" message
+        if len(messages) >= 2:
+            self._state.frozen_straddle_msg = messages[-2]
+        elif messages:
+            self._state.frozen_straddle_msg = messages[-1]
+        else:
+            self._state.frozen_straddle_msg = None
+
+        debug_print(
+            f"[ENTER_SUSPECT_DRIFT] node={node_id[:8] if node_id else 'None'}... "
+            f"drift={drift_value:.3f}, evidence=0.0 (neural must build), "
+            f"frozen {len(self._state.frozen_before)} msgs",
+            category="topic"
         )
 
     def _abort_suspect(self):
         """Abort SUSPECT state: false alarm, return to STABLE."""
-        logger.debug(
+        debug_print(
             f"ABORT: low confidence for {self._state.low_confidence_streak} turns, "
-            f"evidence was {self._state.accumulated_evidence:.3f}"
+            f"evidence was {self._state.accumulated_evidence:.3f}",
+            category="topic"
         )
         self._state.state = CommitState.STABLE
         self._state.frozen_before = None
@@ -380,6 +558,17 @@ class CommitmentPolicyStrategy(TopicStrategy):
         import time
         boundary_node_id = self._state.suspect_start_node_id
         evidence = self._state.accumulated_evidence
+
+        if boundary_node_id is None:
+            debug_print(
+                "⚠️ COMMIT: boundary_node_id is None! Will fall back to current message.",
+                category="topic"
+            )
+        else:
+            debug_print(
+                f"COMMIT: boundary_node_id={boundary_node_id[:8]}...",
+                category="topic"
+            )
 
         # Update tracking
         self._state.last_boundary_idx = self._state.current_idx
@@ -405,8 +594,6 @@ class CommitmentPolicyStrategy(TopicStrategy):
             'committed': True,
         })
 
-        logger.debug(reasoning)
-
         return TopicDecision(
             topic_changed=True,
             new_thread=base_decision.new_thread,
@@ -425,7 +612,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self,
         base_decision: TopicDecision,
         start_time: float,
-        extra_reason: str = ""
+        extra_reason: str = "",
+        semantic_drift: Optional[float] = None,
+        drift_triggered: bool = False
     ) -> TopicDecision:
         """Build decision for STABLE state (no commit)."""
         import time
@@ -440,6 +629,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
             'suspect_threshold': self.policy.suspect_threshold,
             'committed': False,
         })
+        if semantic_drift is not None:
+            signals['semantic_drift'] = semantic_drift
+            signals['drift_triggered'] = drift_triggered
 
         return TopicDecision(
             topic_changed=False,
@@ -459,7 +651,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self,
         base_decision: TopicDecision,
         start_time: float,
-        reason: str
+        reason: str,
+        semantic_drift: Optional[float] = None,
+        drift_triggered: bool = False
     ) -> TopicDecision:
         """Build decision for SUSPECT state (accumulating evidence)."""
         import time
@@ -477,6 +671,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
             'abort_streak': self.policy.abort_streak,
             'committed': False,
         })
+        if semantic_drift is not None:
+            signals['semantic_drift'] = semantic_drift
+            signals['drift_triggered'] = drift_triggered
 
         return TopicDecision(
             topic_changed=False,

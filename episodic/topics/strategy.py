@@ -210,7 +210,9 @@ class TopicStrategy(ABC):
         self,
         query: str,
         messages: List[Dict[str, Any]],
-        current_thread: Optional[Thread] = None
+        current_thread: Optional[Thread] = None,
+        semantic_drift: Optional[float] = None,
+        **kwargs
     ) -> TopicDecision:
         """
         Make a complete topic decision for the current query.
@@ -222,6 +224,9 @@ class TopicStrategy(ABC):
             query: The current user message
             messages: Full conversation history
             current_thread: The currently active thread, if any
+            semantic_drift: Pre-computed embedding drift score (0-1), used for
+                           hybrid trigger to fast-path into SUSPECT state
+            **kwargs: Additional strategy-specific parameters
 
         Returns:
             TopicDecision capturing what to do and why

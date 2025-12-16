@@ -29,13 +29,16 @@ def extract_topic_ollama(conversation_segment: str) -> Tuple[Optional[str], Opti
         Tuple of (topic_name: Optional[str], cost_info: Optional[Dict])
     """
     try:
-        prompt = f"""Identify the main topic of this conversation. Reply with ONLY the topic name (1-3 words, lowercase, use hyphens for spaces).
+        prompt = f"""What is the overarching theme of this conversation? Reply with ONLY the topic name (1-4 words, lowercase, use hyphens for spaces).
+
+Choose a name that captures the breadth of the discussion, not just one subtopic.
 
 Examples:
-- Conversation about movies and directors → movies
-- Discussion of quantum physics concepts → quantum-physics
-- Debugging code and performance → programming
-- Talking about semantic drift → semantic-drift
+- Questions about AI, machine learning, and how LLMs work → ai-fundamentals
+- Discussing movie recommendations, directors, and film history → movies
+- Debugging code, performance issues, and refactoring → programming
+- Planning a trip, booking hotels, and activities → travel-planning
+- Coffee brewing methods, grind sizes, and ratios → coffee-brewing
 
 Conversation:
 {conversation_segment}
@@ -102,7 +105,7 @@ def _clean_topic_name(response: str) -> Optional[str]:
         if config.get("debug"):
             typer.echo(f"⚠️  Topic name too long ({len(topic)} chars): '{topic[:50]}...'")
         # Try to extract just the first few words
-        parts = topic.split('-')[:3]
+        parts = topic.split('-')[:4]
         topic = '-'.join(parts)
     
     # Additional validation - check if it looks like the model included extra text
@@ -121,8 +124,8 @@ def _clean_topic_name(response: str) -> Optional[str]:
                         break
     
     # Final length check
-    if len(topic) > 30:
-        topic = topic[:30].rsplit('-', 1)[0]  # Cut at last hyphen before 30 chars
+    if len(topic) > 40:
+        topic = topic[:40].rsplit('-', 1)[0]  # Cut at last hyphen before 40 chars
     
     if topic and len(topic) >= 2:  # Minimum 2 characters
         if config.get("debug"):

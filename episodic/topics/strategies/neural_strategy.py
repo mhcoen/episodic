@@ -337,22 +337,36 @@ class NeuralStrategy(TopicStrategy):
                 # Use the frozen context - this is the "before" state captured when
                 # a topic change was first suspected
                 before_messages = frozen_before_context
-            elif len(messages) >= 5:
+            elif len(messages) >= 6:
+                # messages layout: [...history..., straddle, query]
+                # straddle = messages[-2], query = messages[-1]
+                # We want 4 messages BEFORE the straddle, i.e., messages[-6:-2]
+                start_idx = len(messages) - 6
                 # Try to start with a user message for better topic context
-                start_idx = len(messages) - 5
-                # If starting with assistant, try to include one more message
-                if messages[start_idx].get('role') == 'assistant' and start_idx > 0:
+                if start_idx > 0 and messages[start_idx].get('role') == 'assistant':
                     start_idx -= 1
-                # Take 4 messages starting from start_idx (or fewer if not enough)
-                end_idx = min(start_idx + 4, len(messages) - 1)
-                before_messages = messages[start_idx:end_idx]
+                # Take up to 4 messages, stopping before straddle (at -2)
+                end_idx = len(messages) - 2
+                before_messages = messages[max(0, start_idx):end_idx]
+                # Ensure we don't take more than 4
+                if len(before_messages) > 4:
+                    before_messages = before_messages[-4:]
             else:
-                before_messages = messages[:-1]  # Whatever we have before last
+                # Not enough messages for full window, take what we have before straddle
+                before_messages = messages[:-2] if len(messages) >= 2 else []
 
             # Determine query role based on alternating pattern
             # If last history message is from user, query is from assistant, and vice versa
             # Use frozen straddle message if provided (during SUSPECT state evidence accumulation)
-            straddle_msg = frozen_straddle_msg if frozen_straddle_msg is not None else messages[-1]
+            # Note: messages[-1] is the current query (appended by topic_management.py)
+            # so we need messages[-2] for the straddle message (last message before query)
+            if frozen_straddle_msg is not None:
+                straddle_msg = frozen_straddle_msg
+            elif len(messages) >= 2:
+                straddle_msg = messages[-2]  # Last message before the query
+            else:
+                straddle_msg = messages[-1] if messages else {"role": "user", "content": ""}
+
             last_role = straddle_msg.get('role', 'user')
             query_role = 'assistant' if last_role == 'user' else 'user'
 
@@ -370,6 +384,18 @@ class NeuralStrategy(TopicStrategy):
                 f"{msg.get('role', 'user')}: {msg.get('content', '')}"
                 for msg in after_messages
             ]
+
+            # Debug: show window contents
+            from episodic.debug_system import debug_enabled, debug_print
+            if debug_enabled("topic"):
+                debug_print(f"Window before ({len(before_texts)} msgs):", category="topic")
+                for i, txt in enumerate(before_texts):
+                    preview = txt[:80] + "..." if len(txt) > 80 else txt
+                    debug_print(f"  [{i}] {preview}", category="topic")
+                debug_print(f"Window after ({len(after_texts)} msgs):", category="topic")
+                for i, txt in enumerate(after_texts):
+                    preview = txt[:80] + "..." if len(txt) > 80 else txt
+                    debug_print(f"  [{i}] {preview}", category="topic")
 
             # Use detector's predict method
             is_boundary, boundary_prob = self._detector.predict(before_texts, after_texts)

@@ -283,40 +283,68 @@ class ConversationManager:
                     typer.echo(f"⚠️  Drift detection disabled: {e}")
                 self.drift_calculator = False  # Mark as disabled
         return self.drift_calculator if self.drift_calculator is not False else None
-    
-    def display_semantic_drift(self, current_user_node_id: str) -> None:
+
+    def compute_semantic_drift(self, current_user_node_id: str) -> Optional[float]:
         """
-        Calculate and display semantic drift between consecutive user messages.
-        
-        Only compares user inputs to detect when the user changes topics,
-        ignoring assistant responses which just follow the user's lead.
+        Compute semantic drift between current and previous user message.
+
+        Returns:
+            Drift score (0.0-1.0) or None if not computable (e.g., < 2 user messages)
         """
         calc = self.get_drift_calculator()
         if not calc:
-            return  # Drift detection disabled
-        
-        if config.get("debug"):
-            typer.echo(f"   [drift] Using calculator instance: {id(calc)}")
-        
+            return None
+
         try:
             # Get conversation history from root to current node
             conversation_chain = get_ancestry(current_user_node_id)
-            
+
             # Filter to user messages only
-            user_messages = [node for node in conversation_chain 
+            user_messages = [node for node in conversation_chain
                             if node.get("role") == "user" and node.get("content", "").strip()]
-            
+
             # Need at least 2 user messages for comparison
             if len(user_messages) < 2:
-                debug_print(f"(Need 2 user messages for drift, have {len(user_messages)})", indent=True, category="drift")
-                return
-            
-            # Compare current user message to previous user message
-            current_user = user_messages[-1]
+                return None
+
             previous_user = user_messages[-2]
-            
-            # Calculate semantic drift between consecutive user inputs
-            drift_score = calc.calculate_drift(previous_user, current_user, text_field="content")
+            current_user = user_messages[-1]
+
+            return calc.calculate_drift(previous_user, current_user, text_field="content")
+        except Exception as e:
+            if config.get("debug"):
+                typer.echo(f"⚠️  Drift computation error: {e}")
+            return None
+
+    def display_semantic_drift(
+        self,
+        current_user_node_id: str,
+        cached_drift: Optional[float] = None
+    ) -> None:
+        """
+        Display semantic drift between consecutive user messages.
+
+        Args:
+            current_user_node_id: The current user node ID
+            cached_drift: Pre-computed drift score (avoids recomputation)
+        """
+        try:
+            # Use cached drift if provided, otherwise compute
+            if cached_drift is not None:
+                drift_score = cached_drift
+            else:
+                drift_score = self.compute_semantic_drift(current_user_node_id)
+                if drift_score is None:
+                    return  # Not enough data for drift
+
+            # Get previous user info for display (need ancestry for short_id)
+            conversation_chain = get_ancestry(current_user_node_id)
+            user_messages = [node for node in conversation_chain
+                            if node.get("role") == "user" and node.get("content", "").strip()]
+            if len(user_messages) < 2:
+                return
+            previous_user = user_messages[-2]
+            current_user = user_messages[-1]
             
             # Format drift display based on score level
             if drift_score >= 0.8:
@@ -384,11 +412,18 @@ class ConversationManager:
             # Add the user message to the database
             with benchmark_resource("Database", "insert user node"):
                 user_node_id, user_short_id = insert_node(user_input, self.current_node_id, role="user")
-        
+
+            # Compute semantic drift BEFORE topic detection (for hybrid trigger)
+            # This allows high embedding drift to fast-path into SUSPECT state
+            semantic_drift = None
+            if config.get("show_drift") or config.get("use_drift_trigger", True):
+                semantic_drift = self.compute_semantic_drift(user_node_id)
+
             # Detect topic change BEFORE querying the main LLM
             topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
                 self.topic_handler.detect_and_handle_topic_change(
-                    recent_nodes, user_input, user_node_id
+                    recent_nodes, user_input, user_node_id,
+                    semantic_drift=semantic_drift
                 )
             
             # Store topic detection scores for debugging
@@ -420,7 +455,7 @@ class ConversationManager:
                 
                 # Display drift if enabled
                 if config.get("show_drift"):
-                    self.display_semantic_drift(user_node_id)
+                    self.display_semantic_drift(user_node_id, cached_drift=semantic_drift)
                 
                 # Display the skipped response message
                 typer.echo("")
@@ -538,8 +573,8 @@ class ConversationManager:
             
             # Display drift if enabled
             if config.get("show_drift"):
-                self.display_semantic_drift(user_node_id)
-            
+                self.display_semantic_drift(user_node_id, cached_drift=semantic_drift)
+
             # Display memory indicator if enabled
             if memory_indicator and config.get("memory_show_indicators", True):
                 typer.echo("")

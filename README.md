@@ -411,7 +411,7 @@ Fine-tune model behavior across four contexts with `/mset`:
 
 ```
 ⚙️  Model Parameters:
-───────────────────��──────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────
 Parameter            Chat     Detection Compression Synthesis  
 ──────────────────────────────────────────────────────────────────────
 temperature           0.7        0.0        0.3        0.3     

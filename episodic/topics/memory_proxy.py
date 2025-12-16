@@ -84,6 +84,53 @@ class MemoryEvictionProxy:
         self.context_budget = context_budget
         self.random = random.Random(seed)
 
+    def assign_fact_locations(
+        self,
+        test_case: TestCase,
+        injection_density: float = 0.2
+    ) -> List[InjectedFact]:
+        """
+        Assign turn indices as fact locations WITHOUT modifying dialogue content.
+
+        This is non-perturbative: the dialogue content is unchanged, so the
+        neural model sees the original messages. Retention is computed purely
+        from whether the turn index is retained based on boundaries.
+
+        Args:
+            test_case: Original TestCase (not modified)
+            injection_density: Fraction of turns to assign as fact locations
+
+        Returns:
+            List of InjectedFact with turn indices (original_text is empty)
+        """
+        facts: List[InjectedFact] = []
+        gold_boundaries = set(test_case.expected_boundaries)
+        num_messages = len(test_case.messages)
+
+        # Identify fact locations
+        fact_locations = self._select_injection_points(
+            num_messages, gold_boundaries, injection_density
+        )
+
+        # Create fact entries (metadata only, no content modification)
+        fact_counter = 1000
+        for turn_idx in fact_locations:
+            if turn_idx >= num_messages:
+                continue
+
+            fact_type, _, value_template = self.random.choice(FACT_TEMPLATES)
+            fact_value = value_template.format(num=fact_counter)
+            fact_counter += 1
+
+            facts.append(InjectedFact(
+                turn_idx=turn_idx,
+                fact_type=fact_type,
+                fact_value=fact_value,
+                original_text="",  # Not injected into content
+            ))
+
+        return facts
+
     def inject_facts(
         self,
         test_case: TestCase,
@@ -92,7 +139,9 @@ class MemoryEvictionProxy:
         """
         Insert unique, greppable facts at strategic locations.
 
-        Injects facts near expected gold boundaries, mid-segment, and at edges.
+        WARNING: This modifies dialogue content, which can perturb the neural
+        model's predictions. For non-perturbative evaluation, use
+        assign_fact_locations() instead.
 
         Args:
             test_case: Original TestCase

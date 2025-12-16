@@ -52,21 +52,59 @@ class CommitmentPolicy:
     evidence_decay: float = 0.8
 
     # Minimum accumulated evidence to commit
-    # Higher values reduce false positives but delay true commits
-    # 2.0 allows brief digressions to decay before committing
-    min_evidence: float = 2.0
+    min_evidence: float = 1.2
 
     # Drift threshold for fast-path SUSPECT entry (hybrid trigger)
     # High embedding drift can trigger SUSPECT even if neural confidence is low
     # Set to None to disable drift fast-path
     drift_suspect_threshold: Optional[float] = 0.95
 
+    # === Persistence requirement (two-sided test) ===
+    # After evidence threshold is met, require K more turns with confidence
+    # above return_threshold before committing. This catches transient digressions
+    # where the user returns to the original topic.
+    #
+    # Commit requires BOTH:
+    #   1. accumulated_evidence >= min_evidence
+    #   2. last commit_persistence turns all had confidence >= return_threshold
+
+    # Number of turns that must stay "away from topic" after evidence threshold
+    # before we commit. 0 = commit immediately when evidence is met.
+    commit_persistence: int = 1
+
+    # Threshold for "returned to topic" - if confidence drops below this after
+    # evidence threshold is met, we ABORT. Reuses abort_threshold by default.
+    # Set to None to use abort_threshold.
+    return_threshold: Optional[float] = None
+
+    # Alternative return detection: relative drop from peak confidence.
+    # If confidence drops to less than (peak * return_drop_ratio), ABORT.
+    # This is more adaptive than an absolute threshold.
+    # Example: peak=0.9, ratio=0.55 → abort if conf < 0.495
+    # Set to None to use return_threshold instead.
+    return_drop_ratio: Optional[float] = None
+
+    # === Conditional cooldown ===
+    # Don't apply persistence uniformly. High-confidence neural spikes are likely
+    # real boundaries; only apply cooldown to intermediate cases that look like
+    # potential digressions.
+    #
+    # Cooldown (K) applies when:
+    #   - suspect_cause == "drift" (drift is noisy, needs confirmation), OR
+    #   - confidence < high_conf_commit_threshold (intermediate band)
+    #
+    # Cooldown bypassed (immediate commit) when:
+    #   - suspect_cause == "neural" AND confidence >= high_conf_commit_threshold
+    #
+    # Set to None to apply K uniformly (original behavior).
+    high_conf_commit_threshold: Optional[float] = None
+
     # === Drift-triggered SUSPECT: stricter requirements ===
     # Drift fires on surface-level changes (new entities, tangents) that may
     # not be real topic changes. Require stronger neural confirmation.
 
     # Minimum evidence for drift-triggered SUSPECT (higher = stricter)
-    # Default: 2.4 vs 2.0 for neural-triggered
+    # Default: 2.4 vs 1.2 for neural-triggered
     drift_min_evidence: float = 2.4
 
     # Abort threshold for drift-triggered SUSPECT (higher = faster abort)
@@ -117,6 +155,21 @@ class CommitmentState:
     # Cause of SUSPECT entry: "neural" or "drift"
     # Used to apply cause-conditioned policy (stricter for drift)
     suspect_cause: Optional[str] = None
+
+    # Recent confidence values for persistence check (two-sided test)
+    # After evidence threshold is met, we track confidence values to ensure
+    # the user hasn't "returned" to the original topic before committing.
+    recent_confidences: List[float] = field(default_factory=list)
+
+    # Whether evidence threshold has been met (waiting for persistence)
+    evidence_met: bool = False
+
+    # Peak confidence during SUSPECT for relative drop detection
+    peak_confidence: float = 0.0
+
+    # Entry confidence when SUSPECT was entered (for bypass decision)
+    # Bypass uses entry confidence, not commit-time confidence
+    suspect_entry_confidence: float = 0.0
 
 
 class CommitmentPolicyStrategy(TopicStrategy):
@@ -408,11 +461,29 @@ class CommitmentPolicyStrategy(TopicStrategy):
                 abort_streak = self.policy.abort_streak
                 min_evidence = self.policy.min_evidence
 
+            # Return threshold for persistence check (two-sided test)
+            return_threshold = (
+                self.policy.return_threshold if self.policy.return_threshold is not None
+                else abort_threshold
+            )
+
             debug_print(
                 f"[SUSPECT:{self._state.suspect_cause}] idx={self._state.current_idx} "
-                f"conf_vs_frozen={confidence:.3f} (abort_thresh={abort_threshold})",
+                f"conf_vs_frozen={confidence:.3f} (abort_thresh={abort_threshold}, "
+                f"evidence_met={self._state.evidence_met})",
                 category="topic"
             )
+
+            # Track recent confidences for persistence check
+            self._state.recent_confidences.append(confidence)
+            # Keep only the last K+1 values (K for persistence check + current)
+            max_history = self.policy.commit_persistence + 1
+            if len(self._state.recent_confidences) > max_history:
+                self._state.recent_confidences = self._state.recent_confidences[-max_history:]
+
+            # Track peak confidence for relative drop detection
+            if confidence > self._state.peak_confidence:
+                self._state.peak_confidence = confidence
 
             # Accumulate evidence with decay
             prev_evidence = self._state.accumulated_evidence
@@ -423,11 +494,25 @@ class CommitmentPolicyStrategy(TopicStrategy):
             debug_print(
                 f"  evidence: {prev_evidence:.3f}*{self.policy.evidence_decay} + "
                 f"{confidence:.3f} = {self._state.accumulated_evidence:.3f} "
-                f"(need {min_evidence})",
+                f"(need {min_evidence}), peak={self._state.peak_confidence:.3f}",
                 category="topic"
             )
 
+            # Check if evidence threshold is met
+            if self._state.accumulated_evidence >= min_evidence:
+                self._state.evidence_met = True
+
+            # Calculate effective return threshold for abort decisions
+            # Priority: return_drop_ratio > return_threshold > abort_threshold
+            if self.policy.return_drop_ratio is not None:
+                effective_return_thresh = self._state.peak_confidence * self.policy.return_drop_ratio
+            else:
+                effective_return_thresh = return_threshold
+
             # Check ABORT condition: confidence below threshold?
+            # Two cases for ABORT:
+            # 1. Standard: low confidence for abort_streak consecutive turns
+            # 2. Return detection: evidence_met but confidence dropped below return_threshold
             if confidence < abort_threshold:
                 self._state.low_confidence_streak += 1
                 debug_print(
@@ -450,18 +535,76 @@ class CommitmentPolicyStrategy(TopicStrategy):
             else:
                 self._state.low_confidence_streak = 0
 
-            # Check COMMIT condition: enough evidence AND min_gap satisfied
-            if self._state.accumulated_evidence >= min_evidence:
+            # Return detection: if evidence was met but confidence dropped, ABORT
+            # This catches transient digressions where user returns to original topic
+            if self._state.evidence_met and confidence < effective_return_thresh:
+                debug_print(
+                    f"[SUSPECT→ABORT] Return detected: evidence_met but "
+                    f"conf={confidence:.3f} < return_thresh={effective_return_thresh:.3f} "
+                    f"(peak={self._state.peak_confidence:.3f})",
+                    category="topic"
+                )
+                self._abort_suspect()
+                return self._build_stable_decision(
+                    base_decision, start_time,
+                    f"ABORT: returned to topic (conf={confidence:.2f} < {effective_return_thresh:.2f})",
+                    semantic_drift=semantic_drift
+                )
+
+            # Check COMMIT condition (two-sided test):
+            # 1. accumulated_evidence >= min_evidence
+            # 2. min_gap satisfied
+            # 3. Persistence check (conditional cooldown)
+            if self._state.evidence_met:
                 gap = self._turns_since_boundary()
                 if gap >= self.policy.min_gap:
-                    node_preview = self._state.suspect_start_node_id[:8] if self._state.suspect_start_node_id else "None"
-                    debug_print(
-                        f"[SUSPECT→COMMIT] {self._state.suspect_cause}-triggered, "
-                        f"evidence={self._state.accumulated_evidence:.3f} >= {min_evidence}, "
-                        f"gap={gap}, boundary_node={node_preview}...",
-                        category="topic"
-                    )
-                    return self._commit_boundary(base_decision, start_time)
+                    # Determine effective K based on conditional cooldown
+                    # High-confidence neural spikes bypass cooldown (K=0)
+                    # Drift-triggered or intermediate confidence requires cooldown
+                    #
+                    # IMPORTANT: Bypass uses ENTRY confidence, not commit-time confidence.
+                    # This prevents gaming by transient spikes during SUSPECT.
+                    k = self.policy.commit_persistence
+                    bypass_cooldown = False
+
+                    if self.policy.high_conf_commit_threshold is not None:
+                        # Conditional cooldown: bypass K for high-confidence neural ENTRY
+                        entry_conf = self._state.suspect_entry_confidence
+                        if (self._state.suspect_cause == "neural" and
+                            entry_conf >= self.policy.high_conf_commit_threshold):
+                            bypass_cooldown = True
+                            debug_print(
+                                f"  [COOLDOWN BYPASS] neural + entry_conf={entry_conf:.3f} >= "
+                                f"{self.policy.high_conf_commit_threshold}",
+                                category="topic"
+                            )
+
+                    if k == 0 or bypass_cooldown:
+                        # No persistence required, commit immediately
+                        persistence_met = True
+                    else:
+                        # Check last K confidences (excluding current which we just added)
+                        recent = self._state.recent_confidences[:-1] if len(self._state.recent_confidences) > 1 else []
+                        persistence_met = (
+                            len(recent) >= k and
+                            all(c >= effective_return_thresh for c in recent[-k:])
+                        )
+
+                    if persistence_met:
+                        node_preview = self._state.suspect_start_node_id[:8] if self._state.suspect_start_node_id else "None"
+                        debug_print(
+                            f"[SUSPECT→COMMIT] {self._state.suspect_cause}-triggered, "
+                            f"evidence={self._state.accumulated_evidence:.3f} >= {min_evidence}, "
+                            f"gap={gap}, persistence={k} (bypass={bypass_cooldown}), boundary_node={node_preview}...",
+                            category="topic"
+                        )
+                        return self._commit_boundary(base_decision, start_time)
+                    else:
+                        debug_print(
+                            f"[SUSPECT] evidence met, waiting for persistence "
+                            f"(need {k} turns >= {effective_return_thresh:.2f})",
+                            category="topic"
+                        )
                 else:
                     debug_print(
                         f"[SUSPECT] evidence sufficient ({self._state.accumulated_evidence:.3f}) "
@@ -487,6 +630,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.accumulated_evidence = initial_confidence
         self._state.low_confidence_streak = 0
         self._state.suspect_cause = "neural"
+        self._state.suspect_entry_confidence = initial_confidence  # For bypass decision
 
         if node_id is None:
             debug_print(
@@ -553,6 +697,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.accumulated_evidence = 0.0  # Neural must build evidence
         self._state.low_confidence_streak = 0
         self._state.suspect_cause = "drift"
+        self._state.suspect_entry_confidence = 0.0  # Drift entry has no neural confidence
 
         if node_id is None:
             debug_print(
@@ -602,6 +747,10 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.accumulated_evidence = 0.0
         self._state.low_confidence_streak = 0
         self._state.suspect_cause = None
+        self._state.recent_confidences = []
+        self._state.evidence_met = False
+        self._state.peak_confidence = 0.0
+        self._state.suspect_entry_confidence = 0.0
 
     def _commit_boundary(self, base_decision: TopicDecision, start_time: float) -> TopicDecision:
         """Commit to the boundary detected when entering SUSPECT."""
@@ -634,6 +783,10 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.accumulated_evidence = 0.0
         self._state.low_confidence_streak = 0
         self._state.suspect_cause = None
+        self._state.recent_confidences = []
+        self._state.evidence_met = False
+        self._state.peak_confidence = 0.0
+        self._state.suspect_entry_confidence = 0.0
 
         # Use cause-conditioned min_evidence for reasoning
         actual_min_evidence = (

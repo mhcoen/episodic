@@ -99,13 +99,13 @@ class CommitmentPolicy:
     # Set to None to apply K uniformly (original behavior).
     high_conf_commit_threshold: Optional[float] = None
 
-    # === Drift-triggered SUSPECT: stricter requirements ===
+    # === Drift-triggered SUSPECT: confirmation requirements ===
     # Drift fires on surface-level changes (new entities, tangents) that may
-    # not be real topic changes. Require stronger neural confirmation.
+    # not be real topic changes. Neural model must still confirm.
 
-    # Minimum evidence for drift-triggered SUSPECT (higher = stricter)
-    # Default: 2.4 vs 1.2 for neural-triggered
-    drift_min_evidence: float = 2.4
+    # Minimum evidence for drift-triggered SUSPECT
+    # Same as neural-triggered since neural confirmation is still required
+    drift_min_evidence: float = 1.2
 
     # Abort threshold for drift-triggered SUSPECT (higher = faster abort)
     # Default: 0.4 vs 0.3 for neural-triggered

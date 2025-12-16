@@ -691,9 +691,15 @@ class EpisodicCompleter(Completer):
                     # Get all .txt script files with modification times
                     script_files = []
                     for file in scripts_dir.glob("*.txt"):
-                        stat = file.stat()
-                        mtime = stat.st_mtime
-                        script_files.append((file.stem, mtime, file.name))
+                        # Skip symlinks and files that can't be stat'd
+                        try:
+                            if file.is_symlink():
+                                continue
+                            stat = file.stat()
+                            mtime = stat.st_mtime
+                            script_files.append((file.stem, mtime, file.name))
+                        except (OSError, FileNotFoundError):
+                            continue
 
                     # Sort by modification time (newest first)
                     script_files.sort(key=lambda x: x[1], reverse=True)

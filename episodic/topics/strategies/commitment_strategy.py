@@ -104,7 +104,8 @@ class CommitmentPolicy:
     # not be real topic changes. Neural model must still confirm.
 
     # Minimum evidence for drift-triggered SUSPECT
-    # Same as neural-triggered since neural confirmation is still required
+    # Same as neural-triggered (1.2) since drift just triggers faster entry
+    # while neural must still build evidence to commit
     drift_min_evidence: float = 1.2
 
     # Abort threshold for drift-triggered SUSPECT (higher = faster abort)

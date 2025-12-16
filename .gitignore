@@ -104,3 +104,8 @@ DEBUG.md
 .cursor/
 .github/copilot/
 extract_claude_session.py
+
+# Test output files
+*_test_output.txt
+*_output.txt
+tests/**/test_results.txt

@@ -208,13 +208,18 @@ class OnlineReplayHarness:
 
             # Only run detection on user messages with sufficient history
             if message.role == 'user' and len(message_history) >= 2:
+                # IMPORTANT: The strategy expects messages[-1] to be the current query
+                # (as done by topic_management.py in production). Build messages_with_query
+                # to match this expectation.
+                messages_with_query = message_history + [message.to_dict()]
+
                 # Pass semantic_drift to strategy if it supports it
                 # CommitmentPolicyStrategy and DefaultStrategy accept semantic_drift
                 # NeuralStrategy does not (it's passed through the wrapper)
                 try:
                     decision = self.strategy.get_decision(
                         query=content,
-                        messages=message_history,
+                        messages=messages_with_query,
                         current_thread=None,
                         semantic_drift=semantic_drift,
                     )
@@ -222,7 +227,7 @@ class OnlineReplayHarness:
                     # Fallback for strategies that don't accept semantic_drift
                     decision = self.strategy.get_decision(
                         query=content,
-                        messages=message_history,
+                        messages=messages_with_query,
                         current_thread=None,
                     )
 

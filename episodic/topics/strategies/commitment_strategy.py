@@ -52,12 +52,30 @@ class CommitmentPolicy:
     evidence_decay: float = 0.8
 
     # Minimum accumulated evidence to commit
-    min_evidence: float = 1.2
+    # Higher values reduce false positives but delay true commits
+    # 2.0 allows brief digressions to decay before committing
+    min_evidence: float = 2.0
 
     # Drift threshold for fast-path SUSPECT entry (hybrid trigger)
     # High embedding drift can trigger SUSPECT even if neural confidence is low
     # Set to None to disable drift fast-path
     drift_suspect_threshold: Optional[float] = 0.95
+
+    # === Drift-triggered SUSPECT: stricter requirements ===
+    # Drift fires on surface-level changes (new entities, tangents) that may
+    # not be real topic changes. Require stronger neural confirmation.
+
+    # Minimum evidence for drift-triggered SUSPECT (higher = stricter)
+    # Default: 2.4 vs 2.0 for neural-triggered
+    drift_min_evidence: float = 2.4
+
+    # Abort threshold for drift-triggered SUSPECT (higher = faster abort)
+    # Default: 0.4 vs 0.3 for neural-triggered
+    drift_abort_threshold: float = 0.4
+
+    # Abort streak for drift-triggered SUSPECT (lower = faster abort)
+    # Default: 2 vs 3 for neural-triggered
+    drift_abort_streak: int = 2
 
 
 # State machine states
@@ -95,6 +113,10 @@ class CommitmentState:
 
     # Count of consecutive low-confidence turns (for ABORT logic)
     low_confidence_streak: int = 0
+
+    # Cause of SUSPECT entry: "neural" or "drift"
+    # Used to apply cause-conditioned policy (stricter for drift)
+    suspect_cause: Optional[str] = None
 
 
 class CommitmentPolicyStrategy(TopicStrategy):
@@ -374,8 +396,21 @@ class CommitmentPolicyStrategy(TopicStrategy):
             )
             confidence = base_decision.confidence_score
 
+            # Get cause-conditioned thresholds
+            # Drift-triggered SUSPECT uses stricter requirements
+            is_drift_caused = self._state.suspect_cause == "drift"
+            if is_drift_caused:
+                abort_threshold = self.policy.drift_abort_threshold
+                abort_streak = self.policy.drift_abort_streak
+                min_evidence = self.policy.drift_min_evidence
+            else:
+                abort_threshold = self.policy.abort_threshold
+                abort_streak = self.policy.abort_streak
+                min_evidence = self.policy.min_evidence
+
             debug_print(
-                f"[SUSPECT] idx={self._state.current_idx} conf_vs_frozen={confidence:.3f}",
+                f"[SUSPECT:{self._state.suspect_cause}] idx={self._state.current_idx} "
+                f"conf_vs_frozen={confidence:.3f} (abort_thresh={abort_threshold})",
                 category="topic"
             )
 
@@ -388,36 +423,42 @@ class CommitmentPolicyStrategy(TopicStrategy):
             debug_print(
                 f"  evidence: {prev_evidence:.3f}*{self.policy.evidence_decay} + "
                 f"{confidence:.3f} = {self._state.accumulated_evidence:.3f} "
-                f"(need {self.policy.min_evidence})",
+                f"(need {min_evidence})",
                 category="topic"
             )
 
             # Check ABORT condition: confidence below threshold?
-            if confidence < self.policy.abort_threshold:
+            if confidence < abort_threshold:
                 self._state.low_confidence_streak += 1
                 debug_print(
-                    f"  low conf streak: {self._state.low_confidence_streak}/{self.policy.abort_streak}",
+                    f"  low conf streak: {self._state.low_confidence_streak}/{abort_streak}",
                     category="topic"
                 )
-                if self._state.low_confidence_streak >= self.policy.abort_streak:
+                if self._state.low_confidence_streak >= abort_streak:
                     # ABORT: return to original topic, false alarm
-                    debug_print("[SUSPECT→ABORT] Too many low confidence turns", category="topic")
+                    debug_print(
+                        f"[SUSPECT→ABORT] {self._state.suspect_cause}-triggered, "
+                        f"low confidence for {abort_streak} turns",
+                        category="topic"
+                    )
                     self._abort_suspect()
                     return self._build_stable_decision(
-                        base_decision, start_time, "ABORT: returned to topic",
+                        base_decision, start_time,
+                        f"ABORT: {self._state.suspect_cause}-triggered false alarm",
                         semantic_drift=semantic_drift
                     )
             else:
                 self._state.low_confidence_streak = 0
 
             # Check COMMIT condition: enough evidence AND min_gap satisfied
-            if self._state.accumulated_evidence >= self.policy.min_evidence:
+            if self._state.accumulated_evidence >= min_evidence:
                 gap = self._turns_since_boundary()
                 if gap >= self.policy.min_gap:
                     node_preview = self._state.suspect_start_node_id[:8] if self._state.suspect_start_node_id else "None"
                     debug_print(
-                        f"[SUSPECT→COMMIT] evidence={self._state.accumulated_evidence:.3f} "
-                        f">= {self.policy.min_evidence}, gap={gap}, boundary_node={node_preview}...",
+                        f"[SUSPECT→COMMIT] {self._state.suspect_cause}-triggered, "
+                        f"evidence={self._state.accumulated_evidence:.3f} >= {min_evidence}, "
+                        f"gap={gap}, boundary_node={node_preview}...",
                         category="topic"
                     )
                     return self._commit_boundary(base_decision, start_time)
@@ -445,6 +486,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.suspect_start_node_id = node_id
         self._state.accumulated_evidence = initial_confidence
         self._state.low_confidence_streak = 0
+        self._state.suspect_cause = "neural"
 
         if node_id is None:
             debug_print(
@@ -500,11 +542,17 @@ class CommitmentPolicyStrategy(TopicStrategy):
         Unlike neural-triggered entry, drift-triggered entry seeds evidence=0.
         This requires the neural model to still build evidence - drift just
         gets us into SUSPECT faster so we don't miss the window.
+
+        Drift-triggered SUSPECT uses stricter thresholds:
+        - Higher min_evidence (drift_min_evidence vs min_evidence)
+        - Higher abort threshold (drift_abort_threshold vs abort_threshold)
+        - Lower abort streak (drift_abort_streak vs abort_streak)
         """
         self._state.state = CommitState.SUSPECT
         self._state.suspect_start_node_id = node_id
         self._state.accumulated_evidence = 0.0  # Neural must build evidence
         self._state.low_confidence_streak = 0
+        self._state.suspect_cause = "drift"
 
         if node_id is None:
             debug_print(
@@ -542,7 +590,8 @@ class CommitmentPolicyStrategy(TopicStrategy):
     def _abort_suspect(self):
         """Abort SUSPECT state: false alarm, return to STABLE."""
         debug_print(
-            f"ABORT: low confidence for {self._state.low_confidence_streak} turns, "
+            f"ABORT: {self._state.suspect_cause}-triggered, "
+            f"low confidence for {self._state.low_confidence_streak} turns, "
             f"evidence was {self._state.accumulated_evidence:.3f}",
             category="topic"
         )
@@ -552,6 +601,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.suspect_start_node_id = None
         self._state.accumulated_evidence = 0.0
         self._state.low_confidence_streak = 0
+        self._state.suspect_cause = None
 
     def _commit_boundary(self, base_decision: TopicDecision, start_time: float) -> TopicDecision:
         """Commit to the boundary detected when entering SUSPECT."""
@@ -573,6 +623,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
         # Update tracking
         self._state.last_boundary_idx = self._state.current_idx
 
+        # Capture cause before reset for signals
+        suspect_cause = self._state.suspect_cause
+
         # Reset to STABLE
         self._state.state = CommitState.STABLE
         self._state.frozen_before = None
@@ -580,8 +633,14 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.suspect_start_node_id = None
         self._state.accumulated_evidence = 0.0
         self._state.low_confidence_streak = 0
+        self._state.suspect_cause = None
 
-        reasoning = f"COMMIT: evidence={evidence:.2f} >= {self.policy.min_evidence}"
+        # Use cause-conditioned min_evidence for reasoning
+        actual_min_evidence = (
+            self.policy.drift_min_evidence if suspect_cause == "drift"
+            else self.policy.min_evidence
+        )
+        reasoning = f"COMMIT: {suspect_cause}-triggered, evidence={evidence:.2f} >= {actual_min_evidence}"
         if boundary_node_id:
             reasoning += f", boundary at {boundary_node_id[:8]}..."
 
@@ -589,9 +648,10 @@ class CommitmentPolicyStrategy(TopicStrategy):
         signals.update({
             'state': 'COMMIT',
             'accumulated_evidence': evidence,
-            'min_evidence': self.policy.min_evidence,
+            'min_evidence': actual_min_evidence,
             'boundary_node_id': boundary_node_id,
             'committed': True,
+            'suspect_cause': suspect_cause,
         })
 
         return TopicDecision(

@@ -345,22 +345,27 @@ def create_strategy(
             suspect_threshold=neural_threshold,
             abort_threshold=0.3,
             abort_streak=3,
-            min_evidence=1.2,
-            evidence_decay=0.7,
+            min_evidence=2.0,  # Higher to allow brief digressions to decay
+            evidence_decay=0.8,
             drift_suspect_threshold=None,  # No drift trigger
         )
         return CommitmentPolicyStrategy(neural_base, policy)
 
     elif strategy_type == "commitment_hybrid":
         # Full commitment + drift trigger at specified threshold
+        # Uses cause-conditioned policy: drift-triggered SUSPECT has stricter requirements
         policy = CommitmentPolicy(
             min_gap=min_gap,
             suspect_threshold=neural_threshold,
             abort_threshold=0.3,
             abort_streak=3,
-            min_evidence=1.2,
-            evidence_decay=0.7,
+            min_evidence=2.0,  # Higher to allow brief digressions to decay
+            evidence_decay=0.8,
             drift_suspect_threshold=drift_threshold,
+            # Drift-triggered SUSPECT: stricter requirements
+            drift_min_evidence=2.4,
+            drift_abort_threshold=0.4,
+            drift_abort_streak=2,
         )
         return CommitmentPolicyStrategy(neural_base, policy)
 

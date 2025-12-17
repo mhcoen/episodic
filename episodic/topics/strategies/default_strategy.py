@@ -57,15 +57,15 @@ logger = logging.getLogger(__name__)
 # - suspect_threshold=0.5 enters SUSPECT on moderate+ confidence
 # - min_evidence=1.2 requires ~2 turns of high confidence against frozen reference
 # - abort_streak=3 returns to STABLE if low confidence for 3 consecutive turns
-# - drift_suspect_threshold=0.95 enables hybrid trigger for sharp topic shifts
+# - drift_suspect_threshold=0.85 catches topic shifts like Mars→pasta (0.889)
 DEFAULT_COMMITMENT_POLICY = CommitmentPolicy(
     min_gap=4,              # Minimum 4 messages (2 exchanges) between boundaries
-    suspect_threshold=1.0,  # Disable neural SUSPECT trigger - rely on drift only (neural has too many false positives)
+    suspect_threshold=1.0,  # Disable neural SUSPECT trigger for now - needs sweep to calibrate
     abort_threshold=0.3,    # ABORT if confidence stays below this
     abort_streak=3,         # ABORT after this many low-confidence turns
     evidence_decay=0.7,     # Decay factor for accumulated evidence
     min_evidence=1.2,       # Evidence needed to COMMIT (allows ~2 high signals)
-    drift_suspect_threshold=0.95,  # Drift fast-path threshold catches sharp shifts
+    drift_suspect_threshold=0.85,  # Drift fast-path threshold (lowered from 0.95)
 )
 
 

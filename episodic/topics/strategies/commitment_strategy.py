@@ -112,9 +112,10 @@ class CommitmentPolicy:
     # Default: 0.4 vs 0.3 for neural-triggered
     drift_abort_threshold: float = 0.4
 
-    # Abort streak for drift-triggered SUSPECT (lower = faster abort)
-    # Default: 2 vs 3 for neural-triggered
-    drift_abort_streak: int = 2
+    # Abort streak for drift-triggered SUSPECT
+    # Higher than neural (4 vs 3) to give more time for neural to confirm
+    # when drift triggers early on a genuine topic change
+    drift_abort_streak: int = 4
 
 
 # State machine states
@@ -389,10 +390,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
             # Enter SUSPECT via drift fast-path OR neural confidence
             # Drift catches sharp topic shifts that neural model misses on first turn
             if drift_triggered:
-                # DRIFT-triggered SUSPECT entry: freeze context but seed evidence=0
-                # Require neural model to build evidence normally (it may still catch
-                # the boundary on subsequent turns once the new topic stabilizes)
-                self._enter_suspect_drift(messages, current_node_id, semantic_drift)
+                # DRIFT-triggered SUSPECT entry: freeze context and seed with neural conf
+                # Neural must still build evidence, but seeding gives a head start
+                self._enter_suspect_drift(messages, current_node_id, semantic_drift, confidence)
                 debug_print(
                     f"[STABLE→SUSPECT] Drift fast-path! drift={semantic_drift:.3f} "
                     f">= {self.policy.drift_suspect_threshold}, neural_conf={confidence:.3f}",
@@ -679,14 +679,15 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self,
         messages: List[Dict[str, Any]],
         node_id: Optional[str],
-        drift_value: float
+        drift_value: float,
+        neural_confidence: float = 0.0
     ):
         """
         Enter SUSPECT state via drift fast-path.
 
-        Unlike neural-triggered entry, drift-triggered entry seeds evidence=0.
-        This requires the neural model to still build evidence - drift just
-        gets us into SUSPECT faster so we don't miss the window.
+        Drift-triggered entry seeds evidence with the neural confidence at entry.
+        This gives the neural model a head start on evidence accumulation while
+        still requiring confirmation.
 
         Drift-triggered SUSPECT uses stricter thresholds:
         - Higher min_evidence (drift_min_evidence vs min_evidence)
@@ -695,10 +696,10 @@ class CommitmentPolicyStrategy(TopicStrategy):
         """
         self._state.state = CommitState.SUSPECT
         self._state.suspect_start_node_id = node_id
-        self._state.accumulated_evidence = 0.0  # Neural must build evidence
+        self._state.accumulated_evidence = neural_confidence  # Seed with neural conf
         self._state.low_confidence_streak = 0
         self._state.suspect_cause = "drift"
-        self._state.suspect_entry_confidence = 0.0  # Drift entry has no neural confidence
+        self._state.suspect_entry_confidence = neural_confidence
 
         if node_id is None:
             debug_print(
@@ -728,7 +729,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
 
         debug_print(
             f"[ENTER_SUSPECT_DRIFT] node={node_id[:8] if node_id else 'None'}... "
-            f"drift={drift_value:.3f}, evidence=0.0 (neural must build), "
+            f"drift={drift_value:.3f}, evidence={neural_confidence:.3f} (seeded), "
             f"frozen {len(self._state.frozen_before)} msgs",
             category="topic"
         )

@@ -117,6 +117,15 @@ class CommitmentPolicy:
     # when drift triggers early on a genuine topic change
     drift_abort_streak: int = 4
 
+    # === Drift + neural fast commit ===
+    # When drift triggers SUSPECT AND neural confidence exceeds this threshold,
+    # commit immediately (subject to min_gap). This handles cases where:
+    # 1. Both signals agree (double confirmation)
+    # 2. Neural model is sensitive to phrasing, so subsequent turns may give
+    #    lower confidence despite the topic having clearly changed
+    # Set to None to disable fast commit (require normal evidence accumulation)
+    drift_neural_fast_commit_threshold: float = 0.9
+
 
 # State machine states
 class CommitState:
@@ -391,13 +400,33 @@ class CommitmentPolicyStrategy(TopicStrategy):
             # Drift catches sharp topic shifts that neural model misses on first turn
             if drift_triggered:
                 # DRIFT-triggered SUSPECT entry: freeze context and seed with neural conf
-                # Neural must still build evidence, but seeding gives a head start
                 self._enter_suspect_drift(messages, current_node_id, semantic_drift, confidence)
                 debug_print(
                     f"[STABLE→SUSPECT] Drift fast-path! drift={semantic_drift:.3f} "
                     f">= {self.policy.drift_suspect_threshold}, neural_conf={confidence:.3f}",
                     category="topic"
                 )
+
+                # === Drift + neural fast commit ===
+                # When both drift AND neural give high confidence on the same turn,
+                # commit immediately (subject to min_gap). This handles cases where
+                # the neural model is sensitive to phrasing on subsequent turns.
+                fast_commit_thresh = self.policy.drift_neural_fast_commit_threshold
+                if fast_commit_thresh is not None and confidence >= fast_commit_thresh:
+                    gap = self._turns_since_boundary()
+                    if gap >= self.policy.min_gap:
+                        debug_print(
+                            f"[STABLE→COMMIT] Drift+neural fast commit! "
+                            f"drift={semantic_drift:.3f}, neural={confidence:.3f} >= {fast_commit_thresh}, gap={gap}",
+                            category="topic"
+                        )
+                        return self._commit_boundary(base_decision, start_time)
+                    else:
+                        debug_print(
+                            f"[STABLE→SUSPECT] Drift+neural high but gap={gap} < min_gap={self.policy.min_gap}",
+                            category="topic"
+                        )
+
                 return self._build_suspect_decision(
                     base_decision, start_time, "entered SUSPECT via drift",
                     semantic_drift=semantic_drift, drift_triggered=True

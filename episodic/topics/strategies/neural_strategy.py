@@ -5,6 +5,7 @@ Uses fine-tuned DistilBERT model trained on conversational
 transition data for topic boundary detection.
 """
 
+import re
 import time
 import logging
 from typing import Dict, List, Any, Optional
@@ -18,6 +19,39 @@ from episodic.topics.strategy import (
     Confidence,
 )
 from episodic.topics.calibration import GRANULARITY_LEVELS
+
+
+def strip_markdown(text: str) -> str:
+    """Strip markdown formatting from text before sending to neural model."""
+    if not text:
+        return ""
+
+    # Remove code blocks
+    text = re.sub(r'```[\s\S]*?```', ' ', text)
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+
+    # Remove bold/italic
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'__(.+?)__', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'_(.+?)_', r'\1', text)
+
+    # Remove headers
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+
+    # Remove bullet points
+    text = re.sub(r'^[\s]*[-*•]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
+
+    # Remove links but keep text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+
+    # Collapse whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+
 from episodic.config import config
 from episodic.detection_models import get_detector, DetectionModel
 
@@ -215,14 +249,19 @@ class NeuralStrategy(TopicStrategy):
             if len(before_messages) < 2 or len(after_messages) < 1:
                 return False
 
-            # Format messages for detector
+            # Format messages for detector - USER TURNS ONLY
+            # The neural scorer was trained on compact turns. Verbose assistant
+            # responses cause distribution mismatch and collapse the signal.
+            # User messages carry the topic intent; assistant text is exposition.
             before_texts = [
-                f"{msg.get('role', 'user')}: {msg.get('content', '')}"
+                f"user: {strip_markdown(msg.get('content', ''))}"
                 for msg in before_messages
+                if msg.get('role') == 'user'
             ]
             after_texts = [
-                f"{msg.get('role', 'user')}: {msg.get('content', '')}"
+                f"user: {strip_markdown(msg.get('content', ''))}"
                 for msg in after_messages
+                if msg.get('role') == 'user'
             ]
 
             # Use detector's predict method
@@ -367,22 +406,25 @@ class NeuralStrategy(TopicStrategy):
             else:
                 straddle_msg = messages[-1] if messages else {"role": "user", "content": ""}
 
-            last_role = straddle_msg.get('role', 'user')
-            query_role = 'assistant' if last_role == 'user' else 'user'
-
+            # Query is always user input (from topic_management.py user_input)
             after_messages = [
                 straddle_msg,  # Last message of old topic (frozen during SUSPECT)
-                {"role": query_role, "content": query}  # Query (potential first of new topic)
+                {"role": "user", "content": query}  # Query is always user input
             ]
 
-            # Format messages for detector
+            # Format messages for detector - USER TURNS ONLY
+            # The neural scorer was trained on compact turns. Verbose assistant
+            # responses cause distribution mismatch and collapse the signal.
+            # User messages carry the topic intent; assistant text is exposition.
             before_texts = [
-                f"{msg.get('role', 'user')}: {msg.get('content', '')}"
+                f"user: {strip_markdown(msg.get('content', ''))}"
                 for msg in before_messages
+                if msg.get('role') == 'user'
             ]
             after_texts = [
-                f"{msg.get('role', 'user')}: {msg.get('content', '')}"
+                f"user: {strip_markdown(msg.get('content', ''))}"
                 for msg in after_messages
+                if msg.get('role') == 'user'
             ]
 
             # Debug: show window contents

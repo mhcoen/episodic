@@ -61,7 +61,7 @@ transfer across datasets.
 
 Dialogue topic segmentation is commonly framed as identifying points in a conversation where ``the subject changes.’’ This framing is appealingly simple. It is also incorrect. Topic structure is often gradual, nested, and perspective-dependent.
 
-Despite this, many dialogue segmentation benchmarks treat annotated boundaries as objective ground truth and evaluate systems using strict boundary matching and F1-based metrics~\cite{vanrijsbergen1979}. These metrics collapse distinct failure modes into a single number. Small boundary shifts are often harmless when the goal is coherent topic blocks, while missing or adding a few boundaries can be catastrophic if boundaries drive downstream actions such as summarizing or dropping earlier turns.
+Despite this, many dialogue segmentation benchmarks treat annotated boundaries as objective ground truth and evaluate systems using strict boundary matching and F1-based metrics~\cite{vanrijsbergen1979}. These metrics collapse distinct failure modes into a single number. Small boundary shifts are often harmless when the goal is coherent topic blocks, while missing or adding a few boundaries can be catastrophic if boundaries drive downstream actions such as summarizing or dropping earlier turns. Crucially, the mechanism studied here is not score normalization or per-dataset threshold tuning: the underlying scoring function is held fixed, and invariance in boundary density emerges from a decision-level commitment policy rather than rescaling or post-hoc calibration.
 
 This paper addresses that mismatch by changing what we report and what we optimize. We define an evaluation objective that jointly reports (i) tolerant boundary accuracy, (ii) boundary density, and (iii) segment coherence. We also propose an algorithmic separation between boundary scoring and boundary selection that makes boundary density explicit and controllable. Together, these contributions let us distinguish detection failures from granularity mismatches (i.e., discrepancies between the segmentation resolution at which boundaries are produced and that implied by the annotation scheme) and explain why a single global threshold fails to transfer across datasets.
 
@@ -71,6 +71,26 @@ evaluation, and intended use. The failure modes illustrated here arise when
 segmentation granularity differs across datasets or between system behavior and
 annotation intent, which is increasingly common in dialogue benchmarks and
 downstream applications.
+
+This work is an evaluation and methodology study that analyzes why
+boundary-based metrics fail under segmentation granularity mismatch,
+proposes diagnostics that make these failures explicit, and validates a
+simple selection mechanism that decouples boundary scoring from boundary
+density. Concretely, we make the following contributions:
+\begin{itemize}
+\item We show that strict boundary-based metrics (including F1 and
+  W-F1) conflate detection quality with segmentation granularity,
+  yielding systematically misleading conclusions under annotation
+  mismatch.
+\item We propose an evaluation objective that reports boundary density
+  and segment coherence alongside tolerant boundary accuracy, exposing
+  failure modes hidden by standard boundary metrics.
+\item We introduce and empirically validate a topic segmentation
+  framework that separates boundary scoring from boundary selection,
+  showing that many apparent performance differences across dialogue
+  segmentation benchmarks arise from boundary density alignment rather
+  than differences in semantic boundary detection.
+\end{itemize}
 
 \subsection{Motivation: Conversational Memory in AI Chat Systems}
 
@@ -94,12 +114,17 @@ leading to degraded long-horizon coherence and unstable behavior across turns.
 The absence of robust episodic memory remains a major limitation of current
 LLM-based systems, particularly in multi-session interactions.
 
-This work is motivated by the development of \emph{Episodic}, a conversational
-memory system that organizes dialogue into topic-structured representations to
-support persistent interactions with LLM-based assistants~\cite{episodic_github}.
-Within such systems, boundary placement governs summarization, retrieval, and
-context reintegration, making segmentation granularity a first-order systems
-design decision rather than an evaluation detail.
+This work is motivated by the development of \emph{Episodic}, a
+conversational memory system that organizes dialogue into
+topic-structured representations to support persistent interactions
+with LLM-based assistants~\cite{episodic_github}.  Within such
+systems, boundary placement governs summarization, retrieval, and
+context reintegration, making segmentation granularity a first-order
+systems design decision rather than an evaluation detail. We do not
+claim a new state-of-the-art topic segmentation model. Our
+contribution is an evaluation perspective and a principled separation
+between boundary scoring and boundary selection that exposes
+granularity effects obscured by standard metrics.
 
 \section{Background and Related Work}
 
@@ -113,10 +138,20 @@ Topic boundaries are not intrinsic properties of conversations. Instead, they de
 
 This paper treats topic segmentation as two separate operations:
 \begin{enumerate}
-\item \textbf{Boundary scoring:} assign a score to each candidate boundary position.
-\item \textbf{Boundary selection:} choose which candidates become output boundaries, controlling boundary density and spacing.
+\item \textbf{Boundary scoring:} assign a score to each candidate
+  boundary position.
+\item \textbf{Boundary selection:} choose which candidates become
+  output boundaries, controlling boundary density and spacing.
 \end{enumerate}
-Collapsing these operations into a single evaluation target makes boundary density an accidental side effect of threshold tuning and yields systematically misleading conclusions under annotation mismatch.
+
+While per-dataset threshold tuning can force predicted boundary counts
+to match the gold annotation, our baseline experiments show that this
+collapses evaluation into density matching: even non-semantic
+strategies achieve strong F1 and W-F1 scores once boundary density is
+aligned, without detecting true topic transitions. Conflating boundary
+scoring and boundary selection thus turns boundary density into an
+accidental byproduct of threshold choice and produces systematically
+misleading results under annotation granularity mismatch.
 
 \section{Datasets}
 
@@ -147,17 +182,20 @@ rather than relying on the adjacent message pair alone.
 
 \paragraph{Commit gating.}
 We distinguish between \emph{boundary scoring} and \emph{boundary commitment}.
-The base scorer produces candidate boundary signals at each position, but these
-signals do not immediately result in topic changes.
-Instead, we apply \emph{commit gating}, an online decision mechanism that
-accumulates evidence and emits a boundary only when commitment criteria are
-satisfied (e.g., confidence, persistence, or rate constraints).
+The scorer ranks candidate boundary positions, while \emph{commit gating}
+determines when a boundary is actually emitted.
+Commit gating is an online decision mechanism that accumulates evidence over
+time and emits a boundary only when commitment criteria are satisfied (e.g.,
+confidence, persistence, or rate constraints).
 This separation decouples boundary selection from the granularity of the
 underlying scoring function.
 
 \paragraph{Boundary selection (rule used in experiments).}
-In our experiments, the commit gating mechanism reduces to a static
-selection rule based on thresholding with minimum spacing.
+In our experiments, commit gating reduces to a static selection rule
+based on thresholding with minimum spacing.  When we study adaptive
+commitment (Figure~\ref{fig:adaptive_commitment}), we allow the
+threshold $\tau$ to vary over time; all other aspects of the selection
+rule remain unchanged.
 
 \begin{enumerate}
 \item Select all candidate positions $i$ such that $s_i \ge \tau$.
@@ -572,12 +610,14 @@ boundary selection as a distinct, explicit step.
 \subsection{Boundary Selection as a Separate Step}
 
 Separating boundary scoring from boundary selection makes boundary density an explicit control
-parameter, rather than a side effect of threshold tuning.
+parameter rather than an incidental consequence of threshold tuning.
 
-Figure~\ref{fig:adaptive_commitment} demonstrates the consequence of this separation: different
-scoring granularities induce substantially different candidate boundary rates, yet an explicit
-commitment policy can enforce stable output boundary distributions independent of the scorer’s
-granularity.
+Figure~\ref{fig:adaptive_commitment} illustrates the consequence of this separation: different
+scoring granularities produce substantially different candidate boundary rates, yet an explicit
+commitment policy enforces stable output boundary distributions that are invariant to the scorer’s
+granularity. Crucially, this invariance does not arise from score rescaling or post-hoc normalization.
+The scoring function is unchanged; identical output distributions emerge solely from the selection
+mechanism’s evidence accumulation and commit gating behavior.
 
 \begin{figure*}[t]
 \centering

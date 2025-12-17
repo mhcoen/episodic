@@ -137,7 +137,7 @@ The key methodological choice is to separate boundary scoring from boundary sele
 Given a dialogue consisting of messages $m_1,\dots,m_T$, we define candidate
 boundary positions $i \in \{1,\dots,T-1\}$ between adjacent messages.
 
-\textbf{Boundary scoring.}
+\paragraph{Boundary scoring.}
 For each candidate position $i$, a base scorer computes a real-valued score
 $s_i \in \mathbb{R}$, where larger values indicate stronger evidence of a topic
 boundary.
@@ -155,9 +155,10 @@ satisfied (e.g., confidence, persistence, or rate constraints).
 This separation decouples boundary selection from the granularity of the
 underlying scoring function.
 
-\textbf{Boundary selection (rule used in experiments).}
-In our experiments, the commit gating mechanism reduces to a static selection
-rule based on thresholding with minimum spacing:
+\paragraph{Boundary selection (rule used in experiments).}
+In our experiments, the commit gating mechanism reduces to a static
+selection rule based on thresholding with minimum spacing.
+
 \begin{enumerate}
 \item Select all candidate positions $i$ such that $s_i \ge \tau$.
 \item Enforce a minimum spacing $g$ via greedy non-maximum suppression: candidates
@@ -352,7 +353,7 @@ Epoch & F1 & W-F1 & BOR & Salience & Neg.\ Ctrl.\\
 \bottomrule
 \end{tabular}
 \caption{Stage 1 synthetic pretraining on splice boundaries.
-Salience'' denotes the mean boundary score magnitude $\mathbb{E}[|s_i|]$ on the validation set and serves as a diagnostic for score collapse. Negative control (Neg.\ Ctrl.’’) reports the predicted boundary rate on single-segment dialogues,
+Salience denotes the mean boundary score magnitude $\mathbb{E}[|s_i|]$ on the validation set and serves as a diagnostic for score collapse. Negative control (Neg.\ Ctrl.) reports the predicted boundary rate on single-segment dialogues,
 which should be near zero; it was not rerun for epoch 3, as the model had already passed this sanity check at epoch 2.
 }
 \label{tab:stage1}

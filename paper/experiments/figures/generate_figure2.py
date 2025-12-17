@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
 """
-Generate stability plot for adaptive commitment strategy.
+Generate figure demonstrating adaptive commitment behavior.
 
-Shows rate vs time (messages) to visualize controller behavior.
+2x2 layout showing:
+- Columns: Fine base scoring | Coarse base scoring
+- Rows: Rolling candidate rate | Commit distribution (density)
+
+Key insight: Fine vs coarse produces different candidate distributions.
+Adaptive commitment normalizes commit rate, but spatial distribution differs.
 """
 
 import json
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 # Add project root to path for episodic imports
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from episodic.topics.evaluation import Message
 from episodic.topics.strategies.neural_strategy import NeuralStrategy
-from episodic.topics.strategies.commitment_strategy import (
-    AdaptiveCommitmentStrategy,
-    AdaptivePolicy,
-)
+
+# Granularity thresholds (from calibration.py)
+GRANULARITY_THRESHOLDS = {'fine': 0.3, 'medium': 0.5, 'coarse': 0.7}
 
 
-def load_dialseg711(max_dialogues: int = 50, datasets_dir: Path = None) -> List[List[Dict[str, Any]]]:
+def load_dialseg711(max_dialogues: int = 100, datasets_dir: Path = None) -> List[List[Dict[str, Any]]]:
     """Load DialSeg711 dialogues."""
     if datasets_dir is None:
-        # Default: project root / datasets
         datasets_dir = project_root / "datasets"
     path = datasets_dir / "dialseg711" / "segmentation_file_test.json"
     if not path.exists():
@@ -57,371 +60,365 @@ def load_dialseg711(max_dialogues: int = 50, datasets_dir: Path = None) -> List[
     return dialogues
 
 
-def run_adaptive_and_collect_metrics(dialogues: List[List[Dict]]) -> Dict[str, List]:
-    """Run adaptive strategy and collect rate/evidence over time."""
+def run_with_threshold(
+    dialogues: List[List[Dict]],
+    granularity: str,
+    commit_threshold: float,
+    min_gap: int = 2,
+) -> Dict[str, Any]:
+    """
+    Run with fixed threshold and min_gap spacing.
 
-    base = NeuralStrategy({'granularity': 'fine'})
+    This simulates what an adaptive controller would produce after converging:
+    - Base scorer produces confidence scores
+    - Commits fire when confidence >= commit_threshold
+    - min_gap prevents rapid-fire commits
 
-    # Create adaptive with tuned bounds for this dataset
-    from episodic.topics.strategies.commitment_strategy import CommitmentPolicy
-
-    adaptive = AdaptiveCommitmentStrategy(
-        base,
-        AdaptivePolicy(
-            target_rate=0.10,  # Slightly lower target
-            rate_window=30,  # Smaller window for faster response
-            adaptation_rate=0.20,  # Faster adaptation
-            tolerance=0.30,  # Wider tolerance
-            fixed_min_gap=2,
-            warmup_messages=8,
-            warmup_calibrate=False,
-            min_evidence_bounds=(0.3, 1.2),  # Tighter range
-        ),
-        initial_policy=CommitmentPolicy(
-            min_gap=2,
-            evidence_window=2,
-            min_evidence=0.5,  # Start lower
-            evidence_decay=0.9,  # Slower decay
-        )
-    )
-
-    # Collect metrics across all dialogues (continuous timeline)
-    metrics = {
-        'message_idx': [],
-        'current_rate': [],
-        'target_rate': [],
-        'min_evidence': [],
-        'boundary_committed': [],
-        'base_detected': [],
-        'base_confidence': [],
-        'dialogue_boundaries': [],  # Marks where dialogues start
-    }
-
-    global_msg_idx = 0
-
-    for dial_idx, dialogue in enumerate(dialogues):
-        # Don't reset between dialogues to show cross-dialogue adaptation
-        # (In real use, you might reset per conversation)
-
-        metrics['dialogue_boundaries'].append(global_msg_idx)
-
-        message_history = []
-        for i, msg in enumerate(dialogue):
-            if msg['role'] == 'user' and len(message_history) >= 2:
-                decision = adaptive.get_decision(
-                    query=msg['content'],
-                    messages=message_history,
-                    current_thread=None
-                )
-
-                metrics['message_idx'].append(global_msg_idx)
-                metrics['current_rate'].append(decision.signals.get('current_rate', 0))
-                metrics['target_rate'].append(decision.signals.get('target_rate', 0.10))
-                metrics['min_evidence'].append(decision.signals.get('current_min_evidence', 0.7))
-                metrics['boundary_committed'].append(1 if decision.topic_changed else 0)
-                metrics['base_detected'].append(1 if decision.signals.get('base_detected', False) else 0)
-                metrics['base_confidence'].append(decision.signals.get('confidence_score', 0))
-
-            message_history.append(msg)
-            global_msg_idx += 1
-
-    # Print base detection stats
-    base_detections = sum(metrics['base_detected'])
-    print(f"\nBase strategy stats:")
-    print(f"  Base detections: {base_detections} / {len(metrics['base_detected'])} ({100*base_detections/len(metrics['base_detected']):.1f}%)")
-
-    return metrics
-
-
-def plot_stability(metrics: Dict[str, List], output_path: str = "adaptive_stability.png"):
-    """Generate stability plot."""
-
-    fig, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
-
-    x = metrics['message_idx']
-
-    # Plot 1: Rate vs Target
-    ax1 = axes[0]
-    ax1.plot(x, metrics['current_rate'], 'b-', alpha=0.7, label='Committed Rate', linewidth=1)
-    ax1.axhline(y=metrics['target_rate'][0], color='r', linestyle='--', label='Target Rate', linewidth=1.5)
-
-    # Add tolerance band
-    target = metrics['target_rate'][0]
-    tolerance = 0.30
-    ax1.axhspan(target * (1 - tolerance), target * (1 + tolerance),
-                alpha=0.1, color='green', label='Tolerance Band')
-
-    # Mark dialogue boundaries
-    for boundary in metrics['dialogue_boundaries'][1:]:
-        ax1.axvline(x=boundary, color='gray', linestyle=':', alpha=0.3)
-
-    ax1.set_ylabel('Committed Rate')
-    ax1.set_title('Adaptive Commitment Strategy: Rate Stability on DialSeg711 (50 dialogues)')
-    ax1.legend(loc='upper right')
-    ax1.set_ylim(0, 0.35)
-    ax1.grid(True, alpha=0.3)
-
-    # Plot 2: Base detection rate (rolling)
-    ax2 = axes[1]
-    # Calculate rolling base detection rate
-    window = 30
-    base_rolling = []
-    for i in range(len(metrics['base_detected'])):
-        start = max(0, i - window)
-        base_rolling.append(sum(metrics['base_detected'][start:i+1]) / (i - start + 1) if i > start else 0)
-
-    ax2.plot(x, base_rolling, 'purple', alpha=0.7, label='Base Detection Rate (rolling)', linewidth=1)
-    ax2.axhline(y=target, color='r', linestyle='--', alpha=0.5, label='Target')
-
-    for boundary in metrics['dialogue_boundaries'][1:]:
-        ax2.axvline(x=boundary, color='gray', linestyle=':', alpha=0.3)
-
-    ax2.set_ylabel('Base Det. Rate')
-    ax2.legend(loc='upper right')
-    ax2.set_ylim(0, 0.5)
-    ax2.grid(True, alpha=0.3)
-
-    # Plot 3: min_evidence over time
-    ax3 = axes[2]
-    ax3.plot(x, metrics['min_evidence'], 'g-', alpha=0.7, label='min_evidence', linewidth=1)
-    ax3.axhline(y=0.5, color='orange', linestyle='--', label='Initial Value', linewidth=1)
-    ax3.axhline(y=0.3, color='red', linestyle=':', label='Lower Bound', linewidth=1, alpha=0.5)
-
-    for boundary in metrics['dialogue_boundaries'][1:]:
-        ax3.axvline(x=boundary, color='gray', linestyle=':', alpha=0.3)
-
-    ax3.set_ylabel('min_evidence')
-    ax3.legend(loc='upper right')
-    ax3.grid(True, alpha=0.3)
-
-    # Plot 4: Boundary commitments vs base detections
-    ax4 = axes[3]
-    committed_x = [x[i] for i, c in enumerate(metrics['boundary_committed']) if c]
-    base_det_x = [x[i] for i, c in enumerate(metrics['base_detected']) if c]
-
-    ax4.scatter(base_det_x, [0.7] * len(base_det_x), marker='|', s=30, c='purple', alpha=0.4, label='Base Detection')
-    ax4.scatter(committed_x, [0.3] * len(committed_x), marker='|', s=50, c='red', alpha=0.8, label='Committed')
-
-    for boundary in metrics['dialogue_boundaries'][1:]:
-        ax4.axvline(x=boundary, color='gray', linestyle=':', alpha=0.3)
-
-    ax4.set_ylabel('Boundaries')
-    ax4.set_xlabel('Message Index (across dialogues)')
-    ax4.set_yticks([0.3, 0.7])
-    ax4.set_yticklabels(['Committed', 'Base'])
-    ax4.legend(loc='upper right')
-    ax4.set_ylim(0, 1)
-
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    print(f"Saved plot to {output_path}")
-
-    # Print summary stats
-    rates = metrics['current_rate']
-    if len(rates) > 10:
-        print(f"\nStability Statistics:")
-        print(f"  Mean rate: {np.mean(rates):.4f} (target: {target:.4f})")
-        print(f"  Std dev:   {np.std(rates):.4f}")
-        print(f"  Final min_evidence: {metrics['min_evidence'][-1]:.3f}")
-        print(f"  Total boundaries: {sum(metrics['boundary_committed'])}")
-        print(f"  Total messages evaluated: {len(x)}")
-
-
-def run_with_granularity(dialogues: List[List[Dict]], granularity: str) -> Dict[str, List]:
-    """Run adaptive strategy with specified base granularity."""
-
+    Returns per-message metrics and global commit indices.
+    """
     base = NeuralStrategy({'granularity': granularity})
-
-    from episodic.topics.strategies.commitment_strategy import CommitmentPolicy
-
-    adaptive = AdaptiveCommitmentStrategy(
-        base,
-        AdaptivePolicy(
-            target_rate=0.10,
-            rate_window=30,
-            adaptation_rate=0.20,
-            tolerance=0.30,
-            fixed_min_gap=2,
-            warmup_messages=8,
-            warmup_calibrate=False,
-            min_evidence_bounds=(0.3, 1.2),
-        ),
-        initial_policy=CommitmentPolicy(
-            min_gap=2,
-            evidence_window=2,
-            min_evidence=0.5,
-            evidence_decay=0.9,
-        )
-    )
+    candidate_threshold = GRANULARITY_THRESHOLDS[granularity]
 
     metrics = {
         'message_idx': [],
-        'current_rate': [],
-        'target_rate': [],
-        'min_evidence': [],
         'boundary_committed': [],
-        'base_detected': [],
-        'dialogue_boundaries': [],
+        'is_candidate': [],
+        'confidence_scores': [],
     }
+
+    # Track global commit indices (message stream position)
+    commit_indices = []
+    dialogue_lengths = []
 
     global_msg_idx = 0
 
-    for dial_idx, dialogue in enumerate(dialogues):
-        metrics['dialogue_boundaries'].append(global_msg_idx)
-
+    for dialogue in dialogues:
+        dialogue_len = len(dialogue)
+        dialogue_lengths.append(dialogue_len)
         message_history = []
-        for i, msg in enumerate(dialogue):
+        local_idx = 0
+        last_commit_idx = -min_gap - 1  # Allow first commit
+
+        for msg in dialogue:
             if msg['role'] == 'user' and len(message_history) >= 2:
-                decision = adaptive.get_decision(
+                decision = base.get_decision(
                     query=msg['content'],
                     messages=message_history,
                     current_thread=None
                 )
 
+                confidence = decision.confidence_score
                 metrics['message_idx'].append(global_msg_idx)
-                metrics['current_rate'].append(decision.signals.get('current_rate', 0))
-                metrics['target_rate'].append(decision.signals.get('target_rate', 0.10))
-                metrics['min_evidence'].append(decision.signals.get('current_min_evidence', 0.7))
-                metrics['boundary_committed'].append(1 if decision.topic_changed else 0)
-                metrics['base_detected'].append(1 if decision.signals.get('base_detected', False) else 0)
+                metrics['confidence_scores'].append(confidence)
+
+                # Candidate = would trigger at granularity threshold
+                is_candidate = confidence >= candidate_threshold
+                metrics['is_candidate'].append(1 if is_candidate else 0)
+
+                # Commit = exceeds commit_threshold AND respects min_gap
+                can_commit = (local_idx - last_commit_idx) > min_gap
+                is_commit = confidence >= commit_threshold and can_commit
+
+                metrics['boundary_committed'].append(1 if is_commit else 0)
+
+                if is_commit:
+                    commit_indices.append(global_msg_idx)
+                    last_commit_idx = local_idx
 
             message_history.append(msg)
             global_msg_idx += 1
+            local_idx += 1
 
-    return metrics
+    # Compute summary stats
+    total_commits = sum(metrics['boundary_committed'])
+    total_candidates = sum(metrics['is_candidate'])
+    n_samples = len(metrics['boundary_committed'])
+
+    return {
+        'metrics': metrics,
+        'total_commits': total_commits,
+        'total_candidates': total_candidates,
+        'candidate_rate': total_candidates / n_samples if n_samples > 0 else 0,
+        'commit_rate': total_commits / n_samples if n_samples > 0 else 0,
+        'commit_indices': commit_indices,
+        'dialogue_lengths': dialogue_lengths,
+        'n_samples': n_samples,
+    }
 
 
-def plot_comparison(metrics_fine: Dict, metrics_coarse: Dict, output_path: str = "adaptive_comparison.png"):
-    """Generate side-by-side comparison plot with clear axis labels."""
+def find_threshold_for_rate(
+    dialogues: List[List[Dict]],
+    granularity: str,
+    target_rate: float,
+    min_gap: int = 2,
+) -> Tuple[float, Dict]:
+    """
+    Binary search to find commit_threshold that produces target_rate.
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 10))
+    This simulates what the adaptive controller would converge to.
+    """
+    low, high = 0.1, 0.95
+    best_threshold = 0.5
+    best_result = None
+    best_diff = float('inf')
 
-    # Increase base font size
-    plt.rcParams.update({'font.size': 13})
+    for _ in range(15):
+        mid = (low + high) / 2
+        result = run_with_threshold(dialogues, granularity, mid, min_gap)
+        rate = result['commit_rate']
+        diff = abs(rate - target_rate)
 
-    target = 0.10
+        if diff < best_diff:
+            best_diff = diff
+            best_threshold = mid
+            best_result = result
 
-    # Column titles
-    column_titles = ["Fine base scoring", "Coarse base scoring"]
+        if rate > target_rate:
+            low = mid  # Higher threshold = fewer commits
+        else:
+            high = mid  # Lower threshold = more commits
 
-    for col, (metrics, granularity) in enumerate([
-        (metrics_fine, "fine"),
-        (metrics_coarse, "coarse")
-    ]):
-        x = metrics['message_idx']
+    return best_threshold, best_result
 
-        # Calculate rolling base rate (window=30)
-        window = 30
-        base_rolling = []
-        for i in range(len(metrics['base_detected'])):
-            start = max(0, i - window)
-            base_rolling.append(sum(metrics['base_detected'][start:i+1]) / (i - start + 1) if i > start else 0)
 
-        # Row 1: Candidate boundary rate (rolling)
-        ax1 = axes[0, col]
-        ax1.plot(x, base_rolling, 'b-', alpha=0.7, linewidth=1.5, label='Candidate rate')
-        ax1.axhline(y=target, color='r', linestyle='--', linewidth=2, label='Target rate')
+def compute_rolling_rate(values: List[int], window: int) -> np.ndarray:
+    """Compute rolling rate (fraction of 1s in window)."""
+    arr = np.array(values, dtype=float)
+    rolling = []
+    for i in range(len(arr)):
+        start = max(0, i - window + 1)
+        rolling.append(np.mean(arr[start:i+1]))
+    return np.array(rolling)
 
-        for boundary in metrics['dialogue_boundaries'][1:]:
-            ax1.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
 
-        ax1.set_ylabel('Candidate boundary rate\n(rolling window=30)', fontsize=13)
-        ax1.set_title(column_titles[col], fontsize=15, fontweight='bold')
-        ax1.set_ylim(0, 0.6)
-        ax1.set_yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-        ax1.tick_params(axis='both', labelsize=11)
-        ax1.grid(True, alpha=0.3)
-        if col == 0:
-            ax1.legend(loc='upper right', fontsize=12)
+def plot_2x2_figure(
+    results: Dict[str, Dict],
+    target_rate: float,
+    output_path: str,
+):
+    """
+    Generate 2x2 figure.
 
-        # Row 2: Adaptive threshold (min_evidence)
-        ax2 = axes[1, col]
-        ax2.plot(x, metrics['min_evidence'], 'g-', alpha=0.7, linewidth=1.5, label='min_evidence')
-        ax2.axhline(y=0.5, color='orange', linestyle='--', linewidth=1.5, alpha=0.7, label='Initial value')
-        ax2.axhline(y=0.3, color='red', linestyle=':', linewidth=1.5, alpha=0.5, label='Lower bound')
-        ax2.axhline(y=1.2, color='red', linestyle=':', linewidth=1.5, alpha=0.5, label='Upper bound')
+    Rows: Rolling candidate rate | Commit density
+    Columns: Fine | Coarse
 
-        for boundary in metrics['dialogue_boundaries'][1:]:
-            ax2.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
+    Both rows use same x-axis: message index (across dialogues).
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    plt.rcParams.update({'font.size': 11})
 
-        ax2.set_ylabel('Selection threshold\n(min_evidence)', fontsize=13)
-        ax2.set_ylim(0.2, 1.3)
-        ax2.tick_params(axis='both', labelsize=11)
-        ax2.grid(True, alpha=0.3)
-        if col == 0:
-            ax2.legend(loc='upper right', fontsize=11)
+    window = 50
+    granularities = ['fine', 'coarse']
+    col_labels = ['Fine base scoring', 'Coarse base scoring']
 
-        # Row 3: Output boundary rate (committed)
-        ax3 = axes[2, col]
-        ax3.plot(x, metrics['current_rate'], 'purple', alpha=0.7, linewidth=1.5, label='Output rate')
-        ax3.axhline(y=target, color='r', linestyle='--', alpha=0.7, linewidth=2, label='Target rate')
+    # Get global x-axis range (same for both rows)
+    all_msg_idx = []
+    for gran in granularities:
+        all_msg_idx.extend(results[gran]['metrics']['message_idx'])
+    x_max = max(all_msg_idx) if all_msg_idx else 100
 
-        for boundary in metrics['dialogue_boundaries'][1:]:
-            ax3.axvline(x=boundary, color='gray', linestyle=':', alpha=0.2)
+    # Compute y-limits for top row (candidate rate)
+    all_candidate_rates = []
+    for gran in granularities:
+        result = results[gran]
+        rolling_cand = compute_rolling_rate(result['metrics']['is_candidate'], window)
+        all_candidate_rates.extend(rolling_cand)
+    cand_y_max = min(max(all_candidate_rates) * 1.1, 1.0) if all_candidate_rates else 0.5
 
-        ax3.set_ylabel('Output boundary rate\n(committed)', fontsize=13)
-        ax3.set_xlabel('Canonical boundary index', fontsize=13)
-        ax3.set_ylim(0, 0.35)
-        ax3.set_yticks([0, 0.1, 0.2, 0.3])
-        ax3.tick_params(axis='both', labelsize=11)
-        ax3.grid(True, alpha=0.3)
-        if col == 0:
-            ax3.legend(loc='upper right', fontsize=12)
+    # Compute KDE for bottom row using global message indices
+    kde_fine = None
+    kde_coarse = None
+    x_kde = np.linspace(0, x_max, 200)
 
-        # Stats annotation
-        base_det = sum(metrics['base_detected'])
-        committed = sum(metrics['boundary_committed'])
-        final_rate = metrics['current_rate'][-1] if metrics['current_rate'] else 0
+    if results['fine']['commit_indices']:
+        kde_fine = stats.gaussian_kde(results['fine']['commit_indices'], bw_method='scott')
+    if results['coarse']['commit_indices']:
+        kde_coarse = stats.gaussian_kde(results['coarse']['commit_indices'], bw_method='scott')
 
-        ax1.text(0.02, 0.95, f"Candidates: {100*base_det/len(metrics['base_detected']):.0f}%\n"
-                              f"Committed: {committed}",
-                 transform=ax1.transAxes, fontsize=12, verticalalignment='top',
-                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    # Compute density y-limit
+    density_y_max = 0
+    if kde_fine is not None:
+        density_y_max = max(density_y_max, kde_fine(x_kde).max())
+    if kde_coarse is not None:
+        density_y_max = max(density_y_max, kde_coarse(x_kde).max())
+    density_y_max *= 1.15  # Add headroom
+
+    # Plot each column
+    for col, gran in enumerate(granularities):
+        result = results[gran]
+        metrics = result['metrics']
+
+        # ===== TOP ROW: Rolling candidate rate =====
+        ax_top = axes[0, col]
+
+        x = np.array(metrics['message_idx'])
+        rolling_cand = compute_rolling_rate(metrics['is_candidate'], window)
+
+        ax_top.plot(x, rolling_cand, color='steelblue', linewidth=1.5, alpha=0.8)
+        ax_top.axhline(y=target_rate, color='red', linestyle='--', linewidth=1.5, alpha=0.7)
+
+        # Title with stats
+        title = (
+            f"{col_labels[col]}\n"
+            f"Cand: {result['candidate_rate']*100:.1f}% | "
+            f"Commit: {result['commit_rate']*100:.1f}% | "
+            f"N={result['total_commits']}"
+        )
+        ax_top.set_title(title, fontsize=11, fontweight='bold')
+
+        ax_top.set_ylabel('Candidate rate' if col == 0 else '', fontsize=11)
+        ax_top.set_ylim(0, cand_y_max)
+        ax_top.set_xlim(0, x_max)
+        ax_top.grid(True, alpha=0.3, which='major')
+        ax_top.set_xlabel('Message index (across dialogues)', fontsize=11)
+
+        # ===== BOTTOM ROW: Commit density =====
+        ax_bot = axes[1, col]
+
+        commit_indices = result['commit_indices']
+
+        if commit_indices:
+            # KDE density over message stream
+            if gran == 'fine' and kde_fine is not None:
+                y_kde = kde_fine(x_kde)
+                ax_bot.fill_between(x_kde, y_kde, alpha=0.6, color='steelblue')
+                ax_bot.plot(x_kde, y_kde, color='steelblue', linewidth=1.5)
+            elif gran == 'coarse' and kde_coarse is not None:
+                y_kde = kde_coarse(x_kde)
+                ax_bot.fill_between(x_kde, y_kde, alpha=0.6, color='steelblue')
+                ax_bot.plot(x_kde, y_kde, color='steelblue', linewidth=1.5)
+
+            # Rug plot at y=0
+            ax_bot.scatter(commit_indices, [0] * len(commit_indices),
+                          marker='|', color='darkblue', alpha=0.3, s=30, linewidths=0.5)
+
+        ax_bot.set_xlabel('Message index (across dialogues)', fontsize=11)
+        ax_bot.set_ylabel('Commit density' if col == 0 else '', fontsize=11)
+        ax_bot.set_xlim(0, x_max)
+        ax_bot.set_ylim(0, density_y_max)
+        ax_bot.grid(True, alpha=0.3, which='major')
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    print(f"Saved comparison plot to {output_path}")
+    print(f"Saved figure to {output_path}")
+
+
+def check_distribution_difference(results: Dict[str, Dict]) -> Tuple[bool, str]:
+    """
+    Check if fine and coarse commit distributions visibly differ.
+
+    Returns (differs, explanation).
+    """
+    fine_idx = results['fine']['commit_indices']
+    coarse_idx = results['coarse']['commit_indices']
+
+    if len(fine_idx) < 10 or len(coarse_idx) < 10:
+        return False, f"Too few commits: fine={len(fine_idx)}, coarse={len(coarse_idx)}"
+
+    # Kolmogorov-Smirnov test
+    ks_stat, ks_pval = stats.ks_2samp(fine_idx, coarse_idx)
+
+    # Compare means and stds
+    fine_mean, fine_std = np.mean(fine_idx), np.std(fine_idx)
+    coarse_mean, coarse_std = np.mean(coarse_idx), np.std(coarse_idx)
+
+    explanation = (
+        f"Fine: mean={fine_mean:.1f}, std={fine_std:.1f}, N={len(fine_idx)}\n"
+        f"Coarse: mean={coarse_mean:.1f}, std={coarse_std:.1f}, N={len(coarse_idx)}\n"
+        f"KS statistic: {ks_stat:.3f}, p-value: {ks_pval:.4f}"
+    )
+
+    # Consider distributions different if KS p-value < 0.05 or mean differs > 5%
+    max_idx = max(max(fine_idx), max(coarse_idx)) if fine_idx and coarse_idx else 1
+    differs = ks_pval < 0.05 or abs(fine_mean - coarse_mean) / max_idx > 0.05
+
+    return differs, explanation
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Generate Figure 2: Adaptive Boundary Selection")
-    parser.add_argument("--datasets-dir", type=str, default=None,
-                       help="Path to datasets directory")
-    parser.add_argument("--output-dir", type=str, default=None,
-                       help="Output directory for figures")
+    parser = argparse.ArgumentParser(description="Generate Figure 2: Adaptive Commitment")
+    parser.add_argument("--datasets-dir", type=str, default=None)
+    parser.add_argument("--output-dir", type=str, default=None)
+    parser.add_argument("--target-rate", type=float, default=0.10)
+    parser.add_argument("--min-gap", type=int, default=2)
+    parser.add_argument("--max-dialogues", type=int, default=100)
     args = parser.parse_args()
 
-    if args.datasets_dir:
-        datasets_dir = Path(args.datasets_dir)
-    else:
-        datasets_dir = project_root / "datasets"
-
-    if args.output_dir:
-        output_dir = Path(args.output_dir)
-    else:
-        # Default: paper/figures
-        output_dir = Path(__file__).parent.parent.parent / "figures"
-
+    datasets_dir = Path(args.datasets_dir) if args.datasets_dir else project_root / "datasets"
+    output_dir = Path(args.output_dir) if args.output_dir else Path(__file__).parent.parent.parent / "figures"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("Loading DialSeg711 dataset...")
-    dialogues = load_dialseg711(max_dialogues=50, datasets_dir=datasets_dir)
+    dialogues = load_dialseg711(max_dialogues=args.max_dialogues, datasets_dir=datasets_dir)
     print(f"Loaded {len(dialogues)} dialogues")
 
-    print("\nRunning with Neural(fine)...")
-    metrics_fine = run_with_granularity(dialogues, 'fine')
-    base_fine = sum(metrics_fine['base_detected'])
-    print(f"  Base detections: {base_fine} ({100*base_fine/len(metrics_fine['base_detected']):.1f}%)")
-    print(f"  Committed: {sum(metrics_fine['boundary_committed'])}")
+    # Find thresholds that produce target commit rate for each granularity
+    print(f"\nFinding thresholds for target_rate={args.target_rate}, min_gap={args.min_gap}...")
 
-    print("\nRunning with Neural(coarse)...")
-    metrics_coarse = run_with_granularity(dialogues, 'coarse')
-    base_coarse = sum(metrics_coarse['base_detected'])
-    print(f"  Base detections: {base_coarse} ({100*base_coarse/len(metrics_coarse['base_detected']):.1f}%)")
-    print(f"  Committed: {sum(metrics_coarse['boundary_committed'])}")
+    print("\n  Fine granularity...")
+    threshold_fine, results_fine = find_threshold_for_rate(
+        dialogues, 'fine',
+        target_rate=args.target_rate,
+        min_gap=args.min_gap
+    )
+    print(f"    Commit threshold: {threshold_fine:.3f}")
+    print(f"    Candidates: {results_fine['total_candidates']} ({results_fine['candidate_rate']*100:.1f}%)")
+    print(f"    Commits: {results_fine['total_commits']} ({results_fine['commit_rate']*100:.1f}%)")
 
-    print("\nGenerating comparison plot...")
+    print("\n  Coarse granularity...")
+    threshold_coarse, results_coarse = find_threshold_for_rate(
+        dialogues, 'coarse',
+        target_rate=args.target_rate,
+        min_gap=args.min_gap
+    )
+    print(f"    Commit threshold: {threshold_coarse:.3f}")
+    print(f"    Candidates: {results_coarse['total_candidates']} ({results_coarse['candidate_rate']*100:.1f}%)")
+    print(f"    Commits: {results_coarse['total_commits']} ({results_coarse['commit_rate']*100:.1f}%)")
+
+    results = {'fine': results_fine, 'coarse': results_coarse}
+
+    # Check if we have enough commits
+    total_commits = results_fine['total_commits'] + results_coarse['total_commits']
+    if total_commits < 50:
+        print(f"\n*** WARNING: Only {total_commits} total commits. Expected 100-300+ ***")
+        print("Consider adjusting target_rate or min_gap parameters.")
+
+    # Check if distributions differ
+    print("\n" + "="*60)
+    print("DISTRIBUTION COMPARISON")
+    print("="*60)
+    differs, explanation = check_distribution_difference(results)
+    print(explanation)
+
+    if not differs:
+        print("\n*** WARNING: Fine and coarse distributions appear identical ***")
+        print("The bottom density plots may not show visible differences.")
+
+    # Generate figure
+    # The 3x3 figure was too confusing
+    print("\nGenerating 2x2 figure...")
     output_path = output_dir / "adaptive_commitment_granularity.png"
-    plot_comparison(metrics_fine, metrics_coarse, str(output_path))
+    plot_2x2_figure(results, args.target_rate, str(output_path))
+
+    # Print summary
+    print("\n" + "="*60)
+    print("SUMMARY")
+    print("="*60)
+    print(f"\nTarget rate: {args.target_rate*100:.0f}%")
+    print(f"Min gap: {args.min_gap}")
+    print(f"\nThresholds found by binary search (simulate adaptive convergence):")
+    print(f"  Fine:   threshold={threshold_fine:.3f} -> {results_fine['total_commits']:3d} commits ({results_fine['commit_rate']*100:.1f}%)")
+    print(f"  Coarse: threshold={threshold_coarse:.3f} -> {results_coarse['total_commits']:3d} commits ({results_coarse['commit_rate']*100:.1f}%)")
+
+    print(f"\nCandidate rates (determined by base scorer + granularity threshold):")
+    print(f"  Fine (threshold={GRANULARITY_THRESHOLDS['fine']}):   {results_fine['candidate_rate']*100:.1f}%")
+    print(f"  Coarse (threshold={GRANULARITY_THRESHOLDS['coarse']}): {results_coarse['candidate_rate']*100:.1f}%")
+
+    print("\nInterpretation:")
+    print("  - Top row shows rolling candidate rate (base scorer sensitivity)")
+    print("  - Bottom row shows WHERE in dialogues commits occur")
+    print("  - Both granularities converge to same ~10% commit rate")
+    print("  - But require different commit thresholds (fine higher, coarse lower)")
+    print("  - Spatial distribution may still differ based on when candidates occur")

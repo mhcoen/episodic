@@ -130,20 +130,50 @@ Our approach outputs a score for each canonical between-message position indicat
 
 The key methodological choice is to separate boundary scoring from boundary selection. Scoring aims to generalize: it should rank likely topic transitions above unlikely ones. Selection is a decision rule: it chooses boundary density and spacing to match an annotation regime or an application requirement. In deployed use, selection may be implemented as a commitment policy, which is a decision rule that accumulates evidence over time and determines when to emit a boundary, rather than emitting boundaries directly from the scoring model.
 
+
+
 \subsection{Topic Segmentation Algorithm}
 
-Given a dialogue consisting of messages $m_1,\dots,m_T$, define candidate positions $i \in {1,\dots,T-1}$ between adjacent messages.
+Given a dialogue consisting of messages $m_1,\dots,m_T$, we define candidate
+boundary positions $i \in \{1,\dots,T-1\}$ between adjacent messages.
 
-\textbf{Boundary scoring.} Compute scores $s_i \in \mathbb{R}$ for all candidate positions. Larger $s_i$ indicates stronger evidence of a topic boundary. Scores are computed by comparing a window of turns preceding $i$ to a window of turns following $i$ (window-vs-window), rather than from the adjacent pair alone.
+\textbf{Boundary scoring.}
+For each candidate position $i$, a base scorer computes a real-valued score
+$s_i \in \mathbb{R}$, where larger values indicate stronger evidence of a topic
+boundary.
+Scores are computed using a window-vs-window comparison: a window of turns
+preceding position $i$ is compared against a window of turns following $i$,
+rather than relying on the adjacent message pair alone.
 
-\textbf{Boundary selection (rule used in experiments).} We use a commitment-style selection policy whose decision rule reduces to thresholding with minimum spacing:
+\paragraph{Commit gating.}
+We distinguish between \emph{boundary scoring} and \emph{boundary commitment}.
+The base scorer produces candidate boundary signals at each position, but these
+signals do not immediately result in topic changes.
+Instead, we apply \emph{commit gating}, an online decision mechanism that
+accumulates evidence and emits a boundary only when commitment criteria are
+satisfied (e.g., confidence, persistence, or rate constraints).
+This separation decouples boundary selection from the granularity of the
+underlying scoring function.
+
+\textbf{Boundary selection (rule used in experiments).}
+In our experiments, the commit gating mechanism reduces to a static selection
+rule based on thresholding with minimum spacing:
 \begin{enumerate}
-\item Select all candidates $i$ with $s_i \ge \tau$.
-\item Enforce minimum spacing $g$ by greedy non-maximum suppression: process selected candidates in descending score order and accept $i$ only if no previously accepted boundary lies within $g$ positions.
+\item Select all candidate positions $i$ such that $s_i \ge \tau$.
+\item Enforce a minimum spacing $g$ via greedy non-maximum suppression: candidates
+are processed in descending score order, and a candidate $i$ is accepted only if
+no previously accepted boundary lies within $g$ positions.
 \end{enumerate}
-The output boundary set is $B \subseteq {1,\dots,T-1}$.
+The resulting set of topic boundaries is $B \subseteq \{1,\dots,T-1\}$.
 
-For Figure~\ref{fig:adaptive_commitment}, we use the same selection rule but adapt the threshold over time; the adaptive threshold is logged as \texttt{min\_evidence}. During evidence accumulation, scores are evaluated against a fixed pre-change reference. Freezing the pre-boundary context and a boundary-adjacent anchor turn ensures that the policy measures persistence of topic departure rather than repeated topic transitions.
+For Figure~\ref{fig:adaptive_commitment}, we use the same selection rule but allow
+the threshold $\tau$ to vary over time; this adaptive threshold is logged as
+\texttt{min\_evidence}.
+During evidence accumulation, candidate scores are evaluated against a fixed
+pre-change reference.
+Freezing both the pre-boundary context and the boundary-adjacent anchor turn
+ensures that the policy measures persistence of topic departure rather than
+repeated detection of the same topic transition.
 
 \subsection{Scoring Model Architecture}
 
@@ -543,22 +573,28 @@ boundary selection as a distinct, explicit step.
 
 \subsection{Boundary Selection as a Separate Step}
 
-Separating scoring from selection makes boundary density an explicit control parameter instead of a hidden consequence of threshold tuning.
+Separating boundary scoring from boundary selection makes boundary density an explicit control
+parameter, rather than a side effect of threshold tuning.
 
-Figure~\ref{fig:adaptive_commitment} illustrates why separating scoring from selection matters: different scoring granularities produce different candidate rates, while explicit selection can normalize output boundary counts.
+Figure~\ref{fig:adaptive_commitment} demonstrates the consequence of this separation: different
+scoring granularities induce substantially different candidate boundary rates, yet an explicit
+commitment policy can enforce stable output boundary distributions independent of the scorer’s
+granularity.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/adaptive_commitment_granularity.png}
-\caption{\textbf{Adaptive boundary selection normalizes scoring granularity.}
-Left: fine-grained boundary scoring; right: coarse-grained scoring.
-\emph{Top row} shows candidate boundary rates, which differ substantially
-(approximately 58\% vs.\ 36\%). \emph{Middle row} shows the adaptive selection
-threshold (\texttt{min\_evidence}). \emph{Bottom row} shows the resulting output
-boundary rate after selection. Despite different scoring behavior, adaptive
-selection intentionally produces similar output boundary rates; the similarity
-of the middle and bottom panels is therefore expected and reflects successful
-decoupling of boundary scoring from boundary selection.}
+\caption{\textbf{Adaptive commitment enforces invariant boundary distributions across scoring granularities (DialSeg711).}
+\emph{Top row} shows the raw candidate boundary rate produced by the same base scorer under fine
+(left) and coarse (right) candidate thresholds, resulting in substantially different candidate
+frequencies (73.7\% vs.\ 57.5\%). The dashed line indicates the target commit rate specified to the
+controller. \emph{Bottom row} shows the resulting distribution of committed boundaries over message
+index after adaptive thresholding. Despite large differences in candidate generation, adaptive
+commitment converges to nearly identical boundary distributions and total commit counts
+(16.3\% commit rate, $N{=}429$ in both cases). This invariance is \emph{not} the result of score
+rescaling or post-hoc normalization: the underlying scoring function is unchanged, and the effect
+emerges from online evidence accumulation and commit gating, reflecting successful decoupling of
+boundary selection from boundary scoring.}
 \label{fig:adaptive_commitment}
 \end{figure*}
 

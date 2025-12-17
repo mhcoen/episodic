@@ -31,41 +31,20 @@ from episodic.topics.diagnostics import (
 logger = logging.getLogger(__name__)
 
 
-# Default commitment policy using frozen reference state machine
+# Default commitment policy - INTERNAL parameters only
 #
-# The neural model is trained on content-based topic shifts. It gives:
-# - Low-moderate confidence (~0.5-0.7) for explicit "let's switch" statements
-# - High confidence (~0.8-0.95) for actual content changes (new questions on new topics)
+# User-facing parameters come from config_template.json (single source of truth):
+# - suspect_threshold: Neural confidence to enter SUSPECT
+# - drift_suspect_threshold: Drift threshold to enter SUSPECT
+# - min_messages_before_topic_change: Commit gate
 #
-# State machine approach:
-# - STABLE: Normal sliding window comparison
-# - SUSPECT: On first high signal (>= suspect_threshold), freeze the "before" context
-#            Compare subsequent messages against frozen context to ask:
-#            "are we still far from the old topic?" (not "did we change again?")
-# - COMMIT: When accumulated evidence >= min_evidence
-# - ABORT: If confidence drops below abort_threshold for abort_streak turns
-#
-# Hybrid trigger: High embedding drift can fast-path into SUSPECT even if neural
-# confidence is low. This catches sharp topic transitions that the neural model
-# misses on the first turn (it tends to detect "topic commitment not initiation").
-#
-# This ensures stable score semantics during evidence accumulation by keeping
-# the reference context fixed, rather than letting it slide and mix old/new topics.
-#
-# These defaults prevent oversegmentation while still detecting real topic shifts:
-# - min_gap=4 aligns with typical min_messages_before_topic_change setting
-# - suspect_threshold=0.5 enters SUSPECT on moderate+ confidence
-# - min_evidence=1.2 requires ~2 turns of high confidence against frozen reference
-# - abort_streak=3 returns to STABLE if low confidence for 3 consecutive turns
-# - drift_suspect_threshold=0.85 catches topic shifts like Mars→pasta (0.889)
+# These INTERNAL parameters are implementation details users won't typically change:
 DEFAULT_COMMITMENT_POLICY = CommitmentPolicy(
-    min_gap=4,              # Minimum 4 messages (2 exchanges) between boundaries
-    suspect_threshold=1.0,  # Disable neural SUSPECT trigger for now - needs sweep to calibrate
+    min_gap=4,              # Minimum messages between boundaries
     abort_threshold=0.3,    # ABORT if confidence stays below this
     abort_streak=3,         # ABORT after this many low-confidence turns
     evidence_decay=0.7,     # Decay factor for accumulated evidence
-    min_evidence=1.2,       # Evidence needed to COMMIT (allows ~2 high signals)
-    drift_suspect_threshold=0.85,  # Drift fast-path threshold (lowered from 0.95)
+    min_evidence=1.2,       # Evidence needed to COMMIT
 )
 
 
@@ -132,40 +111,54 @@ class DefaultStrategy(TopicStrategy):
             logger.info(f"DefaultStrategy: Neural({granularity}) without commitment")
         else:
             # Get drift trigger settings from user config
-            use_drift_trigger = config.get('use_drift_trigger', True)
-            drift_suspect_threshold = config.get('drift_suspect_threshold', 0.95)
+            # Defaults come from config_template.json (single source of truth)
+            use_drift_trigger = config.get('use_drift_trigger')
+            drift_suspect_threshold = config.get('drift_suspect_threshold')
 
             # If drift trigger is disabled, set threshold to None
             if not use_drift_trigger:
                 drift_suspect_threshold = None
 
+            # Get neural SUSPECT threshold from config
+            suspect_threshold = config.get('suspect_threshold')
+
+            # Get min_user_turns_for_commit from config (commit gate, not detection gate)
+            min_user_turns = config.get('min_messages_before_topic_change')
+
+            # Get neural commit drift gate threshold from config
+            neural_commit_drift_threshold = config.get('neural_commit_drift_threshold')
+
             # Build commitment policy from config or defaults
             if isinstance(commitment_config, dict) and commitment_config:
                 policy = CommitmentPolicy(
                     min_gap=commitment_config.get('min_gap', DEFAULT_COMMITMENT_POLICY.min_gap),
-                    suspect_threshold=commitment_config.get('suspect_threshold', DEFAULT_COMMITMENT_POLICY.suspect_threshold),
+                    suspect_threshold=commitment_config.get('suspect_threshold', suspect_threshold),
                     abort_threshold=commitment_config.get('abort_threshold', DEFAULT_COMMITMENT_POLICY.abort_threshold),
                     abort_streak=commitment_config.get('abort_streak', DEFAULT_COMMITMENT_POLICY.abort_streak),
                     evidence_decay=commitment_config.get('evidence_decay', DEFAULT_COMMITMENT_POLICY.evidence_decay),
                     min_evidence=commitment_config.get('min_evidence', DEFAULT_COMMITMENT_POLICY.min_evidence),
                     drift_suspect_threshold=commitment_config.get('drift_suspect_threshold', drift_suspect_threshold),
+                    min_user_turns_for_commit=commitment_config.get('min_user_turns_for_commit', min_user_turns),
+                    neural_commit_drift_threshold=commitment_config.get('neural_commit_drift_threshold', neural_commit_drift_threshold),
                 )
             else:
-                # Use default policy but override drift threshold from config
+                # Use default policy but override from config
                 policy = CommitmentPolicy(
                     min_gap=DEFAULT_COMMITMENT_POLICY.min_gap,
-                    suspect_threshold=DEFAULT_COMMITMENT_POLICY.suspect_threshold,
+                    suspect_threshold=suspect_threshold,
                     abort_threshold=DEFAULT_COMMITMENT_POLICY.abort_threshold,
                     abort_streak=DEFAULT_COMMITMENT_POLICY.abort_streak,
                     evidence_decay=DEFAULT_COMMITMENT_POLICY.evidence_decay,
                     min_evidence=DEFAULT_COMMITMENT_POLICY.min_evidence,
                     drift_suspect_threshold=drift_suspect_threshold,
+                    min_user_turns_for_commit=min_user_turns,
+                    neural_commit_drift_threshold=neural_commit_drift_threshold,
                 )
 
             self._strategy = CommitmentPolicyStrategy(self._neural, policy)
             self._has_commitment = True
             drift_info = f", drift_threshold={policy.drift_suspect_threshold}" if policy.drift_suspect_threshold else ", drift=disabled"
-            logger.info(f"DefaultStrategy: Neural({granularity}) + Commitment(min_evidence={policy.min_evidence}{drift_info})")
+            logger.info(f"DefaultStrategy: Neural({granularity}) + Commitment(min_evidence={policy.min_evidence}, min_turns={policy.min_user_turns_for_commit}{drift_info})")
 
         # Diagnostics collector for observability
         self._diagnostics = DiagnosticsCollector()

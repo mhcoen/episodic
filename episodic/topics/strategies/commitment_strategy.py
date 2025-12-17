@@ -57,7 +57,7 @@ class CommitmentPolicy:
     # Drift threshold for fast-path SUSPECT entry (hybrid trigger)
     # High embedding drift can trigger SUSPECT even if neural confidence is low
     # Set to None to disable drift fast-path
-    drift_suspect_threshold: Optional[float] = 0.95
+    drift_suspect_threshold: Optional[float] = 0.85
 
     # === Persistence requirement (two-sided test) ===
     # After evidence threshold is met, require K more turns with confidence
@@ -126,6 +126,27 @@ class CommitmentPolicy:
     # Set to None to disable fast commit (require normal evidence accumulation)
     drift_neural_fast_commit_threshold: float = 0.9
 
+    # === Neural commit drift gate ===
+    # For neural-triggered SUSPECT, require semantic drift >= this threshold to COMMIT.
+    # This prevents committing subtopic changes (like carbonara within pasta topic)
+    # while still allowing large displacements (pasta → AI) to commit.
+    # Only applies when suspect_cause == "neural", not drift-triggered SUSPECT.
+    # Set to None to disable (allow neural commits without drift requirement).
+    neural_commit_drift_threshold: Optional[float] = 0.7
+
+    # === Early commit gate ===
+    # Minimum user turns before allowing COMMIT (not detection).
+    # This protects against cold-start noise and early conversational setup
+    # while still allowing SUSPECT entry and evidence accumulation.
+    #
+    # Key distinction from detection gating:
+    # - SUSPECT can be entered at any time (drift/neural triggers still work)
+    # - Evidence accumulates with frozen reference
+    # - Only COMMIT is blocked until enough user history exists
+    #
+    # Set to 0 to disable (allow commit at any time)
+    min_user_turns_for_commit: int = 4
+
 
 # State machine states
 class CommitState:
@@ -145,6 +166,12 @@ class CommitmentState:
 
     # Current message index
     current_idx: int = 0
+
+    # User turns since last confirmed boundary (for commit gate)
+    # - Before any boundary: counts from conversation start
+    # - After a boundary: counts from that confirmed boundary
+    # This is anchored to confirmed boundaries only, not topic naming
+    user_turns_since_boundary: int = 0
 
     # === SUSPECT state fields ===
     # Frozen "before" context captured when entering SUSPECT
@@ -337,6 +364,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
         messages: List[Dict[str, Any]],
         current_thread: Optional[Thread] = None,
         semantic_drift: Optional[float] = None,
+        user_turns_in_topic: Optional[int] = None,
         **kwargs
     ) -> TopicDecision:
         """
@@ -354,6 +382,10 @@ class CommitmentPolicyStrategy(TopicStrategy):
           even if neural confidence is low. This catches sharp topic transitions
           that the neural model misses on the first turn.
 
+        Commit Gate:
+        - min_user_turns_for_commit blocks COMMIT until enough user history exists.
+        - SUSPECT entry and evidence accumulation still happen normally.
+
         This ensures "are we still far from the old topic?" rather than "did we
         change topics again?" - the frozen reference gives stable score semantics
         during evidence accumulation.
@@ -363,6 +395,11 @@ class CommitmentPolicyStrategy(TopicStrategy):
 
         # Update state tracking
         self._state.current_idx = len(messages) - 1 if messages else 0
+
+        # Increment internal user turns counter (anchored to confirmed boundaries)
+        # This counts user turns since last confirmed boundary, NOT since topic naming
+        self._state.user_turns_since_boundary += 1
+        user_turns = self._state.user_turns_since_boundary
 
         # Get the node_id for the current message
         current_node_id = None
@@ -409,21 +446,28 @@ class CommitmentPolicyStrategy(TopicStrategy):
 
                 # === Drift + neural fast commit ===
                 # When both drift AND neural give high confidence on the same turn,
-                # commit immediately (subject to min_gap). This handles cases where
-                # the neural model is sensitive to phrasing on subsequent turns.
+                # commit immediately (subject to min_gap and user_turns gate). This handles
+                # cases where the neural model is sensitive to phrasing on subsequent turns.
                 fast_commit_thresh = self.policy.drift_neural_fast_commit_threshold
                 if fast_commit_thresh is not None and confidence >= fast_commit_thresh:
                     gap = self._turns_since_boundary()
-                    if gap >= self.policy.min_gap:
+                    min_turns = self.policy.min_user_turns_for_commit
+                    if gap >= self.policy.min_gap and user_turns >= min_turns:
                         debug_print(
                             f"[STABLE→COMMIT] Drift+neural fast commit! "
-                            f"drift={semantic_drift:.3f}, neural={confidence:.3f} >= {fast_commit_thresh}, gap={gap}",
+                            f"drift={semantic_drift:.3f}, neural={confidence:.3f} >= {fast_commit_thresh}, "
+                            f"gap={gap}, user_turns={user_turns}",
                             category="topic"
                         )
                         return self._commit_boundary(base_decision, start_time)
                     else:
+                        reason_parts = []
+                        if gap < self.policy.min_gap:
+                            reason_parts.append(f"gap={gap} < min_gap={self.policy.min_gap}")
+                        if user_turns < min_turns:
+                            reason_parts.append(f"user_turns={user_turns} < min_turns={min_turns}")
                         debug_print(
-                            f"[STABLE→SUSPECT] Drift+neural high but gap={gap} < min_gap={self.policy.min_gap}",
+                            f"[STABLE→SUSPECT] Drift+neural high but {', '.join(reason_parts)}",
                             category="topic"
                         )
 
@@ -436,19 +480,25 @@ class CommitmentPolicyStrategy(TopicStrategy):
                 # NEURAL-triggered SUSPECT entry: use confidence as initial evidence
                 self._enter_suspect(messages, current_node_id, confidence)
 
-                # Check if we can commit immediately (single high signal + min_gap satisfied)
+                # Check if we can commit immediately (single high signal + min_gap + user_turns satisfied)
                 if self._state.accumulated_evidence >= self.policy.min_evidence:
                     gap = self._turns_since_boundary()
-                    if gap >= self.policy.min_gap:
+                    min_turns = self.policy.min_user_turns_for_commit
+                    if gap >= self.policy.min_gap and user_turns >= min_turns:
                         debug_print(
                             f"[STABLE→COMMIT] Immediate commit! evidence={self._state.accumulated_evidence:.3f} "
-                            f">= {self.policy.min_evidence}, gap={gap}",
+                            f">= {self.policy.min_evidence}, gap={gap}, user_turns={user_turns}",
                             category="topic"
                         )
                         return self._commit_boundary(base_decision, start_time)
                     else:
+                        reason_parts = []
+                        if gap < self.policy.min_gap:
+                            reason_parts.append(f"gap={gap} < min_gap={self.policy.min_gap}")
+                        if user_turns < min_turns:
+                            reason_parts.append(f"user_turns={user_turns} < min_turns={min_turns}")
                         debug_print(
-                            f"[STABLE→SUSPECT] Evidence sufficient but gap={gap} < min_gap={self.policy.min_gap}",
+                            f"[STABLE→SUSPECT] Evidence sufficient but {', '.join(reason_parts)}",
                             category="topic"
                         )
 
@@ -584,10 +634,12 @@ class CommitmentPolicyStrategy(TopicStrategy):
             # Check COMMIT condition (two-sided test):
             # 1. accumulated_evidence >= min_evidence
             # 2. min_gap satisfied
-            # 3. Persistence check (conditional cooldown)
+            # 3. min_user_turns_for_commit satisfied (early commit gate)
+            # 4. Persistence check (conditional cooldown)
             if self._state.evidence_met:
                 gap = self._turns_since_boundary()
-                if gap >= self.policy.min_gap:
+                min_turns = self.policy.min_user_turns_for_commit
+                if gap >= self.policy.min_gap and user_turns >= min_turns:
                     # Determine effective K based on conditional cooldown
                     # High-confidence neural spikes bypass cooldown (K=0)
                     # Drift-triggered or intermediate confidence requires cooldown
@@ -621,11 +673,35 @@ class CommitmentPolicyStrategy(TopicStrategy):
                         )
 
                     if persistence_met:
+                        # Neural commit drift gate: for neural-triggered SUSPECT,
+                        # require sufficient drift to confirm this is a real topic change
+                        # (not just a subtopic shift like carbonara within pasta topic)
+                        if (self._state.suspect_cause == "neural" and
+                            self.policy.neural_commit_drift_threshold is not None):
+                            drift_val = semantic_drift if semantic_drift is not None else 0.0
+                            if drift_val < self.policy.neural_commit_drift_threshold:
+                                # Drift gate blocks: this is a false alarm (subtopic, not topic change)
+                                # ABORT instead of staying in SUSPECT to avoid getting stuck
+                                # If drift rises later, we'll re-enter SUSPECT via drift trigger
+                                debug_print(
+                                    f"[SUSPECT→ABORT] neural drift gate: drift={drift_val:.3f} < "
+                                    f"threshold={self.policy.neural_commit_drift_threshold}, "
+                                    f"treating as false alarm",
+                                    category="topic"
+                                )
+                                self._abort_suspect()
+                                return self._build_stable_decision(
+                                    base_decision, start_time,
+                                    f"ABORT: neural drift gate (drift={drift_val:.3f} < {self.policy.neural_commit_drift_threshold})",
+                                    semantic_drift=semantic_drift
+                                )
+
                         node_preview = self._state.suspect_start_node_id[:8] if self._state.suspect_start_node_id else "None"
                         debug_print(
                             f"[SUSPECT→COMMIT] {self._state.suspect_cause}-triggered, "
                             f"evidence={self._state.accumulated_evidence:.3f} >= {min_evidence}, "
-                            f"gap={gap}, persistence={k} (bypass={bypass_cooldown}), boundary_node={node_preview}...",
+                            f"gap={gap}, user_turns={user_turns}, persistence={k} (bypass={bypass_cooldown}), "
+                            f"boundary_node={node_preview}...",
                             category="topic"
                         )
                         return self._commit_boundary(base_decision, start_time)
@@ -636,9 +712,14 @@ class CommitmentPolicyStrategy(TopicStrategy):
                             category="topic"
                         )
                 else:
+                    reason_parts = []
+                    if gap < self.policy.min_gap:
+                        reason_parts.append(f"gap={gap} < min_gap={self.policy.min_gap}")
+                    if user_turns < min_turns:
+                        reason_parts.append(f"user_turns={user_turns} < min_turns={min_turns}")
                     debug_print(
                         f"[SUSPECT] evidence sufficient ({self._state.accumulated_evidence:.3f}) "
-                        f"but gap={gap} < min_gap={self.policy.min_gap}",
+                        f"but {', '.join(reason_parts)}",
                         category="topic"
                     )
 
@@ -818,6 +899,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
         self._state.evidence_met = False
         self._state.peak_confidence = 0.0
         self._state.suspect_entry_confidence = 0.0
+        # Reset user turns counter - anchored to this confirmed boundary
+        # Starts at 1 because this message triggered the commit
+        self._state.user_turns_since_boundary = 1
 
         # Use cause-conditioned min_evidence for reasoning
         actual_min_evidence = (

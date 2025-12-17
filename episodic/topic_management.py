@@ -72,17 +72,9 @@ class TopicHandler:
         if recent_nodes and len(recent_nodes) >= 2:  # Need at least some history
             try:
                 with benchmark_operation("Topic Detection"):
-                    # Check minimum messages before allowing topic change
-                    min_messages = config.get("min_messages_before_topic_change", 8)
-                    current_topic_messages = self._count_messages_in_current_topic()
-
-                    if current_topic_messages < min_messages:
-                        if config.get("debug"):
-                            debug_print(
-                                f"Skipping detection: only {current_topic_messages}/{min_messages} messages in topic",
-                                indent=True
-                            )
-                        return topic_changed, new_topic_name, topic_cost_info, topic_change_info
+                    # Track user turns in current topic for commit gate
+                    # (min_messages_before_topic_change now gates COMMIT, not detection)
+                    current_topic_user_turns = self._count_messages_in_current_topic()
 
                     # Get the configured strategy
                     strategy_name = config.get("topic_strategy", "default")
@@ -118,8 +110,11 @@ class TopicHandler:
 
                     # Get decision from strategy
                     # Pass semantic_drift for hybrid trigger (high drift can fast-path to SUSPECT)
+                    # Pass user_turns_in_topic for commit gate (blocks COMMIT until enough user history)
                     decision = strategy.get_decision(
-                        user_input, messages, semantic_drift=semantic_drift
+                        user_input, messages,
+                        semantic_drift=semantic_drift,
+                        user_turns_in_topic=current_topic_user_turns
                     )
 
                     # Log decision for analysis (drift calibration, debugging, evaluation)

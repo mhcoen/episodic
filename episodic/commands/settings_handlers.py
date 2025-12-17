@@ -111,6 +111,10 @@ def handle_topic_granularity(value: str) -> bool:
 
     config.set("topic_granularity", value)
 
+    # Clear strategy cache so next detection uses new granularity
+    from episodic.topics.strategy_registry import reset_strategy
+    reset_strategy()
+
     # Show what threshold this maps to
     from episodic.topics.calibration import GRANULARITY_LEVELS
     threshold = GRANULARITY_LEVELS.get(value, 0.5)
@@ -118,6 +122,104 @@ def handle_topic_granularity(value: str) -> bool:
     typer.secho(f"✅ Set topic_granularity = {value}", fg=get_system_color())
     typer.secho(f"   Neural threshold: {threshold} (more boundaries at lower values)", fg=get_system_color(), dim=True)
     return True
+
+
+def _clear_strategy_cache_after_set(param: str, value, msg: str) -> bool:
+    """Set a config value and clear strategy cache (for strategy-affecting settings)."""
+    config.set(param, value)
+    from episodic.topics.strategy_registry import reset_strategy
+    reset_strategy()
+    typer.secho(msg, fg=get_system_color())
+    return True
+
+
+def handle_min_messages_before_topic_change(value: str) -> bool:
+    """Handle min_messages_before_topic_change (commit gate, not detection gate)."""
+    try:
+        int_value = int(value)
+        if int_value < 2 or int_value > 50:
+            typer.secho("Value must be between 2 and 50", fg="red")
+            return False
+        return _clear_strategy_cache_after_set(
+            'min_messages_before_topic_change', int_value,
+            f"✅ Set min_messages_before_topic_change = {int_value}"
+        )
+    except ValueError:
+        typer.secho("Value must be an integer", fg="red")
+        return False
+
+
+def handle_drift_suspect_threshold(value: str) -> bool:
+    """Handle drift_suspect_threshold for hybrid topic detection."""
+    try:
+        float_value = float(value)
+        if float_value < 0.0 or float_value > 1.0:
+            typer.secho("Value must be between 0.0 and 1.0", fg="red")
+            return False
+        return _clear_strategy_cache_after_set(
+            'drift_suspect_threshold', float_value,
+            f"✅ Set drift_suspect_threshold = {float_value}"
+        )
+    except ValueError:
+        typer.secho("Value must be a number", fg="red")
+        return False
+
+
+def handle_use_drift_trigger(value: str) -> bool:
+    """Handle use_drift_trigger for hybrid topic detection."""
+    bool_value = value.lower() in ('true', '1', 'yes', 'on')
+    return _clear_strategy_cache_after_set(
+        'use_drift_trigger', bool_value,
+        f"✅ Set use_drift_trigger = {bool_value}"
+    )
+
+
+def handle_suspect_threshold(value: str) -> bool:
+    """Handle suspect_threshold for neural SUSPECT entry.
+
+    This threshold controls when high neural confidence triggers SUSPECT state.
+    Setting to 1.0 disables neural-triggered SUSPECT (drift-only mode).
+    Typical values: 0.7-0.9 for balanced detection.
+    """
+    try:
+        float_value = float(value)
+        if float_value < 0.0 or float_value > 1.0:
+            typer.secho("Value must be between 0.0 and 1.0", fg="red")
+            return False
+        return _clear_strategy_cache_after_set(
+            'suspect_threshold', float_value,
+            f"✅ Set suspect_threshold = {float_value}"
+        )
+    except ValueError:
+        typer.secho("Value must be a number", fg="red")
+        return False
+
+
+def handle_neural_commit_drift_threshold(value: str) -> bool:
+    """Handle neural_commit_drift_threshold for neural commit drift gate.
+
+    For neural-triggered SUSPECT, require drift >= this threshold to COMMIT.
+    Prevents subtopic changes (like carbonara within pasta) from creating boundaries.
+    Set to 'none' or 'null' to disable the gate.
+    Typical values: 0.6-0.8 for balanced filtering.
+    """
+    if value.lower() in ('none', 'null'):
+        return _clear_strategy_cache_after_set(
+            'neural_commit_drift_threshold', None,
+            "✅ Disabled neural commit drift gate"
+        )
+    try:
+        float_value = float(value)
+        if float_value < 0.0 or float_value > 1.0:
+            typer.secho("Value must be between 0.0 and 1.0 (or 'none' to disable)", fg="red")
+            return False
+        return _clear_strategy_cache_after_set(
+            'neural_commit_drift_threshold', float_value,
+            f"✅ Set neural_commit_drift_threshold = {float_value}"
+        )
+    except ValueError:
+        typer.secho("Value must be a number or 'none' to disable", fg="red")
+        return False
 
 
 def handle_topic_temperature(value: str) -> bool:
@@ -314,7 +416,11 @@ PARAM_HANDLERS = {
     'wrap_width': lambda v: handle_integer_param('wrap_width', v, 40, 200),
     'compression_length': lambda v: handle_integer_param('compression_length', v, 100, 10000),
     'compression_queue_max_topics': lambda v: handle_integer_param('compression_queue_max_topics', v, 1, 100),
-    'min_messages_before_topic_change': lambda v: handle_integer_param('min_messages_before_topic_change', v, 2, 50),
+    'min_messages_before_topic_change': handle_min_messages_before_topic_change,
+    'drift_suspect_threshold': handle_drift_suspect_threshold,
+    'use_drift_trigger': handle_use_drift_trigger,
+    'suspect_threshold': handle_suspect_threshold,
+    'neural_commit_drift_threshold': handle_neural_commit_drift_threshold,
     'rag_max_results': lambda v: handle_integer_param('rag_max_results', v, 1, 10),
     'web_search_max_results': lambda v: handle_integer_param('web_search_max_results', v, 1, 20),
     'web_search_fallback_cache_minutes': lambda v: handle_integer_param('web_search_fallback_cache_minutes', v, 0, 60),

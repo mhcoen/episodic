@@ -125,6 +125,11 @@ def init(erase: bool = typer.Option(False, "--erase", "-e", help="Erase existing
             conversation_manager.current_node_id = None
             conversation_manager.current_topic = None
             conversation_manager.reset_session_costs()
+            # Reset topic handler message count
+            conversation_manager.topic_handler.reset_message_count()
+            # Clear strategy cache so new config values are picked up
+            from episodic.topics.strategy_registry import reset_strategy
+            reset_strategy()
             # Reinitialize conversation state after reset
             conversation_manager.initialize_conversation()
         else:

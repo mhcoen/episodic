@@ -209,6 +209,10 @@ class CommitmentState:
     # Bypass uses entry confidence, not commit-time confidence
     suspect_entry_confidence: float = 0.0
 
+    # Whether we've committed at least one boundary in this conversation
+    # Used to make min_user_turns_for_commit apply only during cold start
+    has_committed_boundary: bool = False
+
 
 class CommitmentPolicyStrategy(TopicStrategy):
     """
@@ -446,28 +450,22 @@ class CommitmentPolicyStrategy(TopicStrategy):
 
                 # === Drift + neural fast commit ===
                 # When both drift AND neural give high confidence on the same turn,
-                # commit immediately (subject to min_gap and user_turns gate). This handles
-                # cases where the neural model is sensitive to phrasing on subsequent turns.
+                # commit immediately (subject to min_gap only). This is an "obvious boundary"
+                # case that bypasses the cold-start user_turns gate entirely.
                 fast_commit_thresh = self.policy.drift_neural_fast_commit_threshold
                 if fast_commit_thresh is not None and confidence >= fast_commit_thresh:
                     gap = self._turns_since_boundary()
-                    min_turns = self.policy.min_user_turns_for_commit
-                    if gap >= self.policy.min_gap and user_turns >= min_turns:
+                    if gap >= self.policy.min_gap:
                         debug_print(
                             f"[STABLE→COMMIT] Drift+neural fast commit! "
                             f"drift={semantic_drift:.3f}, neural={confidence:.3f} >= {fast_commit_thresh}, "
-                            f"gap={gap}, user_turns={user_turns}",
+                            f"gap={gap} (user_turns gate bypassed for obvious boundary)",
                             category="topic"
                         )
                         return self._commit_boundary(base_decision, start_time)
                     else:
-                        reason_parts = []
-                        if gap < self.policy.min_gap:
-                            reason_parts.append(f"gap={gap} < min_gap={self.policy.min_gap}")
-                        if user_turns < min_turns:
-                            reason_parts.append(f"user_turns={user_turns} < min_turns={min_turns}")
                         debug_print(
-                            f"[STABLE→SUSPECT] Drift+neural high but {', '.join(reason_parts)}",
+                            f"[STABLE→SUSPECT] Drift+neural high but gap={gap} < min_gap={self.policy.min_gap}",
                             category="topic"
                         )
 
@@ -480,14 +478,20 @@ class CommitmentPolicyStrategy(TopicStrategy):
                 # NEURAL-triggered SUSPECT entry: use confidence as initial evidence
                 self._enter_suspect(messages, current_node_id, confidence)
 
-                # Check if we can commit immediately (single high signal + min_gap + user_turns satisfied)
+                # Check if we can commit immediately (single high signal + min_gap satisfied)
+                # Cold start gate: only blocks before first committed boundary
                 if self._state.accumulated_evidence >= self.policy.min_evidence:
                     gap = self._turns_since_boundary()
                     min_turns = self.policy.min_user_turns_for_commit
-                    if gap >= self.policy.min_gap and user_turns >= min_turns:
+                    # Cold start gate: only apply user_turns check before first commit
+                    cold_start_blocked = (
+                        not self._state.has_committed_boundary and
+                        user_turns < min_turns
+                    )
+                    if gap >= self.policy.min_gap and not cold_start_blocked:
                         debug_print(
                             f"[STABLE→COMMIT] Immediate commit! evidence={self._state.accumulated_evidence:.3f} "
-                            f">= {self.policy.min_evidence}, gap={gap}, user_turns={user_turns}",
+                            f">= {self.policy.min_evidence}, gap={gap}",
                             category="topic"
                         )
                         return self._commit_boundary(base_decision, start_time)
@@ -495,8 +499,8 @@ class CommitmentPolicyStrategy(TopicStrategy):
                         reason_parts = []
                         if gap < self.policy.min_gap:
                             reason_parts.append(f"gap={gap} < min_gap={self.policy.min_gap}")
-                        if user_turns < min_turns:
-                            reason_parts.append(f"user_turns={user_turns} < min_turns={min_turns}")
+                        if cold_start_blocked:
+                            reason_parts.append(f"cold_start: user_turns={user_turns} < min_turns={min_turns}")
                         debug_print(
                             f"[STABLE→SUSPECT] Evidence sufficient but {', '.join(reason_parts)}",
                             category="topic"
@@ -634,12 +638,17 @@ class CommitmentPolicyStrategy(TopicStrategy):
             # Check COMMIT condition (two-sided test):
             # 1. accumulated_evidence >= min_evidence
             # 2. min_gap satisfied
-            # 3. min_user_turns_for_commit satisfied (early commit gate)
+            # 3. Cold start gate (only before first committed boundary)
             # 4. Persistence check (conditional cooldown)
             if self._state.evidence_met:
                 gap = self._turns_since_boundary()
                 min_turns = self.policy.min_user_turns_for_commit
-                if gap >= self.policy.min_gap and user_turns >= min_turns:
+                # Cold start gate: only apply user_turns check before first commit
+                cold_start_blocked = (
+                    not self._state.has_committed_boundary and
+                    user_turns < min_turns
+                )
+                if gap >= self.policy.min_gap and not cold_start_blocked:
                     # Determine effective K based on conditional cooldown
                     # High-confidence neural spikes bypass cooldown (K=0)
                     # Drift-triggered or intermediate confidence requires cooldown
@@ -715,8 +724,8 @@ class CommitmentPolicyStrategy(TopicStrategy):
                     reason_parts = []
                     if gap < self.policy.min_gap:
                         reason_parts.append(f"gap={gap} < min_gap={self.policy.min_gap}")
-                    if user_turns < min_turns:
-                        reason_parts.append(f"user_turns={user_turns} < min_turns={min_turns}")
+                    if cold_start_blocked:
+                        reason_parts.append(f"cold_start: user_turns={user_turns} < min_turns={min_turns}")
                     debug_print(
                         f"[SUSPECT] evidence sufficient ({self._state.accumulated_evidence:.3f}) "
                         f"but {', '.join(reason_parts)}",
@@ -883,6 +892,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
 
         # Update tracking
         self._state.last_boundary_idx = self._state.current_idx
+        self._state.has_committed_boundary = True  # Cold start gate no longer applies
 
         # Capture cause before reset for signals
         suspect_cause = self._state.suspect_cause

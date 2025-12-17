@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Generate figure demonstrating adaptive commitment behavior.
+"""Generate figure demonstrating adaptive commitment behavior.
 
 2x2 layout showing:
 - Columns: Fine base scoring | Coarse base scoring
@@ -8,6 +7,10 @@ Generate figure demonstrating adaptive commitment behavior.
 
 Key insight: Fine vs coarse produces different candidate distributions.
 Adaptive commitment normalizes commit rate, but spatial distribution differs.
+
+I don't love this figure because it is easy to misinterpret as
+trivial. Searching for a better example.
+
 """
 
 import json

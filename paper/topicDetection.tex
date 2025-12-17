@@ -264,11 +264,8 @@ We report three evaluation measures:
 \item \textbf{Purity/Coverage:} segment coherence diagnostics from clustering evaluation.
 \end{itemize}
 
-Unless otherwise stated, W-F1 is computed using a symmetric tolerance window
-of $\pm 1$ message around each gold boundary, following common practice in
-dialogue segmentation to account for minor annotation and indexing variation. We found this window size to balance robustness to off-by-one annotation
-differences without masking systematic oversegmentation effects, which are
-captured separately by BOR.
+We use a $\pm 1$ message tolerance window for W-F1, following standard practice in dialogue segmentation.
+We found this window size balances robustness to off-by-one annotation differences against the risk of masking systematic oversegmentation, which is captured separately by BOR.
 
 \paragraph{Segment-level coherence computation.}
 To apply purity and coverage to dialogue segmentation, we treat both predicted

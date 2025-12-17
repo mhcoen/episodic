@@ -605,16 +605,19 @@ class CommitmentPolicyStrategy(TopicStrategy):
                 )
                 if self._state.low_confidence_streak >= abort_streak:
                     # ABORT: return to original topic, false alarm
+                    abort_cause = self._state.suspect_cause
                     debug_print(
-                        f"[SUSPECT→ABORT] {self._state.suspect_cause}-triggered, "
+                        f"[SUSPECT→ABORT] {abort_cause}-triggered, "
                         f"low confidence for {abort_streak} turns",
                         category="topic"
                     )
                     self._abort_suspect()
                     return self._build_stable_decision(
                         base_decision, start_time,
-                        f"ABORT: {self._state.suspect_cause}-triggered false alarm",
-                        semantic_drift=semantic_drift
+                        f"ABORT: {abort_cause}-triggered false alarm",
+                        semantic_drift=semantic_drift,
+                        aborted=True,
+                        abort_reason=f"low_confidence_streak:{abort_cause}",
                     )
             else:
                 self._state.low_confidence_streak = 0
@@ -622,6 +625,7 @@ class CommitmentPolicyStrategy(TopicStrategy):
             # Return detection: if evidence was met but confidence dropped, ABORT
             # This catches transient digressions where user returns to original topic
             if self._state.evidence_met and confidence < effective_return_thresh:
+                abort_cause = self._state.suspect_cause
                 debug_print(
                     f"[SUSPECT→ABORT] Return detected: evidence_met but "
                     f"conf={confidence:.3f} < return_thresh={effective_return_thresh:.3f} "
@@ -632,7 +636,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
                 return self._build_stable_decision(
                     base_decision, start_time,
                     f"ABORT: returned to topic (conf={confidence:.2f} < {effective_return_thresh:.2f})",
-                    semantic_drift=semantic_drift
+                    semantic_drift=semantic_drift,
+                    aborted=True,
+                    abort_reason=f"return_detected:{abort_cause}",
                 )
 
             # Check COMMIT condition (two-sided test):
@@ -702,7 +708,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
                                 return self._build_stable_decision(
                                     base_decision, start_time,
                                     f"ABORT: neural drift gate (drift={drift_val:.3f} < {self.policy.neural_commit_drift_threshold})",
-                                    semantic_drift=semantic_drift
+                                    semantic_drift=semantic_drift,
+                                    aborted=True,
+                                    abort_reason="neural_drift_gate",
                                 )
 
                         node_preview = self._state.suspect_start_node_id[:8] if self._state.suspect_start_node_id else "None"
@@ -952,7 +960,9 @@ class CommitmentPolicyStrategy(TopicStrategy):
         start_time: float,
         extra_reason: str = "",
         semantic_drift: Optional[float] = None,
-        drift_triggered: bool = False
+        drift_triggered: bool = False,
+        aborted: bool = False,
+        abort_reason: Optional[str] = None,
     ) -> TopicDecision:
         """Build decision for STABLE state (no commit)."""
         import time
@@ -966,7 +976,10 @@ class CommitmentPolicyStrategy(TopicStrategy):
             'turns_since_boundary': self._turns_since_boundary(),
             'suspect_threshold': self.policy.suspect_threshold,
             'committed': False,
+            'aborted': aborted,
         })
+        if abort_reason:
+            signals['abort_reason'] = abort_reason
         if semantic_drift is not None:
             signals['semantic_drift'] = semantic_drift
             signals['drift_triggered'] = drift_triggered

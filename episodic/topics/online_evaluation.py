@@ -82,8 +82,8 @@ class DialogueTrace:
 
     # Events for timing/churn analysis: (suspect_entry_turn, commit_turn, cause)
     commit_events: List[Tuple[int, int, str]] = field(default_factory=list)
-    # (suspect_entry_turn, abort_turn)
-    abort_events: List[Tuple[int, int]] = field(default_factory=list)
+    # (suspect_entry_turn, abort_turn, abort_reason)
+    abort_events: List[Tuple[int, int, str]] = field(default_factory=list)
 
     def to_dict(self) -> Dict:
         """Convert to dict for JSON serialization."""
@@ -269,6 +269,15 @@ class OnlineReplayHarness:
                         current_suspect_entry = None
                         current_suspect_cause = None
 
+                    # Same-turn SUSPECT→ABORT (invisible state transition)
+                    # The state machine entered SUSPECT and ABORTed in same turn,
+                    # so we see STABLE→STABLE but with aborted=True signal
+                    elif state == "STABLE" and decision.signals.get('aborted', False):
+                        event = "ABORT"
+                        abort_reason = decision.signals.get('abort_reason', 'unknown')
+                        # Record same-turn abort: entry and exit both at current turn
+                        abort_events.append((i, i, abort_reason))
+
                     # STABLE -> SUSPECT transition
                     elif prev_state == "STABLE" and state == "SUSPECT":
                         current_suspect_entry = i
@@ -292,8 +301,9 @@ class OnlineReplayHarness:
                                 ))
                         else:
                             event = "ABORT"
+                            abort_reason = decision.signals.get('abort_reason', 'unknown')
                             if current_suspect_entry is not None:
-                                abort_events.append((current_suspect_entry, i))
+                                abort_events.append((current_suspect_entry, i, abort_reason))
 
                         current_suspect_entry = None
                         current_suspect_cause = None

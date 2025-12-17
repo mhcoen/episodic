@@ -77,6 +77,12 @@ DATASETS = {
         alignment=ALIGNMENT_PRESETS['segment_start'],
         max_dialogues=200,
     ),
+    "dialseg711": DatasetConfig(
+        name="DialSeg711",
+        path="datasets/dialseg711/segmentation_file_test.json",
+        alignment=ALIGNMENT_PRESETS['segment_start'],
+        max_dialogues=200,
+    ),
     "tiage": DatasetConfig(
         name="TIAGE",
         path="datasets/tiage/segmentation_file_test.json",
@@ -546,6 +552,7 @@ def create_strategy(
     return_threshold: Optional[float] = None,
     return_drop_ratio: Optional[float] = None,
     high_conf_commit_threshold: Optional[float] = None,
+    neural_commit_drift_threshold: Optional[float] = 0.7,
 ):
     """
     Create a strategy variant for ablation.
@@ -593,6 +600,7 @@ def create_strategy(
             min_evidence=neural_min_evidence,
             evidence_decay=0.8,
             drift_suspect_threshold=None,  # No drift trigger
+            neural_commit_drift_threshold=neural_commit_drift_threshold,
             # Two-sided test parameters
             commit_persistence=commit_persistence,
             return_threshold=return_threshold,
@@ -612,6 +620,7 @@ def create_strategy(
             min_evidence=neural_min_evidence,
             evidence_decay=0.8,
             drift_suspect_threshold=drift_threshold,
+            neural_commit_drift_threshold=neural_commit_drift_threshold,
             # Drift-triggered SUSPECT: stricter requirements
             drift_min_evidence=2.4,
             drift_abort_threshold=0.4,
@@ -661,16 +670,22 @@ def evaluate_strategy_on_dataset(
 def run_ablation(
     datasets: List[str],
     drift_thresholds: List[float],
+    suspect_thresholds: List[float] = [0.8],
+    neural_commit_thresholds: List[Optional[float]] = [0.7],
     delay_tolerance: int = 2,
     output_dir: Path = None,
 ) -> Dict[str, Dict[str, OnlineMetrics]]:
     """
-    Run full ablation study across datasets and drift thresholds.
+    Run full ablation study across datasets and threshold combinations.
+
+    Sweeps over:
+    - drift_thresholds: For drift-triggered SUSPECT entry
+    - suspect_thresholds: For neural-triggered SUSPECT entry
+    - neural_commit_thresholds: For neural commit drift gate (None = disabled)
 
     Returns metrics indexed by (strategy, dataset).
     """
     results: Dict[str, Dict[str, OnlineMetrics]] = {}
-    strategy_types = ["neural_only", "commitment_neural_only", "commitment_hybrid"]
 
     for dataset_name in datasets:
         if dataset_name not in DATASETS:
@@ -685,14 +700,21 @@ def run_ablation(
         if not test_cases:
             continue
 
-        for strategy_type in strategy_types:
-            if strategy_type == "commitment_hybrid":
-                # Sweep thresholds for hybrid
-                for threshold in drift_thresholds:
-                    key = f"{strategy_type}_{threshold:.2f}"
+        # Sweep over all threshold combinations for commitment_hybrid
+        for drift_thresh in drift_thresholds:
+            for suspect_thresh in suspect_thresholds:
+                for neural_commit_thresh in neural_commit_thresholds:
+                    # Build strategy key
+                    nct_str = "none" if neural_commit_thresh is None else f"{neural_commit_thresh:.2f}"
+                    key = f"hybrid_d{drift_thresh:.2f}_s{suspect_thresh:.2f}_nc{nct_str}"
                     print(f"\n--- {key} on {dataset_name} ---")
 
-                    strategy = create_strategy(strategy_type, drift_threshold=threshold)
+                    strategy = create_strategy(
+                        "commitment_hybrid",
+                        drift_threshold=drift_thresh,
+                        neural_threshold=suspect_thresh,
+                        neural_commit_drift_threshold=neural_commit_thresh,
+                    )
                     traces, metrics = evaluate_strategy_on_dataset(
                         strategy, test_cases, delay_tolerance=delay_tolerance
                     )
@@ -711,25 +733,6 @@ def run_ablation(
                           f"Coverage: {metrics.delay_coverage:.2f}")
                     print(f"  Churn: {metrics.suspect_abort_rate:.2%} abort rate  "
                           f"({metrics.abort_count} abort / {metrics.commit_count} commit)")
-            else:
-                # Non-hybrid strategies (no threshold sweep)
-                print(f"\n--- {strategy_type} on {dataset_name} ---")
-                strategy = create_strategy(strategy_type)
-                traces, metrics = evaluate_strategy_on_dataset(
-                    strategy, test_cases, delay_tolerance=delay_tolerance
-                )
-
-                if strategy_type not in results:
-                    results[strategy_type] = {}
-                results[strategy_type][dataset_name] = metrics
-
-                if output_dir:
-                    trace_file = output_dir / f"{dataset_name}_{strategy_type}_traces.jsonl"
-                    write_traces_jsonl(traces, trace_file)
-
-                print(f"  W-F1: {metrics.w_f1:.3f}  BOR: {metrics.bor:.2f}  "
-                      f"Delay: {metrics.delay_mean:.2f}±{metrics.delay_std:.2f}  "
-                      f"Coverage: {metrics.delay_coverage:.2f}")
 
     return results
 
@@ -824,13 +827,28 @@ def main():
                         help="Run synthetic tests")
     parser.add_argument("--drift-thresholds", type=str, default="0.90,0.93,0.95,0.97,0.99",
                         help="Comma-separated drift thresholds to sweep")
+    parser.add_argument("--suspect-thresholds", type=str, default="0.8",
+                        help="Comma-separated suspect (neural entry) thresholds to sweep")
+    parser.add_argument("--neural-commit-drift-thresholds", type=str, default="0.7",
+                        help="Comma-separated neural commit drift gate thresholds (use 'none' for None)")
     parser.add_argument("--delay-tolerance", type=int, default=2,
                         help="Tolerance window for delay matching")
-    parser.add_argument("--output", type=str, help="Output directory for traces")
+    parser.add_argument("--output", "--output-dir", type=str, dest="output",
+                        help="Output directory for traces")
     args = parser.parse_args()
 
     # Parse thresholds
-    thresholds = [float(t) for t in args.drift_thresholds.split(",")]
+    drift_thresholds = [float(t) for t in args.drift_thresholds.split(",")]
+    suspect_thresholds = [float(t) for t in args.suspect_thresholds.split(",")]
+
+    # Parse neural commit drift thresholds (supports 'none' for None)
+    neural_commit_thresholds = []
+    for t in args.neural_commit_drift_thresholds.split(","):
+        t = t.strip().lower()
+        if t == "none":
+            neural_commit_thresholds.append(None)
+        else:
+            neural_commit_thresholds.append(float(t))
 
     # Output directory
     output_dir = Path(args.output) if args.output else None
@@ -839,7 +857,7 @@ def main():
 
     # Run evaluation
     if args.synthetic:
-        results = run_synthetic_tests(drift_thresholds=thresholds)
+        results = run_synthetic_tests(drift_thresholds=drift_thresholds)
         if output_dir:
             with open(output_dir / "synthetic_results.json", "w") as f:
                 json.dump(results, f, indent=2)
@@ -848,7 +866,9 @@ def main():
         datasets = args.datasets or ["superseg", "dialseg", "tiage"]
         results = run_ablation(
             datasets=datasets,
-            drift_thresholds=thresholds,
+            drift_thresholds=drift_thresholds,
+            suspect_thresholds=suspect_thresholds,
+            neural_commit_thresholds=neural_commit_thresholds,
             delay_tolerance=args.delay_tolerance,
             output_dir=output_dir,
         )

@@ -51,6 +51,7 @@ class OnlineMetrics:
     abort_count: int
     commit_count: int
     commits_by_cause: Dict[str, int]  # "neural" | "drift" -> count
+    aborts_by_reason: Dict[str, int] = field(default_factory=dict)  # abort reason -> count
 
     # Metadata
     num_dialogues: int = 0
@@ -128,7 +129,7 @@ def compute_boundary_delay(
 
 def compute_suspect_timing(
     commit_events: List[Tuple[int, int, str]],  # (suspect_entry_turn, commit_turn, cause)
-    abort_events: List[Tuple[int, int]],  # (suspect_entry_turn, abort_turn)
+    abort_events: List[Tuple[int, int, str]],  # (suspect_entry_turn, abort_turn, abort_reason)
     gold_boundaries: Set[int]
 ) -> Tuple[float, Dict[str, float], float, Dict[int, int]]:
     """
@@ -136,7 +137,7 @@ def compute_suspect_timing(
 
     Args:
         commit_events: List of (suspect_entry_turn, commit_turn, cause) tuples
-        abort_events: List of (suspect_entry_turn, abort_turn) tuples
+        abort_events: List of (suspect_entry_turn, abort_turn, abort_reason) tuples
         gold_boundaries: Set of gold boundary indices
 
     Returns:
@@ -175,7 +176,7 @@ def compute_suspect_timing(
     time_to_commit_mean = statistics.mean(commit_durations) if commit_durations else 0.0
 
     # Duration histogram (all SUSPECT episodes, both COMMIT and ABORT)
-    all_durations = commit_durations + [abort - entry for entry, abort in abort_events]
+    all_durations = commit_durations + [abort - entry for entry, abort, _ in abort_events]
     duration_histogram: Dict[int, int] = {}
     for d in all_durations:
         duration_histogram[d] = duration_histogram.get(d, 0) + 1
@@ -185,17 +186,17 @@ def compute_suspect_timing(
 
 def compute_churn_metrics(
     commit_events: List[Tuple[int, int, str]],  # (suspect_entry_turn, commit_turn, cause)
-    abort_events: List[Tuple[int, int]]  # (suspect_entry_turn, abort_turn)
-) -> Tuple[float, int, int, Dict[str, int]]:
+    abort_events: List[Tuple[int, int, str]]  # (suspect_entry_turn, abort_turn, abort_reason)
+) -> Tuple[float, int, int, Dict[str, int], Dict[str, int]]:
     """
     Compute churn (ABORT vs COMMIT) metrics.
 
     Args:
         commit_events: List of (suspect_entry_turn, commit_turn, cause) tuples
-        abort_events: List of (suspect_entry_turn, abort_turn) tuples
+        abort_events: List of (suspect_entry_turn, abort_turn, abort_reason) tuples
 
     Returns:
-        (suspect_abort_rate, abort_count, commit_count, commits_by_cause)
+        (suspect_abort_rate, abort_count, commit_count, commits_by_cause, aborts_by_reason)
     """
     commit_count = len(commit_events)
     abort_count = len(abort_events)
@@ -207,7 +208,11 @@ def compute_churn_metrics(
     for _, _, cause in commit_events:
         commits_by_cause[cause] = commits_by_cause.get(cause, 0) + 1
 
-    return suspect_abort_rate, abort_count, commit_count, commits_by_cause
+    aborts_by_reason: Dict[str, int] = {}
+    for _, _, reason in abort_events:
+        aborts_by_reason[reason] = aborts_by_reason.get(reason, 0) + 1
+
+    return suspect_abort_rate, abort_count, commit_count, commits_by_cause, aborts_by_reason
 
 
 def compute_online_metrics(
@@ -237,6 +242,7 @@ def compute_online_metrics(
             time_to_suspect_mean=0.0, time_to_suspect_by_cause={},
             time_to_commit_mean=0.0, suspect_duration_histogram={},
             suspect_abort_rate=0.0, abort_count=0, commit_count=0, commits_by_cause={},
+            aborts_by_reason={},
             num_dialogues=0, total_turns=0
         )
 
@@ -244,7 +250,7 @@ def compute_online_metrics(
     all_gold: Set[int] = set()
     all_pred: Set[int] = set()
     all_commit_events: List[Tuple[int, int, str]] = []
-    all_abort_events: List[Tuple[int, int]] = []
+    all_abort_events: List[Tuple[int, int, str]] = []
     offset = 0
     total_turns = 0
 
@@ -279,7 +285,7 @@ def compute_online_metrics(
     )
 
     # Churn metrics
-    abort_rate, abort_cnt, commit_cnt, commits_cause = compute_churn_metrics(
+    abort_rate, abort_cnt, commit_cnt, commits_cause, aborts_reason = compute_churn_metrics(
         all_commit_events, all_abort_events
     )
 
@@ -300,6 +306,7 @@ def compute_online_metrics(
         abort_count=abort_cnt,
         commit_count=commit_cnt,
         commits_by_cause=commits_cause,
+        aborts_by_reason=aborts_reason,
         num_dialogues=len(dialogues),
         total_turns=total_turns,
     )
@@ -324,6 +331,7 @@ def aggregate_online_metrics(metrics_list: List[OnlineMetrics]) -> OnlineMetrics
             time_to_suspect_mean=0.0, time_to_suspect_by_cause={},
             time_to_commit_mean=0.0, suspect_duration_histogram={},
             suspect_abort_rate=0.0, abort_count=0, commit_count=0, commits_by_cause={},
+            aborts_by_reason={},
             num_dialogues=0, total_turns=0
         )
 
@@ -364,6 +372,12 @@ def aggregate_online_metrics(metrics_list: List[OnlineMetrics]) -> OnlineMetrics
         for k, v in m.commits_by_cause.items():
             merged_commits_cause[k] = merged_commits_cause.get(k, 0) + v
 
+    # Merge aborts_by_reason
+    merged_aborts_reason: Dict[str, int] = {}
+    for m in metrics_list:
+        for k, v in m.aborts_by_reason.items():
+            merged_aborts_reason[k] = merged_aborts_reason.get(k, 0) + v
+
     # Merge time_to_suspect_by_cause (weighted average by commit count)
     merged_time_by_cause: Dict[str, float] = {}
     cause_counts: Dict[str, int] = {}
@@ -393,6 +407,7 @@ def aggregate_online_metrics(metrics_list: List[OnlineMetrics]) -> OnlineMetrics
         abort_count=total_abort,
         commit_count=total_commit,
         commits_by_cause=merged_commits_cause,
+        aborts_by_reason=merged_aborts_reason,
         num_dialogues=total_dialogues,
         total_turns=total_turns,
     )

@@ -346,7 +346,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--target-rate", type=float, default=0.10)
     parser.add_argument("--min-gap", type=int, default=2)
-    parser.add_argument("--max-dialogues", type=int, default=100)
+    parser.add_argument("--max-dialogues", type=int, default=250)
     args = parser.parse_args()
 
     datasets_dir = Path(args.datasets_dir) if args.datasets_dir else project_root / "datasets"

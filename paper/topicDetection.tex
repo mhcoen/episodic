@@ -709,21 +709,19 @@ high purity and coverage.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{l l c c c c c}
+\begin{tabular}{l c c c c c}
 \toprule
-Model & Dataset & W-F1 & \textbf{BOR} & Purity & Coverage & F1 \\
+Dataset & W-F1 & \textbf{BOR} & Purity & Coverage & F1 \\
 \midrule
-Ours & DialSeg711 & 0.767 & \textbf{2.53} & 0.962 & 0.651 & 0.434 \\
-     & SuperSeg   & 0.584 & \textbf{0.81} & 0.847 & 0.915 & 0.609 \\
-     & TIAGE      & 0.512 & \textbf{0.76} & 0.785 & 0.896 & 0.368 \\
-\midrule
-CSM  & DialSeg711 & 0.413 & \textbf{0.64} & 0.749 & 0.921 & 0.373 \\
+ DialSeg711 & 0.767 & \textbf{2.53} & 0.962 & 0.651 & 0.434 \\
+ SuperSeg   & 0.584 & \textbf{0.81} & 0.847 & 0.915 & 0.609 \\
+ TIAGE      & 0.512 & \textbf{0.76} & 0.785 & 0.896 & 0.368 \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{Segment coherence diagnostics for the proposed model and an external baseline.}
-High purity with elevated BOR indicates coherent fine-grained segmentation; high coverage with reduced
-BOR indicates coarser-than-gold segmentation. Both patterns reflect granularity mismatch rather than
-boundary detection failure.}
+\caption{\textbf{Segment coherence diagnostics for the proposed model.}
+High purity with elevated BOR indicates coherent fine-grained segmentation; high
+coverage with reduced BOR indicates coarser-than-gold segmentation. Both patterns
+reflect granularity mismatch rather than boundary detection failure.}
 \label{tab:purity_coverage}
 \end{table}
 
@@ -878,17 +876,17 @@ rather than an evaluation artifact.
 \caption{\textbf{Adaptive boundary selection enforces invariant boundary distributions across scoring granularities (DialSeg711).}
 \emph{Top row} shows the raw candidate boundary rate produced by the same scorer under fine
 (left) and coarse (right) candidate thresholds, resulting in substantially different candidate
-frequencies (73.7\% vs.\ 57.5\%). The dashed line indicates the target selection rate specified to the
+frequencies (73.5\% vs.\ 57.7\%). The dashed line indicates the target selection rate specified to the
 controller. \emph{Bottom row} shows the resulting distribution of selected boundaries over message
 index after adaptive thresholding. Despite large differences in candidate generation, adaptive
 selection converges to nearly identical boundary distributions and total selection counts
-(16.3\% selection rate, $N{=}429$ in both cases). This invariance is \emph{not} the result of score
+(16.7\% selection rate, $N{=}542$ in both cases). This invariance is \emph{not} the result of score
 rescaling or post-hoc normalization: the underlying scoring function is unchanged, and the effect
 emerges from online evidence accumulation and adaptive thresholding, reflecting successful decoupling of
 boundary selection from boundary scoring.}
 \label{fig:adaptive_commitment}
 \end{figure*}
-
+No,
 \subsection{Computational Cost}
 
 Boundary selection is computationally negligible: it operates on a vector of scores and applies thresholding and minimum spacing. Boundary scoring dominates cost because it requires running the neural model over candidate positions (window-vs-window inputs around each position). The separation therefore has practical value in deployed systems: selection can be retuned per dataset or application without recomputing scores, while recomputing scores requires model inference. Evidence accumulation within online boundary selection is likewise lightweight relative to scoring, since it reuses the fixed-reference scores and maintains only decision state.

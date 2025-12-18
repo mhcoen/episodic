@@ -212,7 +212,7 @@ def plot_2x2_figure(
 
     window = 50
     granularities = ['fine', 'coarse']
-    col_labels = ['Fine base scoring', 'Coarse base scoring']
+    col_labels = ['Fine scoring', 'Coarse scoring']
 
     # Get global x-axis range (same for both rows)
     all_msg_idx = []
@@ -296,7 +296,7 @@ def plot_2x2_figure(
                           marker='|', color='darkblue', alpha=0.3, s=30, linewidths=0.5)
 
         ax_bot.set_xlabel('Message index (across dialogues)', fontsize=11)
-        ax_bot.set_ylabel('Commit density' if col == 0 else '', fontsize=11)
+        ax_bot.set_ylabel('Selection density' if col == 0 else '', fontsize=11)
         ax_bot.set_xlim(0, x_max)
         ax_bot.set_ylim(0, density_y_max)
         ax_bot.grid(True, alpha=0.3, which='major')

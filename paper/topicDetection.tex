@@ -36,13 +36,13 @@ coherence.
 
 This paper introduces an evaluation objective for dialogue topic
 segmentation that treats boundary density and segment coherence as
-primary criteria, alongside tolerance-based boundary accuracy. Through
+primary criteria, alongside window-tolerant F1 (W-F1). Through
 extensive cross-dataset empirical evaluation, we show that reported
 performance differences across dialogue segmentation benchmarks are
-driven not by model quality, but by mismatches in annotation
-granularity and sparsely annotated topic boundaries. This indicates
-that many reported improvements arise from evaluation artifacts rather
-than improved boundary detection.
+driven not by model quality, but by annotation granularity mismatches
+and sparse boundary labels. This indicates that many reported
+improvements arise from evaluation artifacts rather than improved
+boundary detection.
 
 We evaluated multiple, structurally distinct dialogue segmentation
 strategies across eight dialogue datasets spanning task-oriented,
@@ -51,11 +51,8 @@ settings, we observe high segment coherence combined with extreme
 oversegmentation relative to sparse labels, producing misleadingly low
 exact-match F1 scores. We show that topic segmentation is best
 understood as selecting an appropriate granularity rather than
-predicting a single correct boundary set. We also propose a topic
-segmentation algorithm that separates boundary scoring from boundary
-selection, and demonstrate that this separation makes boundary density
-a controllable design choice and clarifies why thresholds fail to
-transfer across datasets.
+predicting a single correct boundary set. We operationalize this view
+by explicitly separating boundary scoring from boundary selection.
 \end{abstract}
 
 \section{Introduction}
@@ -64,7 +61,15 @@ Dialogue topic segmentation is commonly framed as identifying points in a conver
 
 Despite this, many dialogue segmentation benchmarks treat annotated boundaries as objective ground truth and evaluate systems using strict boundary matching and F1-based metrics~\cite{vanrijsbergen1979}. These metrics collapse distinct failure modes into a single number. Small boundary shifts are often harmless when the goal is coherent topic blocks, while missing or adding a few boundaries can be catastrophic if boundaries drive downstream actions such as summarizing or dropping earlier turns.
 
-This paper addresses that mismatch by changing what we report and what we optimize. We define an evaluation objective that jointly reports (i) tolerant boundary accuracy, (ii) boundary density, and (iii) segment coherence. We also propose an algorithmic separation between boundary scoring and boundary selection that makes boundary density explicit and controllable. Together, these contributions let us distinguish detection failures from granularity mismatches (i.e., discrepancies between the segmentation resolution at which boundaries are produced and that implied by the annotation scheme) and explain why a single global threshold fails to transfer across datasets.
+This paper addresses that mismatch by changing what we report and what we optimize. We define an evaluation objective that jointly reports (i) window-tolerant F1 (W-F1), (ii) boundary density, and (iii) segment coherence. 
+
+We also propose an algorithmic separation between boundary scoring and
+boundary selection that makes boundary density explicit and
+controllable. Together, these contributions let us distinguish
+detection failures from granularity mismatches (i.e., discrepancies
+between the segmentation resolution at which boundaries are produced
+and that implied by the annotation scheme) and explain why a single
+global threshold fails to transfer across datasets.
 
 We emphasize, however, that boundary-based metrics such as F1 are
 appropriate when annotation granularity is consistent between training,
@@ -85,7 +90,7 @@ contributions:
   non-semantic baselines achieve competitive scores when their output
   density matches the gold annotation.
 \item We propose an evaluation objective that reports boundary density
-  and segment coherence alongside tolerant boundary accuracy, exposing
+  and segment coherence alongside W-F1, exposing
   failure modes hidden by standard boundary metrics.
 \item We introduce and empirically validate a topic segmentation
   framework that separates boundary scoring from boundary selection,
@@ -104,7 +109,7 @@ or reintroduced.
 
 Importantly, this challenge does not disappear as context windows grow larger.
 Unstructured accumulation of earlier dialogue increases computational cost and
-dilutes relevance, reducing the model’s ability to focus on salient information.
+dilutes relevance, reducing the model's ability to focus on salient information.
 Effective conversational systems therefore require explicit structure over
 dialogue history rather than unbounded context expansion.
 
@@ -184,6 +189,7 @@ granularity effects explicit.
 
 
 \section{Problem Setting}
+\label{sec:problem-setting}
 Topic boundaries are not intrinsic properties of conversations. They
 depend on segmentation granularity, task requirements, and annotation
 intent. A model that produces fine-grained discourse-phase boundaries
@@ -212,11 +218,16 @@ Task-oriented dialogue datasets include SuperDialseg~\cite{superdialseg2023}, Di
 
 \section{Methodology}
 
-Our approach outputs a score for each canonical between-message position indicating the likelihood of a topic boundary. We map all gold and predicted boundaries to canonical between-message indices to avoid speaker-based off-by-one artifacts.
+Our approach outputs a score for each candidate boundary position
+(defined as a between-message index) indicating the likelihood of a
+topic boundary. We map all gold and predicted boundaries to these
+canonical between-message indices to avoid speaker-based off-by-one
+artifacts.
 
-The key methodological choice is to separate boundary scoring from boundary selection. Scoring aims to generalize: it should rank likely topic transitions above unlikely ones. Selection is a decision rule: it chooses boundary density and spacing to match an annotation regime or an application requirement. In deployed use, selection may be implemented as a commitment policy, which is a decision rule that accumulates evidence over time and determines when to emit a boundary, rather than emitting boundaries directly from the scoring model.
-
-
+The scoring/selection decomposition follows the problem setting in
+Section~\ref{sec:problem-setting}: scoring assigns evidence to
+candidate boundary positions, while selection determines the emitted
+boundaries and thus the boundary density.
 
 \subsection{Topic Segmentation Algorithm}
 
@@ -224,26 +235,21 @@ Given a dialogue consisting of messages $m_1,\dots,m_T$, we define candidate
 boundary positions $i \in \{1,\dots,T-1\}$ between adjacent messages.
 
 \paragraph{Boundary scoring.}
-For each candidate position $i$, a base scorer computes a real-valued score
+For each candidate position $i$, the scorer computes a real-valued score
 $s_i \in \mathbb{R}$, where larger values indicate stronger evidence of a topic
 boundary.
 Scores are computed using a window-vs-window comparison: a window of turns
 preceding position $i$ is compared against a window of turns following $i$,
 rather than relying on the adjacent message pair alone.
 
-\paragraph{Commit gating.}
-We distinguish between \emph{boundary scoring} and \emph{boundary commitment}.
-The scorer ranks candidate boundary positions, while \emph{commit gating}
-determines when a boundary is actually emitted.
-Commit gating is an online decision mechanism that accumulates evidence over
-time and emits a boundary only when commitment criteria are satisfied (e.g.,
-confidence, persistence, or rate constraints).
-We use “commit gating” and “commitment policy” interchangeably to refer to the same boundary selection mechanism.
-This separation decouples boundary selection from the granularity of the
-underlying scoring function.
+\paragraph{Boundary selection.}
+The scorer ranks candidates; boundary selection determines which
+become final boundaries. In online settings, selection may accumulate
+evidence over time before committing to a boundary. This separation
+decouples final segmentation granularity from the scorer's behavior.
 
-\paragraph{Boundary selection (rule used in experiments).}
-In our experiments, commit gating reduces to a static selection rule
+\paragraph{Static boundary selection rule (used in experiments).}
+In our experiments, boundary selection reduces to a static selection rule
 based on thresholding with minimum spacing.
 \begin{enumerate}
 \item Select all candidate positions $i$ such that $s_i \ge \tau$.
@@ -253,12 +259,15 @@ no previously accepted boundary lies within $g$ positions.
 \end{enumerate}
 The resulting set of topic boundaries is $B \subseteq \{1,\dots,T-1\}$.
 
-For Figure~\ref{fig:adaptive_commitment}, we allow the threshold $\tau$ to vary
-over time (logged as \texttt{min\_evidence}); all other aspects of the selection
-rule remain unchanged. During evidence accumulation, candidate scores are evaluated
-against a fixed pre-change reference. Freezing both the pre-boundary context and
-the boundary-adjacent anchor turn ensures that the policy measures persistence of
-topic departure rather than repeated detection of the same topic transition.
+For Figure~\ref{fig:adaptive_commitment}, we allow the threshold
+$\tau$ to vary over time (logged as \texttt{min\_evidence}, the
+running evidence threshold used by the selection rule); all other
+aspects of the selection rule remain unchanged. During evidence
+accumulation, candidate scores are evaluated against a fixed
+pre-change reference. Freezing both the pre-boundary context and the
+boundary-adjacent anchor turn ensures that the selection rule measures
+persistence of topic departure rather than repeated detection of the
+same topic transition.
 
 \subsection{Scoring Model Architecture}
 
@@ -336,7 +345,7 @@ by a coarser gold standard.
 
 The evaluation objective proposed here is not a drop-in replacement for Pk or
 WindowDiff. Instead, it decomposes segmentation behavior into complementary
-dimensions: tolerant boundary detection (W-F1), boundary density relative to the
+dimensions: W-F1, boundary density relative to the
 annotation scheme (BOR), and segment-level coherence (purity and coverage).
 This decomposition makes it possible to distinguish genuine detection failures
 from granularity mismatch, a distinction that alignment-based metrics alone
@@ -371,8 +380,7 @@ Strict exact-match boundary F1 is reported only as a baseline, because
 it collapses under coarse or sparse annotation and penalizes coherent
 segmentations at a different granularity. The evaluation objective in
 this paper treats boundary density (BOR) and segment coherence
-(purity/coverage) as primary criteria alongside tolerant boundary
-accuracy (W-F1). This is a genuine limitation of any evaluation tied
+(purity/coverage) as primary criteria alongside W-F1. This is a genuine limitation of any evaluation tied
 to a fixed annotation scheme: purity and coverage diagnose relative
 coherence with respect to the reference annotation, but do not provide
 annotation-independent measures of semantic coherence.
@@ -409,7 +417,7 @@ and coherence diagnostics are reported.}
 
 \paragraph{Practical use of the evaluation framework.}
 When evaluating a dialogue segmentation system, we recommend first
-inspecting BOR to determine whether the system’s boundary density
+inspecting BOR to determine whether the system's boundary density
 aligns with the annotation regime or application
 requirements. Boundary accuracy metrics (F1 or W-F1) should then be
 interpreted conditional on this density. Finally, segment coherence
@@ -504,23 +512,24 @@ Even       & TIAGE      & 0.620 & \textbf{1.00} & 0.300 & 0.832 & 0.838 \\
 \end{tabular}
 \caption{\textbf{External dialogue segmentation methods re-evaluated under the proposed
 granularity-aware framework.} Boundary density (BOR) varies substantially across
-methods and datasets, producing distinct segmentation regimes despite comparable
+methods and datasets, producing distinct density regimes despite comparable
 boundary accuracy scores.}
 \label{tab:external_methods}
 \end{table}
 
 Several patterns in Table~\ref{tab:external_methods} align with the
-failure modes summarized in Section~6. Simple periodic segmentation
-achieves competitive boundary accuracy when its output density aligns
-with the gold annotation (BOR $\approx 1$), despite lacking semantic
-grounding. Classical methods such as TextTiling exhibit
-recall-dominated behavior with elevated BOR, yielding high purity
-alongside aggressive oversegmentation. Notably, the same method (CSM)
-occupies different granularity regimes across datasets, indicating
-that apparent performance differences often reflect density mismatch
-rather than improved boundary detection. For example, the regime shift
-observed for CSM across datasets is consistent with differences in
-annotation density rather than changes in boundary detection quality.
+failure modes summarized in Table~\ref{tab:failure-taxonomy}. Simple
+periodic segmentation achieves competitive boundary accuracy when its
+output density aligns with the gold annotation (BOR $\approx 1$),
+despite lacking semantic grounding. Classical methods such as
+TextTiling exhibit recall-dominated behavior with elevated BOR,
+yielding high purity alongside aggressive oversegmentation. Notably,
+the same method (CSM) occupies different density regimes across
+datasets, indicating that apparent performance differences often
+reflect density mismatch rather than improved boundary detection. For
+example, the regime shift observed for CSM across datasets is
+consistent with differences in annotation density rather than changes
+in boundary detection quality.
 
 For clarity, and following the failure taxonomy in Table~\ref{tab:failure-taxonomy},
 we categorize the results in Table~\ref{tab:external_methods} as conservative
@@ -531,7 +540,7 @@ in Table~\ref{tab:regime_summary}.
 \centering
 \begin{tabular}{l l l}
 \toprule
-Method & Dataset & Granularity Regime \\
+Method & Dataset & Density Regime \\
 \midrule
 TextTiling & DialSeg711 & Aggressive (BOR $\gg 1$) \\
 CSM        & DialSeg711 & Conservative (BOR $< 1$) \\
@@ -544,8 +553,8 @@ Random     & TIAGE      & Conservative (BOR $< 1$) \\
 Even       & TIAGE      & Balanced (BOR $\approx 1$) \\
 \bottomrule
 \end{tabular}
-\caption{Granularity regimes induced by boundary density under the proposed
-failure taxonomy.} Regime labels are derived directly from BOR thresholds.
+\caption{Density regimes under the proposed failure taxonomy, derived from BOR thresholds.
+Regime labels are derived directly from BOR thresholds.}
 \label{tab:regime_summary}
 \end{table}
 
@@ -571,7 +580,7 @@ baseline.
 \small
 \begin{tabular}{cllcccc}
 \toprule
-Claim & Comparison & Dataset & $\Delta$F1 & $\Delta$W-F1 & $\Delta$BOR & Relative Granularity Shift \\
+Claim & Comparison & Dataset & $\Delta$F1 & $\Delta$W-F1 & $\Delta$BOR & Relative Density Shift \\
 \midrule
 A & TextTiling vs.\ CSM & DialSeg711 & +0.135 & +0.220 & +2.13 & Conservative $\rightarrow$ Aggressive \\
 B & TextTiling vs.\ CSM & TIAGE & +0.128 & +0.219 & +1.26 & Aggressive $\rightarrow$ More Aggressive \\
@@ -594,7 +603,7 @@ metrics despite substantial shifts in segmentation granularity.
 \subsection{Stage 1: Synthetic Pretraining on Splice Boundaries}
 This stage isolates whether the scoring model can learn a meaningful boundary
 signal in a controlled setting, independent of annotation noise.
-Performance here reflects the model’s ability to distinguish genuine topic
+Performance here reflects the model's ability to distinguish genuine topic
 transitions from non-boundaries before exposure to real dialogue benchmarks.
 Table~\ref{tab:stage1} summarizes boundary-level behavior during this phase.
 
@@ -602,7 +611,7 @@ Table~\ref{tab:stage1} summarizes boundary-level behavior during this phase.
 \centering
 \begin{tabular}{ccccccl}
 \toprule
-Epoch & F1 & W-F1 & BOR & Salience & Neg.\ Ctrl.\\
+Epoch & F1 & W-F1 & BOR & Mean $|$score$|$ & Neg.\ Ctrl.\\
 \midrule
 1 & 0.265 & 0.420 & 0.31 & 0.007 & 0.000 \\
 2 & 0.453 & 0.688 & 0.67 & 0.009 & 0.032 \\
@@ -610,7 +619,7 @@ Epoch & F1 & W-F1 & BOR & Salience & Neg.\ Ctrl.\\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Stage 1 synthetic pretraining on splice boundaries.}
-Salience denotes the mean boundary score magnitude $\mathbb{E}[|s_i|]$ on the validation set and serves as a diagnostic for score collapse. Negative control (Neg.\ Ctrl.) reports the predicted boundary rate on single-segment dialogues,
+Mean $|$score$|$ denotes the mean boundary score magnitude $\mathbb{E}[|s_i|]$ on the validation set and serves as a diagnostic for score collapse. Negative control (Neg.\ Ctrl.) reports the predicted boundary rate on single-segment dialogues,
 which should be near zero; it was not rerun for epoch 3, as the model had already passed this sanity check at epoch 2.
 }
 \label{tab:stage1}
@@ -748,14 +757,14 @@ boundary detection.}
 \end{figure}
 
 \section{Discussion}
-
-The results demonstrate that boundary scoring generalizes more robustly than
-boundary selection under heterogeneous annotation granularity. Baseline
-comparisons in Table~\ref{tab:baselines} expose a central weakness of standard
-boundary-based metrics: random and periodic strategies achieve competitive
-W-F1 and purity scores when their output boundary density is matched to the
-gold annotation, despite lacking any semantic grounding. In contrast, the
-proposed model yields substantially higher segment purity on datasets with
+The results demonstrate that boundary-based accuracy metrics conflate
+segmentation quality with density alignment when annotation
+granularity varies. Baseline comparisons in Table~\ref{tab:baselines}
+expose a central weakness of standard boundary-based metrics: random
+and periodic strategies achieve competitive W-F1 and purity scores
+when their output boundary density is matched to the gold annotation,
+despite lacking any semantic grounding. In contrast, the proposed
+model yields substantially higher segment purity on datasets with
 coarse annotations, at the cost of elevated BOR, indicating coherent
 fine-grained segmentation rather than detection failure.
 
@@ -781,11 +790,11 @@ more conservative scorers exhibit lower boundary accuracy but better density
 control.
 
 Across the methods examined in this study, three qualitatively distinct
-segmentation regimes emerge:
+density regimes emerge:
 \begin{itemize}
 \item \textbf{Conservative strategies} (e.g., SpeechAct, SummaryProbe)
 undersegment, producing $\text{BOR} < 1$ and low recall.
-\item \textbf{Balanced strategies} (e.g., Neural(fine), commitment-based
+\item \textbf{Balanced strategies} (e.g., Neural(fine), density-matched
 selection) achieve $\text{BOR} \approx 1$ with high segment purity, yielding
 calibrated segmentation aligned with annotation density.
 \item \textbf{Aggressive strategies} (e.g., CUSUM, time-aware drift detection)
@@ -851,12 +860,12 @@ parameter rather than an incidental consequence of threshold tuning.
 
 Figure~\ref{fig:adaptive_commitment} illustrates the consequence of
 this separation: different scoring granularities produce substantially
-different candidate boundary rates, yet an explicit commitment policy
+different candidate boundary rates, yet an explicit selection rule
 enforces stable output boundary distributions that are invariant to
-the scorer’s granularity. Crucially, this invariance does not arise
+the scorer's granularity. Crucially, this invariance does not arise
 from score rescaling or post-hoc normalization.  The scoring function
 is unchanged; identical output distributions emerge solely from the
-selection mechanism’s evidence accumulation and commit gating
+selection mechanism's evidence accumulation and adaptive thresholding
 behavior.  This behavior illustrates that separating scoring from
 selection enables boundary density to be controlled independently of
 scoring granularity, motivating its treatment as a design parameter
@@ -866,23 +875,23 @@ rather than an evaluation artifact.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/adaptive_commitment_granularity.png}
-\caption{\textbf{Adaptive commitment enforces invariant boundary distributions across scoring granularities (DialSeg711).}
-\emph{Top row} shows the raw candidate boundary rate produced by the same base scorer under fine
+\caption{\textbf{Adaptive boundary selection enforces invariant boundary distributions across scoring granularities (DialSeg711).}
+\emph{Top row} shows the raw candidate boundary rate produced by the same scorer under fine
 (left) and coarse (right) candidate thresholds, resulting in substantially different candidate
-frequencies (73.7\% vs.\ 57.5\%). The dashed line indicates the target commit rate specified to the
-controller. \emph{Bottom row} shows the resulting distribution of committed boundaries over message
+frequencies (73.7\% vs.\ 57.5\%). The dashed line indicates the target selection rate specified to the
+controller. \emph{Bottom row} shows the resulting distribution of selected boundaries over message
 index after adaptive thresholding. Despite large differences in candidate generation, adaptive
-commitment converges to nearly identical boundary distributions and total commit counts
-(16.3\% commit rate, $N{=}429$ in both cases). This invariance is \emph{not} the result of score
+selection converges to nearly identical boundary distributions and total selection counts
+(16.3\% selection rate, $N{=}429$ in both cases). This invariance is \emph{not} the result of score
 rescaling or post-hoc normalization: the underlying scoring function is unchanged, and the effect
-emerges from online evidence accumulation and commit gating, reflecting successful decoupling of
+emerges from online evidence accumulation and adaptive thresholding, reflecting successful decoupling of
 boundary selection from boundary scoring.}
 \label{fig:adaptive_commitment}
 \end{figure*}
 
 \subsection{Computational Cost}
 
-Boundary selection is computationally negligible: it operates on a vector of scores and applies thresholding and minimum spacing. Boundary scoring dominates cost because it requires running the neural model over candidate positions (window-vs-window inputs around each position). The separation therefore has practical value in deployed systems: selection can be retuned per dataset or application without recomputing scores, while recomputing scores requires model inference. Evidence accumulation within a commitment policy is likewise lightweight relative to scoring, since it reuses the fixed-reference scores and maintains only decision state.
+Boundary selection is computationally negligible: it operates on a vector of scores and applies thresholding and minimum spacing. Boundary scoring dominates cost because it requires running the neural model over candidate positions (window-vs-window inputs around each position). The separation therefore has practical value in deployed systems: selection can be retuned per dataset or application without recomputing scores, while recomputing scores requires model inference. Evidence accumulation within online boundary selection is likewise lightweight relative to scoring, since it reuses the fixed-reference scores and maintains only decision state.
 
 \subsection{On Dataset Choice and External Validity}
 
@@ -930,7 +939,7 @@ across datasets and methods.
 In preliminary experiments, variance across random seeds and training runs was
 small relative to these effects and did not alter the qualitative conclusions.
 Future work could include multi-run statistical reporting for finer-grained
-comparisons within a given segmentation regime, but such analysis is not
+comparisons within a given density regime, but such analysis is not
 required to support the central evaluation claims made here.
 
 Inter-annotator agreement (IAA) statistics could also provide additional
@@ -944,7 +953,7 @@ units (e.g., boundary placement, segment overlap, or task-level agreement),
 making direct comparison across datasets difficult.
 Because the present work focuses on evaluation behavior under fixed annotation
 schemes rather than on the reliability of those schemes themselves, we do not
-re-analyze annotator agreement here.
+reanalyze annotator agreement here.
 Integrating IAA into a unified analysis of granularity effects remains an
 important direction for future work.
 
@@ -961,25 +970,26 @@ capture overlapping, gradual, or revisited conversational structure.
 
 \section{Conclusion}
 
-Dialogue topic segmentation does not admit a single ground truth. Exact boundary
-matching conflates detection correctness with segmentation granularity and can
-obscure coherent segmentation behavior under differing annotation granularity.
-By separating boundary scoring from boundary selection and evaluating boundary
-density and segment coherence alongside tolerant boundary accuracy, this work
-provides a principled basis for diagnosing evaluation failures across datasets.
+Dialogue topic segmentation does not admit a single ground
+truth. Exact boundary matching conflates detection correctness with
+segmentation granularity and can obscure coherent segmentation
+behavior under differing annotation granularity.  By evaluating
+boundary density and segment coherence alongside W-F1, this work
+provides a principled basis for diagnosing evaluation failures across
+datasets.
 
 A central empirical finding is that boundary-based metrics can be
 dominated by boundary density alignment: even simple non-semantic
 baselines achieve competitive F1 and W-F1 scores when their output
 boundary rate matches the gold annotation. For example, we observe
-that the same published method (CSM) occupies different granularity
+that the same published method (CSM) occupies different density
 regimes across datasets, a pattern consistent with differences in
 annotation density rather than changes in boundary detection
 quality. This underscores that boundary accuracy alone is insufficient
 when annotation granularity varies. For example, a targeted audit of
 runnable SuperDialseg method comparisons shows that higher boundary
 accuracy is consistently accompanied by shifts toward more aggressive
-segmentation regimes, rather than by improved boundary placement.
+density regimes, rather than by improved boundary placement.
 
 The proposed separation is intentionally simple. Its value lies in
 revealing systematic evaluation failures that arise when granularity

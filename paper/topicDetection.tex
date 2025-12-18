@@ -395,7 +395,7 @@ and coherence diagnostics are reported.}
 
 \paragraph{Practical use of the evaluation framework.}
 When evaluating a dialogue segmentation system, we recommend first
-inspecting BOR to determine whether the qsystem’s boundary density
+inspecting BOR to determine whether the system’s boundary density
 aligns with the annotation regime or application
 requirements. Boundary accuracy metrics (F1 or W-F1) should then be
 interpreted conditional on this density. Finally, segment coherence
@@ -458,8 +458,83 @@ produce deceptively strong scores under standard boundary-based metrics.}
 
 This section evaluates the proposed separation between boundary
 scoring and boundary selection under differing annotation
-granularity. The results below instantiate multiple failure modes
-summarized in Table~\ref{tab:failure-taxonomy}.
+granularity. The results below instantiate multiple failure modes summarized in
+Table~\ref{tab:failure-taxonomy}, including for previously published methods
+re-evaluated under the same framework.
+
+\subsection{External Methods Under Granularity-Aware Evaluation}
+To assess whether the granularity effects identified in this work are specific
+to our scoring model or reflect broader evaluation behavior, we re-evaluated a
+representative subset of published dialogue segmentation methods under the
+proposed granularity-aware framework. The selected methods include simple
+baselines (random and periodic segmentation), a classical unsupervised approach
+(TextTiling), and a coherence-based model (CSM). All methods were evaluated using
+the same boundary canonicalization and metrics as in previous sections.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{l l c c c c c}
+\toprule
+Method & Dataset & W-F1 & \textbf{BOR} & F1 & Purity & Coverage \\
+\midrule
+TextTiling & DialSeg711 & 0.648 & \textbf{1.88} & 0.550 & 0.968 & 0.746 \\
+CSM        & DialSeg711 & 0.412 & \textbf{0.64} & 0.373 & 0.749 & 0.921 \\
+Random     & DialSeg711 & 0.267 & \textbf{0.55} & 0.098 & 0.711 & 0.890 \\
+Even       & DialSeg711 & 0.483 & \textbf{1.00} & 0.211 & 0.806 & 0.809 \\
+\midrule
+TextTiling & TIAGE      & 0.612 & \textbf{2.04} & 0.445 & 0.949 & 0.693 \\
+CSM        & TIAGE      & 0.615 & \textbf{3.97} & 0.346 & 0.976 & 0.454 \\
+Random     & TIAGE      & 0.256 & \textbf{0.33} & 0.121 & 0.697 & 0.921 \\
+Even       & TIAGE      & 0.620 & \textbf{1.00} & 0.300 & 0.832 & 0.838 \\
+\bottomrule
+\end{tabular}
+\caption{External dialogue segmentation methods re-evaluated under the proposed
+granularity-aware framework. Boundary density (BOR) varies substantially across
+methods and datasets, producing distinct segmentation regimes despite comparable
+boundary accuracy scores.}
+\label{tab:external_methods}
+\end{table}
+
+Several patterns in Table~\ref{tab:external_methods} align with the
+failure modes summarized in Section~6. Simple periodic segmentation
+achieves competitive boundary accuracy when its output density aligns
+with the gold annotation (BOR $\approx 1$), despite lacking semantic
+grounding. Classical methods such as TextTiling exhibit
+recall-dominated behavior with elevated BOR, yielding high purity
+alongside aggressive oversegmentation. Notably, the same method (CSM)
+occupies different granularity regimes across datasets, indicating
+that apparent performance differences often reflect density mismatch
+rather than improved boundary detection. For example, the regime shift
+observed for CSM across datasets is consistent with differences in
+annotation density rather than changes in boundary detection quality.
+
+For clarity, and following the failure taxonomy in Table~\ref{tab:failure-taxonomy},
+we categorize the results in Table~\ref{tab:external_methods} as conservative
+(BOR $< 1$), balanced (BOR $\approx 1$), or aggressive (BOR $\gg 1$), as summarized
+in Table~\ref{tab:regime_summary}.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{l l l}
+\toprule
+Method & Dataset & Granularity Regime \\
+\midrule
+TextTiling & DialSeg711 & Aggressive (BOR $\gg 1$) \\
+CSM        & DialSeg711 & Conservative (BOR $< 1$) \\
+Random     & DialSeg711 & Conservative (BOR $< 1$) \\
+Even       & DialSeg711 & Balanced (BOR $\approx 1$) \\
+\midrule
+TextTiling & TIAGE      & Aggressive (BOR $\gg 1$) \\
+CSM        & TIAGE      & Aggressive (BOR $\gg 1$) \\
+Random     & TIAGE      & Conservative (BOR $< 1$) \\
+Even       & TIAGE      & Balanced (BOR $\approx 1$) \\
+\bottomrule
+\end{tabular}
+\caption{Granularity regimes induced by boundary density under the proposed
+failure taxonomy. Regime labels are derived directly from BOR thresholds.}
+\label{tab:regime_summary}
+\end{table}
+
 
 \subsection{Stage 1: Synthetic Pretraining on Splice Boundaries}
 This stage isolates whether the scoring model can learn a meaningful boundary
@@ -826,16 +901,20 @@ capture overlapping, gradual, or revisited conversational structure.
 
 Dialogue topic segmentation does not admit a single ground truth. Exact boundary
 matching conflates detection correctness with segmentation granularity and can
-obscure coherent segmentation behavior under differing annotation schemes.
+obscure coherent segmentation behavior under differing annotation granularity.
 By separating boundary scoring from boundary selection and evaluating boundary
 density and segment coherence alongside tolerant boundary accuracy, this work
 provides a principled basis for diagnosing evaluation failures across datasets.
 
-A central empirical finding is that boundary-based metrics can be dominated by
-boundary density alignment: even simple non-semantic baselines achieve
-competitive F1 and W-F1 scores when their output boundary rate matches the gold
-annotation. This shows that boundary accuracy alone is insufficient when
-annotation granularity varies.
+A central empirical finding is that boundary-based metrics can be
+dominated by boundary density alignment: even simple non-semantic
+baselines achieve competitive F1 and W-F1 scores when their output
+boundary rate matches the gold annotation. For example, we observe
+that the same published method (CSM) occupies different granularity
+regimes across datasets, a pattern consistent with differences in
+annotation density rather than changes in boundary detection
+quality. This underscores that boundary accuracy alone is insufficient
+when annotation granularity varies.
 
 The proposed separation is intentionally simple. Its value lies in
 revealing systematic evaluation failures that arise when granularity

@@ -1,0 +1,4 @@
+claim_id,method1,method2,dataset,delta_f1,delta_w_f1,delta_bor,regime_shift,method1_bor,method2_bor
+A,TextTiling,CSM,dialseg711,+0.135,+0.220,+2.13,Conservative → Aggressive,2.69,0.56
+B,TextTiling,CSM,tiage,+0.128,+0.219,+1.26,Conservative → Aggressive,1.84,0.58
+C,TextTiling,Even,dialseg711,+0.277,+0.132,+1.69,Balanced → Aggressive,2.69,1.00

@@ -364,7 +364,50 @@ coherent, independent of exact boundary placement.
 Strict exact-match boundary F1 is reported only as a baseline, because it collapses under coarse or sparse annotation and penalizes coherent segmentations at a different granularity. The evaluation objective in this paper treats boundary density (BOR) and segment coherence (purity/coverage) as primary criteria alongside tolerant boundary accuracy (W-F1).
 
 \paragraph{Interpreting metrics through failure modes.}
-W-F1 detects gross misalignment; BOR exposes systematic over- or under-segmentation; purity/coverage indicate whether the resulting segments are coherent and usable. Low F1 with high purity and high BOR typically indicates granularity mismatch rather than incoherent segmentation.
+W-F1 detects gross misalignment; BOR exposes systematic over- or under-segmentation; purity/coverage indicate whether the resulting segments are coherent and usable. For example, low F1 with high purity and high BOR typically indicates granularity mismatch rather than incoherent segmentation.
+
+\paragraph{Normative implication.}
+When annotation granularity varies across datasets or applications, boundary-based accuracy metrics
+(including strict F1, W-F1, P$_k$, and WindowDiff) are not interpretable in isolation.
+In practical terms, this means that boundary accuracy scores cannot be meaningfully compared across
+datasets with differing annotation granularity unless boundary density is explicitly controlled or reported.
+Table~\ref{tab:failure-taxonomy} summarizes the characteristic failure modes that arise from different
+combinations of boundary accuracy, boundary density, and segment coherence.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lccc}
+\toprule
+F1/W-F1 & BOR & Purity/Coverage & Interpretation \\
+\midrule
+High & $\approx 1$ & High & Calibrated (aligned granularity) \\
+High & $\gg 1$ & High purity & Oversegmentation (coherent fine-grained) \\
+Low  & $\gg 1$ & High purity & Granularity mismatch (not incoherent) \\
+Low  & $< 1$ & High coverage & Undersegmentation (coarser-than-gold) \\
+Low  & $\approx 1$ & Low & Detection failure (misplaced/noisy) \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Failure modes of boundary-based evaluation.}
+Distinct segmentation behaviors can collapse to similar boundary scores unless boundary density (BOR)
+and coherence diagnostics are reported.}
+\label{tab:failure-taxonomy}
+\end{table}
+
+\paragraph{Practical use of the evaluation framework.}
+When evaluating a dialogue segmentation system, we recommend first
+inspecting BOR to determine whether the qsystem’s boundary density
+aligns with the annotation regime or application
+requirements. Boundary accuracy metrics (F1 or W-F1) should then be
+interpreted conditional on this density. Finally, segment coherence
+diagnostics (purity/coverage) can be used to distinguish coherent
+fine-grained segmentation from incoherent boundary noise.
+
+\paragraph{Minimum reporting recommendations for dialogue topic segmentation.}
+When reporting or comparing dialogue topic segmentation results across datasets or evaluation
+settings with differing annotation granularity, we recommend reporting
+(i) a boundary accuracy metric (e.g., W-F1),
+(ii) boundary density relative to gold annotations (e.g., BOR), and
+(iii) at least one segment-level coherence diagnostic.
 
 \subsection{Baselines}
 \label{sec:baselines}
@@ -387,34 +430,36 @@ deceptively strong F1 and W-F1 scores.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{llcccc}
+\begin{tabular}{l l c c c c}
 \toprule
-Baseline & Dataset & W-F1 & BOR & Purity & Coverage \\
+Baseline & Dataset & W-F1 & \textbf{BOR} & Purity & Coverage \\
 \midrule
-No-boundary & DialSeg711 & 0.000 & 0.00 & 0.438 & 1.000 \\
-            & SuperSeg   & 0.113 & 0.00 & 0.568 & 1.000 \\
-            & TIAGE      & 0.140 & 0.00 & 0.541 & 1.000 \\
+No-boundary & DialSeg711 & 0.000 & \textbf{0.00} & 0.438 & 1.000 \\
+            & SuperSeg   & 0.113 & \textbf{0.00} & 0.568 & 1.000 \\
+            & TIAGE      & 0.140 & \textbf{0.00} & 0.541 & 1.000 \\
 \midrule
-Every-$N$   & DialSeg711 ($N{=}4$) & 0.639 & 0.97 & 0.812 & 0.823 \\
-            & SuperSeg ($N{=}2$)   & 0.623 & 1.10 & 0.830 & 0.775 \\
-            & TIAGE ($N{=}3$)      & 0.610 & 0.97 & 0.849 & 0.774 \\
+Every-$N$  & DialSeg711 ($N=4$) & 0.639 & \textbf{0.97} & 0.812 & 0.823 \\
+           & SuperSeg   ($N=2$) & 0.623 & \textbf{1.10} & 0.830 & 0.775 \\
+           & TIAGE      ($N=3$) & 0.610 & \textbf{0.97} & 0.849 & 0.774 \\
 \midrule
-Random      & DialSeg711 & 0.528 & 1.00 & 0.839 & 0.833 \\
-(BOR=1)     & SuperSeg   & 0.678 & 1.00 & 0.883 & 0.884 \\
-            & TIAGE      & 0.664 & 1.00 & 0.873 & 0.869 \\
+Random     & DialSeg711 & 0.528 & \textbf{1.00} & 0.839 & 0.833 \\
+(BOR=1)    & SuperSeg   & 0.678 & \textbf{1.00} & 0.883 & 0.884 \\
+           & TIAGE      & 0.664 & \textbf{1.00} & 0.873 & 0.869 \\
 \bottomrule
 \end{tabular}
 \caption{Baseline segmentation results.
-Random and periodic baselines achieve competitive W-F1 and purity when boundary
-density matches the gold distribution, demonstrating that boundary density
-alignment alone can produce deceptively strong scores under standard metrics.}
+Random and periodic baselines achieve competitive W-F1 and purity when boundary density
+matches the gold distribution, demonstrating that boundary density alignment alone can
+produce deceptively strong scores under standard boundary-based metrics.}
 \label{tab:baselines}
 \end{table}
 
 \section{Results}
 
-This section evaluates the proposed separation between boundary scoring and
-boundary selection under heterogeneous annotation granularity.
+This section evaluates the proposed separation between boundary
+scoring and boundary selection under differing annotation
+granularity. The results below instantiate multiple failure modes
+summarized in Table~\ref{tab:failure-taxonomy}.
 
 \subsection{Stage 1: Synthetic Pretraining on Splice Boundaries}
 This stage isolates whether the scoring model can learn a meaningful boundary
@@ -450,20 +495,20 @@ Table~\ref{tab:stage2} reports performance over five fine-tuning epochs.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{cccccc}
+\begin{tabular}{c c c c c c}
 \toprule
-Epoch & Overall F1 & W-F1 & BOR & SuperSeg F1/BOR & TIAGE F1/BOR\\
+Epoch & Overall F1 & W-F1 & \textbf{BOR} & SuperSeg F1/BOR & TIAGE F1/BOR \\
 \midrule
-1 & 0.778 & 0.833 & 1.11 & 0.788/1.13 & 0.197/0.24 \\
-2 & 0.819 & 0.850 & 1.23 & 0.830/1.25 & 0.352/0.86 \\
-3 & 0.840 & 0.865 & 1.13 & 0.852/1.14 & 0.337/0.82 \\
-4 & 0.848 & 0.875 & 1.08 & 0.862/1.08 & 0.322/0.78 \\
-5 & 0.843 & 0.872 & 1.04 & 0.857/1.05 & 0.311/0.84 \\
+1 & 0.778 & 0.833 & \textbf{1.11} & 0.788 / 1.13 & 0.197 / 0.24 \\
+2 & 0.819 & 0.850 & \textbf{1.23} & 0.830 / 1.25 & 0.352 / 0.86 \\
+3 & 0.840 & 0.865 & \textbf{1.13} & 0.852 / 1.14 & 0.337 / 0.82 \\
+4 & 0.848 & 0.875 & \textbf{1.08} & 0.862 / 1.08 & 0.322 / 0.78 \\
+5 & 0.843 & 0.872 & \textbf{1.04} & 0.857 / 1.05 & 0.311 / 0.84 \\
 \bottomrule
 \end{tabular}
 \caption{Stage 2 supervised fine-tuning on benchmark datasets.
-Boundary density converges toward annotated density (BOR $\approx 1$) on
-datasets seen during training, while W-F1 remains high.}
+Boundary density converges toward annotated density (BOR $\approx 1$) on datasets seen during training,
+while W-F1 remains high.}
 \label{tab:stage2}
 \end{table}
 
@@ -482,15 +527,16 @@ remaining datasets follow the same qualitative pattern.
 \centering
 \begin{tabular}{lcccc}
 \toprule
-Dataset & F1 & W-F1 & BOR & Pred/True Boundaries\\
+Dataset & W-F1 & \textbf{BOR} & F1 & Pred./Gold Boundaries \\
 \midrule
-DialSeg711 & 0.434 & 0.767 & 2.53 & 5167/2042 \\
-SuperSeg   & 0.609 & 0.584 & 0.81 & 2376/2923 \\
-TIAGE      & 0.368 & 0.512 & 0.76 & 157/207 \\
+DialSeg711 & 0.767 & \textbf{2.53} & 0.434 & 5167/2042 \\
+SuperSeg   & 0.584 & \textbf{0.81} & 0.609 & 2376/2923 \\
+TIAGE      & 0.512 & \textbf{0.76} & 0.368 & 157/207 \\
 \bottomrule
 \end{tabular}
-\caption{Stage 3 final test results. W-F1 and BOR are consistent with the
-coherence diagnostics in Table~\ref{tab:purity_coverage}.}
+\caption{Stage 3 final test results.
+Boundary density (BOR) is reported alongside boundary accuracy to distinguish
+granularity mismatch from detection failure.}
 \label{tab:stage3}
 \end{table}
 
@@ -524,17 +570,21 @@ high purity and coverage.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{llccccc}
+\begin{tabular}{l l c c c c c}
 \toprule
-Model & Dataset & F1 & W-F1 & BOR & Purity & Coverage \\
+Model & Dataset & W-F1 & \textbf{BOR} & Purity & Coverage & F1 \\
 \midrule
-Ours & DialSeg711 & 0.434 & 0.767 & 2.53 & 0.962 & 0.651 \\
-Ours & SuperSeg   & 0.609 & 0.584 & 0.81 & 0.847 & 0.915 \\
-Ours & TIAGE      & 0.368 & 0.512 & 0.76 & 0.785 & 0.896 \\
-CSM  & DialSeg711 & 0.373 & 0.413 & 0.64 & 0.749 & 0.921 \\
+Ours & DialSeg711 & 0.767 & \textbf{2.53} & 0.962 & 0.651 & 0.434 \\
+     & SuperSeg   & 0.584 & \textbf{0.81} & 0.847 & 0.915 & 0.609 \\
+     & TIAGE      & 0.512 & \textbf{0.76} & 0.785 & 0.896 & 0.368 \\
+\midrule
+CSM  & DialSeg711 & 0.413 & \textbf{0.64} & 0.749 & 0.921 & 0.373 \\
 \bottomrule
 \end{tabular}
-\caption{Segment coherence diagnostics for proposed model and external baseline. Top three rows show our model across datasets; bottom row shows CSM, a published coherence-based segmenter, on DialSeg711. High purity with elevated BOR indicates coherent fine-grained segmentation; high coverage with reduced purity indicates coarser-than-gold segmentation. Both patterns reflect granularity mismatch rather than detection failure.}
+\caption{Segment coherence diagnostics for the proposed model and an external baseline.
+High purity with elevated BOR indicates coherent fine-grained segmentation; high coverage with reduced
+BOR indicates coarser-than-gold segmentation. Both patterns reflect granularity mismatch rather than
+boundary detection failure.}
 \label{tab:purity_coverage}
 \end{table}
 
@@ -776,7 +826,7 @@ capture overlapping, gradual, or revisited conversational structure.
 
 Dialogue topic segmentation does not admit a single ground truth. Exact boundary
 matching conflates detection correctness with segmentation granularity and can
-obscure coherent segmentation behavior under heterogeneous annotation schemes.
+obscure coherent segmentation behavior under differing annotation schemes.
 By separating boundary scoring from boundary selection and evaluating boundary
 density and segment coherence alongside tolerant boundary accuracy, this work
 provides a principled basis for diagnosing evaluation failures across datasets.
@@ -787,10 +837,12 @@ competitive F1 and W-F1 scores when their output boundary rate matches the gold
 annotation. This shows that boundary accuracy alone is insufficient when
 annotation granularity varies.
 
-The proposed separation is intentionally simple. Its value lies in revealing
-systematic evaluation failures that arise when granularity is ignored. Our goal
-is not to claim model superiority, but to motivate reporting practices that make
-boundary density and segment coherence explicit.
+The proposed separation is intentionally simple. Its value lies in
+revealing systematic evaluation failures that arise when granularity
+is ignored. Our goal is not to claim model superiority, but to
+motivate reporting practices that make boundary density and segment
+coherence explicit. We expect these diagnostics to be useful both for benchmarking research
+systems and for analyzing and configuring segmentation choices in practice.
 
 \bibliographystyle{unsrt}
 \bibliography{references}

@@ -1,0 +1,96 @@
+# Pair Dumps for superseg
+# Sampled dialogues with within-segment and across-boundary pairs
+
+============================================================
+Dialogue 202
+  Num user turns: 6
+  Boundaries (between-turn indices): [3]
+
+  WITHIN-SEGMENT PAIRS:
+    (0, 1) sim=0.0747
+      u_0: I just wanted to know if there are any resources and/or support outside VA which I could access.
+      u_1: No, that's fine. You're helping me.
+
+  ACROSS-BOUNDARY PAIRS:
+    (3, 4) sim=0.1331
+      u_3: Thanks! I'd also like to write down the number for the National Suicide Prevention Lifeline. Do you 
+      u_4: Perfect. Thanks again. Oh, by the way, I've also heard about Make the Connection. What is that? Is t
+
+============================================================
+Dialogue 406
+  Num user turns: 7
+  Boundaries (between-turn indices): [3, 5]
+
+  WITHIN-SEGMENT PAIRS:
+    (0, 1) sim=0.4738
+      u_0: Hello there. My daughter is 17 years old and I came here to find out what she needs to consider, bei
+      u_1: Yes, my daughter is under the age of 18.
+    (2, 3) sim=0.6982
+      u_2: She has a learner permit though, does this mean she can't drive on her own?
+      u_3: I see. And how long until my daughter can take her road test? She just got her learner permit.
+
+  ACROSS-BOUNDARY PAIRS:
+    (3, 4) sim=0.9657
+      u_3: I see. And how long until my daughter can take her road test? She just got her learner permit.
+      u_4: So... how long until my daughter can take her road test? She just got her learner permit.
+    (5, 6) sim=0.1195
+      u_5: No. I wanted to ask for my daughter, though.
+      u_6: What if she operates a moped with any valid class of learner permit?
+
+============================================================
+Dialogue 1061
+  Num user turns: 7
+  Boundaries (between-turn indices): [2, 4]
+
+  WITHIN-SEGMENT PAIRS:
+    (1, 2) sim=0.1921
+      u_1: No, I haven't taken it yet.
+      u_2: What about if the course is cancelled by the sponsor? Do I get a refund then?
+    (5, 6) sim=0.2985
+      u_5: What equipment do I need for a DVD ADM course?
+      u_6: How much does a I-PIRP course usually cost?
+
+  ACROSS-BOUNDARY PAIRS:
+    (2, 3) sim=0.4502
+      u_2: What about if the course is cancelled by the sponsor? Do I get a refund then?
+      u_3: How do you pay for the I-PIRP course?
+    (4, 5) sim=0.2257
+      u_4: Okay. Let's go back to my original question. Do I get a refund if I fail the course?
+      u_5: What equipment do I need for a DVD ADM course?
+
+============================================================
+Dialogue 1190
+  Num user turns: 6
+  Boundaries (between-turn indices): [2, 4]
+
+  WITHIN-SEGMENT PAIRS:
+    (0, 1) sim=0.0515
+      u_0: I need a dditional information about buy or sell a vehicle
+      u_1: No, I haven't
+    (3, 4) sim=0.1850
+      u_3: There's one more thing I'd like to say about Empire Gold plates. What are you going to do with your 
+      u_4: do not
+
+  ACROSS-BOUNDARY PAIRS:
+    (2, 3) sim=0.1038
+      u_2: Sadly yes
+      u_3: There's one more thing I'd like to say about Empire Gold plates. What are you going to do with your 
+    (4, 5) sim=0.0690
+      u_4: do not
+      u_5: How do I get a state list of local recycling coordinators?
+
+============================================================
+Dialogue 1292
+  Num user turns: 6
+  Boundaries (between-turn indices): [3]
+
+  WITHIN-SEGMENT PAIRS:
+    (1, 2) sim=0.5935
+      u_1: How are schools ordered to apply for the aid plan?
+      u_2: What requirements are needed to apply for federal aid?
+
+  ACROSS-BOUNDARY PAIRS:
+    (3, 4) sim=0.3068
+      u_3: What does state aid consist of?
+      u_4: One more thing, to finish filling out the FAFSA form, can you help me with some questions since my p
+

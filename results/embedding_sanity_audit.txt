@@ -1,0 +1,14 @@
+# Embedding Coherence Audit Summary
+
+## dialseg711
+Across-pair distances: {1: 2993, 2: 0, 3: 0, 4: 0}
+Within-pair distances: {1: 2993, 2: 0, 3: 0, 4: 0}
+
+## superseg
+Across-pair distances: {1: 2424, 2: 0, 3: 0, 4: 0}
+Within-pair distances: {1: 2366, 2: 0, 3: 0, 4: 0}
+
+## tiage
+Across-pair distances: {1: 260, 2: 0, 3: 0, 4: 0}
+Within-pair distances: {1: 259, 2: 0, 3: 0, 4: 0}
+

@@ -112,3 +112,4 @@ tests/**/test_results.txt
 paper/paper-arxiv/
 tacl/
 paper/arxiv.tar.gz
+paper/cache

@@ -312,10 +312,13 @@ def compute_windowed_metrics(
     window: int = 1
 ) -> Tuple[float, float, float]:
     """
-    Compute precision, recall, F1 with tolerance window.
+    Compute precision, recall, F1 with tolerance window (many-to-one matching).
 
     A predicted boundary at t is considered correct if there's a gold
-    boundary in [t-window, t+window].
+    boundary in [t-window, t+window]. Multiple predictions can match the
+    same gold boundary (many-to-one), which makes this variant recall-favoring.
+
+    For one-to-one matching, use compute_windowed_metrics_one_to_one().
 
     Args:
         gold_boundaries: Set of gold boundary positions
@@ -347,6 +350,65 @@ def compute_windowed_metrics(
     recall = len(matched_golds) / len(gold_boundaries) if gold_boundaries else 0.0
 
     # F1
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+    return precision, recall, f1
+
+
+def compute_windowed_metrics_one_to_one(
+    gold_boundaries: Set[int],
+    predicted_boundaries: Set[int],
+    num_messages: int,
+    window: int = 1
+) -> Tuple[float, float, float]:
+    """
+    Compute precision, recall, F1 with tolerance window (one-to-one matching).
+
+    Uses greedy bipartite assignment: each gold boundary matches at most one
+    prediction, and vice versa. Matches are assigned greedily by distance
+    (closest pairs first), which is optimal for this problem.
+
+    This is the standard tolerant matching used in much of the segmentation
+    literature. Compare with compute_windowed_metrics() which allows
+    many-to-one matching.
+
+    Args:
+        gold_boundaries: Set of gold boundary positions
+        predicted_boundaries: Set of predicted boundary positions
+        num_messages: Total number of messages (unused, kept for API consistency)
+        window: Tolerance window size
+
+    Returns:
+        (precision, recall, f1) with one-to-one tolerance matching
+    """
+    if not gold_boundaries and not predicted_boundaries:
+        return 1.0, 1.0, 1.0
+    if not gold_boundaries:
+        return 0.0, 1.0, 0.0
+    if not predicted_boundaries:
+        return 1.0, 0.0, 0.0
+
+    # Build candidate matches within window: (distance, gold, pred)
+    candidates = []
+    for g in gold_boundaries:
+        for p in predicted_boundaries:
+            dist = abs(g - p)
+            if dist <= window:
+                candidates.append((dist, g, p))
+
+    # Greedy assignment: closest pairs first (optimal for bipartite matching by distance)
+    candidates.sort(key=lambda x: x[0])
+    matched_gold = set()
+    matched_pred = set()
+
+    for dist, g, p in candidates:
+        if g not in matched_gold and p not in matched_pred:
+            matched_gold.add(g)
+            matched_pred.add(p)
+
+    tp = len(matched_gold)  # = len(matched_pred)
+    precision = tp / len(predicted_boundaries)
+    recall = tp / len(gold_boundaries)
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
     return precision, recall, f1

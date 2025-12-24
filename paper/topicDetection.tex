@@ -61,7 +61,7 @@ Independent Researcher\\
 \begin{abstract}
 Dialogue topic segmentation supports summarization, retrieval,
 memory management, and conversational continuity. Despite decades of
-prior work, evaluation practice in dialogue topic segmentation remains
+work, evaluation practice in dialogue topic segmentation remains
 dominated by strict boundary matching and F1-based metrics, even as
 modern large language model (LLM) based conversational systems
 increasingly rely on segmentation to manage conversation history beyond
@@ -72,22 +72,22 @@ This paper introduces an evaluation perspective for dialogue topic
 segmentation that reports boundary density and segment alignment
 diagnostics (purity and coverage) alongside window-tolerant F1 (W-F1).
 By explicitly controlling boundary density through separating boundary
-scoring from boundary selection, we evaluate segmentation quality across
-density regimes rather than at a single operating point. Through
-cross-dataset empirical evaluation, we show that reported performance
-differences across dialogue segmentation benchmarks are often not driven
-by boundary placement quality alone; under common evaluation protocols,
-annotation granularity mismatch and sparse boundary labels can dominate
-these differences.
+scoring from boundary selection, we evaluate segmentation quality
+across density regimes rather than at a single operating
+point. Cross-dataset evaluation shows that reported performance
+differences across dialogue segmentation benchmarks are often not
+driven by boundary placement quality alone; under common evaluation
+protocols, annotation granularity mismatch and sparse boundary labels
+can dominate these differences.
 
-We evaluate multiple, structurally distinct dialogue segmentation
+We evaluate structurally distinct dialogue segmentation
 strategies across eight dialogue datasets spanning task-oriented,
 open-domain, meeting-style, and synthetic interactions. Across these
 settings, we observe that boundary-based metrics are strongly coupled
 to boundary density, with threshold sweeps producing larger W-F1
 changes than switching between structurally distinct methods. These
 findings support viewing topic segmentation as a granularity selection
-problem rather than as the prediction of a single correct boundary
+problem rather than prediction of a single correct boundary
 set, and motivate separating boundary scoring from boundary selection
 as an algorithmic formulation for analyzing and tuning segmentation
 behavior under varying annotation granularities.

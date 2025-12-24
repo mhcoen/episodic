@@ -1,0 +1,95 @@
+Table 8 Training Variance Analysis Notes
+==================================================
+
+Generated: 2025-12-19T16:18:43.961612
+
+TRAINING COMMAND TEMPLATE:
+--------------------------------------------------
+The training is invoked programmatically via train_with_seed() which:
+1. Imports paper/experiments/training/train_3stage.py
+2. Modifies TrainingConfig.seed to the specified value
+3. Runs the full 3-stage pipeline:
+   - Stage 1: Pretrain on synthetic splice boundaries
+   - Stage 2: Fine-tune on DialSeg711, SuperSeg, TIAGE
+   - Stage 3: Temperature calibration on validation data
+
+Equivalent manual command (if --seed were supported):
+  python paper/experiments/training/train_3stage.py --seed <SEED> --output-dir <DIR>
+
+EVALUATION COMMAND TEMPLATE:
+--------------------------------------------------
+python paper/experiments/evaluation/compute_stage3_all8.py \
+    --model-path <seed_dir>/final_calibrated.pt \
+    --datasets-dir datasets
+
+SEEDS USED:
+--------------------------------------------------
+Seeds: [11, 22, 33]
+Number of runs: 3
+
+WHAT VARIES ACROSS RUNS:
+--------------------------------------------------
+- Training RNG seed (affects weight initialization, data shuffling, dropout)
+- Learned temperature T (from Stage 3 calibration)
+- Model weights (from training)
+
+WHAT IS FIXED:
+- Model architecture (DistilBERT)
+- Hyperparameters (lr, epochs, batch size, etc.)
+- Decision threshold τ=0.5
+- Evaluation datasets and preprocessing
+- Window size (8 messages)
+
+RESUME BEHAVIOR:
+--------------------------------------------------
+With --resume flag:
+- Checks table8_trainvar_runs.jsonl for completed seeds
+- Skips any seed already present in the file
+- Continues with remaining seeds
+- Recomputes aggregates after each new seed
+
+Without --resume:
+- Starts fresh (existing JSONL is appended to, not overwritten)
+- Warning: May create duplicate entries for seeds
+
+RESULTS:
+--------------------------------------------------
+Temperature: 0.9279 ± 0.0124
+
+DialSeg711:
+  w_f1: 0.6287 ± 0.0866
+  bor: 1.6667 ± 0.5531
+  purity: 0.8779 ± 0.0585
+  coverage: 0.7662 ± 0.0704
+  f1: 0.3547 ± 0.0596
+  Pred: 3403 ± 1129.3
+  Gold: 2042 ± 0.0
+
+SuperSeg:
+  w_f1: 0.5158 ± 0.0757
+  bor: 0.6687 ± 0.1620
+  purity: 0.8122 ± 0.0478
+  coverage: 0.9380 ± 0.0160
+  f1: 0.4748 ± 0.0738
+  Pred: 1955 ± 473.5
+  Gold: 2923 ± 0.0
+
+TIAGE:
+  w_f1: 0.3353 ± 0.0249
+  bor: 0.3382 ± 0.0860
+  purity: 0.6720 ± 0.0305
+  coverage: 0.9458 ± 0.0143
+  f1: 0.2478 ± 0.0241
+  Pred: 70 ± 17.8
+  Gold: 207 ± 0.0
+
+OUTPUT FILES:
+--------------------------------------------------
+- /Users/mhcoen/proj/episodic/results/table8_trainvar/table8_trainvar_runs.jsonl (per-seed results, JSONL)
+- /Users/mhcoen/proj/episodic/results/table8_trainvar/table8_trainvar_aggregate.csv (aggregated statistics, CSV)
+- /Users/mhcoen/proj/episodic/paper/tables/table8_trainvar.tex (LaTeX table)
+- /Users/mhcoen/proj/episodic/results/table8_trainvar/table8_trainvar_notes.txt (this file)
+
+REPRODUCTION COMMAND:
+--------------------------------------------------
+python scripts/run_table8_trainvar.py --seeds 11,22,33 --outdir results/table8_trainvar

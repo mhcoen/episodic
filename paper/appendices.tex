@@ -1,0 +1,484 @@
+\section{Window-tolerant F1 (W-F1)}
+\label{app:wf1}
+
+This appendix provides the formal mathematical definition of the
+window-tolerant F1 metric used throughout the paper. The main text
+remains fully interpretable without consulting this appendix.
+
+Let a dialogue $d$ consist of $T_d$ turns, with gold boundary indices
+$G_d \subset \{1,\dots,T_d-1\}$ and predicted boundary indices
+$P_d \subset \{1,\dots,T_d-1\}$. Let $w \ge 0$ denote the tolerance window.
+
+\myparagraph{Window-coverage matching}
+Define the number of window-matched predicted boundaries
+\[
+\mathrm{TP}_d
+= \left|\left\{
+p \in P_d \;:\; \exists g \in G_d \text{ such that } |p-g| \le w
+\right\}\right|,
+\]
+and the number of recovered gold boundaries
+\[
+\mathrm{MG}_d
+= \left|\left\{
+g \in G_d \;:\; \exists p \in P_d \text{ such that } |p-g| \le w
+\right\}\right|.
+\]
+Under this window-coverage convention, multiple predicted boundaries may be
+matched to the same gold boundary, while each gold boundary contributes at most
+once to recall.
+
+\myparagraph{Dialogue-level precision and recall}
+Precision and recall are defined per dialogue with explicit empty-set handling:
+\[
+\mathrm{Prec}_d =
+\begin{cases}
+\mathrm{TP}_d / |P_d|, & |P_d| > 0, \\
+1, & |P_d| = 0 \wedge |G_d| = 0, \\
+0, & |P_d| = 0 \wedge |G_d| > 0,
+\end{cases}
+\]
+\[
+\mathrm{Rec}_d =
+\begin{cases}
+\mathrm{MG}_d / |G_d|, & |G_d| > 0, \\
+1, & |G_d| = 0 \wedge |P_d| = 0, \\
+0, & |G_d| = 0 \wedge |P_d| > 0.
+\end{cases}
+\]
+
+\myparagraph{Dialogue-level W-F1}
+The window-tolerant F1 score for dialogue $d$ is
+\[
+\mathrm{W\text{-}F1}_d =
+\begin{cases}
+\displaystyle
+\frac{2\,\mathrm{Prec}_d\,\mathrm{Rec}_d}
+     {\mathrm{Prec}_d + \mathrm{Rec}_d},
+& \mathrm{Prec}_d + \mathrm{Rec}_d > 0, \\
+0, & \text{otherwise}.
+\end{cases}
+\]
+
+\myparagraph{Dataset-level aggregation}
+Dataset-level W-F1 is computed as a macro average over dialogues:
+\[
+\mathrm{W\text{-}F1}
+= \frac{1}{|D|} \sum_{d \in D} \mathrm{W\text{-}F1}_d .
+\]
+
+\myparagraph{Scope note}
+This definition specifies the W-F1 variant used throughout this paper and should
+not be assumed equivalent to other window-tolerant F1 formulations that employ
+different matching or aggregation rules.
+
+\myparagraph{Alternative (not used): one-to-one window matching}
+For completeness, we define a one-to-one variant that credits at most one prediction
+per gold boundary. Let $H_d$ be a bipartite graph with left nodes $P_d$, right nodes $G_d$,
+and an edge $(p,g)$ iff $|p-g|\le w$. Let $M_d$ be a maximum-cardinality matching in $H_d$,
+and define $TP^{1{:}1}_d \coloneqq |M_d|$. Then
+\[
+\mathrm{Prec}^{1{:}1}_d = \frac{TP^{1{:}1}_d}{|P_d|},\qquad
+\mathrm{Rec}^{1{:}1}_d = \frac{TP^{1{:}1}_d}{|G_d|},
+\]
+with the same empty-set conventions as above, and
+$\mathrm{W\text{-}F1}^{1{:}1}_d$ as the harmonic mean of
+$\mathrm{Prec}^{1{:}1}_d$ and $\mathrm{Rec}^{1{:}1}_d$.
+All results in this paper use the window-coverage definition presented here
+(i.e., $TP_d$ and $MG_d$ as defined above), not the one-to-one variant.
+
+\section{Purity and Coverage}
+\label{app:purity-coverage}
+This appendix defines the purity and coverage diagnostics used to
+characterize gold-relative segment alignment in
+Section~\ref{sec:evaluation-metrics}.
+
+Let a dialogue $d$ be segmented into predicted segments
+$P^{\mathrm{seg}}_d = \{p_1,\dots,p_m\}$ and gold segments
+$G^{\mathrm{seg}}_d = \{g_1,\dots,g_n\}$, where each segment is a contiguous span
+of turns and the segmentations form partitions of $\{1,\dots,T_d\}$.
+
+For a segment $s = [a,b]$, let $|s| = b-a+1$ denote its length in turns, and for
+two segments $s$ and $t$ define their overlap
+\[
+|s \cap t| = \max\!\left(0,\; \min(b_s,b_t) - \max(a_s,a_t) + 1\right).
+\]
+
+\myparagraph{Segment-level purity and coverage}
+For a predicted segment $p \in P^{\mathrm{seg}}_d$, define its purity as
+\[
+\mathrm{Purity}(p)
+= \max_{g \in G^{\mathrm{seg}}_d} \frac{|p \cap g|}{|p|}.
+\]
+For a gold segment $g \in G^{\mathrm{seg}}_d$, define its coverage as
+\[
+\mathrm{Coverage}(g)
+= \max_{p \in P^{\mathrm{seg}}_d} \frac{|p \cap g|}{|g|}.
+\]
+
+\myparagraph{Dialogue-level micro averages}
+Turn-weighted (micro) purity and coverage for dialogue $d$ are
+\[
+\mathrm{Purity}_d
+= \frac{1}{T_d} \sum_{p \in P^{\mathrm{seg}}_d}
+\max_{g \in G^{\mathrm{seg}}_d} |p \cap g|,
+\]
+\[
+\mathrm{Coverage}_d
+= \frac{1}{T_d} \sum_{g \in G^{\mathrm{seg}}_d}
+\max_{p \in P^{\mathrm{seg}}_d} |p \cap g|.
+\]
+
+\myparagraph{Dataset-level aggregation}
+Dataset-level purity and coverage are computed as macro averages over dialogues:
+\[
+\mathrm{Purity}
+= \frac{1}{|D|} \sum_{d \in D} \mathrm{Purity}_d,
+\qquad
+\mathrm{Coverage}
+= \frac{1}{|D|} \sum_{d \in D} \mathrm{Coverage}_d.
+\]
+
+\section{Monotonicity Properties}
+\label{app:monotonicity}
+This appendix formalizes monotonicity properties referenced in
+Section~\ref{sec:evaluation-metrics}.
+
+\myparagraph{Lemma (Purity is monotone under refinement)}
+Let $P'_d$ be a refinement of $P_d$, obtained by adding predicted boundaries
+(i.e., splitting predicted segments). Then
+\[
+\mathrm{Purity}_d(P'_d, G_d) \ge \mathrm{Purity}_d(P_d, G_d).
+\]
+
+\myparagraph{Proof}
+It suffices to consider splitting a single predicted segment
+$p \in P_d$ into subsegments $p_1,\dots,p_k$.
+Let $g^\ast \in G^{\mathrm{seg}}_d$ be a gold segment maximizing overlap with $p$.
+Since the $p_i$ partition $p$,
+\[
+|p \cap g^\ast| = \sum_{i=1}^k |p_i \cap g^\ast|.
+\]
+For each $i$,
+$\max_{g} |p_i \cap g| \ge |p_i \cap g^\ast|$.
+Summing over $i$ yields a non-decreasing contribution to
+$\mathrm{Purity}_d$, while all other segments are unchanged.
+\hfill$\square$
+
+\myparagraph{Remark (Coverage under refinement)}
+Under the same refinement,
+$\mathrm{Coverage}_d(P'_d, G_d) \le$ $\mathrm{Coverage}_d(P_d, G_d)$, since splitting
+predicted segments cannot increase the maximum overlap with any fixed gold
+segment.
+
+\section{Boundary canonicalization}
+All datasets are converted to a canonical message sequence $m_1,\dots,m_T$ per dialogue, where each $m_t$ corresponds
+to one dataset-provided utterance after filtering (below). Candidate boundary indices are the between-message positions
+$i\in\{1,\dots,T-1\}$.
+
+\myparagraph{Filtering}                                                                 
+We (i) retain all dialogue turns from both speakers (user and agent/assistant), removing only dataset-level metadata headers where present (e.g., meeting       
+preambles in QMSum), (ii) preserve speaker role labels but do not include them in utterance text, and (iii) remove empty or whitespace-only utterances if any   
+exist. After filtering, messages are reindexed so that all boundary indices refer to positions in the filtered sequence.                                        
+
+\myparagraph{Gold boundary extraction}
+For each dataset, we define the gold boundary set $G_d\subseteq\{1,\dots,T_d-1\}$ using the dataset's native segment
+annotation as follows:
+\begin{itemize}
+\item \textbf{Datasets with segment IDs per utterance:} let $\ell_t$ be the segment ID for message $m_t$; then
+  $G_d = \{\, i : \ell_i \ne \ell_{i+1}\,\}$.
+\item \textbf{Datasets with explicit boundary markers:} let $b_t\in\{0,1\}$ indicate that $m_t$ starts a new segment;
+  then $G_d = \{\, i : b_{i+1}=1\,\}$.
+\item \textbf{Domain-/state-labeled datasets:} let $\texttt{label}_t$ denote the dataset-provided label for message $m_t$; then
+  $G_d=\{\, i : \texttt{label}_i \ne \texttt{label}_{i+1}\,\}$.
+\end{itemize}
+
+\myparagraph{Dataset-specific notes}
+We provide per-dataset extraction details (file paths, fields, and filtering) in Table~\ref{tab:canon}.
+
+{\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabularx}{\linewidth}{
+l
+c
+>{\raggedright\arraybackslash}X
+>{\raggedright\arraybackslash}X
+}
+\toprule
+Dataset &
+Unit &
+Annotation $\rightarrow G_d$ rule &
+Filtering notes \\
+\midrule
+DialSeg711 & U &
+Segment ID change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+SuperSeg & U &
+Segment ID change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+TIAGE & U &
+Task/topic segment change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+MultiWOZ & U &
+Domain label change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+DailyDialog & U &
+Topic category change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+Taskmaster & U &
+Task or subtask label change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+Topical-Chat & U &
+Conversation topic change between consecutive utterances &
+All turns retained; indexed consecutively \\
+
+QMSum & T &
+Section/topic boundary between adjacent speaker turns &
+Meeting metadata removed \\
+\bottomrule
+\end{tabularx}
+\caption{Boundary canonicalization details required to reproduce gold
+boundary sets $G_d$ from each dataset.
+Unit codes: \textbf{U} = utterance-level boundaries between consecutive
+turns from either speaker; \textbf{T} = speaker-turn boundaries.}
+\label{tab:canon}
+\end{table}
+}
+
+\section{Full Stage~3 Calibrated Results Across All Datasets}
+\label{app:stage3}
+
+All results reported in this appendix use the identical Stage~3 evaluation pipeline
+and are computed exclusively on \emph{test splits}:
+a single model checkpoint after Stage~2 training,
+a single global temperature calibrated on the SuperSeg validation split,
+fixed boundary canonicalization,
+and fixed boundary-selection parameters.
+No information from any test split is used during training or calibration.
+The evaluation protocol follows the train/validation/test split specification
+summarized in Table~\ref{tab:training-protocol}.
+
+The main text (Section~\ref{sec:stage3}) reports Stage~3 calibrated results on three
+representative datasets spanning sparse, medium, and dense annotation
+regimes. To substantiate the cross-dataset claims made in Sections~4 and~7,
+this appendix reports the same Stage~3 evaluation
+metrics for all eight datasets used in this study: DialSeg711,
+SuperSeg, TIAGE, MultiWOZ, DailyDialog, Taskmaster,
+Topical-Chat, and QMSum.
+
+All results in Table~\ref{tab:stage3-all8} were computed using the
+identical Stage~3 evaluation pipeline as the main Stage~3 results
+(Table~\ref{tab:stage3}): a single globally calibrated temperature
+($T=0.976$), identical boundary canonicalization, fixed boundary
+selection parameters, and the evaluation definitions in Section~\ref{sec:evaluation-metrics}.
+
+We report window-tolerant boundary detection (W-F1 with a $\pm 1$
+message tolerance), boundary density relative to gold annotations
+(BOR), and segment coherence diagnostics (purity and coverage), along
+with predicted and gold boundary counts. Strict exact-match boundary
+F1 is omitted here because it is highly sensitive to aggregation
+choice (e.g., micro vs.\ macro averaging) and boundary sparsity, and
+it is not a primary diagnostic in the proposed evaluation objective.
+
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{lcccccc}
+    \toprule
+    Dataset & W-F1 & BOR & Purity & Coverage & Pred./Gold \\
+    \midrule
+    DialSeg711    & 0.767 & 2.53  & 0.962 & 0.651 & 5167/2042 \\
+    SuperSeg      & 0.584 & 0.81  & 0.847 & 0.915 & 2376/2923 \\
+    TIAGE         & 0.512 & 0.76  & 0.785 & 0.896 & 157/207   \\
+    DailyDialog   & 0.398 & 0.91  & 0.783 & 0.885 & 182/200   \\
+    MultiWOZ      & 0.738 & 2.22  & 0.950 & 0.757 & 2475/1117 \\
+    Taskmaster    & 0.288 & 5.23  & 0.955 & 0.565 & 1026/196  \\
+    Topical-Chat  & 0.289 & 3.91  & 0.939 & 0.620 & 766/196   \\
+    QMSum         & 0.154 & 17.56 & 0.979 & 0.459 & 3705/211  \\
+    \bottomrule
+  \end{tabular}
+  \caption{\textbf{Stage~3 calibrated results for all eight datasets.}
+    Metrics computed under the same calibrated Stage~3 pipeline used in Table~\ref{tab:stage3},
+    with identical model checkpoint, temperature calibration ($T=0.976$), boundary canonicalization,
+    and selection settings.
+    This appendix reports a subset of diagnostics focused on boundary density and segment coherence;
+    strict exact-match F1 is intentionally omitted because it is highly sensitive to aggregation and
+    boundary sparsity and is not a primary diagnostic in the proposed evaluation objective.}
+  \label{tab:stage3-all8}
+\end{table}
+
+\section{Adaptive Boundary Selection}
+\label{app:adaptive}
+
+This appendix provides a formal specification of the adaptive boundary
+selection mechanism referenced in Section~\ref{sec:boundary-selection}.
+
+\myparagraph{Definitions and target rate}
+Candidate boundaries correspond to between-message indices
+$i \in \{1,\ldots,T{-}1\}$, where $i$ denotes the position between messages
+$(m_i, m_{i+1})$.
+
+Let $C(t)$ denote the number of candidate positions processed up to time $t$, and
+let $S(t)$ denote the number of boundaries committed up to time $t$. The adaptive
+controller targets a boundary \emph{selection rate}
+\[
+\rho \;=\; \mathbb{E}\!\left[\frac{S(t)}{C(t)}\right],
+\]
+measured per processed candidate position (not per message or per dialogue).
+
+\myparagraph{Evidence accumulation}
+Each candidate position $i$ maintains an accumulated evidence value $e_i(t)$.
+When a candidate $i$ first becomes available, a boundary score $s_i$ is computed
+once using frozen reference windows anchored at that time. This score remains
+fixed thereafter.
+
+As additional post-boundary context becomes available, evidence is accumulated
+according to
+\[
+e_i(t{+}1) \;=\; e_i(t) + s_i .
+\]
+This implements a persistence test: a candidate’s evidence increases only if the
+same boundary signal remains present as more context is observed.
+
+\myparagraph{Boundary commitment rule}
+At time $t$, a candidate boundary at position $i$ is committed if and only if
+\[
+e_i(t) \ge \tau(t)
+\quad\text{and}\quad
+|i - b| \ge g \;\;\forall b \in \mathcal{B},
+\]
+where $\tau(t)$ is the current decision threshold, $g$ is a minimum spacing
+constraint, and $\mathcal{B}$ is the set of previously committed boundaries.
+Candidates violating the spacing constraint are suppressed.
+
+\myparagraph{Adaptive threshold controller}
+The threshold $\tau(t)$ is updated online to enforce the target selection rate
+$\rho$. Let $\hat{\rho}(t)$ denote the empirical selection rate over the most
+recent $W$ processed candidates (or all candidates if fewer than $W$ have been
+seen). The controller update is
+\[
+\tau(t{+}1) \leftarrow \tau(t) + \eta\,(\hat{\rho}(t) - \rho),
+\]
+where $\eta > 0$ is a step size. Increasing $\tau$ reduces boundary commits, while
+decreasing $\tau$ increases them.
+
+\myparagraph{Pseudocode}
+The following pseudocode provides a complete operational realization of the
+adaptive boundary selection procedure described above.
+
+\begin{algorithm}[t]
+\caption{Adaptive boundary selection}
+\label{alg:adaptive}
+
+\KwIn{target rate $\rho$, spacing $g$, window size $W$, step size $\eta$,
+initial threshold $\tau(0)$}
+\KwOut{committed boundary set $\mathcal{B}$}
+
+$\mathcal{B} \leftarrow \emptyset$\;
+Initialize counters $C \leftarrow 0$, $S \leftarrow 0$\;
+
+\For{each time step $t$ as messages arrive}{
+  \For{each newly available candidate $i$}{
+    compute frozen score $s_i$; set $e_i \leftarrow 0$\;
+  }
+  \For{each active candidate $i$}{
+    $e_i \leftarrow e_i + s_i$\;
+    $C \leftarrow C + 1$\;
+    \If{$e_i \ge \tau(t)$ \textbf{and} $|i-b| \ge g$ for all $b \in \mathcal{B}$}{
+      $\mathcal{B} \leftarrow \mathcal{B} \cup \{i\}$\;
+      $S \leftarrow S + 1$\;
+    }
+  }
+  compute $\hat{\rho}(t)$ over last $W$ candidates\;
+  $\tau(t{+}1) \leftarrow \tau(t) + \eta(\hat{\rho}(t)-\rho)$\;
+}
+\end{algorithm}
+
+\myparagraph{Remarks}
+The adaptive controller operates on candidate positions rather than messages,
+making the target rate invariant to dialogue length. Evidence accumulation uses a
+frozen score to test persistence of a boundary signal rather than repeatedly
+re-scoring shifting contexts. When $\tau(t)$ is held fixed and accumulation is
+disabled, the procedure reduces to the static selection rule used in the main
+experiments.
+
+%% \begin{algorithm}[H]
+%%   \caption{Adaptive boundary selection}
+%%   \label{alg:adaptive}
+%%   \KwIn{Target rate $\rho$, spacing $g$, window size $W$, step size $\eta$,
+%%     initial threshold $\tau(0)$}
+%%   \KwState $\mathcal{B} \leftarrow \emptyset$
+%%   \KwState Initialize counters $C \leftarrow 0$, $S \leftarrow 0$
+%%   \For{each time step $t$ as messages arrive}{
+%%     \For{each newly available candidate $i$}{
+%%       compute frozen score $s_i$; set $e_i \leftarrow 0$\;
+%%     }
+%%     \For{each active candidate $i$}{
+%%       $e_i \leftarrow e_i + s_i$\;
+%%       $C \leftarrow C + 1$\;
+%%       \If{$e_i \ge \tau(t)$ and $|i-b|\ge g$ for all $b\in\mathcal{B}$}{
+%%         $\mathcal{B} \leftarrow \mathcal{B} \cup \{i\}$\;
+%%         $S \leftarrow S + 1$\;
+%%       }
+%%       record whether a boundary was committed for rate estimation\;
+%%     }
+%%     compute $\hat{\rho}(t)$ over the last $W$ candidates\;
+%%     $\tau(t{+}1) \leftarrow \tau(t) + \eta(\hat{\rho}(t)-\rho)$\;
+%%   }
+%%   \KwOut{$\mathcal{B}$}
+%% \end{algorithm}
+
+\section{One-to-one tolerant matching variant for W-F1}
+\label{app:wf1:matching}
+Let $P$ be predicted boundaries and $G$ gold boundaries, and let $w$ be the tolerance window.
+Construct a bipartite graph with edges $(p,g)$ when $|p-g|\le w$.
+Compute a maximum-cardinality matching $M \subseteq P \times G$ (ties broken arbitrarily or by minimum total distance).
+Define $\mathrm{TP}=|M|$, $\mathrm{FP}=|P|-\mathrm{TP}$, and $\mathrm{FN}=|G|-\mathrm{TP}$, and compute precision/recall/F1 in the usual way.
+This enforces the one-to-one constraint that each predicted (resp.\ gold) boundary can be credited at most once.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/matching_comparison_dialseg711.png}\\
+\vspace{-12pt}
+\noindent\makebox[\linewidth][c]{%
+  \leaders\hbox{\rule{6pt}{0.3pt}\hspace{4pt}}\hskip0.9\linewidth
+}
+\vspace{4pt}
+  \includegraphics[width=\linewidth]{figures/matching_comparison_superseg.png}
+  \caption{\textbf{Robustness of density--quality curves to tolerant matching.}
+  Left: many-to-one (window-coverage) W-F1 used in the main paper.
+  Right: one-to-one tolerant matching via maximum bipartite matching within the same window $w$.
+  In both datasets, varying boundary density (BOR) induces the dominant changes in W-F1 under either matching, while method differences at matched BOR are secondary. Shaded regions surrounding each curve indicate 95\%
+    dialogue-level bootstrap confidence intervals; curves are shown
+    over the full realized BOR range for each dataset under the same
+    threshold sweep. Results reflect the Episodic neural boundary
+    scorer evaluated under static selection and are diagnostic of
+    evaluation behavior rather than full deployed system performance.}
+  \label{fig:matching_comparison}
+\end{figure}
+
+\section{Audit protocol and canonicalization details}
+\label{app:audit}
+\myparagraph{Controlled}
+We fix: (i) boundary indexing and mapping to turn positions, (ii) the
+tolerance window $w$, (iii) metric implementations, and (iv) the
+operating-point protocol used to select or sweep thresholds to induce a
+range of BOR values for each method.
+
+\myparagraph{Not controlled}
+We do not attempt to replicate each method’s original preprocessing,
+training regime, or originally reported threshold tuning; therefore, we
+do not interpret discrepancies with published single-number reports as
+errors, and we do not attribute differences uniquely to modeling choices
+independent of preprocessing.

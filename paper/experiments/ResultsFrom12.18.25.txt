@@ -1,0 +1,118 @@
+1. Embedding Coherence Sanity Check                                                                                                                             
+                                                                                                                                                                  
+  Tests whether within-segment turn pairs are more similar than across-boundary pairs using sentence embeddings (all-MiniLM-L6-v2).                               
+                                                                                                                                                                  
+  | Dataset    | N    | s̄_within | s̄_across | Δ [95% CI]              | AUC [95% CI]         |                                                                  ──
+  |------------|------|----------|----------|-------------------------|----------------------|                                                                    
+  | DialSeg711 | 711  | 0.262    | 0.239    | 0.023 [0.015, 0.031]    | 0.538 [0.523, 0.554] |                                                                    
+  | SuperSeg   | 1322 | 0.236    | 0.252    | -0.016 [-0.027, -0.006] | 0.474 [0.455, 0.493] |                                                                    
+  | TIAGE      | 100  | 0.244    | 0.222    | 0.023 [-0.001, 0.045]   | 0.552 [0.475, 0.585] |                                                                    
+                                                                                                                                                                  
+  Key finding: SuperSeg shows a negative delta (across-boundary pairs are more similar than within-segment pairs). Audits confirmed this is not a bug—some        
+  SuperSeg across-boundary pairs contain near-identical repeated text (e.g., sim=0.97).                                                                           
+                                                                                                                                                                  
+  ---                                                                                                                                                             
+  2. Threshold-Free Scorer Ranking (AP & AUROC)                                                                                                                   
+                                                                                                                                                                  
+  Evaluates the neural boundary scorer's ranking quality independent of any selection threshold.                                                                  
+                                                                                                                                                                  
+  | Dataset    | N_total | N_used | Excluded | AP (std)      | AUROC (std)   |                                                                                    
+  |------------|---------|--------|----------|---------------|---------------|                                                                                    
+  | DialSeg711 | 711     | 711    | 0        | 0.509 (0.200) | 0.677 (0.164) |                                                                                    
+  | SuperSeg   | 1322    | 1173   | 149      | 0.819 (0.224) | 0.836 (0.192) |                                                                                    
+  | TIAGE      | 100     | 86     | 14       | 0.580 (0.240) | 0.680 (0.198) |                                                                                    
+                                                                                                                                                                  
+  Key findings:                                                                                                                                                   
+  - SuperSeg has excellent scorer ranking (AUROC=0.84), likely because higher boundary density makes ranking easier                                               
+  - DialSeg711 and TIAGE show moderate ranking quality (AUROC ~0.68), well above random (0.5)                                                                     
+  - Exclusions are dialogues with no gold boundaries (can't compute AP/AUROC without positives)
+
+NEW:
+
+3. Exploratory Analysis: Granularity Mismatch & Density-Quality Curves                                                                                          
+                                                                                                                                                                  
+  This analysis examined how segmentation quality varies across different operating regimes (BOR = Boundary Oversegmentation Ratio).                              
+                                                                                                                                                                  
+  AUC Summary (Area Under Quality-Coverage Curves)                                                                                                                
+                                                                                                                                                                  
+  | Dataset    | Model      | AUC (WF1) | AUC (Coverage) |                                                                                                        
+  |------------|------------|-----------|----------------|                                                                                                        
+  | DialSeg711 | neural     | 0.356     | 0.628          |                                                                                                        
+  | DialSeg711 | texttiling | 0.305     | 0.609          |                                                                                                        
+  | DialSeg711 | csm        | 0.322     | 0.630          |                                                                                                        
+  | DialSeg711 | random     | 0.283     | 0.598          |                                                                                                        
+  | SuperSeg   | neural     | 0.290     | 0.523          |                                                                                                        
+  | SuperSeg   | texttiling | 0.229     | 0.497          |                                                                                                        
+  | SuperSeg   | csm        | 0.207     | 0.477          |                                                                                                        
+  | SuperSeg   | random     | 0.218     | 0.481          |                                                                                                        
+                                                                                                                                                                  
+  Threshold Sweep Sample (Neural Model)                                                                                                                           
+                                                                                                                                                                  
+  DialSeg711 (sparse gold, ~2042 boundaries):                                                                                                                     
+  - At BOR≈2.0: WF1=0.67, Coverage=0.65, Purity=0.91                                                                                                              
+  - At BOR≈1.0: Higher precision but lower coverage                                                                                                               
+                                                                                                                                                                  
+  SuperSeg (dense gold, ~2923 boundaries):                                                                                                                        
+  - At BOR≈1.25: WF1=0.60, Coverage=0.76, Purity=0.87                                                                                                             
+  - Naturally operates closer to BOR=1 due to dense annotations                                                                                                   
+                                                                                                                                                                  
+  Key Findings                                                                                                                                                    
+                                                                                                                                                                  
+  1. No third regime found - datasets fall into two patterns:                                                                                                     
+    - Sparse-gold (DialSeg711): Low boundary density, methods oversegment (BOR > 1)                                                                               
+    - Dense-gold (SuperSeg): High boundary density, methods struggle to match density                                                                             
+  2. Neural model outperforms baselines across both datasets in AUC metrics                                                                                       
+  3. Granularity mismatch is dataset-dependent - the same model produces very different BOR values depending on annotation density
+
+
+NEW:
+
+
+  Calibrated model evaluation with temperature T=0.976 and threshold τ=0.5.                                                                                       
+                                                                                                                                                                  
+  | Dataset      | W-F1  | BOR   | Purity | Coverage | F1    | Pred | Gold |                                                                                      
+  |--------------|-------|-------|--------|----------|-------|------|------|                                                                                      
+  | DialSeg711   | 0.767 | 2.53  | 0.962  | 0.651    | 0.441 | 5167 | 2042 |                                                                                      
+  | SuperSeg     | 0.584 | 0.81  | 0.847  | 0.915    | 0.510 | 2376 | 2923 |                                                                                      
+  | TIAGE        | 0.512 | 0.76  | 0.785  | 0.896    | 0.343 | 157  | 207  |                                                                                      
+  | DailyDialog  | 0.398 | 0.91  | 0.783  | 0.885    | 0.182 | 182  | 200  |                                                                                      
+  | MultiWOZ     | 0.738 | 2.22  | 0.950  | 0.757    | 0.435 | 2475 | 1117 |                                                                                      
+  | Taskmaster   | 0.288 | 5.23  | 0.955  | 0.565    | 0.087 | 1026 | 196  |                                                                                      
+  | Topical-Chat | 0.289 | 3.91  | 0.939  | 0.620    | 0.157 | 766  | 196  |                                                                                      
+  | QMSum        | 0.154 | 17.56 | 0.979  | 0.459    | 0.056 | 3705 | 211  |                                                                                      
+                                                                                                                                                                  
+  Key Observations                                                                                                                                                
+                                                                                                                                                                  
+  1. BOR reveals granularity mismatch:                                                                                                                            
+    - Undersegmenting (BOR < 1): SuperSeg (0.81), TIAGE (0.76), DailyDialog (0.91)                                                                                
+    - Oversegmenting (BOR > 1): DialSeg711 (2.53), MultiWOZ (2.22), Taskmaster (5.23), Topical-Chat (3.91), QMSum (17.56)                                         
+  2. Purity vs Coverage trade-off:                                                                                                                                
+    - High BOR → High purity (~0.95+), lower coverage                                                                                                             
+    - Low BOR → Lower purity, higher coverage (~0.90)                                                                                                             
+  3. QMSum extreme case: BOR=17.56 indicates the model predicts 17x more boundaries than gold, likely due to meeting transcript domain mismatch
+
+
+Summary:
+
+  Figures Generated                                                                                                                                               
+                                                                                                                                                                  
+  1. Density-Quality Curves (Dec 18)                                                                                                                              
+                                                                                                                                                                  
+  - density_quality_dialseg711.pdf/png                                                                                                                            
+  - density_quality_superseg.pdf/png                                                                                                                              
+                                                                                                                                                                  
+  Shows how W-F1 and Coverage vary across different BOR operating points for each method (neural, texttiling, csm, random).                                       
+                                                                                                                                                                  
+  2. Robustness Near BOR=1 (Dec 19)                                                                                                                               
+                                                                                                                                                                  
+  - robustness_near_bor1_dialseg711.pdf/png                                                                                                                       
+  - robustness_near_bor1_superseg.pdf/png                                                                                                                         
+                                                                                                                                                                  
+  Analyzes method stability when operating near the "balanced" regime (BOR≈1).                                                                                    
+                                                                                                                                                                  
+  3. Per-Dialogue BOR Distribution (Dec 19)                                                                                                                       
+                                                                                                                                                                  
+  - per_dialogue_bor_dialseg711.pdf/png                                                                                                                           
+  - per_dialogue_bor_superseg.pdf/png                                                                                                                             
+                                                                                                                                                                  
+  Shows the distribution of BOR values across individual dialogues for each method, revealing variance in segmentation granularity.                               

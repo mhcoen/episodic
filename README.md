@@ -23,7 +23,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
- If you're here regarding the paper [*"When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation"*] (http://arxiv.org/abs/2512.17083), see the [`paper/`](paper/) directory.
+ If you're here regarding the paper [*"When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation"*](http://arxiv.org/abs/2512.17083), see the [`paper/`](paper/) directory.
 
 ## 🚀 Quick Start
 

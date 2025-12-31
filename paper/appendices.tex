@@ -172,6 +172,11 @@ predicted segments cannot increase the maximum overlap with any fixed gold
 segment.
 
 \section{Boundary canonicalization}
+\makeatletter
+\def\@currentlabelname{Window-tolerant F1 (W-F1)}
+\makeatother
+\label{app:canonicalization}
+
 All datasets are converted to a canonical message sequence $m_1,\dots,m_T$ per dialogue, where each $m_t$ corresponds
 to one dataset-provided utterance after filtering (below). Candidate boundary indices are the between-message positions
 $i\in\{1,\dots,T-1\}$.
@@ -194,7 +199,8 @@ annotation as follows:
 \end{itemize}
 
 \myparagraph{Dataset-specific notes}
-We provide per-dataset extraction details (file paths, fields, and filtering) in Table~\ref{tab:canon}.
+Table~\ref{tab:canon} summarizes the canonicalization rules; complete
+extraction implementations are in the accompanying code repository.
 
 {\hyphenpenalty=10000
 \exhyphenpenalty=10000
@@ -250,8 +256,8 @@ Meeting metadata removed \\
 \end{tabularx}
 \caption{Boundary canonicalization details required to reproduce gold
 boundary sets $G_d$ from each dataset.
-Unit codes: \textbf{U} = utterance-level boundaries between consecutive
-turns from either speaker; \textbf{T} = speaker-turn boundaries.}
+Unit codes: \textbf{U} = each message is a boundary candidate (typical for two-party dialogues where speakers alternate);
+\textbf{T} = boundaries occur only at speaker changes, grouping consecutive sentences from the same speaker into one unit (used for multi-party meeting transcripts like QMSum).}
 \label{tab:canon}
 \end{table}
 }
@@ -348,8 +354,13 @@ according to
 \[
 e_i(t{+}1) \;=\; e_i(t) + s_i .
 \]
-This implements a persistence test: a candidate’s evidence increases only if the
-same boundary signal remains present as more context is observed.
+This implements a time-to-threshold integrator: candidates with higher initial
+scores $s_i$ reach the commitment threshold faster than candidates with lower
+scores. Freezing the score at the time of first availability ensures that the
+commitment decision reflects the strength of the boundary signal at the point of
+topic departure, rather than being confounded by subsequent context that may
+diverge further or return to the original topic. The adaptive threshold
+$\tau(t)$ (below) provides the primary density control mechanism.
 
 \myparagraph{Boundary commitment rule}
 At time $t$, a candidate boundary at position $i$ is committed if and only if
@@ -407,9 +418,10 @@ Initialize counters $C \leftarrow 0$, $S \leftarrow 0$\;
 
 \myparagraph{Remarks}
 The adaptive controller operates on candidate positions rather than messages,
-making the target rate invariant to dialogue length. Evidence accumulation uses a
-frozen score to test persistence of a boundary signal rather than repeatedly
-re-scoring shifting contexts. When $\tau(t)$ is held fixed and accumulation is
+making the target rate invariant to dialogue length. Freezing the boundary score
+avoids repeatedly re-scoring shifting contexts, and ensures that high-scoring
+candidates are committed before low-scoring ones under time pressure imposed by
+the adaptive threshold. When $\tau(t)$ is held fixed and accumulation is
 disabled, the procedure reduces to the static selection rule used in the main
 experiments.
 
@@ -438,6 +450,7 @@ experiments.
 %%   }
 %%   \KwOut{$\mathcal{B}$}
 %% \end{algorithm}
+\FloatBarrier
 
 \section{One-to-one tolerant matching variant for W-F1}
 \label{app:wf1:matching}
@@ -447,7 +460,7 @@ Compute a maximum-cardinality matching $M \subseteq P \times G$ (ties broken arb
 Define $\mathrm{TP}=|M|$, $\mathrm{FP}=|P|-\mathrm{TP}$, and $\mathrm{FN}=|G|-\mathrm{TP}$, and compute precision/recall/F1 in the usual way.
 This enforces the one-to-one constraint that each predicted (resp.\ gold) boundary can be credited at most once.
 
-\begin{figure}[t]
+\begin{figure}[ht]
   \centering
   \includegraphics[width=\linewidth]{figures/matching_comparison_dialseg711.png}\\
 \vspace{-12pt}
@@ -477,8 +490,9 @@ operating-point protocol used to select or sweep thresholds to induce a
 range of BOR values for each method.
 
 \myparagraph{Not controlled}
-We do not attempt to replicate each method’s original preprocessing,
+We do not attempt to replicate each method's original preprocessing,
 training regime, or originally reported threshold tuning; therefore, we
 do not interpret discrepancies with published single-number reports as
 errors, and we do not attribute differences uniquely to modeling choices
 independent of preprocessing.
+\FloatBarrier

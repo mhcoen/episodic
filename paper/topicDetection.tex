@@ -15,6 +15,7 @@
 \usepackage{array}
 \usepackage{mathtools}
 \usepackage{makecell}
+\usepackage{float}
 \usepackage{xcolor}
 \usepackage[final]{microtype}
 \usepackage{xstring}
@@ -58,33 +59,38 @@ Independent Researcher\\
 \begin{document}
 \maketitle
 
+
 \begin{abstract}
 Dialogue topic segmentation supports summarization, retrieval, memory
-management, and conversational continuity. Despite decades of work,
-evaluation practice remains dominated by strict boundary matching and
-F1-based metrics. Modern large language model (LLM) based
-conversational systems increasingly rely on segmentation to manage
-conversation history beyond fixed context windows. In such systems,
-unstructured context accumulation degrades efficiency and coherence.
+management, and conversational continuity. Despite decades of prior
+work, evaluation practice remains framed as boundary prediction,
+using strict matching and F1-based metrics at a fixed threshold. This
+obscures boundary density and granularity effects—factors that matter
+as LLM-based conversational systems increasingly rely on segmentation
+to manage history beyond fixed context windows. Without structure,
+accumulated dialogue degrades efficiency and coherence.
 
-This paper introduces an evaluation framework that reports boundary
-density and segment alignment diagnostics (purity and coverage)
-alongside window-tolerant F1 (W-F1). By separating boundary scoring
-from boundary selection, we evaluate segmentation quality across
-density regimes rather than at a single operating point. Cross-dataset
-evaluation shows that reported performance differences often reflect
-annotation granularity mismatch rather than boundary placement quality
-alone.
+This paper introduces an evaluation perspective for dialogue topic
+segmentation that reports boundary density and segment alignment
+diagnostics (purity and coverage) alongside window-tolerant F1
+(W-F1). By explicitly analyzing boundary density through separating
+boundary scoring (per-position scores) from boundary selection
+(mapping scores to a boundary set), we evaluate segmentation quality
+across density regimes rather than at a single threshold
+setting. Through cross-dataset empirical evaluation, we show that
+reported performance differences across dialogue segmentation
+benchmarks are often not driven by boundary placement quality alone;
+under common evaluation protocols, annotation granularity mismatch and
+sparse boundary labels can dominate these differences.
 
-We evaluate structurally distinct segmentation strategies across eight
-dialogue datasets spanning task-oriented, open-domain, meeting-style,
-and synthetic interactions. Boundary-based metrics are strongly
-coupled to boundary density: threshold sweeps produce larger W-F1
-changes than switching between methods. These findings support viewing
-topic segmentation as a granularity selection problem rather than
-prediction of a single correct boundary set. This motivates separating
-boundary scoring from boundary selection for analyzing and tuning
-segmentation under varying annotation granularities.
+We evaluate multiple segmentation strategies across eight dialogue
+datasets spanning task-oriented, open-domain, meeting-style, and
+synthetic interactions. Across these settings, boundary-based metrics
+are strongly coupled to boundary density: threshold sweeps produce
+larger W-F1 changes than switching between methods. These findings
+support viewing topic segmentation as a granularity selection problem
+and motivate treating boundary selection as a distinct, tunable step.
+\end{abstract}
 
 \section{Introduction}
 Dialogue topic segmentation is commonly framed as identifying points
@@ -161,9 +167,9 @@ Standard boundary-based evaluation implicitly assumes that, once
 boundary density is controlled, differences in F1 or W-F1 primarily
 reflect differences in boundary placement quality rather than
 thresholding or selection behavior.  A central empirical finding of
-this work is that boundary-based evaluation metrics can be dominated
+this work is that \emph{boundary-based evaluation metrics can be dominated
 by segmentation granularity induced by boundary selection, rather than
-by boundary detection quality.  In particular, for a fixed scoring
+by boundary detection quality.}  In particular, for a fixed scoring
 model, sweeping the boundary selection threshold produces larger
 changes in W-F1 than switching between structurally distinct
 segmentation methods, a pattern made explicit by density--quality
@@ -172,8 +178,7 @@ curves in Section~\ref{sec:results}
 comparisons that report only a single operating point can conflate
 method improvements with shifts in boundary density.
 
-Although we do not introduce a new neural architecture for boundary
-scoring, the proposed separation of boundary scoring and boundary
+The proposed separation of boundary scoring and boundary
 selection motivates alternative ways of reasoning about the
 construction, tuning, and evaluation of segmentation models under
 varying annotation granularities.
@@ -188,7 +193,7 @@ varying annotation granularities.
   failure modes hidden by standard boundary metrics.
 \item We demonstrate, via density--quality curves, that sweeping
   boundary selection thresholds for a fixed scoring model produces
-  substantially larger changes in W-F1 and Coverage than switching
+  substantially larger changes in W-F1 and coverage than switching
   between segmentation methods, making granularity mismatch explicit.
 \item We show that a separation between boundary scoring and boundary
   selection is necessary to treat boundary density as a controllable
@@ -214,9 +219,8 @@ In this setting, topic segmentation functions as a memory control
 mechanism rather than a purely linguistic task. Poor segmentation can
 cause relevant context to be discarded prematurely or irrelevant
 context to be retained, leading to degraded long-horizon coherence and
-unstable behavior across turns
-(e.g.,~\citep{sclar-etal-2024-quantifying,
-  razavi-etal-2025-promptset}).  The lack of robust long-horizon
+unstable behavior across turns, e.g.,~\citep{sclar-etal-2024-quantifying,
+  razavi-etal-2025-promptset}.  The lack of robust long-horizon
 memory remains an open challenge for current LLM-based systems,
 particularly in conversations spanning multiple sessions, motivating
 careful attention to segmentation decisions and their evaluation.
@@ -276,7 +280,7 @@ computed against a single reference segmentation and measure deviation from
 that reference, even though multiple segmentations (and granularities) can be
 defensible~\citep{fournier-inkpen-2012-segmentation,fournier-2013-evaluating}.
 More recent dialogue segmentation work has largely adopted precision, recall,
-and exact-match $F_1$ computed over boundary positions~\cite{liu2024dialogseg}.
+and exact-match $F_1$ computed over boundary positions \citep{jiang2023superdialseg,xia2022dialogue}.
 These boundary-only scores likewise treat the available annotation as the
 evaluation target; when annotation granularity varies across datasets or differs
 from system behavior, they can yield misleading comparisons.
@@ -290,7 +294,7 @@ alternatives. \citet{fournier-inkpen-2012-segmentation} propose
 \emph{segmentation similarity} ($S$), an edit-distance--based similarity that is
 symmetric (does not privilege a single ``true'' reference) and supports
 evaluation against multiply-coded corpora. \citet{fournier-2013-evaluating}
-extend this direction with \emph{boundary edit distance} and
+extends this direction with \emph{boundary edit distance} and
 \emph{boundary similarity} ($B$), yielding a principled way to obtain
 boundary-level IR-style quantities (precision/recall/$F$) while awarding graded
 credit for near misses. Relatedly, \citet{scaiano-inkpen-2012-getting} derive a
@@ -302,21 +306,15 @@ score units (e.g., $\gamma$) provide an alternative to single-reference
 evaluation~\citep{mathet2015gamma}.
 
 \subsection{Dialogue Segmentation Datasets}
-Dialogue topic segmentation introduces complexity beyond written text due to
-turn-taking, discourse phenomena, and gradual topic transitions. Several
-benchmarks have emerged with distinct annotation philosophies.
-DialSeg711~\cite{dialseg711} and SuperDialseg~\cite{superdialseg2023} provide
-densely annotated dialogue corpora, while TIAGE~\cite{tiage} annotates topic
-boundaries in task-oriented dialogue with sparser labels tied to task structure.
-MultiWOZ~\cite{budzianowski2018multiwoz} provides domain annotations that can be
-interpreted as coarse topic boundaries. Open-domain and semi-structured datasets
-such as DailyDialog~\cite{li2020dailydialog}, Taskmaster~\cite{byrne2019taskmaster},
-Topical-Chat~\cite{topicalchat}, and QMSum~\cite{zhong2021qmsum} reflect further
-variation in how \emph{topic-like} structure is operationalized, including
-domain/section labels or derived boundary heuristics rather than explicit
-topic-boundary annotation. This diversity in annotation intent produces
-systematic differences in boundary density across datasets---differences that
-standard boundary scores do not distinguish from detection quality.
+\label{sec:relateddatasets}
+Dialogue segmentation benchmarks differ not only in domain but in what counts as a
+\emph{topic boundary}: some datasets provide explicit segment boundaries, others provide
+weaker supervisory signals (e.g., section/domain labels) that must be repurposed, and
+some evaluation sets are synthetically constructed via concatenation.
+These design choices induce large, systematic differences in boundary density and implied
+granularity, so boundary-only metrics can confound localization with density alignment.
+Section~\ref{sec:datasets} summarizes the eight datasets used in our experiments and the
+exact gold-boundary definitions used after canonicalization.
 
 \subsection{Segmentation Granularity}
 Classic segmentation methods such as TextTiling~\cite{hearst1997texttiling} and
@@ -380,31 +378,71 @@ Section~\ref{sec:baselines}. Figure~\ref{fig:worked_example}
 of this granularity mismatch.
 
 \section{Datasets}
+\label{sec:datasets}
 
-We evaluated multiple, structurally distinct dialogue segmentation strategies
-across eight dialogue datasets spanning diverse dialogue regimes. The purpose
-of cross-dataset evaluation here is not only to compare performance, but to
-expose how annotation philosophy and boundary density interact with evaluation
-metrics.
+We evaluate across eight dialogue datasets spanning diverse annotation
+regimes (see Section~\ref{sec:relateddatasets} for background on
+annotation philosophies).  The purpose of cross-dataset evaluation is
+not only to compare performance, but to expose how annotation
+philosophy and boundary density interact with evaluation metrics. We
+summarize the supervision signal used for each dataset and how it is
+converted to turn-adjacent gold boundaries in
+Table~\ref{tab:segmentation-philosophy} (full canonicalization details
+in Appendix~D).
 
-Task-oriented dialogue datasets include SuperDialseg~\cite{superdialseg2023},
-DialSeg711~\cite{dialseg711}, TIAGE~\cite{tiage}, and
-MultiWOZ~\cite{budzianowski2018multiwoz}. Open-domain and semi-structured
-datasets include DailyDialog (synthetic concatenations)~\cite{li2020dailydialog},
-Taskmaster~\cite{byrne2019taskmaster}, Topical-Chat~\cite{topicalchat}, and
-QMSum~\cite{zhong2021qmsum}. Several datasets provide sparse boundaries by design
-or annotate boundaries with intent (e.g., summarization units), which is
-precisely the setting where exact-match F1 becomes fragile. Together, these
-datasets span sparse, medium, and dense annotation regimes, providing a
-testbed for evaluating segmentation behavior under annotation granularity
-shift.
+\myparagraph{Explicit segmentation annotation}
+DialSeg711~\cite{xu2021topicaware} is constructed by joining single-topic
+dialogues (from MultiWOZ and the Stanford Dialogue Dataset), so boundaries
+primarily reflect splice points rather than naturally occurring gradual
+topic transitions.
+SuperDialseg~\cite{jiang2023superdialseg} provides large-scale supervised
+segmentation built from document-grounded dialogues, with segment IDs aligned
+to source document structure.
+TIAGE~\cite{xie2021tiage} augments PersonaChat with per-turn topic-shift
+annotations, yielding sparse shift points rather than hierarchical segment
+structure.
+QMSum~\cite{zhong2021qmsum} provides topic annotations for meeting transcripts;
+because QMSum allows topic-relevant spans to be non-contiguous, we convert its
+annotations to turn-adjacent boundary positions as described in Appendix~D.
 
-We refer to the SuperDialseg dataset as \emph{SuperSeg} throughout.
-Separately, we denote the periodic oracle \emph{baseline family} as
-\emph{Oracle-Periodic (Every-$N$)}.
+\myparagraph{Repurposed labels}
+MultiWOZ~\cite{budzianowski2018multiwoz} provides domain and dialogue-state
+annotations; we derive boundaries from domain label changes.
+DailyDialog~\cite{li2017dailydialog},
+Taskmaster~\cite{byrne2019taskmaster}, and
+Topical-Chat~\cite{gopalakrishnan2019topicalchat} do not provide explicit
+segmentation boundaries; we derive boundaries from changes in available
+topic/domain/task labels between consecutive utterances (Appendix~D).
 
-Converting the datasets to a common canonical format is described in
-Appendix~D.
+Together, these datasets span sparse, medium, and dense annotation regimes,
+providing a testbed for evaluating segmentation behavior under annotation
+granularity shift. We refer to SuperDialseg as \emph{SuperSeg} throughout.
+
+\begin{table}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Dataset} & \textbf{Supervision signal} & \textbf{Gold boundary derivation} \\
+    \midrule
+    \multicolumn{3}{l}{\textit{Explicit segmentation / shift labels}} \\
+    \quad DialSeg711 & synthetic splice construction & splice point (segment ID change) \\
+    \quad SuperSeg & document section IDs & section change \\
+    \quad TIAGE & topic-shift annotations & annotated shift / segment change \\
+    \quad QMSum & topic spans & boundary at adjacent span break \\
+    \midrule
+    \multicolumn{3}{l}{\textit{Repurposed labels (boundary = label change)}} \\
+    \quad MultiWOZ & domain label & domain change \\
+    \quad DailyDialog & dialogue topic label & topic change \\
+    \quad Taskmaster & task/subtask labels & task/subtask change \\
+    \quad Topical-Chat & conversation topic label & topic change \\
+    \bottomrule
+  \end{tabular}
+  \caption{Supervision signals and the resulting turn-adjacent gold boundaries used in evaluation.
+    Datasets are cited in the main text (§\ref{sec:datasets}); full extraction/canonicalization is in Appendix~D.}
+  \label{tab:segmentation-philosophy}
+\end{table}
 
 \section{Methodology}
 
@@ -417,8 +455,8 @@ Sections~\ref{sec:evaluation-metrics} and~\ref{sec:results}
 intentionally evaluate only the neural boundary scoring component
 under static threshold\(+\)gap selection. Episodic, as deployed, is a
 hybrid system in which neural boundary scores are complemented by
-additional online signals, including embedding-drift–based change
-detection used by the commitment policy described in Appendix~F.
+additional online signals (e.g., embedding-drift–based change
+detection).
 These auxiliary signals are not used in the main experiments and are
 held out deliberately to isolate the behavior of boundary-based
 evaluation metrics under controlled changes in boundary
@@ -453,10 +491,14 @@ boundary rate relative to the number of candidate positions processed
 
 \myparagraph{Selection hyperparameters and transparency}
 Boundary density is controlled entirely by the boundary selection rule
-through the threshold $\tau$ and minimum spacing parameter $g$. In all
-experiments reported in this paper, $g$ is fixed to a single global
-value across all datasets, and $\tau$ is fixed globally after
-temperature calibration. Neither parameter is tuned per dataset, per
+through the threshold $\tau$ and minimum spacing parameter $g$. For all
+single-operating-point results reported in this paper
+(Tables~\ref{tab:baselines}, \ref{tab:external_methods}, \ref{tab:stage3},
+and~\ref{tab:purity_coverage}), $g$ is fixed at 3 and $\tau$ is fixed
+at 0.50 after temperature calibration. Density--quality curves
+(Section~\ref{sec:granularity}) sweep $\tau$ while holding $g$ fixed;
+the adaptive controller (Section~\ref{sec:boundary-selection},
+Figure~\ref{fig:adaptive_commitment}) is a separate control experiment. Neither parameter is tuned per dataset, per
 split, or on held-out validation data to match gold boundary counts or
 to optimize any evaluation metric. As a result, variation in boundary
 density across datasets reflects differences in annotation granularity
@@ -486,22 +528,26 @@ rule based on thresholding with minimum spacing.
 \begin{enumerate}
 \item Select all candidate positions $i$ such that $s_i \ge \tau$.
 \item Enforce a minimum spacing $g$ via greedy non-maximum
-  suppression: candidates are processed in descending score order,
-  and a candidate $i$ is accepted only if no previously accepted
-  boundary lies within $g$ positions.
+  suppression: candidates are processed in descending score order, and
+  a candidate i is accepted only if $|i - b| \geq g$ for all
+  previously accepted boundaries $b$.
 \end{enumerate}
-The resulting set of topic boundaries is
-$B \subseteq \{1,\dots,T-1\}$.
+The resulting set of topic boundaries is $B \subseteq
+\{1,\dots,T-1\}$.
 
 \noindent\textbf{Scope.}
 For Figure~\ref{fig:adaptive_commitment}, we allow the threshold $\tau$
 to vary over time (logged as \texttt{min\_evidence}, the running
 evidence threshold used by the selection rule); all other aspects of
-the selection rule remain unchanged. During evidence accumulation,
-candidate scores are evaluated against a fixed pre-change reference.
-Freezing both the pre-boundary context and the boundary-adjacent anchor
-turn ensures that the selection rule measures persistence of topic
-departure rather than repeated detection of the same topic transition.
+the selection rule remain unchanged. During evidence accumulation, each candidate's fixed score $s_i$
+(computed once at first availability using frozen reference windows)
+is repeatedly added to its evidence total, implementing a
+time-to-threshold integrator: candidates with stronger initial
+boundary signals reach the commitment threshold faster.
+Freezing the score at the point of first availability ensures that
+the commitment decision reflects the strength of the boundary signal
+at the moment of topic departure, rather than being confounded by
+subsequent context that may diverge further or revisit the original topic.
 
 \myparagraph{Threshold sweeps for density--quality curves}
 To construct density--quality curves
@@ -515,24 +561,35 @@ W-F1, purity, and coverage are recomputed. No other parameters are
 varied during the sweep.
 
 \myparagraph{Selection hyperparameters (reported values)}
-All main experimental results reported in Sections~6--7 use a fixed
-minimum spacing of $g = 3$ messages and a fixed global threshold of
-$\tau = 0.50$ applied to temperature-calibrated scores. These values
-are held constant across all datasets, splits, and runs.
+All single-operating-point results for the proposed neural scorer
+(Tables~\ref{tab:stage3} and~\ref{tab:purity_coverage}) use a fixed minimum
+spacing of $g = 3$ messages and a fixed global threshold of $\tau =
+0.50$ applied to temperature-calibrated scores. These values are held
+constant across all datasets, splits, and runs.
+Baselines in Table~\ref{tab:baselines} that directly output boundaries
+(e.g., No-boundary, Periodic, Oracle-density Random) do not use $\tau$/$g$;
+external methods in Table~\ref{tab:external_methods} (TextTiling, CSM)
+use their own internal scoring and thresholding mechanisms evaluated at
+fixed operating points (see Appendix~H for details).
+Density--quality
+curves (Section~\ref{sec:granularity},
+Figure~\ref{fig:density-quality}) sweep $\tau$ over $[0.05, 0.95]$
+while holding $g = 3$ fixed, as described in ``Threshold sweeps for
+density--quality curves'' above.
+
 
 \subsection{Scoring Model Architecture}
-
 The boundary scoring model is a fine-tuned DistilBERT-based binary
 classifier. For each candidate boundary position $i$, the model
 encodes a left context window and a right context window around $i$
-using the input format
-\texttt{[CLS] pre-window [SEP] post-window [SEP]}. Unless otherwise
-specified, the scoring model uses a symmetric local context window of
-$k{=}4$ utterances before and after each candidate boundary (total
-window size 9), truncated at dialogue boundaries when insufficient
-context is available. The final hidden state of the \texttt{[CLS]}
-token is passed through a linear projection layer to produce a scalar
-score $s_i \in \mathbb{R}$ representing boundary confidence.
+using the input format \texttt{[CLS] pre-window [SEP] post-window
+  [SEP]}. Unless otherwise specified, the scoring model uses a
+symmetric local context window of $k{=}4$ utterances before and after
+each candidate boundary (total window size 9), truncated at dialogue
+boundaries when insufficient context is available. The final hidden state
+of the \texttt{[CLS]} token is passed through a linear projection
+layer to produce a scalar score $s_i \in \mathbb{R}$ representing
+boundary confidence.
 
 The model is trained using binary cross-entropy loss on boundary
 labels. No architectural modifications beyond the classification head
@@ -548,8 +605,7 @@ Table~\ref{tab:training-protocol}:
 \textbf{Stage 1: Synthetic Pretraining.}  We construct synthetic
 splice examples by concatenating real dialogue segments and labeling
 the splice point as a boundary. The synthetic splice corpus is
-constructed exclusively from training splits of the dialogue datasets
-listed in Table~\ref{tab:training-protocol}, ensuring no overlap with
+constructed from training splits of DailyDialog and MultiWOZ, ensuring no overlap with
 validation or test data. We remove boundary-local artifacts (e.g.,
 greetings) to prevent spurious cues, and we evaluate a negative
 control set of single-segment examples to verify that the model does
@@ -572,12 +628,12 @@ and numerical stability across runs. After calibration, the resulting
 model is evaluated without further tuning on the test splits of all
 datasets.
 
-Importantly, temperature calibration rescales \emph{evidence} but does
-not determine how many boundaries are produced. Boundary density is
-controlled exclusively by the selection rule (thresholding and
-spacing), not by temperature. While changing $T$ shifts the score
-distribution, it does not encode a target boundary rate and cannot, by
-itself, enforce consistent segmentation granularity across datasets.
+Importantly, temperature calibration does not explicitly enforce a target
+boundary rate. Because it rescales scores, changing $T$ can affect
+boundary density under a fixed threshold; however, explicit density
+control requires selection parameters ($\tau$, $g$) or a controller.
+Temperature calibration alone cannot enforce consistent segmentation
+granularity across datasets.
 Calibration therefore improves the interpretability of scores but does
 not resolve granularity mismatch, which remains a decision-level issue
 handled by explicit boundary selection.
@@ -608,7 +664,7 @@ calibration learns a single global temperature using a held-out
   \begin{tabular}{llll}
     \toprule Stage & Purpose & Datasets & Split \\ \midrule Stage 1 &
     Synthetic pretraining & Synthetic splice corpus & Train / val
-    \\ Stage 2 & Supervised fine-tuning & SuperSeg, TIAGE & Train only
+    \\ Stage 2 & Supervised fine-tuning & SuperSeg, TIAGE & Train (val for metrics)
     \\ Stage 3a & Temperature calibration & SuperSeg & Validation only
     \\ Stage 3b & Final evaluation & All 8 datasets & Test only
     \\ \bottomrule
@@ -618,9 +674,11 @@ calibration learns a single global temperature using a held-out
     SuperSeg and TIAGE to expose the scorer to both dense and sparse
     annotation regimes. Temperature calibration learns a single global
     temperature on a held-out validation split of SuperSeg. Stage~3
-    evaluation is performed on test splits only, including both
-    datasets seen during training and datasets held out entirely from
-    training and calibration.}
+    evaluation is performed on test splits only, including datasets
+    seen during supervised fine-tuning (SuperSeg, TIAGE), datasets
+    used only for Stage~1 synthetic pretraining (DailyDialog, MultiWOZ),
+    and datasets held out entirely (DialSeg711, Taskmaster, Topical-Chat,
+    QMSum).}
   \label{tab:training-protocol}
 \end{table}
 
@@ -636,13 +694,14 @@ conflate.  Formal mathematical definitions are provided in
 Appendices~A--C; the metrics are described here at an operational
 level to support interpretation of the empirical results.
 
-\myparagraph{$F_1$ over boundaries}
-We treat topic segmentation as predicting a set of boundary indices
-$P_d \subseteq \{1,\dots,T_d-1\}$ and compare against gold boundaries
-$G_d \subseteq \{1,\dots,T_d-1\}$.
-We compute precision $= |P_d \cap G_d|/|P_d|$, recall $=|P_d \cap G_d|/|G_d|$,
-and $F_1$ as the usual harmonic mean.
-For brevity, we refer to this metric simply as $F_1$ throughout.
+\myparagraph{$F_1$ over boundaries} We treat topic segmentation as
+predicting a set of boundary indices $P_d \subseteq \{1,\dots,T_d-1\}$
+and compare against gold boundaries $G_d \subseteq \{1,\dots,T_d-1\}$.
+We compute precision $= |P_d \cap G_d|/|P_d|$, recall $=|P_d \cap
+G_d|/|G_d|$, and $F_1$ as the usual harmonic mean.  For brevity, we
+refer to this metric simply as $F_1$ throughout. Dataset-level F1 is
+micro-averaged: $\mathrm{F1} = 2\sum_d|P_d \cap G_d| \;/\;
+(\sum_d|P_d| + \sum_d|G_d|)$.
 
 \myparagraph{Evaluation objectives}
 Dialogue topic segmentation evaluation must distinguish between three
@@ -666,13 +725,14 @@ window-coverage convention, under which multiple predicted boundaries
 may fall within the tolerance window of a single gold boundary and be
 counted as correct. Formally, W-F1 is computed from dialogue-level precision and recall
 defined over boundary sets $P_d$ and $G_d$ using a tolerance window
-$\pm w$ (see Appendix~A for the full definition).
+$\pm w$ (see Appendix~A for the full definition). In all experiments here, we use $w=1$.
 
 \myparagraph{Interpretation and rationale}
-This window-coverage design is intentionally recall-favoring. Precision
-under W-F1 should therefore be interpreted as the fraction of predicted
-boundaries that fall near annotated topic transitions, rather than as a
-one-to-one measure of boundary set agreement. We adopt this convention
+This window-coverage design is intentionally duplicate-tolerant: multiple
+predictions near the same gold boundary are not penalized as false positives.
+Precision under W-F1 should therefore be interpreted as the fraction of
+predicted boundaries that fall near annotated topic transitions, rather than
+as a one-to-one measure of boundary set agreement. We adopt this convention
 to decouple boundary localization from boundary count, allowing W-F1 to
 serve as a diagnostic of whether boundaries are placed near annotated
 transitions. For this reason, W-F1 must be interpreted in conjunction
@@ -693,11 +753,11 @@ under varying segmentation granularities.
 Although our primary analysis uses many-to-one window-coverage
 matching, we additionally evaluate a standard one-to-one tolerant
 matching variant (maximum bipartite matching within the same tolerance
-window; see Appendix~G to verify that the
+window); see Appendix~G to verify that the
 density-driven effects reported in this paper are not an artifact of
 the matching convention. Across both datasets, the resulting
 density--quality curves remain qualitatively unchanged
-(Figure~\ref{fig:matching_comparison}.
+(Figure~G.1).
 
 \myparagraph{Scope of the definition}
 This W-F1 definition should not be assumed equivalent to other
@@ -706,13 +766,16 @@ reimplementable definition—including matching rules, empty-set
 handling, and aggregation—is given in Appendix~A.
 
 \subsection{Boundary density (BOR)}
-Boundary Over-segmentation Ratio (BOR) measures the number of predicted
-boundaries relative to the number of gold boundaries. Although termed
-the boundary oversegmentation ratio, BOR is used here as a general
-boundary density ratio: values greater than 1 indicate
-oversegmentation relative to gold, while values less than 1 indicate
-undersegmentation. Formally, BOR is defined as the ratio $|P_d|/|G_d|$,
-computed per dialogue and aggregated across dialogues.
+Boundary Over-segmentation Ratio (BOR) measures the number of
+predicted boundaries relative to the number of gold
+boundaries. Although termed the boundary oversegmentation ratio, BOR
+is used here as a general boundary density ratio: values greater than
+1 indicate oversegmentation relative to gold, while values less than 1
+indicate undersegmentation. Formally, BOR is defined as the ratio of
+total predicted boundaries to total gold boundaries across all
+dialogues: $\mathrm{BOR} = \sum_{d} |P_d| \;/\; \sum_{d} |G_d|$. This
+micro-aggregation reflects overall boundary density rather than being
+skewed by high-variance ratios in short dialogues.
 
 Boundary-based accuracy metrics alone cannot distinguish boundary
 placement quality from boundary density alignment. A system can achieve
@@ -783,10 +846,11 @@ provide reference points for interpreting density-driven effects
 independent of semantic boundary placement.
 
 We consider three classes of baselines: (i) a no-boundary baseline,
-(ii) periodic segmentation baselines, and (iii) oracle-density random
-baselines. Oracle-density baselines explicitly use gold boundary
-counts and are therefore not deployable; they are included solely to
-expose the sensitivity of boundary metrics to density alignment.
+(ii) periodic segmentation baselines (\emph{Periodic Every-$N$}), which place
+boundaries at fixed intervals with $N$ chosen per-dataset, and (iii) oracle-density
+random baselines. We additionally evaluate an \emph{Oracle-Periodic} baseline that
+matches the gold boundary count per dialogue exactly (used in Tables~\ref{tab:external_methods}
+and~\ref{tab:leaderboard-deltas}).
 
 Purity and coverage are reported here as diagnostic statistics rather than as
 standalone evaluation objectives.
@@ -803,7 +867,7 @@ coverage regardless of semantic validity.
     & SuperSeg & 0.113 & \textbf{0.00} & 0.568 & 1.000 \\ 
     & TIAGE & 0.140 & \textbf{0.00} & 0.541 & 1.000 \\ 
     \midrule 
-    Oracle-periodic Every-$N$ & DialSeg711 ($N=4$) & 0.639 & \textbf{0.97} & 0.812 & 0.823 \\
+    Periodic Every-$N$ & DialSeg711 ($N=4$) & 0.639 & \textbf{0.97} & 0.812 & 0.823 \\
     & SuperSeg ($N=2$) & 0.623 & \textbf{1.10} & 0.830 & 0.775 \\
     & TIAGE ($N=3$) & 0.610 & \textbf{0.97} & 0.849 & 0.774 \\ 
     \midrule 
@@ -812,8 +876,12 @@ coverage regardless of semantic validity.
     & TIAGE & 0.664 & \textbf{1.00} & 0.873 & 0.869 \\ 
     \bottomrule
   \end{tabular}
-\caption{\textbf{Baseline diagnostic statistics relative to gold annotations.}
-  Oracle-density baselines match gold boundary counts by construction.}
+  \caption{\textbf{Baseline diagnostic statistics relative to gold annotations.}
+    Periodic (Every-$N$) places boundaries at fixed intervals, with $N$ chosen 
+    per-dataset to approximate gold density. Oracle-density baselines match gold 
+    boundary counts per dialogue by construction. Where non-zero, W-F1 for no-boundary
+    reflects dialogues lacking gold boundaries (W-F1=1 under empty-set handling;
+    see Appendix~A).}
   \label{tab:baselines}
 \end{table}
 
@@ -825,9 +893,9 @@ achieving competitive W-F1 despite lacking semantic grounding.
 \label{sec:results}
 This section evaluates the proposed separation between boundary
 scoring and boundary selection under differing annotation
-granularity. The results below instantiate multiple failure modes summarized in
-Table~\ref{tab:failure-taxonomy}, including for previously published methods
-re-evaluated under the same framework.
+granularity. The results below instantiate multiple failure modes
+summarized in Table~\ref{tab:failure-taxonomy}, including results for
+previously published methods re-evaluated under the same framework.
 
 \subsection{Granularity as a Controlled Variable}
 \label{sec:granularity}
@@ -860,11 +928,11 @@ between W-F1/Coverage and boundary density.
   {\small DialSeg711 and SuperSeg: Density--Quality Regime Plots with 95\% CIs}\\[1pt]
   \centering
   \includegraphics[width=\linewidth]{figures/density_quality_dialseg711_ci_regimes_v2.pdf}\\
-\vspace{-12pt}
-\noindent\makebox[\linewidth][c]{%
-  \leaders\hbox{\rule{6pt}{0.3pt}\hspace{4pt}}\hskip0.9\linewidth
-}
-\vspace{4pt}
+  \vspace{-12pt}
+  \noindent\makebox[\linewidth][c]{%
+    \leaders\hbox{\rule{6pt}{0.3pt}\hspace{4pt}}\hskip0.9\linewidth
+  }
+  \vspace{4pt}
   \includegraphics[width=\linewidth]{figures/density_quality_superseg_ci_regimes_v2.pdf}
 
   \caption{\textbf{Density--quality curves for DialSeg711 and
@@ -901,13 +969,16 @@ higher than baselines at matched BOR, particularly in the conservative
 regime (BOR~$<1$), indicating improved boundary ranking.
 
 \subsection{External Methods Under Granularity-Aware Evaluation}
-To assess whether the granularity effects identified in this work are specific
-to our scoring model or reflect broader evaluation behavior, we re-evaluated a
-representative subset of published dialogue segmentation methods under the
-proposed granularity-aware framework. The selected methods include simple
-baselines (random and periodic segmentation), a classical unsupervised approach
-(TextTiling), and a coherence-based model (CSM). All methods were evaluated using
-the same boundary canonicalization and metrics as in previous sections.
+To assess whether the granularity effects identified in this work are
+specific to our scoring model or reflect broader evaluation behavior,
+we re-evaluated a representative subset of published dialogue
+segmentation methods under the proposed granularity-aware
+framework. The selected methods include simple baselines (random and
+periodic segmentation), a classical unsupervised approach
+(TextTiling), and a coherence scoring model (CSM;
+\citealt{xing2021improving}), which uses BERT's Next Sentence Prediction (NSP)
+task to score coherence between adjacent utterances.  All methods were evaluated using the
+same boundary canonicalization and metrics as in previous sections.
 
 \myparagraph{External-method re-evaluations: scope and controls}
 All external-method results use the same boundary representation and tolerance
@@ -934,29 +1005,31 @@ fixed across methods. The audit protocol and canonicalization details
 are provided in Appendix~H.
 
 All single-point results reported below correspond to individual operating points
-along the density--quality curves shown in Figure~\ref{fig:density-quality}.
+along density--quality curves (see Figure~\ref{fig:density-quality} for DialSeg711; TIAGE curves follow the same pattern).
 
 \begin{table}[t]
   \centering
   \begin{tabular}{l l c c c c c}
-    \toprule
-    Method & Dataset & W-F1 & \textbf{BOR} & F1 & Purity & Coverage \\
-    \midrule
-    TextTiling & DialSeg711 & 0.648 & \textbf{1.88} & 0.550 & 0.968 & 0.746 \\
-    CSM        & DialSeg711 & 0.412 & \textbf{0.64} & 0.373 & 0.749 & 0.921 \\
-    Random     & DialSeg711 & 0.267 & \textbf{0.55} & 0.098 & 0.711 & 0.890 \\
-    Oracle-Periodic & DialSeg711 & 0.483 & \textbf{1.00} & 0.211 & 0.806 & 0.809 \\
-    \midrule
-    TextTiling & TIAGE      & 0.612 & \textbf{2.04} & 0.445 & 0.949 & 0.693 \\
-    CSM        & TIAGE      & 0.615 & \textbf{3.97} & 0.346 & 0.976 & 0.454 \\
-    Random     & TIAGE      & 0.256 & \textbf{0.33} & 0.121 & 0.697 & 0.921 \\
-    Oracle-Periodic & TIAGE & 0.620 & \textbf{1.00} & 0.300 & 0.832 & 0.838 \\
-    \bottomrule
+    \toprule Method & Dataset & W-F1 & \textbf{BOR} & F1 & Purity &
+    Coverage \\ \midrule TextTiling & DialSeg711 & 0.613 &
+    \textbf{2.69} & 0.488 & 0.988 & 0.638 \\ CSM & DialSeg711 & 0.393
+    & \textbf{0.56} & 0.353 & 0.732 & 0.931 \\ Random & DialSeg711 &
+    0.267 & \textbf{0.55} & 0.098 & 0.711 & 0.890 \\ Oracle-Periodic &
+    DialSeg711 & 0.481 & \textbf{1.00} & 0.211 & 0.806 & 0.809
+    \\ \midrule TextTiling & TIAGE & 0.628 & \textbf{1.84} & 0.434 &
+    0.933 & 0.717 \\ CSM & TIAGE & 0.409 & \textbf{0.58} & 0.306 &
+    0.760 & 0.909 \\ Random & TIAGE & 0.256 & \textbf{0.33} & 0.121 &
+    0.697 & 0.921 \\ Oracle-Periodic & TIAGE & 0.633 & \textbf{1.00} &
+    0.276 & 0.824 & 0.826 \\ \bottomrule
   \end{tabular}
-  \caption{\textbf{External dialogue segmentation methods re-evaluated under the proposed
-      granularity-aware framework.} Boundary density (BOR) varies substantially
-    across methods and datasets, producing distinct density regimes despite
-    comparable boundary accuracy scores.}
+  \caption{\textbf{External dialogue segmentation methods re-evaluated
+      under the proposed granularity-aware framework.} Oracle-Periodic
+    places boundaries at evenly spaced intervals with count matched to
+    gold per dialogue (BOR=1.00 by construction). Boundary density (BOR)
+    varies substantially across methods, producing distinct density
+    regimes despite comparable boundary accuracy scores. All
+    threshold-based methods (TextTiling, CSM) evaluated at fixed
+    operating points; no per-dataset tuning.}
   \label{tab:external_methods}
 \end{table}
 
@@ -966,10 +1039,10 @@ periodic segmentation achieves competitive boundary accuracy when its
 output density aligns with the gold annotation (BOR~$\approx 1$),
 despite lacking semantic grounding. Classical methods such as
 TextTiling exhibit recall-dominated behavior with elevated BOR,
-yielding high purity alongside aggressive oversegmentation. Notably,
-the same method (CSM) occupies different density regimes across
-datasets, indicating that apparent performance differences often
-reflect density mismatch rather than improved boundary detection.
+yielding high purity alongside aggressive oversegmentation. CSM
+operates conservatively on both datasets (BOR~$\approx 0.56$--$0.58$),
+producing high coverage but lower purity---a precision-dominated
+pattern characteristic of undersegmentation.
 
 For clarity, and following the failure taxonomy in
 Table~\ref{tab:failure-taxonomy}, we categorize the results in
@@ -989,14 +1062,31 @@ Table~\ref{tab:regime_summary}.
     Oracle-Periodic & DialSeg711 & Balanced (BOR $\approx 1$) \\
     \midrule
     TextTiling & TIAGE      & Aggressive (BOR $\gg 1$) \\
-    CSM        & TIAGE      & Aggressive (BOR $\gg 1$) \\
+    CSM        & TIAGE      & Conservative (BOR $< 1$) \\
     Random     & TIAGE      & Conservative (BOR $< 1$) \\
     Oracle-Periodic & TIAGE & Balanced (BOR $\approx 1$) \\
     \bottomrule
   \end{tabular}
-  \caption{Density regimes under the proposed failure taxonomy, derived from BOR thresholds.}
+  \caption{Density regimes under the proposed failure taxonomy, derived from BOR thresholds.
+    Regime classifications based on fixed operating points (no per-dataset tuning).}
   \label{tab:regime_summary}
 \end{table}
+
+\myparagraph{Threshold tuning and density side effects}
+The results in Tables~\ref{tab:external_methods} and~\ref{tab:regime_summary}
+use fixed internal thresholds for TextTiling and CSM, isolating intrinsic
+method behavior from threshold effects. Standard practice, however, tunes
+thresholds on a development set to maximize F1. We find that such tuning
+can produce dramatically different operating points across datasets. For
+example, when CSM's threshold is tuned per-dataset, the method shifts from
+conservative (BOR~$=0.64$) on DialSeg711 to aggressive (BOR~$=3.97$) on
+TIAGE---a sixfold increase in boundary density. With a fixed threshold,
+CSM operates conservatively on both datasets (BOR~$\approx 0.56$--$0.58$),
+revealing that the regime variation is a tuning artifact rather than inherent
+method behavior. F1-based tuning selects boundary density as a side effect;
+the resulting operating point can vary substantially across datasets
+depending on annotation density, which is precisely the confound that
+BOR-aware evaluation is designed to expose.
 
 \myparagraph{Targeted audit of runnable SuperDialseg leaderboard comparisons}
 We audit three runnable comparisons drawn from the SuperDialseg benchmark
@@ -1039,7 +1129,7 @@ available, so we do not include it here.
     +0.128 &
     \parbox[c]{1.9cm}{\centering +0.219\\[0.5ex][0.155, 0.283]} &
     \parbox[c]{1.9cm}{\centering +1.26\\[0.5ex][1.11, 1.44]} &
-    \parbox[t]{2.6cm}{\raggedright Aggressive $\rightarrow$\\More Aggressive} \\
+    \parbox[t]{2.6cm}{\raggedright Conservative $\rightarrow$\\Aggressive} \\
     \addlinespace[4pt]
     TT vs.\ Oracle-P & DialSeg711 &
     +0.277 &
@@ -1049,11 +1139,12 @@ available, so we do not include it here.
     \bottomrule
   \end{tabular}
   \caption{\textbf{Pairwise audit of runnable SuperDialseg leaderboard comparisons with
-    95\% dialogue-level bootstrap confidence intervals.} TT denotes TextTiling and
-    Oracle-P is the Oracle-Periodic (Every-$N$) baseline. Positive $\Delta$ indicates
+      95\% dialogue-level bootstrap confidence intervals.} TT denotes TextTiling and
+    Oracle-P is the Oracle-Periodic baseline (boundary count matched to gold per dialogue). Positive $\Delta$ indicates
     higher values for the first-listed method. Arrows denote relative changes in
     boundary density from the second-listed method to the first-listed method.
-    Regime labels follow Table~\ref{tab:failure-taxonomy}.}
+    Regime labels follow Table~\ref{tab:regime_summary}.
+    All methods evaluated at fixed operating points.}
   \label{tab:leaderboard-deltas}
 \end{table}
 
@@ -1101,10 +1192,6 @@ behavior during this phase.
   \label{tab:stage1}
 \end{table}
 
-While some synthetic splice points may join semantically related
-segments, this introduces conservative label noise that discourages
-hallucinated boundaries rather than inducing spurious segmentation.
-
 \subsection{Stage 2: Supervised Fine-Tuning on Benchmarks}
 This stage performs supervised fine-tuning to align the scoring model
 with human annotation conventions on in-distribution datasets. The key
@@ -1120,7 +1207,9 @@ generalization under annotation-granularity shift.
   \centering
   \begin{tabular}{c c c c c c}
     \toprule
-    Epoch & Overall F1 & W-F1 & \textbf{BOR} & SuperSeg F1/BOR & TIAGE F1/BOR \\
+    Epoch & \multicolumn{3}{c}{Overall (both datasets)} & SuperSeg & TIAGE \\
+    \cmidrule(lr){2-4} \cmidrule(lr){5-5} \cmidrule(lr){6-6}
+     & F1 & W-F1 & \textbf{BOR} & F1 / BOR & F1 / BOR \\
     \midrule
     1 & 0.778 & 0.833 & \textbf{1.11} & 0.788 / 1.13 & 0.197 / 0.24 \\
     2 & 0.819 & 0.850 & \textbf{1.23} & 0.830 / 1.25 & 0.352 / 0.86 \\
@@ -1130,6 +1219,9 @@ generalization under annotation-granularity shift.
     \bottomrule
   \end{tabular}
   \caption{\textbf{Stage 2 supervised fine-tuning on benchmark datasets.}
+    Metrics are computed on the held-out validation split (not used for gradient updates).
+    ``Overall'' F1 and BOR are micro-averaged across both datasets;
+    W-F1 is macro-averaged over dialogues (Appendix~A).
     Boundary density converges toward annotated density (BOR $\approx 1$)
     on datasets seen during training, while W-F1 remains high.}
   \label{tab:stage2}
@@ -1169,7 +1261,7 @@ remaining datasets follow the same qualitative pattern.
   \end{tabular}
   \caption{\textbf{Stage 3 final test results.}
     Boundary density (BOR) is reported alongside boundary accuracy to
-    distinguish granularity mismatch from detection failure.}
+    distinguish granularity mismatch from detection failure. (F1 is micro-averaged; W-F1 is macro-averaged. See Appendix~A.)}
   \label{tab:stage3}
 \end{table}
 
@@ -1221,14 +1313,14 @@ independent guarantee of semantic coherence.
     TIAGE      & 0.512 & \textbf{0.76} & 0.785 & 0.896 & 0.368 \\
     \bottomrule
   \end{tabular}
-\caption{\textbf{Gold-relative segment alignment diagnostics for the proposed model.}
-High purity with elevated BOR indicates fine-grained subdivision that
-largely preserves the gold partition; high coverage with reduced BOR
-indicates coarser-than-gold segmentation. Purity and coverage are
-gold-relative diagnostics and should not be interpreted as independent
-semantic coherence estimates. Both patterns reflect granularity
-mismatch rather than boundary detection failure.}
-\label{tab:purity_coverage}
+  \caption{\textbf{Gold-relative segment alignment diagnostics for the proposed model.}
+    High purity with elevated BOR indicates fine-grained subdivision that
+    largely preserves the gold partition; high coverage with reduced BOR
+    indicates coarser-than-gold segmentation. Purity and coverage are
+    gold-relative diagnostics and should not be interpreted as independent
+    semantic coherence estimates. Both patterns reflect granularity
+    mismatch rather than boundary detection failure.}
+  \label{tab:purity_coverage}
 \end{table}
 
 \subsection{Worked Example}
@@ -1282,15 +1374,12 @@ on datasets with coarse annotations, at the cost of elevated BOR,
 indicating limited cross-topic mixing relative to gold spans rather
 than detection failure.
 
-Across datasets, we observe two stable annotation regimes: sparse gold
-(few annotated boundaries per dialogue) and dense gold (many annotated
-boundaries per dialogue).
-
-When gold annotations are relatively uniform (e.g., DialSeg711),
-granularity errors concentrate in a small subset of atypical
-dialogues. In this setting, emitting additional boundaries is often
-beneficial, and W-F1 continues to improve under moderate
-oversegmentation.
+The strength of this density--metric coupling varies across datasets
+depending on annotation consistency. When gold annotations are
+relatively uniform across dialogues (e.g., DialSeg711), granularity
+errors concentrate in a small subset of atypical dialogues. In this
+setting, emitting additional boundaries is often beneficial, and W-F1
+continues to improve under moderate oversegmentation.
 
 When gold annotations are highly variable (e.g., SuperSeg),
 granularity mismatch is distributed more evenly across dialogues.
@@ -1350,16 +1439,7 @@ regimes can be distinguished:
   calibrated segmentation.
 \end{itemize}
 
-To confirm that granularity effects are not specific to our scorer, we
-evaluated CSM~\cite{xing2021csm}, a published coherence-based
-segmentation model, under the same framework. CSM operates in the
-conservative regime (BOR~=~0.64), producing fewer boundaries than the
-gold annotation. Its low strict F1 (0.373) reflects low recall rather
-than incoherent segmentation: coverage remains high (0.921),
-indicating that predicted segments are valid but coarser than the
-reference. This demonstrates that the granularity--F1 interaction
-identified here generalizes across structurally distinct segmentation
-methods.
+
 
 In practice, selection thresholds should therefore be chosen based on
 intended downstream use rather than optimized solely to match a
@@ -1403,9 +1483,12 @@ study, we offer the following high-level guidance:
 These guidelines reinforce the central claim of this paper: boundary
 density is not an intrinsic property of a conversation, but a design
 choice that should be tuned to application requirements rather than
-optimized to match a given annotation scheme. This dependence on
-selection behavior motivates treating boundary selection as a distinct,
-explicit step.
+optimized to match a given annotation scheme. As
+Section~\ref{sec:results} demonstrates, F1-based threshold tuning
+implicitly searches for the density that matches gold annotations
+rather than improving boundary localization. This dependence on
+selection behavior motivates treating boundary selection as a
+distinct, explicit step.
 
 \subsection{Boundary Selection as a Separate Step}
 \label{sec:boundary-selection}
@@ -1496,7 +1579,7 @@ shifts, while assistant turns are reactive responses constrained by the
 preceding query. This asymmetry is well established in studies of
 institutional and task-oriented interaction \cite{drew1992talk} and
 has been shown to shape discourse segmentation under mixed-initiative
-conditions \cite{acl1990mixedinitiative}. In deployed AI assistant
+conditions \cite{walker1990mixed}. In deployed AI assistant
 systems, these asymmetries are typically addressed through
 systems-level design choices for intent tracking and context
 management \cite{chopra2024exploring}, which operate downstream of the
@@ -1548,7 +1631,7 @@ including density-matched random baselines.
 \myparagraph{Statistical variability}
 We report dialogue-level bootstrap confidence intervals for selected
 figures and tables (e.g., Figure~\ref{fig:density-quality} and
-Tables~\ref{tab:baselines}--\ref{tab:external_methods}) to characterize
+Table~\ref{tab:leaderboard-deltas}) to characterize
 variability arising from dialogue sampling under fixed model
 checkpoints and boundary-selection parameters. These intervals are
 computed by resampling dialogues and do not reflect variability across
@@ -1570,8 +1653,8 @@ Inter-annotator agreement (IAA) statistics could also provide
 additional empirical support for the claim that topic boundaries are
 granularity-dependent rather than objective. Several dialogue
 segmentation datasets report IAA in their original publications (e.g.,
-DialSeg711~\cite{dialseg711},
-SuperSeg~\cite{superdialseg2023}), often showing only moderate
+DialSeg711~\cite{xu2021topicaware},
+SuperSeg~\cite{jiang2023superdialseg}), often showing only moderate
 agreement even under controlled annotation protocols. However, these
 statistics are reported using heterogeneous definitions and units
 (e.g., boundary placement, segment overlap, or task-level agreement),
@@ -1607,14 +1690,13 @@ modes that boundary accuracy metrics alone cannot distinguish.
 A central empirical finding of this work is that boundary-based metrics
 can be dominated by boundary density alignment rather than boundary
 placement quality.
-For example, we observe that the same published method (CSM) occupies
-different density regimes across datasets, a pattern consistent with
-differences in annotation density rather than changes in detection
-capability.
-Targeted audits of runnable SuperDialseg leaderboard comparisons
-further show that apparent gains in boundary accuracy frequently
-coincide with shifts toward more aggressive density regimes, rather
-than improved boundary localization at a matched granularity.
+For example, under F1-tuned operating points, CSM occupied markedly
+different density regimes across datasets (conservative on DialSeg711,
+aggressive on TIAGE); under fixed operating points, its boundary
+density was stable. The observed regime shift was a tuning artifact,
+not an intrinsic method--dataset interaction---illustrating how
+F1-based optimization can actively induce the granularity confounds
+that standard evaluation protocols fail to diagnose.
 
 Boundary-based accuracy metrics should not be interpreted at a single
 operating point without accompanying density and purity/coverage.
@@ -1622,8 +1704,9 @@ More broadly, segmentation granularity should be treated as a design
 choice conditioned on downstream use, not as an implicit property of a
 benchmark annotation scheme.
 
-\clearpage
 \FloatBarrier
+\clearpage
+
 \appendix
 %% \makeatletter
 %% \renewcommand{\theHsection}{app.\thesection}
@@ -1632,7 +1715,8 @@ benchmark annotation scheme.
 %% \renewcommand{\theHfigure}{app.\thesection.\arabic{figure}}
 %% \makeatother
 \input{appendices}
-\FloatBarrier
+
+% bibliographystyle already set in preamble
 \bibliography{references}
 
 \end{document}

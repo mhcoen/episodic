@@ -58,6 +58,7 @@ from density_quality_curves import (
     load_per_dialogue_data,
     # Plotting
     plot_density_quality_curves_with_ci,
+    plot_exact_f1_curves,
     # Utilities
     log,
 )
@@ -170,6 +171,7 @@ def main():
                     "bor": p.bor,
                     "wf1": p.wf1,
                     "wf1_1to1": p.wf1_1to1,
+                    "exact_f1": p.exact_f1,
                     "coverage": p.coverage,
                 }
                 for p in sweep_points
@@ -201,6 +203,14 @@ def main():
                 with_regime_overlays=True,
                 output_suffix="_regimes",
                 show_error_bars=args.error_bars
+            )
+
+            # Generate Exact F1 figure with CIs
+            log(f"\n--- Generating Exact F1 plot with CIs ---")
+            plot_exact_f1_curves(
+                results, dataset_name, display_name, FIGURES_DIR,
+                ci_data=ci_data,
+                with_regime_overlays=True,
             )
 
     # Summary of artifacts

@@ -142,6 +142,44 @@ def add_bor_regime_overlays(ax, *, alpha=0.10):
     ax.set_xlim(x0, x1)
 
 
+def add_bor_regime_overlays_minimal(ax, *, alpha=0.10, show_labels=True):
+    """
+    Add minimal BOR regime overlays (no "density-matched" text).
+
+    Args:
+        ax: Matplotlib axis to annotate
+        alpha: Transparency for shaded bands (default 0.10)
+        show_labels: If True, show BOR<1/BOR>1 labels at top
+    """
+    x0, x1 = ax.get_xlim()
+    trans = ax.get_xaxis_transform()
+
+    # BOR=1 reference line (no text label)
+    if x0 <= 1.0 <= x1:
+        ax.axvline(1.0, color="#444444", linestyle="--", linewidth=1.5,
+                   zorder=1, label="_nolegend_")
+
+    # Shade BOR < 1 region
+    if x0 < 1.0:
+        ax.axvspan(x0, min(1.0, x1), color=REGIME_COLORS["conservative"],
+                   alpha=alpha, zorder=0, label="_nolegend_")
+        if show_labels:
+            center_x = (x0 + min(1.0, x1)) / 2
+            ax.text(center_x, 0.97, "BOR<1", transform=trans, fontsize=9,
+                    ha="center", va="top", color=REGIME_COLORS["conservative"], alpha=0.7)
+
+    # Shade BOR > 1 region
+    if x1 > 1.2:
+        ax.axvspan(max(1.0, x0), x1, color=REGIME_COLORS["aggressive"],
+                   alpha=alpha, zorder=0, label="_nolegend_")
+        if show_labels:
+            center_x = (max(1.0, x0) + x1) / 2
+            ax.text(center_x, 0.97, "BOR>1", transform=trans, fontsize=9,
+                    ha="center", va="top", color=REGIME_COLORS["aggressive"], alpha=0.7)
+
+    ax.set_xlim(x0, x1)
+
+
 @dataclass
 class DialogueData:
     """Container for a single dialogue with boundaries."""
@@ -277,7 +315,7 @@ def get_neural_scores(dialogues: List[DialogueData]) -> List[Dict[int, float]]:
     from transformers import AutoTokenizer, DistilBertForSequenceClassification
 
     # Load calibrated model
-    model_path = TACL_DIR / "experiments" / "models" / "final_calibrated.pt"
+    model_path = PAPER_DIR / "experiments" / "models" / "final_calibrated.pt"
     device = torch.device("mps" if torch.backends.mps.is_available() else
                          "cuda" if torch.cuda.is_available() else "cpu")
 
@@ -1701,6 +1739,163 @@ def plot_exact_f1_curves(
     output_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = output_dir / f"density_quality_exact_f1_{dataset_name}.pdf"
     png_path = output_dir / f"density_quality_exact_f1_{dataset_name}.png"
+
+    fig.savefig(pdf_path, bbox_inches='tight', dpi=300)
+    fig.savefig(png_path, bbox_inches='tight', dpi=300)
+    plt.close()
+
+    log(f"  Saved: {pdf_path}")
+    log(f"  Saved: {png_path}")
+
+
+def plot_appendix_g_robustness(
+    results: Dict[str, pd.DataFrame],
+    dataset_name: str,
+    display_name: str,
+    output_dir: Path,
+    ci_data: Optional[Dict[str, pd.DataFrame]] = None,
+    ci_alpha: float = 0.15,
+    variant: str = "v1",
+):
+    """
+    Generate 3-column robustness check figure for Appendix G.
+
+    Columns: W-F1 (Many-to-One) | W-F1 (One-to-One) | Exact F1
+
+    Features:
+    - Bootstrap CIs on all panels
+    - Legend inside rightmost panel (lower-right for v1, upper-right for v2)
+    - BOR=1 vertical line (no "density-matched" text)
+    - Regime shading with BOR<1/BOR>1 labels (v1) or no labels (v2)
+
+    Args:
+        results: Dict mapping model name to sweep DataFrame
+        dataset_name: Dataset identifier
+        display_name: Human-readable dataset name
+        output_dir: Directory to save figures
+        ci_data: Optional dict mapping model name to CI DataFrame
+        ci_alpha: Transparency for CI bands
+        variant: "v1" (labels + legend lower-right) or "v2" (no labels + legend upper-right)
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+
+    if ci_data is None:
+        ci_data = {}
+
+    # Publication settings
+    plt.style.use('seaborn-v0_8-whitegrid')
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.size'] = 10
+    mpl.rcParams['axes.labelsize'] = 11
+    mpl.rcParams['axes.titlesize'] = 12
+    mpl.rcParams['legend.fontsize'] = 9
+    mpl.rcParams['xtick.labelsize'] = 9
+    mpl.rcParams['ytick.labelsize'] = 9
+
+    fig, axes = plt.subplots(1, 3, figsize=(12, 3.5))
+
+    model_order = ["neural", "texttiling", "csm", "random"]
+    model_labels = {
+        "neural": "Proposed (Neural)",
+        "texttiling": "TextTiling",
+        "csm": "CSM (NSP)",
+        "random": "Random",
+    }
+
+    # Define panels: (sweep_column, ci_metric, y_label, title)
+    panels = [
+        ("wf1", "wf1", "W-F1", "W-F1 (Many-to-One)"),
+        ("wf1_1to1", "wf1_1to1", "W-F1", "W-F1 (One-to-One)"),
+        ("exact_f1", "exact_f1", "Exact F1", "Exact F1"),
+    ]
+
+    for ax_idx, (sweep_metric, ci_metric, ylabel, title) in enumerate(panels):
+        ax = axes[ax_idx]
+        xmax_data = 0.0
+
+        for model in model_order:
+            if model not in results:
+                continue
+
+            df = results[model]
+            if df.empty or sweep_metric not in df.columns:
+                continue
+
+            color = COLORS.get(model, "#333333")
+            label = model_labels.get(model, model)
+            model_ci = ci_data.get(model, pd.DataFrame())
+
+            if model == "random":
+                # Aggregate random runs
+                grouped = df.groupby("step").agg({
+                    "bor": "mean",
+                    sweep_metric: ["mean", "std"],
+                }).reset_index()
+
+                bor = grouped["bor"]["mean"].values
+                val_mean = grouped[sweep_metric]["mean"].values
+                val_std = grouped[sweep_metric]["std"].values
+
+                order = np.argsort(bor)
+                bor = bor[order]
+                val_mean = val_mean[order]
+                val_std = val_std[order]
+
+                if len(bor) > 0:
+                    xmax_data = max(xmax_data, bor.max())
+
+                ax.plot(bor, val_mean, color=color, label=label, linewidth=1.5)
+                ax.fill_between(bor, val_mean - val_std, val_mean + val_std,
+                               color=color, alpha=0.2)
+            else:
+                df_sorted = df.sort_values("bor")
+
+                if len(df_sorted) > 0:
+                    xmax_data = max(xmax_data, df_sorted["bor"].max())
+
+                ax.plot(df_sorted["bor"], df_sorted[sweep_metric],
+                       color=color, label=label, linewidth=1.5)
+
+                # Add CI bands if available
+                if not model_ci.empty and "metric" in model_ci.columns:
+                    metric_ci = model_ci[model_ci["metric"] == ci_metric].sort_values("bor")
+                    if not metric_ci.empty:
+                        ci_bor = metric_ci["bor"].values
+                        ci_lo = metric_ci["ci_low"].values
+                        ci_hi = metric_ci["ci_high"].values
+                        ax.fill_between(ci_bor, ci_lo, ci_hi,
+                                       color=color, alpha=ci_alpha)
+
+        # Configure axis
+        xlim_upper = min(xmax_data * 1.05, 2.5) if xmax_data > 0 else 2.1
+        ax.set_xlabel("BOR")
+        ax.set_xlim(0, xlim_upper)
+        ax.set_ylim(0, 1.05)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        ax.grid(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        # Add regime overlays (minimal - no "density-matched" text)
+        # v1: show BOR<1/BOR>1 labels, v2: no labels
+        show_labels = (variant == "v1")
+        add_bor_regime_overlays_minimal(ax, show_labels=show_labels)
+
+    # Legend inside rightmost panel
+    # v1: lower-right, v2: upper-right
+    handles, labels = axes[2].get_legend_handles_labels()
+    legend_loc = 'lower right' if variant == "v1" else 'upper right'
+    axes[2].legend(handles, labels, loc=legend_loc, frameon=True, fancybox=False)
+
+    plt.tight_layout()
+
+    # Save with variant suffix for v2
+    output_dir.mkdir(parents=True, exist_ok=True)
+    suffix = "" if variant == "v1" else "_v2"
+    pdf_path = output_dir / f"appendix_g_{dataset_name}{suffix}.pdf"
+    png_path = output_dir / f"appendix_g_{dataset_name}{suffix}.png"
 
     fig.savefig(pdf_path, bbox_inches='tight', dpi=300)
     fig.savefig(png_path, bbox_inches='tight', dpi=300)

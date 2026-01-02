@@ -20,6 +20,7 @@ import pandas as pd
 from density_quality_curves import (
     plot_density_quality_curves,
     plot_density_quality_curves_with_ci,
+    plot_appendix_g_robustness,
     FIGURES_DIR,
     RESULTS_DIR,
     DATASETS,
@@ -84,6 +85,14 @@ def main():
             ci_data=ci_data if ci_data else None,
             with_regime_overlays=True,
         )
+
+        # Generate Appendix G robustness figure (3-column)
+        if ci_data:
+            log(f"\n  Generating Appendix G robustness figure...")
+            plot_appendix_g_robustness(
+                results, dataset_name, display_name, FIGURES_DIR,
+                ci_data=ci_data,
+            )
 
     log("\nDone.")
 

@@ -452,32 +452,61 @@ experiments.
 %% \end{algorithm}
 \FloatBarrier
 
-\section{One-to-one tolerant matching variant for W-F1}
+\section{Robustness to Matching Convention}
 \label{app:wf1:matching}
+
+This appendix verifies that the density confound identified in the main paper is not an artifact of the many-to-one window-coverage matching used for W-F1. We evaluate two additional matching conventions: one-to-one tolerant matching and strict exact-position matching.
+
+\myparagraph{One-to-one tolerant matching}
 Let $P$ be predicted boundaries and $G$ gold boundaries, and let $w$ be the tolerance window.
 Construct a bipartite graph with edges $(p,g)$ when $|p-g|\le w$.
 Compute a maximum-cardinality matching $M \subseteq P \times G$ (ties broken arbitrarily or by minimum total distance).
 Define $\mathrm{TP}=|M|$, $\mathrm{FP}=|P|-\mathrm{TP}$, and $\mathrm{FN}=|G|-\mathrm{TP}$, and compute precision/recall/F1 in the usual way.
 This enforces the one-to-one constraint that each predicted (resp.\ gold) boundary can be credited at most once.
 
+\myparagraph{Exact F1 (strict position matching)}
+Exact F1 requires predicted boundaries to match gold boundary positions exactly, with no tolerance window ($w=0$). This is the strictest evaluation and reflects what most published dialogue segmentation work reports.
+
+\myparagraph{Results}
+Figure~\ref{fig:matching_comparison} shows density--quality curves under all three matching conventions. The strong positive correlation between boundary density (BOR) and F1-based metrics persists across all matching semantics. Table~\ref{tab:matching_correlations} quantifies this for the neural scorer.
+
+Notably, the exact F1 curves exhibit flatter peaks and sharper decline under oversegmentation compared to tolerant variants. Under strict matching, boundaries cannot be ``close enough'' to count---excess boundaries are penalized directly. Nevertheless, the correlation remains strong ($r > 0.83$) up to the peak, demonstrating that the confound is fundamental to F1-based evaluation under sparse boundary labels, not an artifact of tolerant matching protocols.
+
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{llcc}
+    \toprule
+    Dataset & Metric & $r$ & Optimal BOR \\
+    \midrule
+    DialSeg711 & W-F1 (many-to-one) & 0.88 & 1.67 \\
+    DialSeg711 & W-F1 (one-to-one) & 0.86 & 1.60 \\
+    DialSeg711 & Exact F1 & 0.87 & 1.54 \\
+    \midrule
+    SuperSeg & W-F1 (many-to-one) & 0.88 & 0.95 \\
+    SuperSeg & W-F1 (one-to-one) & 0.91 & 1.01 \\
+    SuperSeg & Exact F1 & 0.83 & 0.88 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Pearson correlation between BOR and F1 metrics for the neural scorer. Strong positive correlations persist across all matching conventions. Optimal BOR shifts slightly lower under stricter matching, but remains above 1.0 for DialSeg711.}
+  \label{tab:matching_correlations}
+\end{table}
+
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\linewidth]{figures/matching_comparison_dialseg711.png}\\
+  \includegraphics[width=\linewidth]{figures/appendix_g_dialseg711_v2.pdf}\\
 \vspace{-12pt}
 \noindent\makebox[\linewidth][c]{%
   \leaders\hbox{\rule{6pt}{0.3pt}\hspace{4pt}}\hskip0.9\linewidth
 }
 \vspace{4pt}
-  \includegraphics[width=\linewidth]{figures/matching_comparison_superseg.png}
-  \caption{\textbf{Robustness of density--quality curves to tolerant matching.}
+  \includegraphics[width=\linewidth]{figures/appendix_g_superseg_v2.pdf}
+  \caption{\textbf{Robustness of density--quality curves to matching convention.}
   Left: many-to-one (window-coverage) W-F1 used in the main paper.
-  Right: one-to-one tolerant matching via maximum bipartite matching within the same window $w$.
-  In both datasets, varying boundary density (BOR) induces the dominant changes in W-F1 under either matching, while method differences at matched BOR are secondary. Shaded regions surrounding each curve indicate 95\%
-    dialogue-level bootstrap confidence intervals; curves are shown
-    over the full realized BOR range for each dataset under the same
-    threshold sweep. Results reflect the Episodic neural boundary
-    scorer evaluated under static selection and are diagnostic of
-    evaluation behavior rather than full deployed system performance.}
+  Center: one-to-one tolerant matching via maximum bipartite matching.
+  Right: exact F1 with strict position matching ($w=0$).
+  Shading indicates BOR $< 1$ (left of dashed line) and BOR $> 1$ (right).
+  Across all three conventions, varying boundary density produces larger changes in F1 than switching between methods at matched density. Shaded regions indicate 95\% bootstrap confidence intervals.}
   \label{fig:matching_comparison}
 \end{figure}
 

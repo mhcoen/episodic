@@ -750,15 +750,14 @@ couples localization with boundary density, one-to-one tolerant
 matching is not well suited to isolating boundary placement behavior
 under varying segmentation granularities.
 
-\myparagraph{Robustness to tolerant matching variants}
+\myparagraph{Robustness to matching convention}
 Although our primary analysis uses many-to-one window-coverage
-matching, we additionally evaluate a standard one-to-one tolerant
-matching variant (maximum bipartite matching within the same tolerance
-window); see Appendix~G to verify that the
-density-driven effects reported in this paper are not an artifact of
-the matching convention. Across both datasets, the resulting
-density--quality curves remain qualitatively unchanged
-(Figure~G.1).
+matching, we additionally evaluate two stricter alternatives:
+one-to-one tolerant matching (maximum bipartite matching within $\pm w$)
+and exact F1 (strict position matching with $w=0$).
+Appendix~G verifies that the density confound persists across all
+three matching conventions, with strong positive BOR--F1 correlations
+($r > 0.83$) in each case.
 
 \myparagraph{Scope of the definition}
 This W-F1 definition should not be assumed equivalent to other

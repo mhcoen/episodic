@@ -1,6 +1,14 @@
 # Paper Experiments
 
-This directory contains scripts for generating figures and running experiments for my dialogue topic segmentation paper. Given the disorganization that creeps into large projects, I had an AI assistant clean up and organize the files for easy regeneration. I have verified the data (in results/) and scripts reproduce the figures and tables reported in the paper.
+This directory contains scripts for generating figures and running experiments for my dialogue topic segmentation paper. Given the disorganization that creeps into large projects, I had an AI assistant clean up and organize the files for easy regeneration. I have verified the data (in results/) and scripts reproduce the figures and tables reported in the paper. 
+
+## Initial Sanity Check
+
+I'm very interested in making it much easier for people to verify publication results. You can replicate this verification by pointing an AI coding assistant at this directory along with the paper PDF. Tools such as Claude Code, Codex, or aider (open-source) can do this. You can use a prompt such as:
+
+> Here is the paper PDF and the paper experiments directory. Verify all figures and tables match the underlying data.
+
+Note: During active development, the PDF and data may temporarily diverge. Verification applies to git-tagged releases (e.g., `git checkout v1-submission`) where the PDF and data have been confirmed to match.
 
 ## Figure Generation Pipeline
 

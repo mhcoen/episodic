@@ -114,3 +114,5 @@ tacl/
 paper/arxiv.tar.gz
 paper/cache
 .codex/
+AGENTS.md
+paper/experiments/f1_variant_analysis/archived/

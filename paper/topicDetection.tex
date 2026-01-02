@@ -494,7 +494,7 @@ Boundary density is controlled entirely by the boundary selection rule
 through the threshold $\tau$ and minimum spacing parameter $g$. For all
 single-operating-point results reported in this paper
 (Tables~\ref{tab:baselines}, \ref{tab:external_methods}, \ref{tab:stage3},
-and~\ref{tab:purity_coverage}), $g$ is fixed at 3 and $\tau$ is fixed
+and~\ref{tab:purity_coverage}), $g$ is fixed at 2 and $\tau$ is fixed
 at 0.50 after temperature calibration. Density--quality curves
 (Section~\ref{sec:granularity}) sweep $\tau$ while holding $g$ fixed;
 the adaptive controller (Section~\ref{sec:boundary-selection},
@@ -552,18 +552,19 @@ subsequent context that may diverge further or revisit the original topic.
 \myparagraph{Threshold sweeps for density--quality curves}
 To construct density--quality curves
 (Section~\ref{sec:granularity}), we sweep the selection threshold $\tau$
-over a fixed linear grid while holding the spacing parameter $g$
-constant at $g = 3$. Specifically, $\tau$ is swept linearly over the
-interval $[0.05, 0.95]$ in increments of $0.05$, yielding 19 operating
-points per method. At each value of $\tau$, boundary selection is
-performed using the same static selection rule, and boundary density,
-W-F1, purity, and coverage are recomputed. No other parameters are
+using quantile-based sampling while holding the spacing parameter $g$
+constant at $g = 2$. Specifically, $\tau$ values are set to percentiles
+of the score distribution, swept from high to low over 200 steps,
+yielding dense coverage of the realized BOR range. At each value of
+$\tau$, boundary selection is performed using the same static selection
+rule, and boundary density, W-F1, purity, and coverage are recomputed.
+The sweep terminates early if BOR exceeds 5.0. No other parameters are
 varied during the sweep.
 
 \myparagraph{Selection hyperparameters (reported values)}
 All single-operating-point results for the proposed neural scorer
 (Tables~\ref{tab:stage3} and~\ref{tab:purity_coverage}) use a fixed minimum
-spacing of $g = 3$ messages and a fixed global threshold of $\tau =
+spacing of $g = 2$ messages and a fixed global threshold of $\tau =
 0.50$ applied to temperature-calibrated scores. These values are held
 constant across all datasets, splits, and runs.
 Baselines in Table~\ref{tab:baselines} that directly output boundaries
@@ -573,9 +574,9 @@ use their own internal scoring and thresholding mechanisms evaluated at
 fixed operating points (see Appendix~H for details).
 Density--quality
 curves (Section~\ref{sec:granularity},
-Figure~\ref{fig:density-quality}) sweep $\tau$ over $[0.05, 0.95]$
-while holding $g = 3$ fixed, as described in ``Threshold sweeps for
-density--quality curves'' above.
+Figure~\ref{fig:density-quality}) sweep $\tau$ using quantile-based
+sampling while holding $g = 2$ fixed, as described in ``Threshold sweeps
+for density--quality curves'' above.
 
 
 \subsection{Scoring Model Architecture}
@@ -1254,9 +1255,9 @@ remaining datasets follow the same qualitative pattern.
     \toprule
     Dataset & W-F1 & \textbf{BOR} & F1 & Pred./Gold Boundaries \\
     \midrule
-    DialSeg711 & 0.767 & \textbf{2.53} & 0.434 & 5167/2042 \\
-    SuperSeg   & 0.584 & \textbf{0.81} & 0.609 & 2376/2923 \\
-    TIAGE      & 0.512 & \textbf{0.76} & 0.368 & 157/207 \\
+    DialSeg711 & 0.708 & \textbf{1.38} & 0.391 & 2820/2042 \\
+    SuperSeg   & 0.520 & \textbf{0.50} & 0.410 & 1461/2923 \\
+    TIAGE      & 0.474 & \textbf{0.52} & 0.282 & 107/207 \\
     \bottomrule
   \end{tabular}
   \caption{\textbf{Stage 3 final test results.}
@@ -1308,9 +1309,9 @@ independent guarantee of semantic coherence.
     \toprule
     Dataset & W-F1 & \textbf{BOR} & Purity & Coverage & F1 \\
     \midrule
-    DialSeg711 & 0.767 & \textbf{2.53} & 0.962 & 0.651 & 0.434 \\
-    SuperSeg   & 0.584 & \textbf{0.81} & 0.847 & 0.915 & 0.609 \\
-    TIAGE      & 0.512 & \textbf{0.76} & 0.785 & 0.896 & 0.368 \\
+    DialSeg711 & 0.708 & \textbf{1.38} & 0.875 & 0.772 & 0.391 \\
+    SuperSeg   & 0.520 & \textbf{0.50} & 0.765 & 0.938 & 0.410 \\
+    TIAGE      & 0.474 & \textbf{0.52} & 0.741 & 0.913 & 0.282 \\
     \bottomrule
   \end{tabular}
   \caption{\textbf{Gold-relative segment alignment diagnostics for the proposed model.}

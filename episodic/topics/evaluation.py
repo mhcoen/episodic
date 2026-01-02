@@ -414,6 +414,44 @@ def compute_windowed_metrics_one_to_one(
     return precision, recall, f1
 
 
+def compute_exact_f1(
+    gold_boundaries: Set[int],
+    predicted_boundaries: Set[int],
+    num_messages: int
+) -> Tuple[float, float, float]:
+    """
+    Compute exact-match F1 (strict position matching, no tolerance window).
+
+    This is the strictest form of F1: a prediction is correct only if it
+    matches a gold boundary position exactly. Used by CSM and SuperDialseg.
+
+    Args:
+        gold_boundaries: Set of gold boundary positions
+        predicted_boundaries: Set of predicted boundary positions
+        num_messages: Total number of messages (for context, not used in computation)
+
+    Returns:
+        (precision, recall, f1) with exact position matching
+    """
+    if not gold_boundaries and not predicted_boundaries:
+        return 1.0, 1.0, 1.0
+    if not gold_boundaries:
+        return 0.0, 1.0, 0.0
+    if not predicted_boundaries:
+        return 1.0, 0.0, 0.0
+
+    # Exact matches only
+    tp = len(gold_boundaries & predicted_boundaries)
+    fp = len(predicted_boundaries - gold_boundaries)
+    fn = len(gold_boundaries - predicted_boundaries)
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+    return precision, recall, f1
+
+
 def compute_windowdiff(
     gold_boundaries: Set[int],
     predicted_boundaries: Set[int],

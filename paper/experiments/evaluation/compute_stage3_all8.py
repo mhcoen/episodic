@@ -36,11 +36,11 @@ from episodic.topics.evaluation import (
 )
 
 
-# Paper values for sanity checking (Tables 8-9)
+# Paper values for sanity checking (Tables 8-9) - with g=2 spacing
 PAPER_VALUES = {
-    "dialseg711": {"w_f1": 0.767, "bor": 2.53, "f1": 0.434, "purity": 0.962, "coverage": 0.651, "pred": 5167, "gold": 2042},
-    "superseg": {"w_f1": 0.584, "bor": 0.81, "f1": 0.609, "purity": 0.847, "coverage": 0.915, "pred": 2376, "gold": 2923},
-    "tiage": {"w_f1": 0.512, "bor": 0.76, "f1": 0.368, "purity": 0.785, "coverage": 0.896, "pred": 157, "gold": 207},
+    "dialseg711": {"w_f1": 0.708, "bor": 1.38, "f1": 0.391, "purity": 0.875, "coverage": 0.772, "pred": 2820, "gold": 2042},
+    "superseg": {"w_f1": 0.520, "bor": 0.50, "f1": 0.410, "purity": 0.765, "coverage": 0.938, "pred": 1461, "gold": 2923},
+    "tiage": {"w_f1": 0.474, "bor": 0.52, "f1": 0.282, "purity": 0.741, "coverage": 0.913, "pred": 107, "gold": 207},
 }
 
 # All 8 datasets
@@ -194,16 +194,56 @@ def create_examples_from_dialogues(dialogues: List[DialogueData]) -> List[Dict]:
     return examples
 
 
+def apply_spacing_constraint(
+    positions: List[int],
+    scores: List[float],
+    min_gap: int = 3
+) -> Set[int]:
+    """
+    Apply minimum spacing constraint via greedy non-maximum suppression.
+
+    Candidates are processed in descending score order. A candidate is
+    accepted only if its distance to all previously accepted boundaries
+    is >= min_gap.
+
+    Args:
+        positions: Candidate boundary positions
+        scores: Corresponding scores for each position
+        min_gap: Minimum spacing between accepted boundaries
+
+    Returns:
+        Set of accepted boundary positions
+    """
+    if not positions:
+        return set()
+
+    # Sort by score descending
+    sorted_indices = sorted(range(len(positions)), key=lambda i: scores[i], reverse=True)
+
+    accepted = set()
+    for idx in sorted_indices:
+        pos = positions[idx]
+        # Check if this position is at least min_gap away from all accepted boundaries
+        if all(abs(pos - b) >= min_gap for b in accepted):
+            accepted.add(pos)
+
+    return accepted
+
+
 def get_model_predictions(
     model,
     dataloader,
     device,
     temperature: float,
-    dialogues: List[DialogueData]
+    dialogues: List[DialogueData],
+    min_gap: int = 2
 ) -> Dict[int, Set[int]]:
-    """Run model and get predicted boundaries per dialogue."""
+    """Run model and get predicted boundaries per dialogue with spacing constraint."""
     model.eval()
-    predictions_by_dialogue = {i: set() for i in range(len(dialogues))}
+
+    # Collect all scores and positions per dialogue
+    scores_by_dialogue = {i: [] for i in range(len(dialogues))}
+    positions_by_dialogue = {i: [] for i in range(len(dialogues))}
 
     with torch.no_grad():
         for batch in dataloader:
@@ -215,13 +255,25 @@ def get_model_predictions(
             outputs = model(input_ids, attention_mask=attention_mask)
             logits = outputs.logits
             probs = torch.softmax(logits / temperature, dim=-1)[:, 1].cpu().numpy()
-            preds = (probs > 0.5).astype(int)
 
-            for i in range(len(preds)):
-                if preds[i] == 1:
-                    dial_idx = dialogue_indices[i]
-                    pos = positions[i]
-                    predictions_by_dialogue[dial_idx].add(pos)
+            for i in range(len(probs)):
+                dial_idx = dialogue_indices[i]
+                pos = positions[i]
+                score = probs[i]
+
+                # Only consider candidates above threshold
+                if score > 0.5:
+                    scores_by_dialogue[dial_idx].append(score)
+                    positions_by_dialogue[dial_idx].append(pos)
+
+    # Apply spacing constraint per dialogue
+    predictions_by_dialogue = {}
+    for dial_idx in range(len(dialogues)):
+        predictions_by_dialogue[dial_idx] = apply_spacing_constraint(
+            positions_by_dialogue[dial_idx],
+            scores_by_dialogue[dial_idx],
+            min_gap=min_gap
+        )
 
     return predictions_by_dialogue
 

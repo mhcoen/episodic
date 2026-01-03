@@ -116,18 +116,23 @@ For a gold segment $g \in G^{\mathrm{seg}}_d$, define its coverage as
 = \max_{p \in P^{\mathrm{seg}}_d} \frac{|p \cap g|}{|g|}.
 \]
 
-\myparagraph{Dialogue-level micro averages}
-Turn-weighted (micro) purity and coverage for dialogue $d$ are
+\myparagraph{Dialogue-level segment averages}
+Segment-averaged purity and coverage for dialogue $d$ are
 \[
 \mathrm{Purity}_d
-= \frac{1}{T_d} \sum_{p \in P^{\mathrm{seg}}_d}
-\max_{g \in G^{\mathrm{seg}}_d} |p \cap g|,
+= \frac{1}{|P^{\mathrm{seg}}_d|}\sum_{p \in P^{\mathrm{seg}}_d}
+\mathrm{Purity}(p)
+= \frac{1}{|P^{\mathrm{seg}}_d|}\sum_{p \in P^{\mathrm{seg}}_d}
+\max_{g \in G^{\mathrm{seg}}_d} \frac{|p \cap g|}{|p|},
 \]
 \[
 \mathrm{Coverage}_d
-= \frac{1}{T_d} \sum_{g \in G^{\mathrm{seg}}_d}
-\max_{p \in P^{\mathrm{seg}}_d} |p \cap g|.
+= \frac{1}{|G^{\mathrm{seg}}_d|}\sum_{g \in G^{\mathrm{seg}}_d}
+\mathrm{Coverage}(g)
+= \frac{1}{|G^{\mathrm{seg}}_d|}\sum_{g \in G^{\mathrm{seg}}_d}
+\max_{p \in P^{\mathrm{seg}}_d} \frac{|p \cap g|}{|g|}.
 \]
+This formulation weights each segment equally regardless of length.
 
 \myparagraph{Dataset-level aggregation}
 Dataset-level purity and coverage are computed as macro averages over dialogues:
@@ -141,35 +146,31 @@ Dataset-level purity and coverage are computed as macro averages over dialogues:
 
 \section{Monotonicity Properties}
 \label{app:monotonicity}
-This appendix formalizes monotonicity properties referenced in
-Section~\ref{sec:evaluation-metrics}.
+This appendix discusses monotonicity properties of purity and coverage
+under segment refinement.
 
-\myparagraph{Lemma (Purity is monotone under refinement)}
-Let $P'_d$ be a refinement of $P_d$, obtained by adding predicted boundaries
-(i.e., splitting predicted segments). Then
-\[
-\mathrm{Purity}_d(P'_d, G_d) \ge \mathrm{Purity}_d(P_d, G_d).
-\]
+\myparagraph{Segment-averaged purity (as used in this paper)}
+The segment-averaged purity defined in Appendix~B is \emph{not} monotone
+under refinement. Splitting a low-purity segment into subsegments
+(each with purity at least as high) increases the number of segments in
+the average, which can decrease overall dialogue-level purity if the
+split segment had below-average purity. This property is acceptable for
+our diagnostic purposes: purity is used to detect cross-gold mixing,
+not as an optimization target.
 
-\myparagraph{Proof}
-It suffices to consider splitting a single predicted segment
-$p \in P_d$ into subsegments $p_1,\dots,p_k$.
-Let $g^\ast \in G^{\mathrm{seg}}_d$ be a gold segment maximizing overlap with $p$.
-Since the $p_i$ partition $p$,
-\[
-|p \cap g^\ast| = \sum_{i=1}^k |p_i \cap g^\ast|.
-\]
-For each $i$,
-$\max_{g} |p_i \cap g| \ge |p_i \cap g^\ast|$.
-Summing over $i$ yields a non-decreasing contribution to
-$\mathrm{Purity}_d$, while all other segments are unchanged.
-\hfill$\square$
+\myparagraph{Alternative: turn-weighted purity (not used)}
+A turn-weighted variant, $\mathrm{Purity}^{\mathrm{micro}}_d = (1/T_d)\sum_p \max_g |p \cap g|$,
+\emph{is} monotone under refinement: splitting segment $p$ into $p_1,\dots,p_k$
+yields $\sum_i \max_g |p_i \cap g| \ge \max_g |p \cap g|$ since each
+subsegment's best-matching gold overlap is at least its overlap with $p$'s
+best-matching gold. However, turn-weighted purity over-credits long segments,
+which is why we use segment-averaged purity.
 
-\myparagraph{Remark (Coverage under refinement)}
-Under the same refinement,
-$\mathrm{Coverage}_d(P'_d, G_d) \le$ $\mathrm{Coverage}_d(P_d, G_d)$, since splitting
-predicted segments cannot increase the maximum overlap with any fixed gold
-segment.
+\myparagraph{Coverage under refinement}
+Coverage is anti-monotone under refinement: splitting predicted segments
+cannot increase the maximum overlap between any gold segment and a single
+predicted segment. This holds for both segment-averaged and turn-weighted
+variants.
 
 \section{Boundary canonicalization}
 \makeatletter
@@ -425,31 +426,6 @@ the adaptive threshold. When $\tau(t)$ is held fixed and accumulation is
 disabled, the procedure reduces to the static selection rule used in the main
 experiments.
 
-%% \begin{algorithm}[H]
-%%   \caption{Adaptive boundary selection}
-%%   \label{alg:adaptive}
-%%   \KwIn{Target rate $\rho$, spacing $g$, window size $W$, step size $\eta$,
-%%     initial threshold $\tau(0)$}
-%%   \KwState $\mathcal{B} \leftarrow \emptyset$
-%%   \KwState Initialize counters $C \leftarrow 0$, $S \leftarrow 0$
-%%   \For{each time step $t$ as messages arrive}{
-%%     \For{each newly available candidate $i$}{
-%%       compute frozen score $s_i$; set $e_i \leftarrow 0$\;
-%%     }
-%%     \For{each active candidate $i$}{
-%%       $e_i \leftarrow e_i + s_i$\;
-%%       $C \leftarrow C + 1$\;
-%%       \If{$e_i \ge \tau(t)$ and $|i-b|\ge g$ for all $b\in\mathcal{B}$}{
-%%         $\mathcal{B} \leftarrow \mathcal{B} \cup \{i\}$\;
-%%         $S \leftarrow S + 1$\;
-%%       }
-%%       record whether a boundary was committed for rate estimation\;
-%%     }
-%%     compute $\hat{\rho}(t)$ over the last $W$ candidates\;
-%%     $\tau(t{+}1) \leftarrow \tau(t) + \eta(\hat{\rho}(t)-\rho)$\;
-%%   }
-%%   \KwOut{$\mathcal{B}$}
-%% \end{algorithm}
 \FloatBarrier
 
 \section{Robustness to Matching Convention}

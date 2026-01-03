@@ -738,7 +738,10 @@ to decouple boundary localization from boundary count, allowing W-F1 to
 serve as a diagnostic of whether boundaries are placed near annotated
 transitions. For this reason, W-F1 must be interpreted in conjunction
 with separate measures that account for boundary density and segment
-structure.
+structure. Appendix~G verifies that the density confound persists under
+one-to-one tolerant matching and exact position matching ($r > 0.83$ in
+all cases), confirming that this design choice does not affect the
+paper's central claims.
 
 \myparagraph{Relation to one-to-one tolerant matching (not used)}
 A common alternative is \emph{one-to-one} tolerant matching, where each
@@ -797,11 +800,12 @@ adding boundaries that primarily refine gold segments and boundaries
 that cut across or fragment them irregularly.
 
 \myparagraph{Aggregation}
-We report turn-weighted (micro) purity and coverage, computed per
-dialogue and then aggregated across dialogues. Unweighted
-segment-level (macro) variants are not monotone under refinement and
-are therefore not used. Formal definitions and aggregation rules are
-given in Appendix~B.
+We report segment-averaged purity and coverage: each segment's purity
+(or coverage) is computed as the fraction of its turns drawn from its
+best-matching counterpart, then averaged across segments within each
+dialogue, then macro-averaged across dialogues. This treats each
+segment equally regardless of length. Formal definitions are given in
+Appendix~B.
 
 \subsection{Failure-mode interpretation}
 The three reported diagnostics---W-F1, BOR, and purity/coverage---must be

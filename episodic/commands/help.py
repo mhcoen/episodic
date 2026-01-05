@@ -217,7 +217,9 @@ class HelpRAG:
                 doc = results['documents'][0][i] if results['documents'] else ""
                 metadata = results['metadatas'][0][i] if results['metadatas'] else {}
                 distance = results['distances'][0][i] if 'distances' in results else 0
-                score = max(0, 1 - distance)
+                # For normalized vectors with L2 distance: cosine_sim = 1 - (dist^2 / 2)
+                # This converts L2 distance back to cosine similarity (0 to 1 range)
+                score = max(0, 1 - (distance ** 2 / 2))
 
                 formatted.append({
                     'content': doc,
@@ -546,9 +548,8 @@ def help_command(query: str):
                 typer.secho(f"Result {i+1} (score: {score:.3f}): {result['content'][:100]}...", fg=get_text_color())
 
         # Check if we have relevant results
-        # ChromaDB distances for sentence-transformers are typically 0.5-1.5
-        # score = 1 - distance, so threshold of 0.1 means distance < 0.9
-        RELEVANCE_THRESHOLD = 0.1
+        # Score is now cosine similarity (0 to 1), where 0.3+ indicates reasonable semantic match
+        RELEVANCE_THRESHOLD = 0.25
         relevant_results = [r for r in search_results if r.get('score', 0) >= RELEVANCE_THRESHOLD]
 
         if not relevant_results:

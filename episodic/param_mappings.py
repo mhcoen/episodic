@@ -16,6 +16,7 @@ PARAM_MAPPING = {
     'stream-line-delay': 'stream_line_delay',
     'text-wrap': 'text_wrap',
     'show-cost': 'show_cost',
+    'show-costs': 'show_cost',
     'show-topics': 'show_topics',
     'show-drift': 'show_drift',
     'hybrid-topics': 'use_hybrid_topic_detection',

@@ -37,10 +37,14 @@ class Config:
         # Ensure config.default.json exists
         self._ensure_default_config()
 
+    def _get_template_path(self) -> Path:
+        """Get the path to the config template file."""
+        return Path(__file__).parent / "config_template.json"
+
     def _load_template_defaults(self) -> Dict[str, Any]:
         """Load the default configuration from the template file."""
         # Get the path to the template file (in the same directory as this module)
-        template_path = Path(__file__).parent / "config_template.json"
+        template_path = self._get_template_path()
         
         try:
             with open(template_path, 'r') as f:
@@ -115,7 +119,7 @@ class Config:
         """Ensure config.default.json exists by copying from template."""
         if not self.default_config_file.exists():
             # Copy the template file to the user's directory
-            template_path = Path(__file__).parent / "config_template.json"
+            template_path = self._get_template_path()
             if template_path.exists():
                 shutil.copy2(template_path, self.default_config_file)
             else:

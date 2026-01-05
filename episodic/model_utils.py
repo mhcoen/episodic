@@ -51,7 +51,8 @@ def get_ollama_model_info(model_name: str) -> Dict[str, Optional[str]]:
             ['ollama', 'list'],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            check=False
         )
         
         if result.returncode == 0:
@@ -94,7 +95,7 @@ def get_ollama_model_info(model_name: str) -> Dict[str, Optional[str]]:
                 info['quantization'] = desc
                 break
                 
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         pass
     
     return info

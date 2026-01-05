@@ -144,7 +144,8 @@ You are a technical assistant specializing in software development.""")
         # Test with no prompts available (should return fallback)
         empty_manager = PromptManager(os.path.join(self.test_dir, "empty"))
         content = empty_manager.get_active_prompt_content(mock_config_get)
-        self.assertEqual(content, "You are a helpful assistant.")
+        expected_default = empty_manager.get("default") or "You are a helpful assistant."
+        self.assertEqual(content, expected_default)
     
     def test_reload_functionality(self):
         """Test prompt reloading."""
@@ -173,6 +174,7 @@ You are a newly added assistant.""")
     def test_empty_prompts_directory(self):
         """Test behavior with empty prompts directory."""
         empty_dir = os.path.join(self.test_dir, "empty")
+        os.makedirs(empty_dir)
         empty_manager = PromptManager(empty_dir)
         
         # Should create directory

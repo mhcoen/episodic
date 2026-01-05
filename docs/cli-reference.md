@@ -30,6 +30,30 @@ In Episodic's talk mode:
 - Type messages without any prefix to chat with the LLM
 - Use "/" prefix for commands
 
+## File References (@file)
+
+Attach local files directly in chat messages:
+
+```text
+@file.txt
+@"path with spaces/notes.txt"
+@file.pdf:vision:1-5
+```
+
+Behavior:
+- **Text files**: Content is read and included in the prompt.
+- **PDFs**:
+  - `@file.pdf` extracts text from the document.
+  - `@file.pdf:vision` renders pages as images for vision-capable models.
+  - `@file.pdf:vision:1-5` limits rendering to specific pages.
+
+Related configuration:
+```bash
+/set file-ref-vision-pages 5
+/set file-ref-max-text-size 100000
+/set pdf-extractor pdfplumber
+```
+
 ## Keyboard Shortcuts
 
 ### Tab Completion

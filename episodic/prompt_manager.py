@@ -49,8 +49,12 @@ class PromptManager:
             name = os.path.splitext(rel_path)[0]
             # Convert path separators to forward slashes for consistency
             name = name.replace(os.sep, '/')
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except OSError:
+                # Skip unreadable prompt files
+                continue
 
             # Check for YAML frontmatter
             if content.startswith('---') and YAML_AVAILABLE:

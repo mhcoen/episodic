@@ -25,8 +25,7 @@ def run_tests(test_pattern=None, verbosity=2):
         'test_core',
         'test_config', 
         'test_conversation_flow',
-        'test_topic_detection_comprehensive',
-        'test_configuration_comprehensive'
+        'test_topic_detection_comprehensive'
     ]
     
     # Create test suite

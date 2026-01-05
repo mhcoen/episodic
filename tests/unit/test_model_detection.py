@@ -48,34 +48,10 @@ test_models = [
     "google/gemini-1.5-pro",
 ]
 
-# Test and display results
-print("Model Type Detection Test")
-print("=" * 80)
-print(f"{'Model Name':<55} {'Detected Type':<15}")
-print("-" * 80)
 
-type_counts = {'chat': 0, 'instruct': 0, 'base': 0, 'unknown': 0}
-
-for model in test_models:
-    model_type = detect_model_type(model)
-    type_counts[model_type] += 1
-    
-    # Color code output
-    if model_type == 'instruct':
-        color = '\033[92m'  # Green
-    elif model_type == 'chat':
-        color = '\033[94m'  # Blue
-    elif model_type == 'base':
-        color = '\033[95m'  # Magenta
-    else:
-        color = '\033[91m'  # Red for unknown
-    
-    print(f"{model:<55} {color}{model_type:<15}\033[0m")
-
-print("\n" + "=" * 80)
-print("Summary:")
-print(f"  Chat models:     {type_counts['chat']}")
-print(f"  Instruct models: {type_counts['instruct']}")
-print(f"  Base models:     {type_counts['base']}")
-print(f"  Unknown:         {type_counts['unknown']}")
-print(f"\nTotal models tested: {len(test_models)}")
+def test_detect_model_type_returns_known_type():
+    """Model type detection returns a supported type for known models."""
+    allowed_types = {"chat", "instruct", "base", "unknown", "both"}
+    for model in test_models:
+        model_type = detect_model_type(model)
+        assert model_type in allowed_types

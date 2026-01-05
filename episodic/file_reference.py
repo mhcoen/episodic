@@ -224,6 +224,8 @@ def process_pdf_text(path: Path) -> str:
 
     except ImportError:
         raise RuntimeError("pdfplumber not installed. Run: pip install pdfplumber")
+    except OSError as e:
+        raise RuntimeError(f"Failed to read PDF: {e}") from e
 
 
 def process_image(path: Path) -> Dict[str, Any]:
@@ -246,7 +248,10 @@ def process_image(path: Path) -> Dict[str, Any]:
     mime_type = mime_types.get(suffix, 'image/png')
 
     # Read and encode
-    image_data = path.read_bytes()
+    try:
+        image_data = path.read_bytes()
+    except OSError as e:
+        raise RuntimeError(f"Failed to read image: {e}") from e
     base64_data = base64.b64encode(image_data).decode('utf-8')
 
     return {

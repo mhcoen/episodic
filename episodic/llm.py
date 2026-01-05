@@ -362,31 +362,20 @@ def _execute_llm_query(
             api_params.pop('top_p', None)
     
     # Provider-specific handling
-    if provider == "lmstudio":
-        provider_config = get_provider_config("lmstudio")
-        response = llm_manager.make_api_call(
-            messages=messages,
-            model=full_model,
-            stream=stream,
-            api_base=provider_config.get("api_base"),
-            **api_params
-        )
-    elif provider == "ollama":
-        provider_config = get_provider_config("ollama")
-        response = llm_manager.make_api_call(
-            messages=messages,
-            model=full_model,
-            stream=stream,
-            api_base=provider_config.get("api_base"),
-            **api_params
-        )
-    else:
-        response = llm_manager.make_api_call(
-            messages=messages,
-            model=full_model,
-            stream=stream,
-            **api_params
-        )
+    api_overrides = {}
+    if provider in ("lmstudio", "ollama"):
+        provider_config = get_provider_config(provider)
+        api_base = provider_config.get("api_base")
+        if api_base:
+            api_overrides["api_base"] = api_base
+
+    response = llm_manager.make_api_call(
+        messages=messages,
+        model=full_model,
+        stream=stream,
+        **api_overrides,
+        **api_params
+    )
 
     # If streaming, return the generator directly
     if stream:

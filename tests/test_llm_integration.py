@@ -25,13 +25,14 @@ class TestLLMHelpers(unittest.TestCase):
     def test_get_model_string_local(self):
         """Test model string formatting for local providers."""
         with patch('episodic.llm.get_current_provider', return_value='local'):
-            with patch('episodic.llm.get_provider_models') as mock_get_models:
-                mock_get_models.return_value = [
-                    {"name": "llama2", "backend": "llama.cpp"}
-                ]
-                
-                result = llm.get_model_string("llama2")
-                self.assertEqual(result, "llama.cpp/llama2")
+            with patch('episodic.llm_config.get_available_providers', return_value={"local": {"models": []}}):
+                with patch('episodic.llm_config.get_provider_models') as mock_get_models:
+                    mock_get_models.return_value = [
+                        {"name": "llama2", "backend": "llama.cpp"}
+                    ]
+
+                    result = llm.get_model_string("llama2")
+                    self.assertEqual(result, "llama.cpp/llama2")
     
     def test_get_model_string_ollama(self):
         """Test model string formatting for Ollama."""
@@ -170,19 +171,25 @@ class TestLLMQueries(unittest.TestCase):
         self.mock_response.usage.prompt_tokens_details = Mock()
         self.mock_response.usage.prompt_tokens_details.cached_tokens = 0
     
-    @patch('episodic.llm.cost_per_token')
-    @patch('episodic.llm.litellm')
+    @patch('episodic.llm.llm_manager')
     @patch('episodic.llm.get_current_provider')
     @patch('episodic.llm.get_model_string')
-    def test_execute_llm_query(self, mock_get_model, mock_get_provider, mock_litellm, mock_cost):
+    def test_execute_llm_query(self, mock_get_model, mock_get_provider, mock_llm_manager):
         """Test basic LLM query execution."""
         mock_get_provider.return_value = "openai"
         mock_get_model.return_value = "openai/gpt-4"
-        mock_litellm.completion.return_value = self.mock_response
-        mock_cost.return_value = [0.005]
+        mock_llm_manager.make_api_call.return_value = (
+            "Test response",
+            {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "total_tokens": 150,
+                "cost_usd": 0.005
+            }
+        )
         
         messages = [{"role": "user", "content": "Test message"}]
-        response, cost_info = llm._execute_llm_query(messages, "gpt-4", 0.7, 1000)
+        response, cost_info = llm._execute_llm_query(messages, "gpt-4", 0.7, max_tokens=1000)
         
         self.assertEqual(response, "Test response")
         self.assertEqual(cost_info["input_tokens"], 100)
@@ -190,27 +197,40 @@ class TestLLMQueries(unittest.TestCase):
         self.assertEqual(cost_info["total_tokens"], 150)
         self.assertEqual(cost_info["cost_usd"], 0.005)
     
-    @patch('episodic.llm.cost_per_token')
-    @patch('episodic.llm.litellm')
+    @patch('episodic.llm._apply_prompt_caching')
+    @patch('episodic.llm.llm_manager')
     @patch('episodic.llm.get_current_provider')
     @patch('episodic.llm.get_model_string')
-    def test_execute_llm_query_with_caching(self, mock_get_model, mock_get_provider, mock_litellm, mock_cost):
+    def test_execute_llm_query_with_caching(self, mock_get_model, mock_get_provider, mock_llm_manager, mock_apply_cache):
         """Test LLM query execution with prompt caching."""
         mock_get_provider.return_value = "openai"
         mock_get_model.return_value = "openai/gpt-4"
-        mock_litellm.completion.return_value = self.mock_response
-        mock_cost.return_value = [0.005]
+        mock_llm_manager.make_api_call.return_value = (
+            "Test response",
+            {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "total_tokens": 150,
+                "cost_usd": 0.005
+            }
+        )
         
-        # Set up cached tokens
-        self.mock_response.usage.prompt_tokens_details.cached_tokens = 80
+        mock_apply_cache.side_effect = lambda messages, model: messages
         
+        original_cache_setting = config.get("use_context_cache")
+        config.set("use_context_cache", True)
+
         messages = [{"role": "user", "content": "Test message"}]
-        response, cost_info = llm._execute_llm_query(messages, "gpt-4", 0.7, 1000)
+        response, cost_info = llm._execute_llm_query(messages, "gpt-4", 0.7, max_tokens=1000)
         
         self.assertEqual(response, "Test response")
-        self.assertEqual(cost_info["cached_tokens"], 80)
-        self.assertEqual(cost_info["non_cached_tokens"], 20)  # 100 - 80
-        self.assertIn("cache_savings_usd", cost_info)
+        self.assertEqual(cost_info["input_tokens"], 100)
+        mock_apply_cache.assert_called_once()
+
+        if original_cache_setting is not None:
+            config.set("use_context_cache", original_cache_setting)
+        else:
+            config.delete("use_context_cache")
     
     @patch('episodic.llm._execute_llm_query')
     def test_query_llm(self, mock_execute):
@@ -235,62 +255,40 @@ class TestLLMQueries(unittest.TestCase):
 class TestProviderSpecificHandling(unittest.TestCase):
     """Test provider-specific LLM handling."""
     
-    @patch('episodic.llm.litellm')
+    @patch('episodic.llm.llm_manager')
     @patch('episodic.llm.get_current_provider')
     @patch('episodic.llm.get_model_string')
     @patch('episodic.llm.get_provider_config')
-    def test_lmstudio_provider(self, mock_get_config, mock_get_model, mock_get_provider, mock_litellm):
+    def test_lmstudio_provider(self, mock_get_config, mock_get_model, mock_get_provider, mock_llm_manager):
         """Test LMStudio provider handling."""
         mock_get_provider.return_value = "lmstudio"
         mock_get_model.return_value = "local-model"
         mock_get_config.return_value = {"api_base": "http://localhost:1234/v1"}
-        
-        # Set up mock response
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = "Test response"
-        mock_response.usage.prompt_tokens = 100
-        mock_response.usage.completion_tokens = 50
-        mock_response.usage.total_tokens = 150
-        mock_response.usage.prompt_tokens_details = None
-        mock_litellm.completion.return_value = mock_response
-        
-        with patch('episodic.llm.cost_per_token', return_value=[0.005]):
-            messages = [{"role": "user", "content": "Test"}]
-            response, cost = llm._execute_llm_query(messages, "local-model", 0.7, 1000)
+
+        mock_llm_manager.make_api_call.return_value = ("Test response", {"cost_usd": 0.005})
+        messages = [{"role": "user", "content": "Test"}]
+        llm._execute_llm_query(messages, "local-model", 0.7, max_tokens=1000)
         
         # Verify LMStudio-specific parameters were used
-        mock_litellm.completion.assert_called_once()
-        call_kwargs = mock_litellm.completion.call_args[1]
+        call_kwargs = mock_llm_manager.make_api_call.call_args[1]
         self.assertEqual(call_kwargs["api_base"], "http://localhost:1234/v1")
     
-    @patch('episodic.llm.litellm')
+    @patch('episodic.llm.llm_manager')
     @patch('episodic.llm.get_current_provider')
     @patch('episodic.llm.get_model_string')
     @patch('episodic.llm.get_provider_config')
-    def test_ollama_provider(self, mock_get_config, mock_get_model, mock_get_provider, mock_litellm):
+    def test_ollama_provider(self, mock_get_config, mock_get_model, mock_get_provider, mock_llm_manager):
         """Test Ollama provider handling."""
         mock_get_provider.return_value = "ollama"
         mock_get_model.return_value = "ollama/llama2"
         mock_get_config.return_value = {"api_base": "http://localhost:11434"}
-        
-        # Set up mock response
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = "Test response"
-        mock_response.usage.prompt_tokens = 100
-        mock_response.usage.completion_tokens = 50
-        mock_response.usage.total_tokens = 150
-        mock_response.usage.prompt_tokens_details = None
-        mock_litellm.completion.return_value = mock_response
-        
-        with patch('episodic.llm.cost_per_token', return_value=[0.005]):
-            messages = [{"role": "user", "content": "Test"}]
-            response, cost = llm._execute_llm_query(messages, "llama2", 0.7, 1000)
+
+        mock_llm_manager.make_api_call.return_value = ("Test response", {"cost_usd": 0.005})
+        messages = [{"role": "user", "content": "Test"}]
+        llm._execute_llm_query(messages, "llama2", 0.7, max_tokens=1000)
         
         # Verify Ollama-specific parameters were used
-        mock_litellm.completion.assert_called_once()
-        call_kwargs = mock_litellm.completion.call_args[1]
+        call_kwargs = mock_llm_manager.make_api_call.call_args[1]
         self.assertEqual(call_kwargs["api_base"], "http://localhost:11434")
         self.assertEqual(call_kwargs["stream"], False)
 

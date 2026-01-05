@@ -19,7 +19,7 @@ PARAM_ALIASES = {
     "hybrid-topics": "use-hybrid-topic-detection",
     
     # Core settings (shorter versions)
-    "cost": "show-costs",
+    "cost": "show-cost",
     "streaming": "stream-responses", 
     "wrap": "text-wrap",
     "topics": "show-topics",
@@ -94,6 +94,12 @@ PARAM_DESCRIPTIONS = {
 def get_canonical_name(param_name: str) -> str:
     """Convert display name to canonical internal name."""
     return PARAM_ALIASES.get(param_name, param_name)
+
+
+def resolve_param_name(param_name: str) -> str:
+    """Resolve a display or alias name to an internal config key."""
+    from episodic.param_mappings import normalize_param_name
+    return normalize_param_name(get_canonical_name(param_name))
 
 
 def get_display_name(canonical_name: str) -> str:

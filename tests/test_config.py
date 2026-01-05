@@ -41,16 +41,7 @@ class TestConfig(unittest.TestCase):
             data = json.load(f)
         
         # Check that default values are set
-        expected_defaults = {
-            "active_prompt": "default",
-            "debug": False,
-            "show_cost": False,
-            "show_drift": True,
-            "auto_compress_topics": True,
-            "stream_responses": True,
-            "stream_rate": 15,
-            "stream_constant_rate": False
-        }
+        expected_defaults = self.config.get_template_defaults()
         self.assertEqual(data, expected_defaults)
     
     def test_set_and_get_values(self):
@@ -86,8 +77,8 @@ class TestConfig(unittest.TestCase):
     def test_persistence(self):
         """Test that configuration persists across instances."""
         # Set values in first config instance
-        self.config.set("persistent_key", "persistent_value")
-        self.config.set("number", 123)
+        self.config.save_setting("persistent_key", "persistent_value")
+        self.config.save_setting("number", 123)
         
         # Create new config instance pointing to same file
         new_config = Config(self.config_file)
@@ -98,7 +89,7 @@ class TestConfig(unittest.TestCase):
     
     def test_file_synchronization(self):
         """Test that changes are immediately written to file."""
-        self.config.set("sync_test", "sync_value")
+        self.config.save_setting("sync_test", "sync_value")
         
         # Read file directly
         with open(self.config_file, 'r') as f:
@@ -257,7 +248,7 @@ class TestConfigIntegration(unittest.TestCase):
     def test_global_config_usage(self):
         """Test usage of the global config instance."""
         # Set value using global config
-        self.global_config.set("global_test", "global_value")
+        self.global_config.save_setting("global_test", "global_value")
         
         # Verify it persists
         self.assertEqual(self.global_config.get("global_test"), "global_value")

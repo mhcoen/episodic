@@ -330,6 +330,7 @@ rpds-py==0.26.0
 rsa==4.9.1
 ruamel.yaml==0.18.14
 ruamel.yaml.clib==0.2.12
+PyYAML==6.0.3
 safetensors==0.5.3
 scikit-learn==1.7.0
 scipy==1.16.0

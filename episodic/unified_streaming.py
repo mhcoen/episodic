@@ -21,7 +21,7 @@ from episodic.debug_utils import debug_print
 
 def unified_stream_response(
     stream_generator: Generator,
-    model: str,
+    model: Optional[str] = None,
     prefix: Optional[str] = None,
     color: Optional[str] = None,
     wrap_width: Optional[int] = None,
@@ -35,7 +35,7 @@ def unified_stream_response(
     
     Args:
         stream_generator: The stream generator from the LLM
-        model: The model name
+        model: The model name (optional, defaults to config model)
         prefix: Optional prefix to display before streaming (e.g., "🤖 ", "✨ ")
         color: Optional color override (defaults to LLM color)
         wrap_width: Optional wrap width override
@@ -45,6 +45,9 @@ def unified_stream_response(
     Returns:
         The complete response text
     """
+    if not model:
+        model = config.get("model", "gpt-3.5-turbo")
+
     # Display prefix if provided
     if prefix:
         llm_color = color or get_llm_color()
@@ -310,6 +313,40 @@ def unified_stream_response(
     full_response = re.sub(r'([^\n\r]) (#{1,6} )', r'\1\n\n\2', full_response)
     
     return full_response
+
+
+def unified_stream_text(
+    text: str,
+    model: Optional[str] = None,
+    prefix: Optional[str] = None,
+    color: Optional[str] = None,
+    wrap_width: Optional[int] = None,
+    preserve_formatting: Optional[bool] = None
+) -> str:
+    """
+    Stream precomputed text through the unified formatter.
+
+    This is used for non-streaming outputs that still need consistent
+    formatting, wrapping, and bold/list handling.
+    """
+    if text is None:
+        text = ""
+
+    def fake_stream():
+        class FakeChunk:
+            def __init__(self, content: str):
+                self.choices = [type('obj', (object,), {'delta': {'content': content}})()]
+
+        yield FakeChunk(text)
+
+    return unified_stream_response(
+        stream_generator=fake_stream(),
+        model=model,
+        prefix=prefix,
+        color=color,
+        wrap_width=wrap_width,
+        preserve_formatting=preserve_formatting
+    )
 
 
 def _print_word(word: str, color: str, wrap_width: Optional[int],

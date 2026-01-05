@@ -9,7 +9,6 @@ from episodic.db import (
 from episodic.db_wrappers import (
     store_topic_detection_score, clear_topic_detection_scores
 )
-from episodic.topics_hybrid import HybridTopicDetector
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 
@@ -53,7 +52,8 @@ def index_topics(
                fg=get_heading_color(), bold=True)
     typer.secho("=" * 80, fg=get_heading_color())
     
-    # Initialize detector
+    # Initialize detector lazily to avoid heavy imports at module load time
+    from episodic.topics_hybrid import HybridTopicDetector
     detector = HybridTopicDetector()
     
     # Clear previous scores for this window size

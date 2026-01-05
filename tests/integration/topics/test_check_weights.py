@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Check actual weights being used."""
 
+if __name__ != "__main__":
+    import pytest
+
+    pytest.skip("Debug script; run directly", allow_module_level=True)
+
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))

@@ -106,10 +106,13 @@ class OpenRouterPricing:
     def _fetch_pricing(self):
         """Fetch pricing from OpenRouter API."""
         try:
-            response = requests.get(
-                "https://openrouter.ai/api/v1/models",
-                timeout=10
-            )
+            try:
+                response = requests.get(
+                    "https://openrouter.ai/api/v1/models",
+                    timeout=10
+                )
+            except requests.RequestException:
+                return
             
             if response.status_code == 200:
                 data = response.json()

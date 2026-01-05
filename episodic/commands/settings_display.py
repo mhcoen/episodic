@@ -53,7 +53,7 @@ Use '/model' to view and manage all 4 model contexts
     core_settings = [
         ("depth", str(context_depth), "Conversation history depth (messages)"),
         ("debug", str(config.get('debug', False)), get_param_description("debug") or "Debug output mode"),
-        ("cost", str(config.get('show_costs', False)), get_param_description("cost") or "Show token costs"),
+        ("cost", str(config.get('show_cost', False)), get_param_description("cost") or "Show token costs"),
         ("streaming", str(config.get('stream_responses', True)), get_param_description("streaming") or "Response streaming"),
         ("topics", str(config.get('show_topics', False)), get_param_description("topics") or "Show topic transitions"),
         ("wrap", str(config.get('text_wrap', True)), get_param_description("wrap") or "Text wrapping"),

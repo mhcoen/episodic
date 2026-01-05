@@ -64,10 +64,13 @@ def export_topics_to_markdown(
     markdown_content = format_conversation_to_markdown(topic_nodes_list)
     
     # Save to file
-    os.makedirs(export_dir, exist_ok=True)
     filepath = os.path.join(export_dir, filename)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(markdown_content)
+    try:
+        os.makedirs(export_dir, exist_ok=True)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(markdown_content)
+    except OSError as e:
+        raise ValueError(f"Failed to write markdown export: {e}") from e
     
     return filepath
 

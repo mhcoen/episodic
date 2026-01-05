@@ -26,8 +26,11 @@ def import_markdown_file(
 
 def parse_markdown_file(filepath: str) -> Dict:
     """Parse markdown file into structured conversation data."""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except OSError as e:
+        raise ValueError(f"Failed to read markdown file: {e}") from e
     
     topics = parse_topics(content)
     

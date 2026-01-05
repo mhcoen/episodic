@@ -38,12 +38,15 @@ class MinimalMemoryRAG:
     
     def _save_memories(self):
         """Persist memories to disk"""
-        with open(self.memory_file, 'w') as f:
-            json.dump({
-                'memories': self.memories,
-                'message_count': self.message_count,
-                'last_saved': datetime.now().isoformat()
-            }, f, indent=2)
+        try:
+            with open(self.memory_file, 'w') as f:
+                json.dump({
+                    'memories': self.memories,
+                    'message_count': self.message_count,
+                    'last_saved': datetime.now().isoformat()
+                }, f, indent=2)
+        except OSError as e:
+            debug_print(f"Failed to save memories: {e}", category="memory")
     
     async def on_message(self, user_msg: str, assistant_msg: str):
         """Called after each message exchange"""

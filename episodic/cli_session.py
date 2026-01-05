@@ -41,7 +41,11 @@ def save_session_script(filename: str):
     """Save the current session's commands to a script file."""
     # Ensure scripts directory exists
     scripts_dir = "scripts"
-    os.makedirs(scripts_dir, exist_ok=True)
+    try:
+        os.makedirs(scripts_dir, exist_ok=True)
+    except OSError as e:
+        typer.secho(f"Failed to create scripts directory: {e}", fg=get_error_color())
+        return None
     
     # Add .txt extension if not present
     if not filename.endswith('.txt'):
@@ -50,22 +54,26 @@ def save_session_script(filename: str):
     filepath = os.path.join(scripts_dir, filename)
     
     # Write commands to file
-    with open(filepath, 'w') as f:
-        f.write("# Episodic Session Script\n")
-        f.write(f"# Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write("#\n")
-        f.write("# This script contains all commands from your session.\n")
-        f.write("# Execute with: /execute <filename>\n")
-        f.write("#\n")
-        f.write("# Lines starting with # are comments and will be skipped.\n")
-        f.write("# Empty lines will also be skipped.\n")
-        f.write("\n")
-        
-        # Write all session commands
-        for cmd in session_commands:
-            # Skip meta-commands that shouldn't be in scripts
-            if not cmd.startswith('/save') and not cmd.startswith('/execute'):
-                f.write(f"{cmd}\n")
+    try:
+        with open(filepath, 'w') as f:
+            f.write("# Episodic Session Script\n")
+            f.write(f"# Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("#\n")
+            f.write("# This script contains all commands from your session.\n")
+            f.write("# Execute with: /execute <filename>\n")
+            f.write("#\n")
+            f.write("# Lines starting with # are comments and will be skipped.\n")
+            f.write("# Empty lines will also be skipped.\n")
+            f.write("\n")
+            
+            # Write all session commands
+            for cmd in session_commands:
+                # Skip meta-commands that shouldn't be in scripts
+                if not cmd.startswith('/save') and not cmd.startswith('/execute'):
+                    f.write(f"{cmd}\n")
+    except OSError as e:
+        typer.secho(f"Failed to save session script: {e}", fg=get_error_color())
+        return None
     
     return filepath
 
@@ -102,8 +110,12 @@ def execute_script(filename: str):
     typer.echo()
     
     try:
-        with open(filepath, 'r') as f:
-            lines = f.readlines()
+        try:
+            with open(filepath, 'r') as f:
+                lines = f.readlines()
+        except OSError as e:
+            typer.secho(f"Failed to read script: {e}", fg=get_error_color())
+            return
         
         # Track execution progress
         total_lines = len([l for l in lines if l.strip() and not l.strip().startswith('#')])

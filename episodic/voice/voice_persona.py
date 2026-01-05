@@ -25,7 +25,7 @@ def get_voice_system_prompt_addition() -> str:
     try:
         with open(prompt_file, "r") as f:
             _voice_persona_prompt = f.read().strip()
-    except FileNotFoundError:
+    except OSError:
         # Fallback if file doesn't exist
         _voice_persona_prompt = (
             "You are in voice mode. Keep responses brief and conversational. "

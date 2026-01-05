@@ -462,6 +462,32 @@ The listing shows:
 - Modification time (relative for recent files)
 - Preview of file content (title or first heading)
 
+## File References (@file)
+
+You can attach local files directly in chat messages using the `@file` syntax.
+Episodic will extract the content and include it in the LLM context.
+
+### Syntax
+```text
+@file.txt
+@"path with spaces/notes.txt"
+@file.pdf:vision:1-5
+```
+
+### Behavior
+- **Text files**: Content is read and included in the prompt.
+- **PDFs**:
+  - `@file.pdf` extracts text from the document.
+  - `@file.pdf:vision` renders pages as images for vision-capable models.
+  - `@file.pdf:vision:1-5` limits rendering to specific pages.
+
+### Configuration
+```bash
+/set file-ref-vision-pages 5     # Default pages for :vision without a range
+/set file-ref-max-text-size 100000  # Max extracted text characters
+/set pdf-extractor pdfplumber    # pdfplumber (default) or marker
+```
+
 ### Example Workflow
 
 #### Simple Workflow

@@ -52,7 +52,11 @@ def scripts_command(subcommand: Optional[str] = None, filename: Optional[str] = 
 def save_script(filename: str):
     """Save the current session's commands to a script file."""
     # Ensure scripts directory exists
-    SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        SCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        typer.secho(f"Failed to create scripts directory: {e}", fg="red")
+        return
 
     # Add .txt extension if not present
     if not filename.endswith('.txt'):
@@ -70,21 +74,25 @@ def save_script(filename: str):
     ]
     
     # Write commands to file
-    with open(filepath, 'w') as f:
-        f.write("# Episodic Session Script\n")
-        f.write(f"# Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write("#\n")
-        f.write("# This script contains all commands from your session.\n")
-        f.write("# Execute with: /scripts run <filename>\n")
-        f.write("#\n")
-        f.write("# Lines starting with # are comments and will be skipped.\n")
-        f.write("# Empty lines will also be skipped.\n")
-        f.write("\n")
-        
-        # Write all session commands
-        for cmd in filtered_commands:
-            f.write(f"{cmd}\n")
-    
+    try:
+        with open(filepath, 'w') as f:
+            f.write("# Episodic Session Script\n")
+            f.write(f"# Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("#\n")
+            f.write("# This script contains all commands from your session.\n")
+            f.write("# Execute with: /scripts run <filename>\n")
+            f.write("#\n")
+            f.write("# Lines starting with # are comments and will be skipped.\n")
+            f.write("# Empty lines will also be skipped.\n")
+            f.write("\n")
+            
+            # Write all session commands
+            for cmd in filtered_commands:
+                f.write(f"{cmd}\n")
+    except OSError as e:
+        typer.secho(f"Failed to save script: {e}", fg="red")
+        return
+
     typer.secho(f"✅ Script saved to: {filepath}", fg="green")
     typer.secho(f"   Commands saved: {len(filtered_commands)}", fg=get_text_color())
     typer.secho(f"   Run with: /scripts run {filename}", fg=get_text_color())
@@ -111,16 +119,19 @@ def list_scripts():
     for file in sorted(SCRIPTS_DIR.iterdir()):
         if file.suffix == '.txt':
             filepath = file
-            stat = os.stat(filepath)
-            size = stat.st_size
-            mtime = datetime.fromtimestamp(stat.st_mtime)
-            
-            # Count non-comment lines
-            with open(filepath, 'r') as f:
-                lines = f.readlines()
-                command_count = len([l for l in lines if l.strip() and not l.strip().startswith('#')])
-            
-            script_files.append((file.name, size, mtime, command_count))
+            try:
+                stat = os.stat(filepath)
+                size = stat.st_size
+                mtime = datetime.fromtimestamp(stat.st_mtime)
+                
+                # Count non-comment lines
+                with open(filepath, 'r') as f:
+                    lines = f.readlines()
+                    command_count = len([l for l in lines if l.strip() and not l.strip().startswith('#')])
+                
+                script_files.append((file.name, size, mtime, command_count))
+            except OSError as e:
+                typer.secho(f"⚠️  Skipping {file.name}: {e}", fg=get_text_color(), dim=True)
 
     if not script_files:
         typer.secho("No script files found.", fg=get_text_color())

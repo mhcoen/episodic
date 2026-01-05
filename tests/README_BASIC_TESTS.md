@@ -10,7 +10,7 @@ This directory contains comprehensive tests for the core Episodic functionality.
 - Node relationships and ancestry
 - Node deletion and descendants
 
-### Configuration Tests (`test_config.py`, `test_configuration_comprehensive.py`)
+### Configuration Tests (`test_config.py`)
 - Configuration file creation and persistence
 - Value setting and getting with defaults
 - Type handling (bool, int, float, list, dict)

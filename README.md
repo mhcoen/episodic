@@ -19,6 +19,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
 - **🧠 Intelligent Topic Detection** - Neural segmentation validated on academic benchmarks, with configurable granularity
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
+- **📎 File References (@file)** - Attach local files directly in chat messages
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion

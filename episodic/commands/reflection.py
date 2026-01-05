@@ -14,7 +14,7 @@ from episodic.configuration import (
     get_llm_color
 )
 from episodic.llm import query_llm
-from episodic.unified_streaming import unified_stream_response
+from episodic.unified_streaming import unified_stream_response, unified_stream_text
 from episodic.debug_utils import debug_print
 import json
 
@@ -125,12 +125,12 @@ Provide additional insights or corrections."""
                 # Fallback to non-streaming
                 result = query_llm(prompt, model=model, stream=False)
                 response = result[0] if isinstance(result, tuple) else result
-                typer.secho(response, fg=get_llm_color())
+                unified_stream_text(response, model=model, color=get_llm_color())
         else:
             # Non-streaming response
             result = query_llm(prompt, model=model, stream=False)
             response = result[0] if isinstance(result, tuple) else result
-            typer.secho(response, fg=get_llm_color())
+            unified_stream_text(response, model=model, color=get_llm_color())
         
         # Store this step
         reflection_history.append({

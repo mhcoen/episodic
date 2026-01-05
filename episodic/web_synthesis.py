@@ -388,21 +388,9 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
         # Don't add prefix here - the synthesis prompt already includes it
         unified_stream_response(stream_generator, answer['model'])
     else:
-        # For non-streaming responses, we still need to use unified streaming
-        # to get proper markdown processing and word wrapping
-        from episodic.unified_streaming import unified_stream_response
-        
-        # Create a proper generator that works with process_stream_response
-        def fake_stream():
-            # Mimic the structure that process_stream_response expects
-            class FakeChunk:
-                def __init__(self, content):
-                    self.choices = [type('obj', (object,), {'delta': {'content': content}})()]
-            
-            yield FakeChunk(answer)
-        
-        # Use the unified streamer with the fake generator
-        unified_stream_response(fake_stream(), config.get("model", "gpt-3.5-turbo"))
+        # For non-streaming responses, use unified streaming formatting
+        from episodic.unified_streaming import unified_stream_text
+        unified_stream_text(answer, model=config.get("model", "gpt-3.5-turbo"))
     
     # Display sources only if configured to show them
     if config.get('web_show_sources', False):

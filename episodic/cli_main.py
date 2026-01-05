@@ -72,7 +72,7 @@ def handle_chat_message(user_input: str) -> None:
         )
         
         # Display costs if enabled
-        if config.get("show_costs"):
+        if config.get("show_cost"):
             from episodic.commands import cost
             cost()
         

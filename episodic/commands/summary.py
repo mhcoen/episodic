@@ -11,8 +11,9 @@ from episodic.configuration import (
     get_heading_color, get_text_color, get_system_color, get_llm_color
 )
 from episodic.benchmark import benchmark_operation
-from episodic.conversation import conversation_manager, wrapped_llm_print
+from episodic.conversation import conversation_manager
 from episodic.prompt_manager import load_prompt
+from episodic.unified_streaming import unified_stream_text
 
 
 def summary(count: Optional[int] = None, length: Optional[str] = None):
@@ -215,7 +216,7 @@ Please structure the summary clearly with sections if there are multiple distinc
                 )
                 
                 typer.secho("\n🤖 Summary:", fg=get_llm_color(), bold=True)
-                wrapped_llm_print(summary_text)
+                unified_stream_text(summary_text, model=config.get("model", "gpt-3.5-turbo"), color=get_llm_color())
                 
                 # Show cost if enabled
                 if config.get("show_cost", False) and cost_info:

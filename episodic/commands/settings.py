@@ -11,7 +11,7 @@ from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.conversation import conversation_manager
 from episodic.param_mappings import normalize_param_name, get_display_name
-from episodic.param_display import get_canonical_name, get_display_name as get_short_name, get_param_description
+from episodic.param_display import get_canonical_name, get_display_name as get_short_name, get_param_description, resolve_param_name
 
 from .settings_display import display_all_settings
 from .settings_handlers import (
@@ -43,7 +43,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
         # Core settings with descriptions
         settings_to_show = [
             ("debug", config.get('debug', False)),
-            ("cost", config.get('show_costs', False)), 
+            ("cost", config.get('show_cost', False)), 
             ("topics", config.get('show_topics', False)),
             ("streaming", config.get('stream_responses', True)),
             ("depth", f"{default_context_depth} messages"),
@@ -105,8 +105,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     # If value not provided, show current value
     if value is None:
         # First try alias resolution, then fallback to normal resolution
-        canonical_param = get_canonical_name(param)
-        normalized = normalize_param_name(canonical_param)
+        normalized = resolve_param_name(param)
         if normalized:
             current_value = config.get(normalized, "Not set")
             display_name = get_short_name(normalized) or get_display_name(normalized)
@@ -123,8 +122,7 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
 
     # Normalize the parameter name (try alias first)
     original_param = param
-    canonical_param = get_canonical_name(param)
-    param = normalize_param_name(canonical_param)
+    param = resolve_param_name(param)
     
     if not param:
         typer.secho(f"Unknown parameter: {original_param}", fg="red")
@@ -211,7 +209,7 @@ def verify():
         ("Web Search", config.get("web_search_enabled", False)),
         ("Muse Mode", config.get("muse_mode", False)),
         ("Response Streaming", config.get("stream_responses", True)),
-        ("Cost Tracking", config.get("show_costs", False)),
+        ("Cost Tracking", config.get("show_cost", False)),
         ("Debug Mode", config.get("debug", False)),
         ("Benchmarking", config.get("benchmark", False))
     ]

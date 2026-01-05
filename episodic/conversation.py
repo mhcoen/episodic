@@ -733,11 +733,6 @@ class ConversationManager:
                     stream_enabled = config.get("stream_responses", True)
                     
                     if stream_enabled:
-                        # Get streaming configuration
-                        stream_rate = float(config.get("stream_rate", 15.0))
-                        use_constant_rate = config.get("stream_constant_rate", False)
-                        use_natural_rhythm = config.get("stream_natural_rhythm", False)
-                        
                         # Get the stream generator
                         with benchmark_resource("LLM", f"query stream - {model}"):
                             from episodic.llm import _execute_llm_query

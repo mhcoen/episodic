@@ -249,8 +249,12 @@ class HelpRAG:
                         # Not indexed yet, index it
                         typer.secho(f"Indexing help documentation: {doc}...", fg=get_text_color(), dim=True)
                         # Read file content
-                        with open(doc_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
+                        try:
+                            with open(doc_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                        except OSError as e:
+                            typer.secho(f"Failed to read {doc}: {e}", fg=get_error_color())
+                            continue
 
                         # Add document with clean metadata
                         doc_metadata = {
@@ -571,7 +575,7 @@ RULES:
 
         try:
             from episodic.llm import query_llm
-            from episodic.unified_streaming import unified_stream_response
+            from episodic.unified_streaming import unified_stream_response, unified_stream_text
 
             # Use main chat model for help synthesis, with fallback to ollama/phi4
             model = config.get("model")
@@ -594,7 +598,12 @@ RULES:
                 # Non-streaming
                 result = query_llm(help_prompt, model=model, stream=False)
                 response_text = result[0] if isinstance(result, tuple) else result
-                _display_help_output(response_text, get_system_color())
+                unified_stream_text(
+                    response_text,
+                    model=model,
+                    color=get_system_color(),
+                    wrap_width=wrap_width
+                )
 
             # Show sources
             typer.echo()
@@ -673,8 +682,12 @@ def help_reindex():
 
                 try:
                     # Read file content
-                    with open(doc_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
+                    try:
+                        with open(doc_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                    except OSError as e:
+                        typer.secho(f"     ✗ Failed to read: {e}", fg=get_error_color())
+                        continue
 
                     # Get file size for display
                     file_size = len(content)

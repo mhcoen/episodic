@@ -391,7 +391,7 @@ PARAM_HANDLERS = {
     'benchmark_display': lambda v: handle_boolean_param('benchmark_display', v),
     'wrap': lambda v: handle_boolean_param('text_wrap', v),
     'text_wrap': lambda v: handle_boolean_param('text_wrap', v),
-    'show_costs': lambda v: handle_boolean_param('show_costs', v),
+    'show_cost': lambda v: handle_boolean_param('show_cost', v),
     'topic_change_info': lambda v: handle_boolean_param('topic_change_info', v),
     'vi_mode': lambda v: handle_boolean_param('vi_mode', v),
     'automatic_topic_detection': lambda v: handle_boolean_param('automatic_topic_detection', v),

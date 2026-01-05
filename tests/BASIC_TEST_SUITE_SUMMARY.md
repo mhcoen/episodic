@@ -36,31 +36,17 @@ Comprehensive tests for topic detection functionality:
   - LLM-based boundary analysis
   - Heuristic boundary detection
 
-### 3. **test_configuration_comprehensive.py**
-Comprehensive tests for configuration management:
-- **TestConfigurationDefaults**: Tests default configuration values
+### 3. **test_config.py**
+Configuration tests for defaults and core operations:
+- **TestConfig**: Tests default configuration values and file handling
   - Core defaults validation
-  - Topic detection defaults
-  - LLM configuration defaults
-  - Display defaults
-  - Compression defaults
-
-- **TestConfigurationManagement**: Tests configuration operations
-  - Model configuration for different contexts
-  - Model parameter management
-  - Configuration validation
+  - Persistence and synchronization
   - Nested configuration updates
-  - Environment variable overrides
-  - Configuration migration from old formats
-  - API key handling
-  - Feature flag configuration
-  - Streaming configuration
-  - Reset to defaults functionality
+  - Error handling for malformed files
 
-- **TestConfigurationIntegration**: Tests integration with other systems
-  - Database configuration synchronization
-  - Model parameter application to LLM calls
-  - Configuration export/import
+- **TestConfigIntegration**: Tests integration with other systems
+  - CLI configuration values
+  - Global config usage
 
 ### 4. **run_basic_tests.py**
 Test runner script that:

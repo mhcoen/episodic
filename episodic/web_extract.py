@@ -286,7 +286,12 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         # Make request with suppressed warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
+            try:
+                response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
+            except requests.RequestException as e:
+                if config.get('debug'):
+                    typer.secho(f"⚠️  Request failed for {url}: {type(e).__name__}", fg="yellow")
+                return None
         
         if response.status_code != 200:
             if config.get('debug'):

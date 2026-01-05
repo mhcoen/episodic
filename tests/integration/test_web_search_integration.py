@@ -3,16 +3,10 @@
 Integration tests for web search functionality.
 """
 
-import pytest
-
-pytest.skip(
-    "Requires network/aiohttp dependencies; skip in offline test runs.",
-    allow_module_level=True
-)
-
 import unittest
 import json
 import time
+import types
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock
 
@@ -36,8 +30,8 @@ class TestSearchCache(unittest.TestCase):
         results = [
             SearchResult(
                 title="Test Result",
-                snippet="Test snippet",
                 url="https://example.com",
+                snippet="Test snippet",
                 timestamp=datetime.now()
             )
         ]
@@ -52,25 +46,24 @@ class TestSearchCache(unittest.TestCase):
     
     def test_cache_expiration(self):
         """Test cache expiration."""
-        # Create cache with short TTL
-        cache = SearchCache(default_ttl=1)  # 1 second
+        cache = SearchCache()
         
         query = "test"
-        results = [SearchResult("Test", "Snippet", "url", datetime.now())]
+        results = [SearchResult("Test", "url", "Snippet", datetime.now())]
         
         # Store and retrieve immediately
         cache.set(query, results)
-        self.assertIsNotNone(cache.get(query))
+        self.assertIsNotNone(cache.get(query, max_age_seconds=1))
         
         # Wait for expiration
         time.sleep(1.5)
-        self.assertIsNone(cache.get(query))
+        self.assertIsNone(cache.get(query, max_age_seconds=1))
     
     def test_cache_clearing(self):
         """Test clearing cache."""
         # Add multiple entries
-        self.cache.set("query1", [SearchResult("R1", "S1", "U1", datetime.now())])
-        self.cache.set("query2", [SearchResult("R2", "S2", "U2", datetime.now())])
+        self.cache.set("query1", [SearchResult("R1", "U1", "S1", datetime.now())])
+        self.cache.set("query2", [SearchResult("R2", "U2", "S2", datetime.now())])
         
         # Clear cache
         self.cache.clear()
@@ -82,16 +75,14 @@ class TestSearchCache(unittest.TestCase):
     def test_cache_statistics(self):
         """Test cache statistics."""
         # Perform some operations
-        self.cache.set("q1", [SearchResult("R1", "S1", "U1", datetime.now())])
-        self.cache.get("q1")  # Hit
-        self.cache.get("q2")  # Miss
+        self.cache.set("q1", [SearchResult("R1", "U1", "S1", datetime.now())])
+        self.cache.get("q1")
+        self.cache.get("q2")
         
-        stats = self.cache.get_stats()
+        stats = self.cache.stats()
         
-        self.assertEqual(stats['size'], 1)
-        self.assertEqual(stats['hits'], 1)
-        self.assertEqual(stats['misses'], 1)
-        self.assertAlmostEqual(stats['hit_rate'], 0.5, places=2)
+        self.assertEqual(stats['entries'], 1)
+        self.assertIn("q1", stats['queries'])
 
 
 class TestRateLimiter(unittest.TestCase):
@@ -99,74 +90,61 @@ class TestRateLimiter(unittest.TestCase):
     
     def test_rate_limiting(self):
         """Test basic rate limiting."""
-        limiter = RateLimiter(max_per_minute=2)
+        limiter = RateLimiter(max_per_hour=2)
         
         # First two should be allowed
-        self.assertTrue(limiter.check_rate_limit())
-        self.assertTrue(limiter.check_rate_limit())
+        self.assertTrue(limiter.can_search())
+        limiter.record_search()
+        self.assertTrue(limiter.can_search())
+        limiter.record_search()
         
         # Third should be blocked
-        self.assertFalse(limiter.check_rate_limit())
+        self.assertFalse(limiter.can_search())
     
     def test_rate_limit_reset(self):
         """Test rate limit reset over time."""
         # Use very short window for testing
-        limiter = RateLimiter(max_per_minute=1)
-        limiter.window_minutes = 1/60  # 1 second window
+        limiter = RateLimiter(max_per_hour=1)
         
         # Use up the limit
-        self.assertTrue(limiter.check_rate_limit())
-        self.assertFalse(limiter.check_rate_limit())
+        self.assertTrue(limiter.can_search())
+        limiter.record_search()
+        self.assertFalse(limiter.can_search())
+        
+        limiter.searches = [datetime.now() - timedelta(hours=2)]
         
         # Wait for window to reset
         time.sleep(1.1)
         
         # Should be allowed again
-        self.assertTrue(limiter.check_rate_limit())
+        self.assertTrue(limiter.can_search())
     
     def test_wait_time_calculation(self):
         """Test wait time calculation."""
-        limiter = RateLimiter(max_per_minute=1)
-        
-        # Use up limit
-        limiter.record_request()
-        
-        # Get wait time
-        wait_time = limiter.get_wait_time()
-        self.assertGreater(wait_time, 0)
-        self.assertLessEqual(wait_time, 60)
+        limiter = RateLimiter(max_per_hour=1)
+        limiter.record_search()
+        self.assertEqual(limiter.remaining(), 0)
 
 
-class TestDuckDuckGoProvider(unittest.TestCase):
+class TestDuckDuckGoProvider(unittest.IsolatedAsyncioTestCase):
     """Test DuckDuckGo search provider."""
     
-    @patch('aiohttp.ClientSession')
-    async def test_search_parsing(self, mock_session_class):
+    async def test_search_parsing(self):
         """Test parsing of search results."""
-        # Mock HTTP response
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.text = AsyncMock(return_value='''
-            <html>
-            <div class="result">
-                <h2 class="result__title">
-                    <a href="https://example.com">Test Result</a>
-                </h2>
-                <a class="result__snippet">Test snippet content</a>
-            </div>
-            </html>
-        ''')
-        
-        # Mock session
-        mock_session = AsyncMock()
-        mock_session.get = AsyncMock(return_value=mock_response)
-        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session.__aexit__ = AsyncMock()
-        mock_session_class.return_value = mock_session
+        fake_ddgs = types.SimpleNamespace()
+        fake_ddgs.DDGS = MagicMock()
+        fake_ddgs.DDGS.return_value.text.return_value = [
+            {
+                "title": "Test Result",
+                "href": "https://example.com",
+                "body": "Test snippet content"
+            }
+        ]
         
         # Create provider and search
         provider = DuckDuckGoProvider()
-        results = await provider.search("test query", num_results=1)
+        with patch.dict("sys.modules", {"ddgs": fake_ddgs}):
+            results = await provider.search("test query", num_results=1)
         
         # Verify results
         self.assertEqual(len(results), 1)
@@ -174,22 +152,16 @@ class TestDuckDuckGoProvider(unittest.TestCase):
         self.assertIn("snippet", results[0].snippet)
         self.assertEqual(results[0].url, "https://example.com")
     
-    @patch('aiohttp.ClientSession')
-    async def test_error_handling(self, mock_session_class):
+    async def test_error_handling(self):
         """Test error handling in search."""
-        # Mock failed response
-        mock_response = AsyncMock()
-        mock_response.status = 500
-        
-        mock_session = AsyncMock()
-        mock_session.get = AsyncMock(return_value=mock_response)
-        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session.__aexit__ = AsyncMock()
-        mock_session_class.return_value = mock_session
+        fake_ddgs = types.SimpleNamespace()
+        fake_ddgs.DDGS = MagicMock()
+        fake_ddgs.DDGS.return_value.text.side_effect = Exception("boom")
         
         # Should return empty results on error
         provider = DuckDuckGoProvider()
-        results = await provider.search("test")
+        with patch.dict("sys.modules", {"ddgs": fake_ddgs}):
+            results = await provider.search("test")
         self.assertEqual(len(results), 0)
 
 
@@ -199,17 +171,18 @@ class TestWebSearchManager(unittest.TestCase):
     def setUp(self):
         """Set up test environment."""
         config.set('web_search_enabled', True)
-        config.set('web_search_provider', 'duckduckgo')
+        config.set('web_search_providers', ['duckduckgo'])
         self.manager = WebSearchManager()
     
     @patch.object(DuckDuckGoProvider, 'search')
-    def test_search_with_caching(self, mock_search):
+    @patch.object(DuckDuckGoProvider, 'is_available', return_value=True)
+    def test_search_with_caching(self, _mock_available, mock_search):
         """Test search with caching."""
         # Mock provider search
         async def mock_search_impl(query, num_results):
             return [
-                SearchResult("Result 1", "Snippet 1", "url1", datetime.now()),
-                SearchResult("Result 2", "Snippet 2", "url2", datetime.now())
+                SearchResult("Result 1", "url1", "Snippet 1", datetime.now()),
+                SearchResult("Result 2", "url2", "Snippet 2", datetime.now())
             ]
         mock_search.side_effect = mock_search_impl
         
@@ -224,7 +197,8 @@ class TestWebSearchManager(unittest.TestCase):
         self.assertEqual(mock_search.call_count, 1)  # No additional call
     
     @patch.object(DuckDuckGoProvider, 'search')
-    def test_rate_limiting(self, mock_search):
+    @patch.object(DuckDuckGoProvider, 'is_available', return_value=True)
+    def test_rate_limiting(self, _mock_available, mock_search):
         """Test rate limiting."""
         # Configure strict rate limit
         config.set('web_search_rate_limit', 2)  # 2 per hour
@@ -232,7 +206,7 @@ class TestWebSearchManager(unittest.TestCase):
         
         # Mock provider
         async def mock_search_impl(query, num_results):
-            return [SearchResult("Result", "Snippet", "url", datetime.now())]
+            return [SearchResult("Result", "url", "Snippet", datetime.now())]
         mock_search.side_effect = mock_search_impl
         
         # First two searches should succeed
@@ -249,10 +223,9 @@ class TestWebSearchManager(unittest.TestCase):
         """Test search statistics."""
         stats = self.manager.get_stats()
         
-        self.assertIn('provider', stats)
-        self.assertIn('cache_stats', stats)
-        self.assertIn('total_searches', stats)
-        self.assertEqual(stats['provider'], 'duckduckgo')
+        self.assertIn('providers', stats)
+        self.assertIn('rate_limit_remaining', stats)
+        self.assertIn('cache', stats)
 
 
 class TestWebSearchCommands(unittest.TestCase):
@@ -278,7 +251,7 @@ class TestWebSearchCommands(unittest.TestCase):
         
         # Mock search results
         self.mock_manager.search.return_value = [
-            SearchResult("Test Title", "Test snippet", "https://test.com", datetime.now())
+            SearchResult("Test Title", "https://test.com", "Test snippet", datetime.now())
         ]
         
         # Run search
@@ -305,9 +278,11 @@ class TestWebSearchCommands(unittest.TestCase):
         
         # Mock stats
         self.mock_manager.get_stats.return_value = {
-            'provider': 'duckduckgo',
-            'total_searches': 10,
-            'cache_stats': {'hits': 5, 'misses': 5}
+            'providers': ['DuckDuckGo'],
+            'current_provider': None,
+            'cache': {'entries': 0, 'queries': []},
+            'rate_limit_remaining': 10,
+            'rate_limit_max': 10
         }
         
         # Run stats command
@@ -327,7 +302,7 @@ class TestRAGWebSearchIntegration(unittest.TestCase):
         config.set('web_search_auto_enhance', True)
     
     @patch('episodic.rag.get_rag_system')
-    @patch('episodic.web_search.get_web_search_manager')
+    @patch('episodic.web_search.WebSearchManager')
     def test_auto_web_enhancement(self, mock_get_web, mock_get_rag):
         """Test automatic web search when RAG has no results."""
         from episodic.rag import EpisodicRAG
@@ -335,30 +310,30 @@ class TestRAGWebSearchIntegration(unittest.TestCase):
         # Mock RAG with no results
         mock_rag = MagicMock(spec=EpisodicRAG)
         mock_rag.search.return_value = {
-            'documents': [],
-            'metadatas': [],
-            'distances': [],
-            'ids': []
+            'query': 'test query',
+            'results': [],
+            'total': 0
         }
         mock_get_rag.return_value = mock_rag
         
         # Mock web search with results
         mock_web = MagicMock()
         mock_web.search.return_value = [
-            SearchResult("Web Result", "Web snippet", "https://web.com", datetime.now())
+            SearchResult("Web Result", "https://web.com", "Web snippet", datetime.now())
         ]
         mock_get_web.return_value = mock_web
         
         # Mock the _should_search_web method to return True
         with patch.object(EpisodicRAG, '_should_search_web', return_value=True):
-            # Enhance message
-            rag = mock_get_rag()
-            rag.enhance_with_context = EpisodicRAG.enhance_with_context.__get__(rag)
-            enhanced, sources = rag.enhance_with_context("test query")
-            
-            # Should have called web search
-            mock_get_web.assert_called()
-            mock_web.search.assert_called()
+            with patch('typer.echo'):
+                # Enhance message
+                rag = mock_get_rag()
+                rag.enhance_with_context = EpisodicRAG.enhance_with_context.__get__(rag)
+                enhanced = rag.enhance_with_context("test query")
+                
+                # Should have called web search
+                mock_get_web.assert_called()
+                mock_web.search.assert_called()
 
 
 if __name__ == '__main__':

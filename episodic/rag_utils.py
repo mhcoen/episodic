@@ -71,7 +71,7 @@ class SilentSentenceTransformerEmbeddingFunction:
         return False
 
     def __call__(self, input: List[str]) -> List[np.ndarray]:
-        """Generate embeddings for the given documents.
+        """Generate embeddings for the given documents (legacy interface).
 
         Args:
             input: Documents to generate embeddings for.
@@ -79,14 +79,39 @@ class SilentSentenceTransformerEmbeddingFunction:
         Returns:
             Embeddings for the documents.
         """
+        return self._encode(input)
+
+    def _encode(self, texts: List[str]) -> List[np.ndarray]:
+        """Internal method to generate embeddings."""
         embeddings = self._model.encode(
-            list(input),
+            list(texts),
             convert_to_numpy=True,
             normalize_embeddings=self.normalize_embeddings,
             show_progress_bar=False,  # Key difference: suppress progress bar
         )
-
         return [np.array(embedding, dtype=np.float32) for embedding in embeddings]
+
+    def embed_documents(self, documents: List[str]) -> List[np.ndarray]:
+        """Embed a list of documents (ChromaDB interface).
+
+        Args:
+            documents: Documents to generate embeddings for.
+
+        Returns:
+            Embeddings for the documents.
+        """
+        return self._encode(documents)
+
+    def embed_query(self, input: List[str]) -> List[np.ndarray]:
+        """Embed a query for search (ChromaDB interface).
+
+        Args:
+            input: Query text(s) to embed.
+
+        Returns:
+            Embeddings for the query.
+        """
+        return self._encode(input)
 
 
 @contextmanager

@@ -6,8 +6,6 @@ and common test operations.
 """
 
 import os
-import tempfile
-import shutil
 from contextlib import contextmanager
 from unittest.mock import Mock, patch
 from typing import Dict, List, Any, Optional
@@ -17,34 +15,24 @@ import sqlite3
 @contextmanager
 def temp_database():
     """Create a temporary database for testing."""
-    temp_dir = tempfile.mkdtemp()
-    db_path = os.path.join(temp_dir, 'test_episodic.db')
-    
-    # Set the environment variable
-    old_path = os.environ.get('EPISODIC_DB_PATH')
-    old_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
-    os.environ['EPISODIC_DB_PATH'] = db_path
-    os.environ['EPISODIC_DISABLE_POOL'] = 'true'
-    
+    db_path = os.environ["EPISODIC_DB_PATH"]
+
     try:
         from episodic.db_connection import close_pool
         close_pool()
         # Initialize the database
         from episodic.db import initialize_db
+        if os.path.exists(db_path):
+            os.remove(db_path)
         initialize_db()
         yield db_path
     finally:
-        # Restore environment and cleanup
-        if old_path:
-            os.environ['EPISODIC_DB_PATH'] = old_path
-        else:
-            os.environ.pop('EPISODIC_DB_PATH', None)
-        if old_disable_pool is not None:
-            os.environ['EPISODIC_DISABLE_POOL'] = old_disable_pool
-        else:
-            os.environ.pop('EPISODIC_DISABLE_POOL', None)
         close_pool()
-        shutil.rmtree(temp_dir)
+        try:
+            if os.path.exists(db_path):
+                os.remove(db_path)
+        except Exception:
+            pass
 
 
 def mock_llm_response(response: str = "Test response", model: str = "test-model"):

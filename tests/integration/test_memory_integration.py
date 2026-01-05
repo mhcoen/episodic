@@ -48,13 +48,10 @@ def temp_episodic_dir():
     """Create a temporary directory for testing."""
     temp_dir = tempfile.mkdtemp()
     original_home = os.environ.get('EPISODIC_HOME')
-    original_db_path = os.environ.get('EPISODIC_DB_PATH')
     original_user_home = os.environ.get('HOME')
-    original_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
     os.environ['EPISODIC_HOME'] = temp_dir
-    os.environ['EPISODIC_DB_PATH'] = os.path.join(temp_dir, 'episodic.db')
     os.environ['HOME'] = temp_dir
-    os.environ['EPISODIC_DISABLE_POOL'] = 'true'
+    db_path = os.environ['EPISODIC_DB_PATH']
 
     embedding_patcher = patch(
         'episodic.rag_utils.SilentSentenceTransformerEmbeddingFunction',
@@ -69,6 +66,9 @@ def temp_episodic_dir():
     # Reset database connection pool
     from episodic.db_connection import close_pool
     close_pool()
+
+    if os.path.exists(db_path):
+        os.remove(db_path)
     
     yield temp_dir
     
@@ -79,18 +79,13 @@ def temp_episodic_dir():
         os.environ['EPISODIC_HOME'] = original_home
     else:
         os.environ.pop('EPISODIC_HOME', None)
-    if original_db_path:
-        os.environ['EPISODIC_DB_PATH'] = original_db_path
-    else:
-        os.environ.pop('EPISODIC_DB_PATH', None)
     if original_user_home:
         os.environ['HOME'] = original_user_home
     else:
         os.environ.pop('HOME', None)
-    if original_disable_pool is not None:
-        os.environ['EPISODIC_DISABLE_POOL'] = original_disable_pool
-    else:
-        os.environ.pop('EPISODIC_DISABLE_POOL', None)
+
+    if os.path.exists(db_path):
+        os.remove(db_path)
     
     # Reset global RAG instance
     episodic.rag._rag_system = None

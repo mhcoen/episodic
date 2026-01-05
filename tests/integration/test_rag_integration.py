@@ -48,14 +48,13 @@ class TestRAGIntegration(unittest.TestCase):
         """Set up test environment once."""
         # Use temporary directory for test database
         cls.temp_dir = tempfile.mkdtemp()
-        cls.original_db_path = os.environ.get('EPISODIC_DB_PATH')
         cls.original_home = os.environ.get('EPISODIC_HOME')
         cls.original_user_home = os.environ.get('HOME')
         cls.original_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
-        os.environ['EPISODIC_DB_PATH'] = os.path.join(cls.temp_dir, 'test.db')
         os.environ['EPISODIC_HOME'] = cls.temp_dir
         os.environ['HOME'] = cls.temp_dir
         os.environ['EPISODIC_DISABLE_POOL'] = 'true'
+        cls.db_path = os.environ['EPISODIC_DB_PATH']
 
         cls._embedding_patcher = patch(
             'episodic.rag_utils.SilentSentenceTransformerEmbeddingFunction',
@@ -64,16 +63,13 @@ class TestRAGIntegration(unittest.TestCase):
         cls._embedding_patcher.start()
         
         # Initialize database with RAG tables
+        if os.path.exists(cls.db_path):
+            os.remove(cls.db_path)
         initialize_db(migrate=True)
     
     @classmethod
     def tearDownClass(cls):
         """Clean up test environment."""
-        # Restore original DB path
-        if cls.original_db_path:
-            os.environ['EPISODIC_DB_PATH'] = cls.original_db_path
-        else:
-            del os.environ['EPISODIC_DB_PATH']
         if cls.original_home:
             os.environ['EPISODIC_HOME'] = cls.original_home
         else:
@@ -87,6 +83,9 @@ class TestRAGIntegration(unittest.TestCase):
         else:
             os.environ.pop('EPISODIC_DISABLE_POOL', None)
         cls._embedding_patcher.stop()
+
+        if os.path.exists(cls.db_path):
+            os.remove(cls.db_path)
         
         # Clean up temp directory
         shutil.rmtree(cls.temp_dir, ignore_errors=True)

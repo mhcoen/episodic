@@ -60,11 +60,10 @@ class TestRAGHelpIntegration(unittest.TestCase):
         # Suppress warnings
         warnings.filterwarnings("ignore")
 
-        # Use test database
-        os.environ['EPISODIC_DB_PATH'] = '/tmp/test_rag_help.db'
         cls._original_home = os.environ.get("HOME")
         cls._temp_home = tempfile.mkdtemp()
         os.environ["HOME"] = cls._temp_home
+        cls._db_path = os.environ["EPISODIC_DB_PATH"]
 
         cls._embedding_patcher = patch(
             'episodic.rag_utils.SilentSentenceTransformerEmbeddingFunction',
@@ -83,6 +82,8 @@ class TestRAGHelpIntegration(unittest.TestCase):
         cls._local_llm_patcher.start()
         
         # Create tables
+        if os.path.exists(cls._db_path):
+            os.remove(cls._db_path)
         create_rag_tables()
         
         # Initialize help RAG
@@ -109,8 +110,8 @@ class TestRAGHelpIntegration(unittest.TestCase):
         cls._embedding_patcher.stop()
         
         # Clean up database
-        if os.path.exists('/tmp/test_rag_help.db'):
-            os.unlink('/tmp/test_rag_help.db')
+        if os.path.exists(cls._db_path):
+            os.unlink(cls._db_path)
         if cls._original_home is not None:
             os.environ["HOME"] = cls._original_home
         else:

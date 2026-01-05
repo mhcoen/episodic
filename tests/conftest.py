@@ -24,15 +24,59 @@ from contextlib import contextmanager
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# Resolve a test DB path before any database imports.
+# The DB path is read once when the connection pool is first created.
+_ORIGINAL_DB_PATH = os.environ.get("EPISODIC_DB_PATH")
+_ORIGINAL_DISABLE_POOL = os.environ.get("EPISODIC_DISABLE_POOL")
+_TEST_DB_DIR = tempfile.mkdtemp(prefix="episodic_test_")
+_TEST_DB_PATH = os.path.join(_TEST_DB_DIR, "episodic_test.db")
+os.environ["EPISODIC_DB_PATH"] = _TEST_DB_PATH
+os.environ["EPISODIC_DISABLE_POOL"] = "true"
+
 
 # =============================================================================
 # Database Fixtures
 # =============================================================================
 
+@pytest.fixture(scope="session", autouse=True)
+def test_db_env():
+    """
+    Set a temp database path for the entire test session.
+
+    The DB path is read once when the connection pool is first created.
+    Changing EPISODIC_DB_PATH mid-process has no effect.
+    """
+    yield _TEST_DB_PATH
+
+    # Cleanup after all tests complete
+    try:
+        from episodic.db_connection import close_pool
+        close_pool()
+    except Exception:
+        pass
+
+    if os.path.exists(_TEST_DB_PATH):
+        try:
+            os.remove(_TEST_DB_PATH)
+        except Exception:
+            pass
+    shutil.rmtree(_TEST_DB_DIR, ignore_errors=True)
+
+    if _ORIGINAL_DB_PATH is not None:
+        os.environ["EPISODIC_DB_PATH"] = _ORIGINAL_DB_PATH
+    else:
+        os.environ.pop("EPISODIC_DB_PATH", None)
+
+    if _ORIGINAL_DISABLE_POOL is not None:
+        os.environ["EPISODIC_DISABLE_POOL"] = _ORIGINAL_DISABLE_POOL
+    else:
+        os.environ.pop("EPISODIC_DISABLE_POOL", None)
+
+
 @pytest.fixture
-def temp_db_path(tmp_path):
-    """Provide a temporary database path."""
-    return str(tmp_path / "test_episodic.db")
+def temp_db_path():
+    """Provide the session-scoped temporary database path."""
+    return _TEST_DB_PATH
 
 
 @pytest.fixture
@@ -43,39 +87,19 @@ def temp_database(temp_db_path):
     Yields the database path after initialization.
     Automatically cleans up after test completion.
     """
-    old_path = os.environ.get('EPISODIC_DB_PATH')
-    old_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
-
-    # Set up test environment
-    os.environ['EPISODIC_DB_PATH'] = temp_db_path
-    os.environ['EPISODIC_DISABLE_POOL'] = 'true'  # Disable connection pooling for tests
-
     try:
-        # Close any existing connection pool to avoid stale connections
-        from episodic.db_connection import close_pool
-        close_pool()
-
+        # Ensure a clean database file for each test.
+        if os.path.exists(temp_db_path):
+            os.remove(temp_db_path)
         from episodic.db import initialize_db
         initialize_db()
         yield temp_db_path
     finally:
-        # Clean up - close pool again
         try:
-            from episodic.db_connection import close_pool
-            close_pool()
+            if os.path.exists(temp_db_path):
+                os.remove(temp_db_path)
         except Exception:
             pass
-
-        # Restore environment
-        if old_path:
-            os.environ['EPISODIC_DB_PATH'] = old_path
-        else:
-            os.environ.pop('EPISODIC_DB_PATH', None)
-
-        if old_disable_pool:
-            os.environ['EPISODIC_DISABLE_POOL'] = old_disable_pool
-        else:
-            os.environ.pop('EPISODIC_DISABLE_POOL', None)
 
 
 @pytest.fixture

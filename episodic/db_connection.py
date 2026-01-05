@@ -23,6 +23,9 @@ DEFAULT_DB_PATH = os.path.expanduser(os.path.join("~/.episodic", DATABASE_FILENA
 # Alias for backward compatibility with test scripts
 DB_PATH = DEFAULT_DB_PATH
 
+# Resolved database path (read once on first access)
+_resolved_db_path = None
+
 # Thread-local storage for database connections
 _local = threading.local()
 
@@ -37,20 +40,26 @@ _pool_lock = threading.Lock()
 
 
 def get_db_path():
-    """Get the database path from the environment variable or use the default."""
-    db_path = os.environ.get("EPISODIC_DB_PATH", DEFAULT_DB_PATH)
-    
-    # Validate the path to ensure it's not in the project directory
-    from .db_safeguards import validate_db_path
-    db_path = validate_db_path(db_path)
-    
-    # Ensure the directory exists
-    db_dir = os.path.dirname(db_path)
-    if not os.path.exists(db_dir):
-        os.makedirs(db_dir, exist_ok=True)
-        logger.info(f"Created database directory: {db_dir}")
-    
-    return db_path
+    """Get the database path (resolved once on first access)."""
+    global _resolved_db_path
+    if _resolved_db_path is None:
+        # Path is resolved once when the connection pool is first created.
+        # Changing EPISODIC_DB_PATH after that point has no effect.
+        db_path = os.environ.get("EPISODIC_DB_PATH") or DEFAULT_DB_PATH
+
+        # Validate the path to ensure it's not in the project directory
+        from .db_safeguards import validate_db_path
+        db_path = validate_db_path(db_path)
+
+        # Ensure the directory exists
+        db_dir = os.path.dirname(db_path)
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            logger.info(f"Created database directory: {db_dir}")
+
+        _resolved_db_path = db_path
+
+    return _resolved_db_path
 
 
 class ConnectionPool:

@@ -29,7 +29,7 @@ def integration_db_dir():
 
 
 @pytest.fixture
-def integration_db(integration_db_dir, request):
+def integration_db(integration_db_dir):
     """
     Provide a fresh database for each integration test.
 
@@ -37,15 +37,13 @@ def integration_db(integration_db_dir, request):
     """
     import sqlite3
 
-    # Create unique db path for this test
-    test_name = request.node.name.replace("/", "_").replace(":", "_")
-    db_path = os.path.join(integration_db_dir, f"{test_name}.db")
-
-    # Set environment for this test
-    old_path = os.environ.get('EPISODIC_DB_PATH')
-    os.environ['EPISODIC_DB_PATH'] = db_path
+    # Use the session-scoped test DB path; path is resolved once at startup.
+    db_path = os.environ['EPISODIC_DB_PATH']
 
     try:
+        # Ensure a clean database for each test.
+        if os.path.exists(db_path):
+            os.remove(db_path)
         from episodic.db import initialize_db
         initialize_db()
 
@@ -54,10 +52,11 @@ def integration_db(integration_db_dir, request):
         yield db_path, conn
         conn.close()
     finally:
-        if old_path:
-            os.environ['EPISODIC_DB_PATH'] = old_path
-        else:
-            os.environ.pop('EPISODIC_DB_PATH', None)
+        try:
+            if os.path.exists(db_path):
+                os.remove(db_path)
+        except Exception:
+            pass
 
 
 @pytest.fixture

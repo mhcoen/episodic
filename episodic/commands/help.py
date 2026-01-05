@@ -108,6 +108,7 @@ class HelpRAG:
 
         # Get or create dedicated help collection
         # Handle case where collection exists with different embedding function config
+        collection_recreated = False
         try:
             self.collection = self.client.get_or_create_collection(
                 name="episodic_help_docs",
@@ -123,11 +124,18 @@ class HelpRAG:
                     embedding_function=self.embedding_function,
                     metadata={"description": "Episodic help documentation"}
                 )
+                collection_recreated = True
             else:
                 raise
 
         self._indexed_docs = set()
         self._load_indexed_docs()
+
+        # If collection was recreated due to conflict, it's now empty - trigger reindex
+        if collection_recreated and self.collection.count() == 0:
+            self._needs_reindex = True
+        else:
+            self._needs_reindex = False
 
     def _load_indexed_docs(self):
         """Load which docs have been indexed from the collection."""
@@ -290,6 +298,12 @@ class HelpRAG:
         """Search help documentation using dedicated help collection."""
         # Ensure docs are indexed
         self.ensure_help_docs_indexed()
+
+        # Check if collection is empty (docs may not have been found)
+        if self.collection.count() == 0:
+            typer.secho("\n⚠️  Help documentation index is empty.", fg=get_warning_color())
+            typer.secho("Run '/help reindex' to rebuild the index.", fg=get_text_color())
+            return []
 
         # Search dedicated help collection (no filtering needed - all results are help docs)
         with suppress_all_output():
@@ -480,6 +494,11 @@ def help_command(query: str):
         typer.secho("  • CONFIG_REFERENCE.md - Configuration guide", fg=get_text_color(), dim=True)
         return
     
+    # Handle "reindex" subcommand
+    if query_lower == "reindex":
+        help_reindex()
+        return
+
     # Check if ChromaDB is available
     try:
         import chromadb  # noqa: F401
@@ -492,14 +511,14 @@ def help_command(query: str):
         typer.secho("  • docs/CLIReference.md", fg=get_text_color(), dim=True)
         typer.secho("  • QUICK_REFERENCE.md", fg=get_text_color(), dim=True)
         return
-    
+
     # Initialize help RAG
     try:
         help_rag = get_help_rag()
     except Exception as e:
         typer.secho(f"\n⚠️  Error initializing help system: {str(e)}", fg=get_warning_color())
         return
-    
+
     typer.secho(f"\n🔍 Searching documentation for: {query}", fg=get_heading_color())
 
     # Search help docs directly

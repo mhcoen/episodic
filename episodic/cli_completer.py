@@ -13,6 +13,7 @@ from prompt_toolkit.document import Document
 
 from episodic.commands.registry import command_registry, register_all_commands
 from episodic.config import config
+from episodic.debug_utils import debug_print
 from episodic.llm_config import get_available_providers, get_provider_models
 from episodic.db_topics import get_recent_topics
 from episodic.constants import (
@@ -999,8 +1000,8 @@ class EpisodicCompleter(Completer):
                 for name in pm.list_prompts():
                     if name.startswith(word.lower()):
                         yield Completion(name, start_position=-len(word), display_meta='prompt')
-            except:
-                pass
+            except Exception as e:
+                debug_print(f"Prompt completion error: {e}", category="cli")
         elif len(parts) == 3 and parts[1] in ['use', 'show']:
             # Complete prompt names for use/show
             try:
@@ -1009,8 +1010,8 @@ class EpisodicCompleter(Completer):
                 for name in pm.list_prompts():
                     if name.startswith(word.lower()):
                         yield Completion(name, start_position=-len(word), display_meta='prompt')
-            except:
-                pass
+            except Exception as e:
+                debug_print(f"Prompt completion error: {e}", category="cli")
 
     def _complete_reset_command(self, parts: List[str], word: str) -> List[Completion]:
         """Complete /reset with 'all' or parameter names."""

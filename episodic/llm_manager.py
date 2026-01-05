@@ -12,6 +12,7 @@ from contextlib import redirect_stdout, redirect_stderr
 import io
 import litellm
 from episodic.config import config
+from episodic.debug_utils import debug_print
 
 # Suppress LiteLLM debug messages
 litellm.suppress_debug_info = True
@@ -195,7 +196,8 @@ class LLMManager:
                                 from litellm import stream_cost_calculator
                                 # Try to use litellm's stream cost calculator if available
                                 cost = stream_cost_calculator(model=model, usage=last_chunk.usage)
-                            except:
+                            except Exception as e:
+                                debug_print(f"Stream cost calculation failed: {e}", category="llm")
                                 # Fallback: estimate cost based on usage
                                 try:
                                     from litellm import completion_cost
@@ -205,7 +207,8 @@ class LLMManager:
                                         'model': model
                                     })()
                                     cost = completion_cost(completion_response=mock_response)
-                                except:
+                                except Exception as e:
+                                    debug_print(f"Fallback cost calculation failed: {e}", category="llm")
                                     cost = 0.0
                             
                             cost_info = {

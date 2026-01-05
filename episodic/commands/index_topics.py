@@ -4,7 +4,7 @@ Manual topic indexing command using sliding window analysis.
 
 import typer
 from episodic.db import (
-    get_ancestry, get_head, get_recent_topics
+    get_ancestry, get_head
 )
 from episodic.db_wrappers import (
     store_topic_detection_score, clear_topic_detection_scores
@@ -15,7 +15,6 @@ from episodic.configuration import get_text_color, get_system_color, get_heading
 
 def index_topics(
     window_size: int = typer.Argument(5, help="Size of sliding window for comparison"),
-    apply: bool = typer.Option(False, "--apply", "-a", help="Apply detected topics (otherwise just preview)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed scores for each position")
 ):
     """
@@ -210,25 +209,5 @@ def index_topics(
         typer.secho(f"  Range: [{topic['start']['short_id']}] → [{topic['end']['short_id']}]", 
                    fg=get_text_color())
         typer.secho(f"  Messages: {topic['message_count']} user messages", fg=get_text_color())
-        typer.secho(f"  Starts with: {topic['start']['content'][:60]}...", 
+        typer.secho(f"  Starts with: {topic['start']['content'][:60]}...",
                    fg=get_text_color(), dim=True)
-    
-    # Apply topics if requested
-    if apply:
-        typer.secho("\n✅ Applying detected topics...", fg=get_system_color())
-        
-        # Clear existing topics (optional - could prompt user)
-        existing_topics = get_recent_topics(limit=None)
-        if existing_topics:
-            typer.secho(f"Note: This will replace {len(existing_topics)} existing topics", 
-                       fg="yellow")
-        
-        # TODO: Implement actual topic creation/update logic
-        # This would involve:
-        # 1. Clearing or updating existing topics
-        # 2. Creating new topics with proper boundaries
-        # 3. Extracting topic names for each range
-        
-        typer.secho("Topic application not yet implemented.", fg="yellow")
-    else:
-        typer.secho("\n💡 Use --apply to create these topics", fg=get_text_color(), dim=True)

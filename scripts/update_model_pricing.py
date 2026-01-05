@@ -307,10 +307,10 @@ def fetch_litellm_pricing(provider: str, model_name: str) -> Optional[Tuple[floa
             
         if input_cost > 0 or output_cost > 0:
             return (input_cost, output_cost)
-            
-    except:
-        pass
-    
+
+    except Exception:
+        pass  # LiteLLM pricing lookup failed, will use fallback
+
     return None
 
 

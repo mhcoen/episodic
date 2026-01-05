@@ -72,8 +72,8 @@ def unified_stream_response(
                 first_chunk += chunk
                 if len(first_chunk) > 200:  # Check first 200 chars
                     break
-        except:
-            pass
+        except Exception as e:
+            debug_print(f"Stream format check failed: {e}", category="llm")
         
         # Check for formatting indicators
         formatting_indicators = [

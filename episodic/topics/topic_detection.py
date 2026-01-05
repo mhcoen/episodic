@@ -275,7 +275,7 @@ def _parse_detection_response_fallback(response: str, cost_info: Optional[Dict[s
                 if config.get("debug"):
                     typer.echo(f"   ➡️ Continuing same topic (fixed JSON)")
                 return False, None, cost_info
-    except:
+    except json.JSONDecodeError:
         pass
     
     # Default to no change if we can't parse the response

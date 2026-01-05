@@ -84,7 +84,7 @@ def topic_scores(
                     for domain, score_val in sorted(domains.items(), key=lambda x: x[1], reverse=True):
                         if score_val > 0:
                             typer.secho(f"    {domain}: {score_val:.2f}", fg=get_text_color())
-            except:
+            except json.JSONDecodeError:
                 pass
         
         # Show LLM response if available and verbose

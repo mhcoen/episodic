@@ -21,7 +21,6 @@ import io
 from contextlib import redirect_stdout, redirect_stderr
 
 # Constants
-LOCAL_PROVIDERS = ["ollama", "lmstudio", "local", "localai"]
 PRICING_TOKEN_COUNT = 1000
 
 # Import cost_per_token from litellm if available

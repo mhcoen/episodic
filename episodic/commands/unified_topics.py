@@ -252,7 +252,7 @@ def topics_command(
                 pass
                 # This is a bit of a hack but works for now
                 window_size = 5  # Default
-            except:
+            except ValueError:
                 window_size = 5
         index_topics_impl(window_size=window_size, apply=apply, verbose=verbose)
         

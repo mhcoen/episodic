@@ -455,10 +455,10 @@ class TopicHandler:
                         elif config.get("debug"):
                             typer.echo(f"   ℹ️  Topic name unchanged: '{topic_name}'")
                 
-                # Queue the closed topic for compression
-                if config.get("auto_compress_topics", True) and actual_boundary:
-                    from episodic.compression import queue_topic_for_compression
-                    queue_topic_for_compression(start_node_id, actual_boundary, topic_name)
+                # DISABLED: Background compression - see TODO.md
+                # if config.get("auto_compress_topics", True) and actual_boundary:
+                #     from episodic.compression import queue_topic_for_compression
+                #     queue_topic_for_compression(start_node_id, actual_boundary, topic_name)
                 
                 # Clear current topic since it's closed
                 self.conversation_manager.current_topic = None

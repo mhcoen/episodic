@@ -19,33 +19,17 @@ class TestDatabase(unittest.TestCase):
 
     def setUp(self):
         """Set up a temporary database for each test."""
-        # Create a temporary directory for the database
-        self.temp_dir = tempfile.TemporaryDirectory()
-
-        # Set the database path to a file in the temporary directory
-        self.db_path = os.path.join(self.temp_dir.name, "test.db")
-
-        # Set the EPISODIC_DB_PATH environment variable to the test database path
-        self.original_db_path = os.environ.get("EPISODIC_DB_PATH")
-        os.environ["EPISODIC_DB_PATH"] = self.db_path
+        self.db_path = os.environ["EPISODIC_DB_PATH"]
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
 
         # Initialize the database
         initialize_db(erase=True, create_root_node=False)
 
     def tearDown(self):
         """Clean up after each test."""
-        # Close the connection pool to ensure clean state
-        from episodic.db_connection import close_pool
-        close_pool()
-
-        # Restore the original EPISODIC_DB_PATH environment variable
-        if self.original_db_path is not None:
-            os.environ["EPISODIC_DB_PATH"] = self.original_db_path
-        else:
-            os.environ.pop("EPISODIC_DB_PATH", None)
-
-        # Remove the temporary directory and its contents
-        self.temp_dir.cleanup()
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
 
     def test_database_exists(self):
         """Test that the database_exists function works correctly."""

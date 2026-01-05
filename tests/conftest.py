@@ -24,6 +24,17 @@ from contextlib import contextmanager
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# Set a test HOME before importing episodic config to avoid touching user files.
+_ORIGINAL_HOME = os.environ.get("HOME")
+_ORIGINAL_EPISODIC_HOME = os.environ.get("EPISODIC_HOME")
+_TEST_HOME_DIR = tempfile.mkdtemp(prefix="episodic_test_home_")
+os.environ["HOME"] = _TEST_HOME_DIR
+os.environ["EPISODIC_HOME"] = _TEST_HOME_DIR
+
+# Snapshot base config once for deterministic resets.
+from episodic.config import config as _base_config
+_BASE_CONFIG = dict(_base_config._template_defaults)
+
 # Resolve a test DB path before any database imports.
 # The DB path is read once when the connection pool is first created.
 _ORIGINAL_DB_PATH = os.environ.get("EPISODIC_DB_PATH")
@@ -71,6 +82,62 @@ def test_db_env():
         os.environ["EPISODIC_DISABLE_POOL"] = _ORIGINAL_DISABLE_POOL
     else:
         os.environ.pop("EPISODIC_DISABLE_POOL", None)
+
+    if _ORIGINAL_HOME is not None:
+        os.environ["HOME"] = _ORIGINAL_HOME
+    else:
+        os.environ.pop("HOME", None)
+
+    if _ORIGINAL_EPISODIC_HOME is not None:
+        os.environ["EPISODIC_HOME"] = _ORIGINAL_EPISODIC_HOME
+    else:
+        os.environ.pop("EPISODIC_HOME", None)
+
+    shutil.rmtree(_TEST_HOME_DIR, ignore_errors=True)
+
+
+@pytest.fixture(autouse=True)
+def reset_singletons():
+    """Reset global singletons/state before each test."""
+    from episodic.config import config
+    from episodic import rag
+    from episodic.db_connection import close_pool
+    from episodic.topics import strategy_registry
+
+    def _reset_rag_system():
+        if rag._rag_system is None:
+            return
+        try:
+            rag._rag_system.clear_documents()
+        except Exception:
+            pass
+        rag._rag_system = None
+
+    config.config.clear()
+    config.config.update(_BASE_CONFIG)
+    _reset_rag_system()
+    strategy_registry.reset_strategy()
+    close_pool()
+    db_path = os.environ.get("EPISODIC_DB_PATH")
+    if db_path and os.path.exists(db_path):
+        try:
+            os.remove(db_path)
+        except Exception:
+            pass
+
+    yield
+
+    config.config.clear()
+    config.config.update(_BASE_CONFIG)
+    _reset_rag_system()
+    strategy_registry.reset_strategy()
+    close_pool()
+    db_path = os.environ.get("EPISODIC_DB_PATH")
+    if db_path and os.path.exists(db_path):
+        try:
+            os.remove(db_path)
+        except Exception:
+            pass
 
 
 @pytest.fixture

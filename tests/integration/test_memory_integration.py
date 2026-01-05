@@ -43,7 +43,7 @@ class DummyEmbeddingFunction:
         return True
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def temp_episodic_dir():
     """Create a temporary directory for testing."""
     temp_dir = tempfile.mkdtemp()
@@ -58,14 +58,6 @@ def temp_episodic_dir():
         DummyEmbeddingFunction
     )
     embedding_patcher.start()
-    
-    # Reset global RAG instance
-    import episodic.rag
-    episodic.rag._rag_system = None
-    
-    # Reset database connection pool
-    from episodic.db_connection import close_pool
-    close_pool()
 
     if os.path.exists(db_path):
         os.remove(db_path)
@@ -74,7 +66,6 @@ def temp_episodic_dir():
     
     # Cleanup
     embedding_patcher.stop()
-    shutil.rmtree(temp_dir, ignore_errors=True)
     if original_home:
         os.environ['EPISODIC_HOME'] = original_home
     else:
@@ -86,12 +77,8 @@ def temp_episodic_dir():
 
     if os.path.exists(db_path):
         os.remove(db_path)
-    
-    # Reset global RAG instance
-    episodic.rag._rag_system = None
-    
-    # Reset database connection pool
-    close_pool()
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    # RAG singleton and connection pool are reset by the autouse fixture.
 
 
 @pytest.fixture

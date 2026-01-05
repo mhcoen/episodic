@@ -18,8 +18,6 @@ def temp_database():
     db_path = os.environ["EPISODIC_DB_PATH"]
 
     try:
-        from episodic.db_connection import close_pool
-        close_pool()
         # Initialize the database
         from episodic.db import initialize_db
         if os.path.exists(db_path):
@@ -27,7 +25,6 @@ def temp_database():
         initialize_db()
         yield db_path
     finally:
-        close_pool()
         try:
             if os.path.exists(db_path):
                 os.remove(db_path)

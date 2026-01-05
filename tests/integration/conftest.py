@@ -60,22 +60,6 @@ def integration_db(integration_db_dir):
 
 
 @pytest.fixture
-def reset_singletons():
-    """
-    Reset singleton instances between integration tests.
-
-    Some modules use singleton patterns that can leak state.
-    """
-    # Store original singletons
-    originals = {}
-
-    yield
-
-    # Restore or clear singletons after test
-    # Add specific singleton resets as needed
-
-
-@pytest.fixture
 def integration_config(isolated_config):
     """
     Provide configuration suitable for integration testing.

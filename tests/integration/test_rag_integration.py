@@ -50,10 +50,8 @@ class TestRAGIntegration(unittest.TestCase):
         cls.temp_dir = tempfile.mkdtemp()
         cls.original_home = os.environ.get('EPISODIC_HOME')
         cls.original_user_home = os.environ.get('HOME')
-        cls.original_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
         os.environ['EPISODIC_HOME'] = cls.temp_dir
         os.environ['HOME'] = cls.temp_dir
-        os.environ['EPISODIC_DISABLE_POOL'] = 'true'
         cls.db_path = os.environ['EPISODIC_DB_PATH']
 
         cls._embedding_patcher = patch(
@@ -78,10 +76,6 @@ class TestRAGIntegration(unittest.TestCase):
             os.environ['HOME'] = cls.original_user_home
         else:
             os.environ.pop('HOME', None)
-        if cls.original_disable_pool is not None:
-            os.environ['EPISODIC_DISABLE_POOL'] = cls.original_disable_pool
-        else:
-            os.environ.pop('EPISODIC_DISABLE_POOL', None)
         cls._embedding_patcher.stop()
 
         if os.path.exists(cls.db_path):

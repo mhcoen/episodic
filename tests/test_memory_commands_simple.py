@@ -18,7 +18,6 @@ from episodic.config import config
 from episodic.rag import get_rag_system
 import episodic.rag
 from episodic.db import get_connection
-from episodic.db_connection import close_pool
 
 
 def test_memory_commands():
@@ -29,10 +28,6 @@ def test_memory_commands():
     
     # Set environment to use temp directory
     os.environ['EPISODIC_HOME'] = temp_dir
-    
-    # Reset global instances
-    episodic.rag._rag_system = None
-    close_pool()
     
     # Enable RAG
     config.set('rag_enabled', True)
@@ -116,8 +111,7 @@ def test_memory_commands():
         # Reset
         if 'EPISODIC_HOME' in os.environ:
             del os.environ['EPISODIC_HOME']
-        episodic.rag._rag_system = None
-        close_pool()
+        # Global resets handled by the autouse fixture.
     
     return True
 

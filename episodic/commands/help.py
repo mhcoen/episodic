@@ -107,17 +107,11 @@ class HelpRAG:
         )
 
         # Get or create dedicated help collection
-        try:
-            self.collection = self.client.get_collection(
-                name="episodic_help_docs",
-                embedding_function=self.embedding_function
-            )
-        except:
-            self.collection = self.client.create_collection(
-                name="episodic_help_docs",
-                embedding_function=self.embedding_function,
-                metadata={"description": "Episodic help documentation"}
-            )
+        self.collection = self.client.get_or_create_collection(
+            name="episodic_help_docs",
+            embedding_function=self.embedding_function,
+            metadata={"description": "Episodic help documentation"}
+        )
 
         self._indexed_docs = set()
         self._load_indexed_docs()

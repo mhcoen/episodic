@@ -50,7 +50,12 @@ class EpisodicCompleter(Completer):
     def get_completions(self, document: Document, complete_event) -> List[Completion]:
         """Get completions based on current context."""
         line = document.current_line_before_cursor
-        
+
+        # Check for @file reference completion (works anywhere in input)
+        if '@' in line:
+            yield from self._complete_at_file_reference(line, document)
+            # Don't return - also check for slash commands if line starts with /
+
         # Only complete slash commands
         if not line.startswith('/'):
             return
@@ -499,11 +504,11 @@ class EpisodicCompleter(Completer):
             partial_path = parts[-1] if word else ''
         else:
             partial_path = ''
-        
+
         # Expand user home directory
         if partial_path.startswith('~'):
             partial_path = os.path.expanduser(partial_path)
-        
+
         # Get directory and partial filename
         if partial_path:
             if os.path.isdir(partial_path):
@@ -515,14 +520,14 @@ class EpisodicCompleter(Completer):
         else:
             search_dir = '.'
             partial_name = ''
-        
+
         # Get completions
         try:
             if os.path.isdir(search_dir):
                 for entry in sorted(os.listdir(search_dir)):
                     if entry.startswith(partial_name):
                         full_path = os.path.join(search_dir, entry)
-                        
+
                         # Create display text
                         if os.path.isdir(full_path):
                             display = entry + '/'
@@ -530,17 +535,130 @@ class EpisodicCompleter(Completer):
                         else:
                             display = entry
                             meta = 'file'
-                        
+
                         # Handle the completion text
                         if partial_path and not partial_path.endswith('/'):
                             # Replace the partial filename
                             completion_text = os.path.join(os.path.dirname(partial_path), entry)
                         else:
                             completion_text = entry
-                        
+
                         yield Completion(
                             completion_text,
                             start_position=-len(word),
+                            display=display,
+                            display_meta=meta
+                        )
+        except (OSError, PermissionError):
+            # Can't read directory
+            pass
+
+    def _complete_at_file_reference(self, line: str, document: Document) -> List[Completion]:
+        """
+        Complete @file references in chat input.
+
+        Triggers when user types @path and hits Tab.
+        Example: "Explain @src/" -> completes with files in src/
+        """
+        import re
+
+        # Find the last @ reference being typed
+        # Match @path or @"path (for quoted paths)
+        # Look for @ followed by optional " and then path characters
+        match = re.search(r'@("?)([^\s@]*)$', line)
+        if not match:
+            return
+
+        quote = match.group(1)  # Empty or "
+        partial_path = match.group(2)
+        match_start = match.start()
+
+        # Calculate how much to replace
+        replace_len = len(line) - match_start
+
+        # Expand user home directory
+        expanded_path = partial_path
+        if expanded_path.startswith('~'):
+            expanded_path = os.path.expanduser(expanded_path)
+
+        # Handle :vision suffix - strip it for path completion
+        vision_suffix = ''
+        if ':vision' in expanded_path:
+            idx = expanded_path.find(':vision')
+            vision_suffix = expanded_path[idx:]
+            expanded_path = expanded_path[:idx]
+            partial_path = partial_path[:partial_path.find(':vision')]
+
+        # Get directory and partial filename
+        if expanded_path:
+            if os.path.isdir(expanded_path):
+                search_dir = expanded_path
+                partial_name = ''
+            else:
+                search_dir = os.path.dirname(expanded_path) or '.'
+                partial_name = os.path.basename(expanded_path)
+        else:
+            search_dir = '.'
+            partial_name = ''
+
+        # Get completions
+        try:
+            if os.path.isdir(search_dir):
+                entries = sorted(os.listdir(search_dir))
+
+                for entry in entries:
+                    # Skip hidden files unless user started typing with .
+                    if entry.startswith('.') and not partial_name.startswith('.'):
+                        continue
+
+                    if entry.lower().startswith(partial_name.lower()):
+                        full_path = os.path.join(search_dir, entry)
+                        is_dir = os.path.isdir(full_path)
+
+                        # Build completion path
+                        if partial_path:
+                            dir_part = os.path.dirname(partial_path)
+                            if dir_part:
+                                completion_path = os.path.join(dir_part, entry)
+                            else:
+                                completion_path = entry
+                        else:
+                            completion_path = entry
+
+                        # Add trailing slash for directories
+                        if is_dir:
+                            completion_path += '/'
+                            display = entry + '/'
+                            meta = 'directory'
+                        else:
+                            display = entry
+                            # Show file type hint
+                            ext = os.path.splitext(entry)[1].lower()
+                            if ext in ['.pdf']:
+                                meta = 'PDF (text or :vision)'
+                            elif ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                                meta = 'image (multimodal)'
+                            elif ext in ['.py', '.js', '.ts', '.java', '.go', '.rs']:
+                                meta = 'code'
+                            elif ext in ['.md', '.txt', '.json', '.yaml', '.yml']:
+                                meta = 'text'
+                            else:
+                                meta = 'file'
+
+                        # Build full completion with @ prefix
+                        if quote:
+                            # Quoted path
+                            completion_text = f'@"{completion_path}"'
+                        else:
+                            # Check if path needs quoting (has spaces)
+                            if ' ' in completion_path:
+                                completion_text = f'@"{completion_path}"'
+                            else:
+                                completion_text = f'@{completion_path}'
+
+                        yield Completion(
+                            completion_text,
+                            start_position=-replace_len,
                             display=display,
                             display_meta=meta
                         )

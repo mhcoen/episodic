@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 from episodic.conversation import ConversationManager
 from episodic.topics import topic_manager
+from episodic.topic_management import TopicHandler
 from tests.fixtures.conversations import (
     THREE_TOPICS_CONVERSATION,
     get_test_messages_only,
@@ -57,7 +58,7 @@ class TestTopicDetectionIntegration(unittest.TestCase):
             
             # Mock LLM responses for topic detection
             detection_responses = []
-            for i, (node_idx, node) in enumerate(nodes):
+            for node_idx, node in enumerate(nodes):
                 if node['role'] == 'user':
                     # Check if we're near a boundary
                     is_boundary = any(abs(node_idx - b) <= 2 for b in boundaries)
@@ -73,17 +74,14 @@ class TestTopicDetectionIntegration(unittest.TestCase):
                         }]
                     })
             
-            with patch('episodic.topics.detector.query_llm') as mock_llm:
+            with patch('episodic.topics.topic_detection.query_llm') as mock_llm:
                 mock_llm.side_effect = detection_responses
                 
                 # Process each message
                 for node in nodes:
                     if node['role'] == 'user':
-                        # Simulate user message
-                        with patch('episodic.conversation.store_node') as mock_store:
-                            mock_store.return_value = node['id']
-                            # Would call conversation_manager.handle_user_message(node['message'])
-                            pass
+                        # Would call conversation_manager.handle_user_message(node['message'])
+                        pass
                             
                 # Check topics were created
                 # In actual implementation, would verify via database
@@ -97,18 +95,22 @@ class TestTopicDetectionIntegration(unittest.TestCase):
             insert_test_nodes(db_path, nodes)
             
             # Mock drift calculations
-            with patch('episodic.topics.windows.SlidingWindowDetector._calculate_drift') as mock_drift:
+            with patch('episodic.topics.windows.SlidingWindowDetector._calculate_window_drift') as mock_drift:
                 # High drift at boundaries, low within topics
                 def drift_calculator(window1, window2):
                     # Simple heuristic based on content
-                    w1_text = ' '.join(window1).lower()
-                    w2_text = ' '.join(window2).lower()
+                    w1_text = ' '.join(
+                        node.get('content', node.get('message', '')) for node in window1
+                    ).lower()
+                    w2_text = ' '.join(
+                        node.get('content', node.get('message', '')) for node in window2
+                    ).lower()
                     
                     # Different topics have high drift
                     if ('mars' in w1_text and 'pasta' in w2_text) or \
                        ('pasta' in w1_text and 'neural' in w2_text):
-                        return 0.85
-                    return 0.15
+                        return 0.85, 0.0
+                    return 0.15, 0.0
                 
                 mock_drift.side_effect = drift_calculator
                 
@@ -121,7 +123,7 @@ class TestTopicDetectionIntegration(unittest.TestCase):
     def test_topic_renaming_flow(self):
         """Test topic renaming based on content."""
         with temp_database() as db_path:
-            from episodic.db import store_topic, get_recent_topics
+            from episodic.db import store_topic, get_recent_topics, set_head
             
             # Create ongoing topic
             topic_id = store_topic(
@@ -143,9 +145,10 @@ class TestTopicDetectionIntegration(unittest.TestCase):
                 for i in range(6)
             ]
             insert_test_nodes(db_path, nodes)
+            set_head(nodes[-1]['id'])
             
             # Mock LLM response for topic extraction
-            with mock_llm_response("machine-learning-basics"):
+            with patch('episodic.topics.topic_extraction.query_llm', return_value=mock_llm_response("machine-learning-basics")):
                 from episodic.commands.topic_rename import rename_ongoing_topics
                 with patch('typer.secho'):  # Suppress output
                     rename_ongoing_topics()
@@ -159,7 +162,7 @@ class TestTopicDetectionIntegration(unittest.TestCase):
     def test_topic_compression_integration(self):
         """Test topic compression after detection."""
         with temp_database() as db_path:
-            from episodic.db import store_topic, update_topic_end_node
+            from episodic.db import store_topic
             from episodic.compression import queue_topic_for_compression
             
             # Create a completed topic
@@ -187,17 +190,19 @@ class TestTopicDetectionIntegration(unittest.TestCase):
             self.config.set('auto_compress_topics', True)
             self.config.set('compression_min_nodes', 5)
             
-            # Mock compression
-            with patch('episodic.compression.run_compression') as mock_compress:
-                queue_topic_for_compression(topic_id)
-                # In actual implementation, compression would run
+            # Queue compression (worker thread not started in tests)
+            queue_topic_for_compression("node1", "node10", "completed-topic")
                 
     def test_configuration_changes(self):
         """Test that configuration changes affect topic detection."""
         with temp_database():
             # Test disabling automatic detection
             self.config.set('automatic_topic_detection', False)
-            self.assertFalse(topic_manager._should_detect)
+            conversation_manager = Mock()
+            conversation_manager.current_topic = None
+            handler = TopicHandler(conversation_manager)
+            topic_changed, _, _, _ = handler.detect_and_handle_topic_change([], "Hello", "node1")
+            self.assertFalse(topic_changed)
             
             # Test changing minimum messages
             self.config.set('min_messages_before_topic_change', 10)
@@ -214,25 +219,25 @@ class TestEdgeCases(unittest.TestCase):
     def test_empty_conversation(self):
         """Test topic detection with no messages."""
         with temp_database():
-            manager = topic_manager
-            result = manager._should_check_for_topic_change('node1')
-            self.assertFalse(result)
+            with patch('episodic.topics.topic_detection.query_llm') as mock_llm:
+                mock_llm.return_value = ('{"answer": "No"}', {})
+                topic_changed, _, _ = topic_manager.detect_topic_change_separately([], "Hello")
+                self.assertFalse(topic_changed)
             
     def test_single_message(self):
         """Test topic detection with single message."""
-        with temp_database() as db_path:
-            nodes = [{
-                'id': 'node1',
-                'short_id': 'n1',
-                'message': 'Hello',
+        with temp_database():
+            recent_messages = [{
                 'role': 'user',
-                'parent_id': None,
-                'timestamp': '2024-01-01T00:00:00'
+                'content': 'Hello'
             }]
-            insert_test_nodes(db_path, nodes)
-            
-            result = topic_manager._should_check_for_topic_change('node1')
-            self.assertFalse(result)
+            with patch('episodic.topics.topic_detection.query_llm') as mock_llm:
+                mock_llm.return_value = ('{"answer": "No"}', {})
+                topic_changed, _, _ = topic_manager.detect_topic_change_separately(
+                    recent_messages,
+                    "Hello"
+                )
+                self.assertFalse(topic_changed)
             
     def test_malformed_llm_response(self):
         """Test handling of malformed LLM responses."""
@@ -246,17 +251,17 @@ class TestEdgeCases(unittest.TestCase):
             ]
             
             for response in malformed_responses:
-                with patch('episodic.topics.detector.query_llm') as mock_llm:
-                    mock_llm.return_value = {
-                        'choices': [{'message': {'content': response}}]
-                    }
-                    
-                    # Should handle gracefully
+                with patch('episodic.topics.topic_detection.query_llm') as mock_llm:
+                    mock_llm.return_value = (response, {})
                     result = topic_manager.detect_topic_change_separately(
-                        "node1", "Test message", "user", []
+                        [],
+                        "Test message"
                     )
-                    self.assertIsInstance(result, dict)
-                    self.assertIn('topic_changed', result)
+                    if response == "":
+                        self.assertIsNone(result)
+                    else:
+                        topic_changed, _, _ = result
+                        self.assertIsInstance(topic_changed, bool)
 
 
 if __name__ == '__main__':

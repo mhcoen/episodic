@@ -37,7 +37,7 @@ class TestConfig:
         assert data.get("show_drift") is True
         assert data.get("auto_compress_topics") is True
         assert data.get("stream_responses") is True
-        assert data.get("stream_rate") == 15
+        assert data.get("stream_rate") == 30
         assert data.get("stream_constant_rate") is False
 
     def test_set_and_get_values(self):

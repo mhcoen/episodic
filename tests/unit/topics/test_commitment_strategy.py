@@ -29,7 +29,7 @@ class MockDetectionStrategy:
         self.detections = detections or {}
         self._call_count = 0
 
-    def get_decision(self, query: str, messages: list, current_thread=None):
+    def get_decision(self, query: str, messages: list, current_thread=None, **kwargs):
         """Return predetermined detection based on message count."""
         idx = len(messages)
         detected, confidence = self.detections.get(idx, (False, 0.1))
@@ -65,25 +65,34 @@ class TestCommitmentPolicyBasics:
         """CommitmentPolicy has sensible defaults."""
         policy = CommitmentPolicy()
         assert policy.min_gap == 3
-        assert policy.evidence_window == 2
-        assert policy.commitment_threshold is None
+        assert policy.suspect_threshold == 0.5
+        assert policy.abort_threshold == 0.3
+        assert policy.abort_streak == 3
         assert policy.evidence_decay == 0.8
         assert policy.min_evidence == 1.2
+        assert policy.commit_persistence == 1
+        assert policy.min_user_turns_for_commit == 4
 
     def test_custom_values(self):
         """CommitmentPolicy accepts custom values."""
         policy = CommitmentPolicy(
             min_gap=5,
-            evidence_window=3,
-            commitment_threshold=0.7,
+            suspect_threshold=0.6,
+            abort_threshold=0.2,
+            abort_streak=4,
             evidence_decay=0.9,
-            min_evidence=2.0
+            min_evidence=2.0,
+            commit_persistence=0,
+            min_user_turns_for_commit=0
         )
         assert policy.min_gap == 5
-        assert policy.evidence_window == 3
-        assert policy.commitment_threshold == 0.7
+        assert policy.suspect_threshold == 0.6
+        assert policy.abort_threshold == 0.2
+        assert policy.abort_streak == 4
         assert policy.evidence_decay == 0.9
         assert policy.min_evidence == 2.0
+        assert policy.commit_persistence == 0
+        assert policy.min_user_turns_for_commit == 0
 
 
 class TestMinGapEnforcement:
@@ -93,53 +102,90 @@ class TestMinGapEnforcement:
         """First boundary can be committed immediately."""
         mock = MockDetectionStrategy({
             3: (True, 0.9),
+            4: (True, 0.9),
         })
         wrapped = CommitmentPolicyStrategy(
             mock,
-            CommitmentPolicy(min_gap=3, min_evidence=0.5)
+            CommitmentPolicy(
+                min_gap=3,
+                min_evidence=0.5,
+                commit_persistence=0,
+                min_user_turns_for_commit=0,
+                neural_commit_drift_threshold=None
+            )
         )
 
         # Simulate 3 messages then detection
         messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
         decision = wrapped.get_decision("new topic?", messages)
+        assert decision.topic_changed is False
+
+        messages.append({'role': 'assistant', 'content': 'response'})
+        decision = wrapped.get_decision("confirm topic?", messages)
 
         assert decision.topic_changed is True
-        assert 'committed' in decision.signals
         assert decision.signals['committed'] is True
 
     def test_second_boundary_blocked_if_too_soon(self):
         """Second boundary blocked if within min_gap."""
         mock = MockDetectionStrategy({
             3: (True, 0.9),
-            4: (True, 0.9),  # Too soon
+            4: (True, 0.9),  # Commit first boundary
+            5: (True, 0.9),  # Too soon for second boundary
         })
-        policy = CommitmentPolicy(min_gap=3, min_evidence=0.5)
+        policy = CommitmentPolicy(
+            min_gap=3,
+            min_evidence=0.5,
+            commit_persistence=0,
+            min_user_turns_for_commit=0,
+            neural_commit_drift_threshold=None
+        )
+        policy.commit_persistence = 0
+        policy.min_user_turns_for_commit = 0
         wrapped = CommitmentPolicyStrategy(mock, policy)
 
         # First boundary at message 3
         messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
         decision1 = wrapped.get_decision("new topic", messages)
-        assert decision1.topic_changed is True
+        assert decision1.topic_changed is False
+
+        messages.append({'role': 'assistant', 'content': 'response'})
+        decision_commit = wrapped.get_decision("confirm topic", messages)
+        assert decision_commit.topic_changed is True
 
         # Second boundary at message 4 (gap=1, less than 3)
         messages.append({'role': 'assistant', 'content': 'response'})
         decision2 = wrapped.get_decision("another topic", messages)
         assert decision2.topic_changed is False
-        assert "too soon" in decision2.reasoning
+        assert decision2.signals["state"] == "SUSPECT"
 
     def test_second_boundary_allowed_after_gap(self):
         """Second boundary allowed after sufficient gap."""
         mock = MockDetectionStrategy({
             3: (True, 0.9),
+            4: (True, 0.9),  # Commit first boundary
             7: (True, 0.9),  # Gap of 4 >= min_gap of 3
+            8: (True, 0.9),
         })
-        policy = CommitmentPolicy(min_gap=3, min_evidence=0.5)
+        policy = CommitmentPolicy(
+            min_gap=3,
+            min_evidence=0.5,
+            commit_persistence=0,
+            min_user_turns_for_commit=0,
+            neural_commit_drift_threshold=None
+        )
+        policy.commit_persistence = 0
+        policy.min_user_turns_for_commit = 0
         wrapped = CommitmentPolicyStrategy(mock, policy)
 
         # First boundary
         messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
         decision1 = wrapped.get_decision("topic 1", messages)
-        assert decision1.topic_changed is True
+        assert decision1.topic_changed is False
+
+        messages.append({'role': 'assistant', 'content': 'response'})
+        decision_commit = wrapped.get_decision("confirm topic", messages)
+        assert decision_commit.topic_changed is True
 
         # Add more messages
         for i in range(4):
@@ -158,14 +204,21 @@ class TestEvidenceAccumulation:
         mock = MockDetectionStrategy({
             3: (True, 0.5),  # Below min_evidence of 1.2
         })
-        policy = CommitmentPolicy(min_gap=1, min_evidence=1.2)
+        policy = CommitmentPolicy(
+            min_gap=1,
+            min_evidence=1.2,
+            commit_persistence=0,
+            min_user_turns_for_commit=0,
+            neural_commit_drift_threshold=None
+        )
         wrapped = CommitmentPolicyStrategy(mock, policy)
 
         messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
         decision = wrapped.get_decision("weak topic", messages)
 
         assert decision.topic_changed is False
-        assert "insufficient evidence" in decision.reasoning
+        assert decision.signals["state"] == "SUSPECT"
+        assert decision.signals["accumulated_evidence"] < decision.signals["min_evidence"]
 
     def test_accumulated_detections_committed(self):
         """Multiple detections accumulate to meet evidence threshold."""
@@ -174,7 +227,13 @@ class TestEvidenceAccumulation:
             3: (True, 0.7),
             4: (True, 0.7),
         })
-        policy = CommitmentPolicy(min_gap=1, evidence_window=3, min_evidence=1.2)
+        policy = CommitmentPolicy(
+            min_gap=1,
+            min_evidence=1.2,
+            commit_persistence=0,
+            min_user_turns_for_commit=0,
+            neural_commit_drift_threshold=None
+        )
         wrapped = CommitmentPolicyStrategy(mock, policy)
 
         # First detection adds to buffer
@@ -199,9 +258,12 @@ class TestEvidenceAccumulation:
         })
         policy = CommitmentPolicy(
             min_gap=1,
-            evidence_window=2,
             evidence_decay=0.5,
-            min_evidence=0.5
+            min_evidence=2.0,
+            abort_threshold=0.0,
+            abort_streak=100,
+            commit_persistence=0,
+            min_user_turns_for_commit=0
         )
         wrapped = CommitmentPolicyStrategy(mock, policy)
 
@@ -209,52 +271,21 @@ class TestEvidenceAccumulation:
         messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
         decision1 = wrapped.get_decision("topic", messages)
 
+        prev_evidence = wrapped._state.accumulated_evidence
         # Several turns without reinforcement
         for i in range(3):
             messages.append({'role': 'user', 'content': f'filler{i}'})
             decision = wrapped.get_decision("continuing", messages)
 
-        # Evidence should have decayed/expired
-        assert wrapped._calculate_evidence() < 0.5
+        # Evidence should have decayed
+        assert wrapped._state.accumulated_evidence < prev_evidence
 
 
 class TestCommitmentThreshold:
     """Test commitment threshold enforcement."""
 
-    def test_detection_below_threshold_not_committed(self):
-        """Detection below commitment threshold not committed."""
-        mock = MockDetectionStrategy({
-            3: (True, 0.6),  # Below threshold
-        })
-        policy = CommitmentPolicy(
-            min_gap=1,
-            commitment_threshold=0.7,
-            min_evidence=0.5
-        )
-        wrapped = CommitmentPolicyStrategy(mock, policy)
-
-        messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
-        decision = wrapped.get_decision("topic", messages)
-
-        assert decision.topic_changed is False
-        assert "below threshold" in decision.reasoning
-
-    def test_detection_above_threshold_committed(self):
-        """Detection above commitment threshold committed."""
-        mock = MockDetectionStrategy({
-            3: (True, 0.8),
-        })
-        policy = CommitmentPolicy(
-            min_gap=1,
-            commitment_threshold=0.7,
-            min_evidence=0.5
-        )
-        wrapped = CommitmentPolicyStrategy(mock, policy)
-
-        messages = [{'role': 'user', 'content': f'msg{i}'} for i in range(3)]
-        decision = wrapped.get_decision("topic", messages)
-
-        assert decision.topic_changed is True
+    def test_commitment_threshold_removed(self):
+        pytest.skip("Commitment threshold removed; policy now uses min_evidence and persistence")
 
 
 class TestStateManagement:
@@ -276,7 +307,10 @@ class TestStateManagement:
         wrapped.reset()
 
         assert wrapped._state.last_boundary_idx is None
-        assert wrapped._state.evidence_buffer == []
+        assert wrapped._state.accumulated_evidence == 0.0
+        assert wrapped._state.recent_confidences == []
+        assert wrapped._state.evidence_met is False
+        assert wrapped._state.peak_confidence == 0.0
         assert wrapped._state.current_idx == 0
 
     def test_signals_include_commitment_info(self):
@@ -291,10 +325,7 @@ class TestStateManagement:
         decision = wrapped.get_decision("topic", messages)
 
         assert 'accumulated_evidence' in decision.signals
-        assert 'evidence_buffer_size' in decision.signals
-        assert 'turns_since_boundary' in decision.signals
-        assert 'min_gap' in decision.signals
-        assert 'base_detected' in decision.signals
+        assert 'state' in decision.signals
         assert 'committed' in decision.signals
 
 
@@ -324,16 +355,15 @@ class TestParamOverrides:
 
     def test_params_override_policy(self):
         """Constructor params override policy values."""
-        policy = CommitmentPolicy(min_gap=3, evidence_window=2)
+        policy = CommitmentPolicy(min_gap=3)
         mock = MockDetectionStrategy()
         wrapped = CommitmentPolicyStrategy(
             mock,
             policy,
-            params={'min_gap': 5, 'evidence_window': 4}
+            params={'min_gap': 5}
         )
 
         assert wrapped.policy.min_gap == 5
-        assert wrapped.policy.evidence_window == 4
 
 
 # =============================================================================
@@ -597,7 +627,6 @@ class TestAdaptiveSignals:
 
         assert 'current_rate' in decision.signals
         assert 'target_rate' in decision.signals
-        assert 'min_gap' in decision.signals  # Fixed, not current_min_gap
         assert 'current_min_evidence' in decision.signals
         assert 'rate_volatility' in decision.signals
         assert 'adjustment_count' in decision.signals

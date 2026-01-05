@@ -22,9 +22,13 @@ def temp_database():
     
     # Set the environment variable
     old_path = os.environ.get('EPISODIC_DB_PATH')
+    old_disable_pool = os.environ.get('EPISODIC_DISABLE_POOL')
     os.environ['EPISODIC_DB_PATH'] = db_path
+    os.environ['EPISODIC_DISABLE_POOL'] = 'true'
     
     try:
+        from episodic.db_connection import close_pool
+        close_pool()
         # Initialize the database
         from episodic.db import initialize_db
         initialize_db()
@@ -35,26 +39,23 @@ def temp_database():
             os.environ['EPISODIC_DB_PATH'] = old_path
         else:
             os.environ.pop('EPISODIC_DB_PATH', None)
+        if old_disable_pool is not None:
+            os.environ['EPISODIC_DISABLE_POOL'] = old_disable_pool
+        else:
+            os.environ.pop('EPISODIC_DISABLE_POOL', None)
+        close_pool()
         shutil.rmtree(temp_dir)
 
 
-@contextmanager
 def mock_llm_response(response: str = "Test response", model: str = "test-model"):
     """Mock LLM responses for testing."""
-    mock_response = {
-        "choices": [{
-            "message": {"content": response}
-        }],
-        "usage": {
-            "prompt_tokens": 10,
-            "completion_tokens": 20,
-            "total_tokens": 30
-        },
-        "model": model
+    cost_info = {
+        "model": model,
+        "prompt_tokens": 10,
+        "completion_tokens": 20,
+        "total_tokens": 30
     }
-    
-    with patch('episodic.llm.query_llm', return_value=mock_response):
-        yield mock_response
+    return response, cost_info
 
 
 @contextmanager
@@ -104,17 +105,19 @@ def insert_test_nodes(db_path: str, nodes: List[Dict]):
     cursor = conn.cursor()
     
     for node in nodes:
+        content = node.get('content', node.get('message', ''))
         cursor.execute("""
             INSERT INTO nodes (
-                id, short_id, message, role, parent_id,
-                timestamp, model_name, system_prompt, response
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                id, short_id, parent_id, content, role, provider, model
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
-            node['id'], node['short_id'], node['message'],
-            node.get('role', 'user'), node.get('parent_id'),
-            node['timestamp'], node.get('model_name', 'test-model'),
-            node.get('system_prompt', 'Test prompt'),
-            node.get('response')
+            node['id'],
+            node['short_id'],
+            node.get('parent_id'),
+            content,
+            node.get('role', 'user'),
+            node.get('provider'),
+            node.get('model', node.get('model_name', 'test-model'))
         ))
     
     conn.commit()

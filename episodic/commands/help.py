@@ -546,7 +546,9 @@ def help_command(query: str):
                 typer.secho(f"Result {i+1} (score: {score:.3f}): {result['content'][:100]}...", fg=get_text_color())
 
         # Check if we have relevant results
-        RELEVANCE_THRESHOLD = 0.3
+        # ChromaDB distances for sentence-transformers are typically 0.5-1.5
+        # score = 1 - distance, so threshold of 0.1 means distance < 0.9
+        RELEVANCE_THRESHOLD = 0.1
         relevant_results = [r for r in search_results if r.get('score', 0) >= RELEVANCE_THRESHOLD]
 
         if not relevant_results:

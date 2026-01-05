@@ -62,7 +62,6 @@ class SilentSentenceTransformerEmbeddingFunction:
             )
         self._model = self.models[model_name]
 
-    @property
     def name(self) -> str:
         """Return the model name (required by ChromaDB)."""
         return self.model_name

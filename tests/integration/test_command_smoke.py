@@ -69,6 +69,9 @@ class TestCommandSmoke:
 
         assert exc is None, f"/help <query> crashed: {exc}"
         assert len(output) > 0, "/help <query> produced no output"
+        # Check for error messages that indicate silent failures
+        assert "Error initializing help system" not in output, f"/help failed silently: {output}"
+        assert "⚠️" not in output or "Searching documentation" in output, f"/help showed warning: {output}"
 
     # =========================================================================
     # /topics - List topics

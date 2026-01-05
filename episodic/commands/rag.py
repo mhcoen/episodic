@@ -19,22 +19,24 @@ def search(query: str, limit: Optional[int] = None):
     n_results = limit or config.get('rag_max_results', 5)
     threshold = config.get('rag_search_threshold', 0.7)
     
-    results = rag.search(query, n_results=n_results, threshold=threshold)
+    results = rag.search(query, n_results=n_results)
+    filtered_results = [
+        result for result in results.get('results', [])
+        if (result.get('relevance_score') or 0) >= threshold
+    ]
     
-    if not results['documents']:
+    if not filtered_results:
         typer.secho("No relevant results found.", fg=get_text_color())
         return
     
     typer.secho(f"\n🔍 Search Results for: '{query}'", fg=get_heading_color(), bold=True)
     typer.secho("─" * 50, fg=get_heading_color())
     
-    for i, (doc, metadata, distance, doc_id) in enumerate(zip(
-        results['documents'], 
-        results['metadatas'], 
-        results['distances'],
-        results['ids']
-    )):
-        relevance = 1 - distance  # Convert distance to similarity
+    for i, result in enumerate(filtered_results):
+        metadata = result.get('metadata') or {}
+        relevance = result.get('relevance_score') or 0
+        doc_id = metadata.get('doc_id', 'unknown')
+        doc = result.get('content', '')
         typer.secho(f"\n[{i+1}] ", nl=False, fg=get_system_color(), bold=True)
         typer.secho(f"Relevance: {relevance:.2%}", fg=get_system_color())
         typer.secho(f"Source: {metadata.get('source', 'Unknown')}", fg=get_text_color())
@@ -52,14 +54,20 @@ def index_text(content: str, source: Optional[str] = None):
     rag = get_rag_system()
     source = source or "manual_input"
     
-    doc_ids = rag.add_document(content, source)
-    
-    if len(doc_ids) == 1:
-        typer.secho(f"✅ Document indexed successfully", fg=get_system_color())
-        typer.secho(f"   ID: {doc_ids[0][:8]}...", fg=get_text_color())
+    doc_result = rag.add_document(content, source)
+
+    if isinstance(doc_result, tuple) and len(doc_result) == 2:
+        doc_id, chunk_count = doc_result
     else:
-        typer.secho(f"✅ Document indexed in {len(doc_ids)} chunks", fg=get_system_color())
-        typer.secho(f"   Parent ID: {doc_ids[0].split('-')[0][:8]}...", fg=get_text_color())
+        doc_id = doc_result[0] if doc_result else "unknown"
+        chunk_count = len(doc_result) if doc_result else 0
+
+    if chunk_count == 1:
+        typer.secho("✅ Document indexed successfully", fg=get_system_color())
+        typer.secho(f"   ID: {doc_id[:8]}...", fg=get_text_color())
+    else:
+        typer.secho(f"✅ Document indexed in {chunk_count} chunks", fg=get_system_color())
+        typer.secho(f"   Parent ID: {doc_id[:8]}...", fg=get_text_color())
     
     typer.secho(f"   Source: {source}", fg=get_text_color())
     typer.secho(f"   Words: {len(content.split())}", fg=get_text_color())
@@ -183,9 +191,10 @@ def docs_list(limit: Optional[int] = None, source: Optional[str] = None):
         typer.secho("Indexed: ", nl=False, fg=get_text_color())
         typer.secho(f"{doc['indexed_at']}", fg=get_system_color())
         
-        if doc['content']:
+        preview = doc.get('content') or doc.get('preview')
+        if preview:
             typer.secho("Preview: ", nl=False, fg=get_text_color())
-            typer.secho(f"{doc['content']}", fg=get_text_color())
+            typer.secho(f"{preview}", fg=get_text_color())
 
 
 @requires_rag

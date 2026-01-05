@@ -141,7 +141,10 @@ def search_memories(query: str):
     
     # Filter results by relevance threshold
     relevance_threshold = config.get('memory_relevance_threshold', 0.3)
-    filtered_results = [r for r in results['results'] if r.get('relevance_score', 0) >= relevance_threshold]
+    filtered_results = [
+        r for r in results['results']
+        if (r.get('relevance_score') or 0) >= relevance_threshold
+    ]
     
     if not filtered_results:
         typer.secho(f"\nNo memories found with relevance >= {relevance_threshold}.", fg=get_text_color())
@@ -155,7 +158,7 @@ def search_memories(query: str):
         metadata = result.get('metadata', {})
         doc_id = metadata.get('doc_id', 'unknown')
         source = metadata.get('source', 'unknown')
-        score = result.get('relevance_score', 0)
+        score = result.get('relevance_score') or 0
         
         # Source icon
         source_icon = {

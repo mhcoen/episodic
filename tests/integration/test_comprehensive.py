@@ -11,26 +11,38 @@ import tempfile
 import time
 from pathlib import Path
 
+import pytest
 def run_episodic_script(script_content):
     """Run Episodic with a script and return output."""
+    temp_home = tempfile.mkdtemp()
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
         f.write(script_content)
         script_path = f.name
     
     try:
+        env = os.environ.copy()
+        env["EPISODIC_HOME"] = temp_home
+        env["EPISODIC_DB_PATH"] = os.path.join(temp_home, "episodic.db")
+        env["HOME"] = temp_home
+
         # Run episodic with the script
         result = subprocess.run(
             [sys.executable, "-m", "episodic", "--execute", script_path],
             capture_output=True,
             text=True,
+            env=env,
             timeout=300  # Give it more time for actual LLM calls
         )
         return result.stdout, result.stderr, result.returncode
     finally:
         os.unlink(script_path)
+        shutil.rmtree(temp_home, ignore_errors=True)
 
 def test_full_conversation_flow():
     """Test a complete conversation workflow."""
+    if os.environ.get("EPISODIC_RUN_COMPREHENSIVE") != "1":
+        pytest.skip("Set EPISODIC_RUN_COMPREHENSIVE=1 to run the full CLI workflow")
+
     print("=" * 80)
     print("COMPREHENSIVE EPISODIC SYSTEM TEST")
     print("=" * 80)
@@ -232,7 +244,7 @@ Latest AI in 5 words
     with open("episodic_test_output.txt", "w") as f:
         f.write("STDOUT:\n" + stdout + "\n\nSTDERR:\n" + stderr)
     
-    return success_rate >= 0.8
+    assert success_rate >= 0.8
 
 if __name__ == "__main__":
     success = test_full_conversation_flow()

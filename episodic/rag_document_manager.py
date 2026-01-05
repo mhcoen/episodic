@@ -77,6 +77,7 @@ def list_documents(limit: Optional[int] = None,
             doc = dict(zip(columns, row))
             # Parse JSON metadata
             doc['metadata'] = json.loads(doc['metadata']) if doc['metadata'] else {}
+            doc['id'] = doc['doc_id']
             docs.append(doc)
             
     return docs
@@ -95,6 +96,7 @@ def get_document(doc_id: str) -> Optional[Dict[str, Any]]:
         if row:
             doc = dict(zip(columns, row))
             doc['metadata'] = json.loads(doc['metadata']) if doc['metadata'] else {}
+            doc['id'] = doc['doc_id']
             return doc
             
     return None

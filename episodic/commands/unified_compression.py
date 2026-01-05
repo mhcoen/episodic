@@ -39,6 +39,9 @@ def compression_command(
       /compress                      # Compress current branch
       /compress-current-topic        # Compress current topic
     """
+
+    if isinstance(action, typer.models.ArgumentInfo):
+        action = "stats"
     
     if action == "stats":
         stats_impl()

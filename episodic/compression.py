@@ -50,6 +50,11 @@ class AsyncCompressionManager:
             'total_words_saved': 0,
             'queue_size': 0
         }
+
+    @property
+    def running(self) -> bool:
+        """Return True if the compression worker is running."""
+        return self.worker_thread is not None and self.worker_thread.is_alive()
         
     def start(self):
         """Start the background compression worker."""
@@ -282,7 +287,10 @@ Concise summary:"""
                         'topic': job.topic_name,
                         'priority': job.priority,
                         'created': job.created_at.isoformat(),
-                        'attempts': job.attempts
+                        'created_at': job.created_at.isoformat(),
+                        'attempts': job.attempts,
+                        'start_node_id': job.start_node_id,
+                        'end_node_id': job.end_node_id
                     })
             except queue.Empty:
                 break

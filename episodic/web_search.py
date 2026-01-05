@@ -806,12 +806,26 @@ class WebSearchManager:
                 typer.secho(f"🔍 Searching with {provider_name}...", fg=get_info_color())
                 
                 # Run async search in sync context
+                previous_loop = None
+                had_previous_loop = False
+                try:
+                    previous_loop = asyncio.get_event_loop()
+                    had_previous_loop = True
+                except RuntimeError:
+                    pass
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                results = loop.run_until_complete(
-                    provider.search(query, num_results)
-                )
-                loop.close()
+                try:
+                    results = loop.run_until_complete(
+                        provider.search(query, num_results)
+                    )
+                finally:
+                    loop.close()
+                    if had_previous_loop and previous_loop and not previous_loop.is_closed():
+                        asyncio.set_event_loop(previous_loop)
+                    else:
+                        asyncio.set_event_loop(None)
                 
                 # If we got results, cache the provider and return
                 if results:

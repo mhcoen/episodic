@@ -40,10 +40,16 @@ class DummyEmbeddingFunction:
         return [[0.0, 0.0, 0.0] for _ in input]
 
     def embed_query(self, input):
-        return self.__call__(input)[0]
+        return self.__call__(input)
 
     def embed_documents(self, inputs):
         return self.__call__(inputs)
+
+    def name(self):
+        return "dummy-embedding"
+
+    def is_legacy(self):
+        return True
 
 class TestRAGHelpIntegration(unittest.TestCase):
     """Test that RAG properly enhances help queries with documentation context."""

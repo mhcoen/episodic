@@ -134,9 +134,8 @@ class TestCLICommands(unittest.TestCase):
     
     def test_compression_commands(self):
         """Test compression commands."""
-        pytest.skip("Compression command parsing in interactive mode is unstable - TODO")
-        self.assertCommandSucceeds("compression", "Compression Statistics")
-        self.assertCommandSucceeds("compression stats", "Compression Statistics")
+        self.assertCommandSucceeds("/compression", "Compression Statistics")
+        self.assertCommandSucceeds("/compression stats", "Compression Statistics")
     
     def test_rag_commands(self):
         """Test RAG (knowledge base) commands."""

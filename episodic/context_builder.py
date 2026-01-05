@@ -215,7 +215,7 @@ class ContextBuilder:
             rag_system = get_rag_system()
             if rag_system is not None and config.get("rag_auto_search", True):
                 # Search for relevant documents
-                results = rag_system.search(user_input, k=config.get("rag_max_results", 3))
+                results = rag_system.search(user_input, k=config.get("rag_max_results", 5))
                 
                 if results:
                     # Build context from search results

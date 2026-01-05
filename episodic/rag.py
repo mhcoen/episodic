@@ -337,7 +337,7 @@ class EpisodicRAG:
             Dictionary with search results and metadata
         """
         if n_results is None:
-            n_results = config.get("rag_search_results", 5)
+            n_results = config.get("rag_max_results", 5)
         
         # Build where clause for filtering
         where = None

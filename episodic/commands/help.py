@@ -42,7 +42,8 @@ def _display_help_output(text: str, color: str):
     
     # Get terminal width for wrapping
     terminal_width = shutil.get_terminal_size().columns
-    wrap_width = min(terminal_width - 2, 80)  # Leave some margin, cap at 80
+    max_width = config.get('wrap_width', 80)
+    wrap_width = min(terminal_width - 2, max_width)  # Leave some margin
     
     # For non-streaming output, we need to handle bold markers
     lines = text.split('\n')
@@ -136,9 +137,9 @@ class HelpRAG:
         """Add a document to the help collection with chunking."""
         import hashlib
 
-        # Chunk size and overlap for help docs - smaller chunks for better precision
-        chunk_size = 800
-        overlap = 150
+        # Chunk size and overlap for help docs - use config values
+        chunk_size = config.get('rag_chunk_size', 500)
+        overlap = config.get('rag_chunk_overlap', 100)
 
         # Simple chunking
         chunks = []

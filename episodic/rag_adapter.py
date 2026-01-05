@@ -89,7 +89,7 @@ class EpisodicRAGAdapter:
               source_filter: Optional[str] = None) -> Dict[str, Any]:
         """Search for relevant documents."""
         if n_results is None:
-            n_results = config.get("rag_search_results", 5)
+            n_results = config.get("rag_max_results", 5)
         
         # Check if conceptual search is enabled
         if config.get("enable_conceptual_search", False):

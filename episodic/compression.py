@@ -145,10 +145,10 @@ class AsyncCompressionManager:
             if config.get('debug'):
                 typer.echo(f"🔧 Found {len(nodes)} nodes in topic segment")
             
-            if len(nodes) < config.get('compression_min_nodes', 5):
+            if len(nodes) < config.get('compression_min_nodes', 10):
                 # Skip compression for very short topics
                 if config.get('debug'):
-                    typer.echo(f"🔧 Skipping compression - only {len(nodes)} nodes (min: {config.get('compression_min_nodes', 5)})")
+                    typer.echo(f"🔧 Skipping compression - only {len(nodes)} nodes (min: {config.get('compression_min_nodes', 10)})")
                 return True
             
             # Build conversation text

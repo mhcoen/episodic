@@ -106,7 +106,7 @@ Use '/model' to view and manage all 4 model contexts
     if config.get('rag_enabled', False):
         rag_settings = [
             ("rag-auto", str(config.get('rag_auto_search', True)), "Automatic knowledge search"),
-            ("rag-results", str(config.get('rag_max_results', 3)), "Maximum search results"),
+            ("rag-results", str(config.get('rag_max_results', 5)), "Maximum search results"),
             ("rag-citations", str(config.get('rag_show_citations', True)), "Show source citations"),
         ]
         content += "## 📚 Knowledge Base\n"

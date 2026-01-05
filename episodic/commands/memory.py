@@ -402,8 +402,8 @@ def memory_stats_command():
     typer.secho(f"  Auto-context: {'✓ Active' if rag_enabled else '✗ Disabled'}", 
                 fg=get_success_color() if rag_enabled else get_warning_color())
     typer.secho(f"  Auto-enhance: {config.get('rag_auto_enhance', True)}", fg=get_text_color())
-    typer.secho(f"  Chunk size: {config.get('rag_chunk_size', 1000)}", fg=get_text_color())
-    typer.secho(f"  Search results: {config.get('rag_search_results', 5)}", fg=get_text_color())
+    typer.secho(f"  Chunk size: {config.get('rag_chunk_size', 500)}", fg=get_text_color())
+    typer.secho(f"  Search results: {config.get('rag_max_results', 5)}", fg=get_text_color())
     
     if not rag_enabled:
         typer.secho("\n💡 Tip: Enable auto-context with '/set rag on'", fg=get_text_color(), dim=True)

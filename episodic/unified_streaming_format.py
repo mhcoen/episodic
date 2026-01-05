@@ -16,6 +16,43 @@ from episodic.llm import process_stream_response
 from episodic.debug_utils import debug_print
 
 
+def _find_bold_spans(text: str) -> List[tuple[int, int]]:
+    spans = []
+    current_pos = 0
+    while True:
+        start = text.find('**', current_pos)
+        if start == -1:
+            break
+        end = text.find('**', start + 2)
+        if end == -1:
+            break
+        spans.append((start, end + 2))
+        current_pos = end + 2
+    return spans
+
+
+def _find_safe_wrap_point(text: str, max_width: int) -> tuple[int, bool]:
+    """
+    Find a wrap point that avoids splitting ** markers or bold regions.
+
+    Returns (index, skip_space) where skip_space indicates whether the
+    break was at a space that should be removed.
+    """
+    candidate = text[:max_width].rfind(' ')
+    if candidate <= 0:
+        return candidate, True
+
+    for start, end in _find_bold_spans(text):
+        if start <= candidate < end:
+            prev_space = text[:start].rfind(' ')
+            if prev_space > 0:
+                return prev_space, True
+            if 0 < start < max_width:
+                return start, False
+            return candidate, True
+    return candidate, True
+
+
 def stream_with_format_preservation(
     stream_generator: Generator,
     model: str,
@@ -74,12 +111,12 @@ def stream_with_format_preservation(
             if wrap_width and len(buffer) > wrap_width:
                 # Buffer is too long, we need to wrap it
                 # Find last space before wrap_width
-                wrap_point = buffer[:wrap_width].rfind(' ')
+                wrap_point, skip_space = _find_safe_wrap_point(buffer, wrap_width)
                 if wrap_point > 0:
                     # Print up to wrap point
                     _print_formatted_line(buffer[:wrap_point], color)
                     # Keep rest in buffer with proper indentation
-                    remaining = buffer[wrap_point + 1:]
+                    remaining = buffer[wrap_point + 1:] if skip_space else buffer[wrap_point:]
                     # Detect indentation from the line
                     indent_match = re.match(r'^(\s*)', buffer)
                     indent = indent_match.group(1) if indent_match else ''
@@ -90,7 +127,7 @@ def stream_with_format_preservation(
                     _print_formatted_line(buffer, color, newline=False)
                     line_position += len(buffer)
                     buffer = ""
-            elif len(buffer) > 80:
+            elif len(buffer) > (wrap_width or 80):
                 # Only flush if it's getting long
                 # Don't flush based on non-alphanumeric chars as this can split ** markers
                 # Check that we don't have an unclosed ** marker
@@ -142,19 +179,26 @@ def _wrap_preserving_indent(line: str, wrap_width: int) -> List[str]:
             # Remaining content fits
             wrapped_lines.append(indent + content)
             break
-        
-        # Find a good break point (prefer spaces)
-        break_point = content[:available_width].rfind(' ')
-        
-        if break_point > 0:
-            # Break at space
-            wrapped_lines.append(indent + content[:break_point])
-            content = content[break_point + 1:]  # Skip the space
+
+        # Avoid splitting bold markers or bold regions when no safe space exists
+        for start, end in _find_bold_spans(content):
+            if start < available_width < end:
+                wrapped_lines.append(indent + content[:end])
+                content = content[end:]
+                break
         else:
-            # No space found, break at width
-            wrapped_lines.append(indent + content[:available_width])
-            content = content[available_width:]
-    
+            # Find a good break point (prefer spaces)
+            break_point, skip_space = _find_safe_wrap_point(content, available_width)
+
+            if break_point > 0:
+                # Break at space
+                wrapped_lines.append(indent + content[:break_point])
+                content = content[break_point + 1:] if skip_space else content[break_point:]
+            else:
+                # No space found, break at width
+                wrapped_lines.append(indent + content[:available_width])
+                content = content[available_width:]
+
     return wrapped_lines
 
 

@@ -228,7 +228,6 @@ def test_stream_wrap_preserves_indent(output_capture):
     assert output_capture.output() == "    word1\n    word2\n    word3\n\n"
 
 
-@pytest.mark.xfail(reason="Hardcoded 80-char flush ignores wrap_width > 80")
 def test_stream_wrap_width_uses_wrap_width_not_80(output_capture):
     def gen():
         yield "A" * 90
@@ -241,7 +240,6 @@ def test_stream_wrap_width_uses_wrap_width_not_80(output_capture):
     assert response == "A" * 90 + "\n"
 
 
-@pytest.mark.xfail(reason="Wrapping can split bold markers at boundary")
 def test_stream_wrap_boundary_at_bold_marker(output_capture):
     line = "aaaaaa**bold**bbbbbb\n"
     response = usf.stream_with_format_preservation(
@@ -252,7 +250,6 @@ def test_stream_wrap_boundary_at_bold_marker(output_capture):
     assert output_capture.output() == expected
 
 
-@pytest.mark.xfail(reason="Split bold markers across chunks can be flushed early")
 def test_stream_split_bold_marker_across_chunks_with_early_flush(output_capture):
     def gen():
         yield "A" * 81 + "*"

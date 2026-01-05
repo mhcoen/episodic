@@ -107,11 +107,24 @@ class HelpRAG:
         )
 
         # Get or create dedicated help collection
-        self.collection = self.client.get_or_create_collection(
-            name="episodic_help_docs",
-            embedding_function=self.embedding_function,
-            metadata={"description": "Episodic help documentation"}
-        )
+        # Handle case where collection exists with different embedding function config
+        try:
+            self.collection = self.client.get_or_create_collection(
+                name="episodic_help_docs",
+                embedding_function=self.embedding_function,
+                metadata={"description": "Episodic help documentation"}
+            )
+        except ValueError as e:
+            if "Embedding function conflict" in str(e):
+                # Collection exists with incompatible embedding function - delete and recreate
+                self.client.delete_collection(name="episodic_help_docs")
+                self.collection = self.client.create_collection(
+                    name="episodic_help_docs",
+                    embedding_function=self.embedding_function,
+                    metadata={"description": "Episodic help documentation"}
+                )
+            else:
+                raise
 
         self._indexed_docs = set()
         self._load_indexed_docs()

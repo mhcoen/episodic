@@ -73,6 +73,47 @@ class TestCommandSmoke:
         assert "Error initializing help system" not in output, f"/help failed silently: {output}"
         assert "⚠️" not in output or "Searching documentation" in output, f"/help showed warning: {output}"
 
+    def test_help_with_existing_collection_conflict(self):
+        """Test /help handles existing collection with different embedding function.
+
+        This simulates the real-world scenario where a user has an existing
+        help_chroma collection created with a different embedding function.
+        """
+        import chromadb
+        from pathlib import Path
+        from episodic.commands.help import help_command
+        import episodic.commands.help as help_module
+
+        # Reset singleton so we can test fresh initialization
+        help_module._help_rag = None
+
+        # Get the help_chroma path (uses test HOME from conftest)
+        persist_dir = Path.home() / ".episodic" / "help_chroma"
+        persist_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a collection with DEFAULT embedding function (no custom EF)
+        # This simulates an older/different installation
+        client = chromadb.PersistentClient(path=str(persist_dir))
+        try:
+            client.delete_collection(name="episodic_help_docs")
+        except ValueError:
+            pass  # Collection doesn't exist yet
+
+        # Create with default embedding function (conflict scenario)
+        client.create_collection(
+            name="episodic_help_docs",
+            metadata={"description": "Old collection"}
+        )
+
+        # Now run /help - it should handle the conflict gracefully
+        output, exc = self._run_command(help_command, "how do I use muse")
+
+        assert exc is None, f"/help crashed with existing collection: {exc}"
+        assert "Error initializing help system" not in output, f"/help failed with conflict: {output}"
+
+        # Cleanup
+        help_module._help_rag = None
+
     # =========================================================================
     # /topics - List topics
     # =========================================================================

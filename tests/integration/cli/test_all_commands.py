@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+import pytest
 
 
 def main():
@@ -274,3 +275,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def test_all_commands_script_skipped():
+    pytest.skip("Script-style integration runner; not a pytest test module.")

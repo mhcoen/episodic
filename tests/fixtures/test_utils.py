@@ -103,16 +103,21 @@ def insert_test_nodes(db_path: str, nodes: List[Dict]):
     """Insert test nodes directly into database."""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    seen_short_ids = set()
     
-    for node in nodes:
+    for idx, node in enumerate(nodes):
         content = node.get('content', node.get('message', ''))
+        short_id = node.get('short_id')
+        if not short_id or short_id in seen_short_ids:
+            short_id = f"t{idx}"
+        seen_short_ids.add(short_id)
         cursor.execute("""
             INSERT INTO nodes (
                 id, short_id, parent_id, content, role, provider, model
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             node['id'],
-            node['short_id'],
+            short_id,
             node.get('parent_id'),
             content,
             node.get('role', 'user'),

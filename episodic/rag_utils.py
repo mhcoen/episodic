@@ -62,6 +62,15 @@ class SilentSentenceTransformerEmbeddingFunction:
             )
         self._model = self.models[model_name]
 
+    @property
+    def name(self) -> str:
+        """Return the model name (required by ChromaDB)."""
+        return self.model_name
+
+    def is_legacy(self) -> bool:
+        """Return False to indicate this is not a legacy embedding function."""
+        return False
+
     def __call__(self, input: List[str]) -> List[np.ndarray]:
         """Generate embeddings for the given documents.
 

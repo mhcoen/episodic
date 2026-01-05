@@ -35,13 +35,16 @@ class ContextBuilder:
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]]]:
         """
         Build conversation context with optional RAG and web search.
-        
+
         Returns:
             Tuple of (messages, raw_messages, rag_context, web_context)
         """
         # Build basic conversation history
         with benchmark_resource("Database", "build context"):
             messages, raw_messages = self._build_basic_context(user_node_id, context_depth)
+
+        # Process @file references in the last user message
+        messages = self._process_file_references(messages)
 
         # Add topic-aware context retrieval (before RAG)
         topic_context = self._add_topic_context(user_input, messages)
@@ -367,3 +370,76 @@ class ContextBuilder:
                 'threads': len(self.topic_context.get('links', []))
             }
         return info
+
+    def _process_file_references(
+        self,
+        messages: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Process @file references in the last user message.
+
+        Handles:
+        - @file.txt - injects text content
+        - @"path/with spaces.txt" - quoted paths
+        - @file.pdf - extracts PDF text
+        - @file.png - sends as multimodal image
+        - @file.pdf:vision - renders PDF pages as images
+        - @file.pdf:vision:1-5 - specific page range
+        """
+        if not messages:
+            return messages
+
+        # Find the last user message
+        last_user_idx = None
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].get("role") == "user":
+                last_user_idx = i
+                break
+
+        if last_user_idx is None:
+            return messages
+
+        original_content = messages[last_user_idx].get("content", "")
+
+        # Skip if content is already multimodal (list) or empty
+        if not isinstance(original_content, str) or not original_content:
+            return messages
+
+        # Check for @ references before importing (avoid import overhead if not needed)
+        if "@" not in original_content:
+            return messages
+
+        try:
+            from episodic.file_reference import process_file_references
+
+            processed_text, multimodal_blocks, errors = process_file_references(original_content)
+
+            # Show errors to user
+            for error in errors:
+                typer.secho(error, fg="red")
+
+            # Update the message content
+            if multimodal_blocks:
+                # Convert to multimodal message format for LiteLLM
+                messages[last_user_idx]["content"] = [
+                    {"type": "text", "text": processed_text},
+                    *multimodal_blocks
+                ]
+                if config.get("debug"):
+                    debug_print(f"Added {len(multimodal_blocks)} multimodal blocks from @file references")
+            elif processed_text != original_content:
+                # Text was modified (file contents injected)
+                messages[last_user_idx]["content"] = processed_text
+                if config.get("debug"):
+                    debug_print("Processed @file references (text injection)")
+
+        except ImportError as e:
+            if config.get("debug"):
+                debug_print(f"File reference module not available: {e}")
+        except Exception as e:
+            typer.secho(f"Error processing @file references: {e}", fg="red")
+            if config.get("debug"):
+                import traceback
+                debug_print(traceback.format_exc())
+
+        return messages

@@ -315,5 +315,13 @@
   "_comment_drift_embedding_provider": "Provider: sentence-transformers, openai, huggingface",
   "drift_embedding_provider": "sentence-transformers",
   "_comment_drift_embedding_model": "Model name for drift detection embeddings",
-  "drift_embedding_model": "paraphrase-mpnet-base-v2"
+  "drift_embedding_model": "paraphrase-mpnet-base-v2",
+
+  "_comment_file_ref": "// === @FILE REFERENCE SETTINGS ===",
+  "_comment_file_ref_vision_pages": "Default number of pages to render when using @file.pdf:vision (without page range)",
+  "file_ref_vision_pages": 5,
+  "_comment_file_ref_max_text_size": "Maximum text content size in characters (content is truncated beyond this)",
+  "file_ref_max_text_size": 100000,
+  "_comment_pdf_extractor": "PDF text extraction library: pdfplumber (default) or marker (better for tables/academic)",
+  "pdf_extractor": "pdfplumber"
 }

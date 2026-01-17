@@ -62,6 +62,10 @@ class SilentSentenceTransformerEmbeddingFunction:
             )
         self._model = self.models[model_name]
 
+    def name(self) -> str:
+        """Return the name of the embedding function (required by ChromaDB)."""
+        return f"SilentSentenceTransformer:{self.model_name}"
+
     def __call__(self, input: List[str]) -> List[np.ndarray]:
         """Generate embeddings for the given documents.
 
@@ -79,6 +83,26 @@ class SilentSentenceTransformerEmbeddingFunction:
         )
 
         return [np.array(embedding, dtype=np.float32) for embedding in embeddings]
+
+    def embed_query(self, input=None, text: str = None):
+        """Embed query text(s) (required by ChromaDB for queries).
+
+        ChromaDB passes input as a list of query strings.
+        Returns list of embeddings (one per query).
+        """
+        texts = input if input is not None else text
+        if isinstance(texts, str):
+            texts = [texts]
+        if not texts:
+            return []
+        return self.__call__(texts)
+
+    def embed_documents(self, input: List[str] = None, texts: List[str] = None):
+        """Embed multiple documents (required by ChromaDB for indexing)."""
+        docs = input if input is not None else texts
+        if not docs:
+            return []
+        return self.__call__(docs)
 
 
 @contextmanager

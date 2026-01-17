@@ -126,6 +126,11 @@ Episodic automatically configures itself based on available providers:
 /new             # Start a new conversation branch
 /clear           # Clear current conversation context
 
+# File References
+@document.txt        # Include text file in message
+@paper.pdf           # Include PDF (extracts text)
+@image.png           # Include image for vision models
+
 # Analysis
 /critique        # Have another LLM critique the last response
 

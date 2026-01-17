@@ -183,10 +183,18 @@ class HelpRAG:
     def _search(self, query: str, n_results: int = 5) -> dict:
         """Search the help collection."""
         try:
+            # Debug: check collection count
+            count = self.collection.count()
+            if config.get("debug"):
+                typer.secho(f"[Help RAG] Collection has {count} documents", fg=get_text_color())
+
             results = self.collection.query(
                 query_texts=[query],
                 n_results=n_results
             )
+
+            if config.get("debug"):
+                typer.secho(f"[Help RAG] Query returned {len(results.get('ids', [[]])[0])} results", fg=get_text_color())
 
             if not results or not results['ids'] or not results['ids'][0]:
                 return {'results': []}
@@ -196,7 +204,8 @@ class HelpRAG:
                 doc = results['documents'][0][i] if results['documents'] else ""
                 metadata = results['metadatas'][0][i] if results['metadatas'] else {}
                 distance = results['distances'][0][i] if 'distances' in results else 0
-                score = max(0, 1 - distance)
+                # L2 distance for normalized vectors ranges 0-2, convert to 0-1 similarity
+                score = max(0, 1 - (distance / 2))
 
                 formatted.append({
                     'content': doc,
@@ -206,8 +215,8 @@ class HelpRAG:
 
             return {'results': formatted}
         except Exception as e:
-            if config.get("debug"):
-                typer.secho(f"[Help RAG] Search error: {e}", fg=get_error_color())
+            # Always show search errors for debugging
+            typer.secho(f"[Help RAG] Search error: {e}", fg=get_error_color())
             return {'results': []}
 
     def ensure_help_docs_indexed(self):
@@ -279,8 +288,7 @@ class HelpRAG:
         self.ensure_help_docs_indexed()
 
         # Search dedicated help collection (no filtering needed - all results are help docs)
-        with suppress_all_output():
-            results = self._search(query, n_results=n_results)
+        results = self._search(query, n_results=n_results)
 
         # Format results for help display
         formatted_results = []
@@ -499,22 +507,21 @@ def help_command(query: str):
         search_terms = "/simple command switch mode"
 
     try:
-        with suppress_all_output():
-            # Ensure docs are indexed (suppress indexing messages)
-            help_rag.ensure_help_docs_indexed()
+        # Ensure docs are indexed
+        help_rag.ensure_help_docs_indexed()
 
-            # Search help documentation
-            search_results = help_rag.search_help(search_terms, n_results=5)
+        # Search help documentation
+        search_results = help_rag.search_help(search_terms, n_results=5)
 
-        # Debug: Show what we found (outside suppress block)
+        # Debug: Show what we found
         if config.get('debug', False):
             typer.secho(f"\nDebug: Found {len(search_results)} results", fg=get_text_color())
             for i, result in enumerate(search_results):
                 score = result.get('score', 0)
                 typer.secho(f"Result {i+1} (score: {score:.3f}): {result['content'][:100]}...", fg=get_text_color())
 
-        # Check if we have relevant results
-        RELEVANCE_THRESHOLD = 0.3
+        # Check if we have relevant results (lower threshold for help searches)
+        RELEVANCE_THRESHOLD = 0.25
         relevant_results = [r for r in search_results if r.get('score', 0) >= RELEVANCE_THRESHOLD]
 
         if not relevant_results:

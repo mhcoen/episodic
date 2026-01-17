@@ -91,27 +91,37 @@ class SilentSentenceTransformerEmbeddingFunction:
         )
         return [np.array(embedding, dtype=np.float32) for embedding in embeddings]
 
-    def embed_documents(self, documents: List[str]) -> List[np.ndarray]:
+    def embed_documents(self, documents: List[str] = None, input: List[str] = None) -> List[np.ndarray]:
         """Embed a list of documents (ChromaDB interface).
 
         Args:
-            documents: Documents to generate embeddings for.
+            documents: Documents to generate embeddings for (positional).
+            input: Documents to generate embeddings for (keyword, ChromaDB uses this).
 
         Returns:
             Embeddings for the documents.
         """
-        return self._encode(documents)
+        docs = documents if documents is not None else input
+        if not docs:
+            return []
+        return self._encode(docs)
 
-    def embed_query(self, input: List[str]) -> List[np.ndarray]:
+    def embed_query(self, input=None, text: str = None) -> List[np.ndarray]:
         """Embed a query for search (ChromaDB interface).
 
         Args:
-            input: Query text(s) to embed.
+            input: Query text(s) to embed (ChromaDB passes this as keyword).
+            text: Alternative parameter name.
 
         Returns:
             Embeddings for the query.
         """
-        return self._encode(input)
+        texts = input if input is not None else text
+        if isinstance(texts, str):
+            texts = [texts]
+        if not texts:
+            return []
+        return self._encode(texts)
 
 
 @contextmanager

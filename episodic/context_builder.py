@@ -148,7 +148,13 @@ class ContextBuilder:
         Uses the topic strategy to detect if the current query relates
         to a previous topic and retrieves relevant messages.
         """
-        if not config.get('topic_context_retrieval', False):
+        topic_retrieval_enabled = config.get('topic_context_retrieval', False)
+
+        debug_print("_add_topic_context called", category="memory")
+        debug_print(f"  topic_context_retrieval={topic_retrieval_enabled}", category="memory")
+
+        if not topic_retrieval_enabled:
+            debug_print("  -> Early exit: topic_context_retrieval disabled", category="memory")
             return None
 
         try:
@@ -157,6 +163,8 @@ class ContextBuilder:
                 format_topic_context
             )
 
+            debug_print(f"  Calling retrieve_topic_context for: {user_input[:50]}...", category="memory")
+
             retrieved_messages, retrieval_info = retrieve_topic_context(
                 query=user_input,
                 current_messages=messages,
@@ -164,7 +172,10 @@ class ContextBuilder:
                 max_tokens=config.get('topic_context_max_tokens', 2000)
             )
 
+            debug_print(f"  Retrieved {len(retrieved_messages)} messages from topic context", category="memory")
+
             if not retrieved_messages:
+                debug_print("  -> No topic context found", category="memory")
                 return retrieval_info
 
             # Format the retrieved context
@@ -183,17 +194,16 @@ class ContextBuilder:
                 # Insert at the beginning (before conversation history)
                 messages.insert(0, topic_message)
 
-                if config.get("debug"):
-                    debug_print(
-                        f"Added topic context: {retrieval_info.get('total_messages', 0)} messages, "
-                        f"{retrieval_info.get('total_tokens', 0)} tokens"
-                    )
+                debug_print(
+                    f"  -> Injected topic context: {len(context_text)} chars, "
+                    f"{retrieval_info.get('total_messages', 0)} messages",
+                    category="memory"
+                )
 
             return retrieval_info
 
         except Exception as e:
-            if config.get("debug"):
-                debug_print(f"Topic context error: {e}")
+            debug_print(f"  -> Topic context error: {e}", category="memory")
             return {'error': str(e)}
 
     def _add_rag_context(
@@ -202,64 +212,163 @@ class ContextBuilder:
         messages: List[Dict[str, Any]],
         model: str
     ) -> Optional[str]:
-        """Add RAG context from both system memory and user documents."""
-        # Check if either system memory or user RAG is enabled
-        system_memory_enabled = config.get("system_memory_auto_context", True)
+        """Add RAG context from user documents and/or conversation memory.
+
+        SECURITY FIX: User documents and conversation memory are now searched
+        separately with explicit collection filters to prevent cross-contamination.
+        """
         user_rag_enabled = config.get("rag_enabled", False)
-        
-        if not system_memory_enabled and not user_rag_enabled:
+        conversation_retrieval_enabled = config.get("conversation_retrieval_enabled", False)
+        rag_auto_search = config.get("rag_auto_search", True)
+
+        # Debug: Show all gating conditions BEFORE any early returns
+        debug_print(f"_add_rag_context called:", category="memory")
+        debug_print(f"  rag_enabled={user_rag_enabled}", category="memory")
+        debug_print(f"  conversation_retrieval_enabled={conversation_retrieval_enabled}", category="memory")
+        debug_print(f"  rag_auto_search={rag_auto_search}", category="memory")
+        debug_print(f"  query: {user_input[:50]}...", category="memory")
+
+        if not user_rag_enabled and not conversation_retrieval_enabled:
+            debug_print("  -> Early exit: neither rag_enabled nor conversation_retrieval_enabled", category="memory")
             return None
-            
+
         try:
             from episodic.rag import get_rag_system
             rag_system = get_rag_system()
-            if rag_system is not None and config.get("rag_auto_search", True):
-                # Search for relevant documents
-                results = rag_system.search(user_input, k=config.get("rag_max_results", 5))
-                
-                if results:
-                    # Build context from search results
-                    context_parts = []
-                    for i, result in enumerate(results, 1):
-                        context_parts.append(f"[{i}] {result.get('text', '')}")
-                    
-                    rag_context = "\n\n".join(context_parts)
-                    
-                    # Track which documents were used
-                    doc_ids = [r['doc_id'] for r in results if 'doc_id' in r]
-                    if doc_ids:
-                        # We'll track this after getting the response
-                        # Store for later use
-                        self._pending_rag_tracking = {
-                            'doc_ids': doc_ids,
-                            'query': user_input
-                        }
-                    
-                    # Insert RAG context into messages
-                    if rag_context:
-                        # Add a system message with the context
-                        rag_message = {
-                            "role": "system",
-                            "content": f"{config.get('rag_context_prefix', 'Relevant context from knowledge base:')}\n\n{rag_context}"
-                        }
-                        # Insert after any existing system messages but before conversation
-                        insert_pos = 0
-                        for i, msg in enumerate(messages):
-                            if msg.get("role") != "system":
-                                insert_pos = i
-                                break
-                        messages.insert(insert_pos, rag_message)
-                        
-                        if config.get("debug"):
-                            debug_print(f"Added RAG context: {len(results)} results, {len(rag_context)} chars")
-                        
-                        return rag_context
-                        
+            if rag_system is None:
+                debug_print("  -> Early exit: rag_system is None", category="memory")
+                return None
+            if not rag_auto_search:
+                debug_print("  -> Early exit: rag_auto_search is False", category="memory")
+                return None
+
+            all_results = []
+            context_parts = []
+
+            # 1. Search user documents (explicitly filtered to USER_DOCS collection)
+            if user_rag_enabled:
+                doc_results = rag_system.search(
+                    user_input,
+                    n_results=config.get("rag_max_results", 5),
+                    source_filter='file'  # Forces USER_DOCS collection only
+                )
+                if doc_results and doc_results.get('results'):
+                    for result in doc_results['results']:
+                        content = result.get('content', result.get('text', ''))
+                        if content:
+                            all_results.append(result)
+                            source = result.get('metadata', {}).get('filename', 'document')
+                            context_parts.append(f"[Doc: {source}] {content}")
+
+            # 2. Search conversation memory (explicitly filtered to CONVERSATION collection)
+            if conversation_retrieval_enabled:
+                debug_print(f"Conversation retrieval enabled, searching for: {user_input[:50]}...", category="memory")
+
+                # Get IDs of messages already in context to avoid duplication
+                recent_turn_ids = self._get_recent_turn_ids(messages)
+
+                memory_results = rag_system.search(
+                    user_input,
+                    n_results=config.get("conversation_retrieval_k", 5),
+                    source_filter='conversation'  # Forces CONVERSATION collection only
+                )
+                if memory_results and memory_results.get('results'):
+                    debug_print(f"Found {len(memory_results['results'])} memory results", category="memory")
+                    for i, result in enumerate(memory_results['results'][:3]):
+                        score = result.get('relevance_score', 0)
+                        preview = result.get('content', result.get('text', ''))[:50]
+                        debug_print(f"  [{i+1}] score={score:.3f}: {preview}...", category="memory")
+
+                    memory_injected = 0
+                    for result in memory_results['results']:
+                        # Skip if this turn is already in recent context
+                        result_id = result.get('metadata', {}).get('user_id', '')
+                        if result_id in recent_turn_ids:
+                            debug_print(f"  Skipping {result_id[:8]} (already in context)", category="memory")
+                            continue
+                        content = result.get('content', result.get('text', ''))
+                        if content:
+                            all_results.append(result)
+                            context_parts.append(f"[Memory] {content}")
+                            memory_injected += 1
+                    debug_print(f"Injected {memory_injected} memory chunks into context", category="memory")
+                else:
+                    debug_print("No memory results found", category="memory")
+
+            if not context_parts:
+                debug_print("  -> Early exit: no context_parts collected", category="memory")
+                return None
+
+            # Separate document context from memory context for different prefixes
+            doc_parts = [p for p in context_parts if p.startswith("[Doc:")]
+            memory_parts = [p for p in context_parts if p.startswith("[Memory]")]
+
+            # Track which documents were used
+            doc_ids = [r.get('metadata', {}).get('doc_id') for r in all_results
+                       if r.get('metadata', {}).get('doc_id')]
+            if doc_ids:
+                self._pending_rag_tracking = {
+                    'doc_ids': doc_ids,
+                    'query': user_input
+                }
+
+            # Insert after any existing system messages but before conversation
+            insert_pos = 0
+            for i, msg in enumerate(messages):
+                if msg.get("role") != "system":
+                    insert_pos = i
+                    break
+
+            # Insert memory context with conversation-specific prefix
+            if memory_parts:
+                memory_prefix = config.get(
+                    'conversation_memory_prefix',
+                    "IMPORTANT: Below are excerpts from your previous conversations with this user.\n"
+                    "You MUST base your answer ONLY on this information.\n"
+                    "Do NOT use general knowledge. If the information isn't in these excerpts, "
+                    "say \"I don't have that in our conversation history.\"\n\n"
+                    "Previous conversations:"
+                )
+                memory_context = "\n\n".join(memory_parts)
+                memory_message = {
+                    "role": "system",
+                    "content": f"{memory_prefix}\n\n{memory_context}"
+                }
+                messages.insert(insert_pos, memory_message)
+                insert_pos += 1  # Adjust for next insertion
+
+            # Insert document context with standard prefix
+            if doc_parts:
+                doc_prefix = config.get('rag_context_prefix', 'Relevant context from knowledge base:')
+                doc_context = "\n\n".join(doc_parts)
+                doc_message = {
+                    "role": "system",
+                    "content": f"{doc_prefix}\n\n{doc_context}"
+                }
+                messages.insert(insert_pos, doc_message)
+
+            rag_context = "\n\n".join(context_parts)
+
+            if config.get("debug"):
+                debug_print(f"Added RAG context: {len(all_results)} results, {len(rag_context)} chars")
+                if memory_parts:
+                    debug_print(f"  Memory context: {len(memory_parts)} items with conversation-specific prefix", category="memory")
+                if doc_parts:
+                    debug_print(f"  Document context: {len(doc_parts)} items", category="memory")
+
+            return rag_context
+
         except Exception as e:
             if config.get("debug"):
                 typer.echo(f"⚠️  RAG search error: {e}")
-        
+
         return None
+
+    def _get_recent_turn_ids(self, messages: List[Dict[str, Any]]) -> set:
+        """Extract turn IDs from recent messages to avoid retrieval duplication."""
+        # This is a placeholder - actual implementation depends on how messages store IDs
+        # For now, return empty set (no deduplication)
+        return set()
     
     def _add_web_context(
         self,

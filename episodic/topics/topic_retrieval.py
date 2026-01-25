@@ -88,11 +88,14 @@ def retrieve_topic_context(
         from episodic.db import get_recent_topics
 
         strategy = get_current_strategy()
+        debug_print(f"  [topic_retrieval] Using strategy: {strategy.name}", category="memory")
 
         # Get recent topics from database
         topics = get_recent_topics(limit=20)
+        debug_print(f"  [topic_retrieval] Found {len(topics)} recent topics in DB", category="memory")
 
         if not topics:
+            debug_print("  [topic_retrieval] -> No topics in database", category="memory")
             return [], {'reason': 'no_topics'}
 
         # Convert topics to Thread objects
@@ -114,8 +117,10 @@ def retrieve_topic_context(
                     created_at=datetime.now(),
                     messages=topic_messages
                 ))
+                debug_print(f"  [topic_retrieval] Thread: {topic['name']} ({len(topic_messages)} msgs)", category="memory")
 
         if not threads:
+            debug_print("  [topic_retrieval] -> No threads with messages", category="memory")
             return [], {'reason': 'no_thread_messages'}
 
         # Build a "current thread" from recent messages
@@ -132,9 +137,11 @@ def retrieve_topic_context(
             )
 
         # Use strategy to detect thread links
+        debug_print(f"  [topic_retrieval] Checking for thread links...", category="memory")
         links = strategy.detect_thread_link(query, threads, current_thread)
 
         if not links:
+            debug_print(f"  [topic_retrieval] -> No links detected by strategy", category="memory")
             return [], {'reason': 'no_links_detected'}
 
         # Retrieve messages from linked threads

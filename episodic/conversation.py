@@ -473,45 +473,19 @@ class ConversationManager:
                 if not topic_changed and not self.current_topic and config.get("automatic_topic_detection"):
                     self.topic_handler.check_and_create_first_topic(user_node_id, assistant_node_id)
                 
-                # Auto-index in memory system - also for skipped responses
-                if config.get("enable_memory_poc", False):
-                    try:
-                        from episodic.rag_memory import memory_system
-                        import asyncio
-                        # Run sync version for now (we'll make it async later)
-                        loop = asyncio.new_event_loop()
-                        loop.run_until_complete(memory_system.on_message(user_input, display_response))
-                        loop.close()
-                    except Exception as e:
-                        debug_print(f"Error indexing: {e}", category="memory")
-                        if config.get("debug"):
-                            import traceback
-                            traceback.print_exc()
-                elif config.get("enable_memory_rag", False):
-                    # Index in SQLite+ChromaDB system
-                    try:
-                        from episodic.rag_memory_sqlite import memory_rag
-                        import asyncio
-                        # Create nodes for indexing
-                        user_node = {
-                            'id': user_node_id,
-                            'content': user_input,
-                            'role': 'user'
-                        }
-                        assistant_node = {
-                            'id': assistant_node_id,
-                            'content': display_response,
-                            'role': 'assistant'
-                        }
-                        loop = asyncio.new_event_loop()
-                        loop.run_until_complete(memory_rag.index_exchange(user_node, assistant_node))
-                        loop.close()
-                        
-                        if config.get("debug"):
-                            debug_print("[Memory] Indexed conversation in ChromaDB")
-                    except Exception as e:
-                        if config.get("debug"):
-                            debug_print(f"[Memory] Indexing error: {e}")
+                # Auto-index in memory system - fire-and-forget (non-blocking)
+                if config.get("enable_memory_rag", False):
+                    user_node = {
+                        'id': user_node_id,
+                        'content': user_input,
+                        'role': 'user'
+                    }
+                    assistant_node = {
+                        'id': assistant_node_id,
+                        'content': display_response,
+                        'role': 'assistant'
+                    }
+                    _fire_and_forget_index(user_node, assistant_node)
                 
                 return assistant_node_id, display_response
             
@@ -729,9 +703,20 @@ class ConversationManager:
             else:
                 # Regular LLM query
                 with benchmark_resource("LLM Call", f"main query - {model}"):
+                    # Debug: Show messages being sent to LLM
+                    debug_print(f"Messages to LLM ({len(messages)} total):", category="memory")
+                    for i, msg in enumerate(messages):
+                        role = msg.get('role', 'unknown')
+                        content = msg.get('content', '')
+                        if isinstance(content, str):
+                            preview = content[:200].replace('\n', ' ')
+                        else:
+                            preview = str(content)[:200]
+                        debug_print(f"  [{i}] {role}: {preview}...", category="memory")
+
                     # Query the LLM with streaming
                     stream_enabled = config.get("stream_responses", True)
-                    
+
                     if stream_enabled:
                         # Get the stream generator
                         with benchmark_resource("LLM", f"query stream - {model}"):
@@ -793,44 +778,19 @@ class ConversationManager:
             # Update current node
             self.set_current_node_id(assistant_node_id)
             
-            # Auto-index in memory system
-            if config.get("enable_memory_poc", False):
-                try:
-                    from episodic.rag_memory import memory_system
-                    import asyncio
-                    # Run sync version for now (we'll make it async later)
-                    loop = asyncio.new_event_loop()
-                    loop.run_until_complete(memory_system.on_message(user_input, display_response))
-                    loop.close()
-                    # Show progress for POC only in debug mode
-                    debug_print(f"Indexed: user='{user_input[:30]}...', assistant='{display_response[:30]}...'", category="memory")
-                except Exception as e:
-                    debug_print(f"Error indexing: {e}", category="memory")
-                    import traceback
-                    traceback.print_exc()
-            elif config.get("enable_memory_rag", False):
-                # Index in SQLite+ChromaDB system
-                try:
-                    from episodic.rag_memory_sqlite import memory_rag
-                    import asyncio
-                    # Create nodes for indexing
-                    user_node = {
-                        'id': user_node_id,
-                        'content': user_input,
-                        'role': 'user'
-                    }
-                    assistant_node = {
-                        'id': assistant_node_id,
-                        'content': display_response,
-                        'role': 'assistant'
-                    }
-                    loop = asyncio.new_event_loop()
-                    loop.run_until_complete(memory_rag.index_exchange(user_node, assistant_node))
-                    loop.close()
-                    
-                    debug_print("Indexed conversation in ChromaDB", category="memory")
-                except Exception as e:
-                    debug_print(f"Indexing error: {e}", category="memory")
+            # Auto-index in memory system - fire-and-forget (non-blocking)
+            if config.get("enable_memory_rag", False):
+                user_node = {
+                    'id': user_node_id,
+                    'content': user_input,
+                    'role': 'user'
+                }
+                assistant_node = {
+                    'id': assistant_node_id,
+                    'content': display_response,
+                    'role': 'assistant'
+                }
+                _fire_and_forget_index(user_node, assistant_node)
             
             # Track RAG usage if applicable
             if rag_context:
@@ -895,6 +855,44 @@ class ConversationManager:
             if config.get("debug"):
                 import traceback
                 traceback.print_exc()
+
+
+# Background indexing helper for non-blocking memory storage
+def _fire_and_forget_index(user_node: Dict, assistant_node: Dict):
+    """Schedule conversation indexing without blocking the main thread.
+
+    Skips indexing for recall/referential queries to prevent memory pollution.
+    Only indexes actual informational exchanges, not meta-queries like
+    "what did we discuss about X?" which would pollute memory with
+    hallucinated recall responses.
+    """
+    import threading
+
+    def _index_in_background():
+        try:
+            from episodic.rag_memory_sqlite import memory_rag
+            from episodic.rag_memory_smart import detect_recall_intent
+
+            user_content = user_node.get('content', '')
+
+            # Check if this is a recall query - don't index meta-queries
+            should_retrieve, confidence, reason = detect_recall_intent(user_content)
+            if should_retrieve and confidence > 0.5:
+                debug_print(
+                    f"Skipping indexing for recall query (conf={confidence:.2f}): {user_content[:50]}...",
+                    category="memory"
+                )
+                return
+
+            # Only index non-recall exchanges
+            memory_rag.index_exchange(user_node, assistant_node)
+            debug_print("Indexed conversation in ChromaDB", category="memory")
+        except Exception as e:
+            debug_print(f"Background indexing failed: {e}", category="memory")
+
+    # Fire-and-forget in background thread
+    thread = threading.Thread(target=_index_in_background, daemon=True)
+    thread.start()
 
 
 # Create a module-level instance for backward compatibility

@@ -3,6 +3,7 @@ Unified streaming module that extracts the streaming logic from conversation.py
 to be used by all streaming outputs (LLM, Muse, Summary, etc.)
 """
 
+import sys
 import time
 import math
 import random
@@ -17,6 +18,43 @@ from episodic.llm import process_stream_response
 
 # Import debug_print from common utilities
 from episodic.debug_utils import debug_print
+
+
+def _check_keyboard_interrupt() -> bool:
+    """
+    Check for keyboard input without blocking.
+
+    Returns True if Enter or Escape was pressed (interrupt signal).
+    Used to allow users to stop TTS playback by pressing a key.
+    """
+    try:
+        import select
+
+        # Check if there's input available on stdin (Unix only)
+        if sys.platform != 'win32':
+            readable, _, _ = select.select([sys.stdin], [], [], 0)
+            if readable:
+                # Read and discard the input
+                char = sys.stdin.read(1)
+                # Enter (newline) or Escape triggers interrupt
+                if char in ('\n', '\r', '\x1b'):
+                    return True
+    except Exception:
+        pass  # Ignore errors - non-blocking check is best-effort
+
+    return False
+
+
+def _interrupt_tts_if_active() -> None:
+    """Interrupt TTS playback if voice mode is active."""
+    if config.get("voice_mode", False):
+        try:
+            from episodic.voice import get_voice_manager
+            manager = get_voice_manager()
+            if manager.is_active:
+                manager.interrupt_speech()
+        except ImportError:
+            pass
 
 
 def unified_stream_response(
@@ -230,11 +268,16 @@ def unified_stream_response(
                                           current_position, line_start,
                                           in_bold, in_numbered_list, in_list_item, in_header)
                             
-                            # Apply delay
+                            # Apply delay with keyboard interrupt check
                             elapsed = time.time() - start_time
                             delay = calculate_delay(elapsed, word)
                             if delay > 0:
-                                time.sleep(delay)
+                                # Sleep in small increments to allow interrupt detection
+                                sleep_start = time.time()
+                                while time.time() - sleep_start < delay:
+                                    if _check_keyboard_interrupt():
+                                        _interrupt_tts_if_active()
+                                    time.sleep(min(0.05, delay))
                 
                 accumulated_text = remaining_text
             elif '\n' in accumulated_text:
@@ -245,11 +288,15 @@ def unified_stream_response(
                         _print_word(parts[0], color, wrap_width,
                                   current_position, line_start,
                                   in_bold, in_numbered_list, in_list_item, in_header)
-                    # Apply delay
+                    # Apply delay with keyboard interrupt check
                     elapsed = time.time() - start_time
                     delay = calculate_delay(elapsed, parts[0])
                     if delay > 0:
-                        time.sleep(delay)
+                        sleep_start = time.time()
+                        while time.time() - sleep_start < delay:
+                            if _check_keyboard_interrupt():
+                                _interrupt_tts_if_active()
+                            time.sleep(min(0.05, delay))
                 
                 # Print newline
                 _print_word('\n', color, wrap_width,

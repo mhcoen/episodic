@@ -154,6 +154,15 @@ class VoiceModeManager:
             self._idle_timer.cancel()
             self._idle_timer = None
 
+    def pause_idle_timer(self):
+        """Pause the idle timer (call when processing LLM request)."""
+        self._cancel_idle_timer()
+
+    def resume_idle_timer(self):
+        """Resume the idle timer (call after LLM response completes)."""
+        if self._state not in (VoiceState.OFF, VoiceState.IDLE):
+            self._start_idle_timer()
+
     def _enter_idle(self):
         """Transition to IDLE state (wake word listening only)."""
         # Only transition from LISTENING state
@@ -440,6 +449,16 @@ class VoiceModeManager:
         Used by the sentence buffer during streaming.
         """
         self.speak(sentence, immediate=False)
+
+    def interrupt_speech(self):
+        """
+        Interrupt current TTS playback.
+
+        Clears the audio queue with a fade-out to prevent clicks.
+        Used when user presses a key to stop speech output.
+        """
+        if self._audio_playback:
+            self._audio_playback.clear_queue()
 
     def wait_for_speech_complete(self):
         """Wait for all queued TTS to finish playing."""

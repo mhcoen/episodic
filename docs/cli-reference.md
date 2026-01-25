@@ -158,6 +158,15 @@ List recent nodes
 /list --count 10   # Show 10 most recent
 ```
 
+### /copy
+Copy conversation content to clipboard
+```bash
+/copy              # Copy last assistant response to clipboard
+/copy <node_id>    # Copy specific node content to clipboard
+```
+
+Cross-platform support: macOS (pbcopy), Linux X11 (xclip), Linux Wayland (wl-copy), Windows/WSL (clip.exe).
+
 ### /ancestry
 Show conversation thread
 ```bash

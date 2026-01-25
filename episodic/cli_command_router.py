@@ -191,6 +191,8 @@ def handle_command(command_str: str) -> bool:
             _handle_migrate(args)
         elif cmd == "/critique":
             _handle_critique(args)
+        elif cmd == "/copy":
+            _handle_copy(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -987,3 +989,10 @@ def _handle_critique(args: List[str]):
     from episodic.commands.critique import critique_command
     target = args[0] if args else None
     critique_command(target)
+
+
+def _handle_copy(args: List[str]):
+    """Handle /copy command."""
+    from episodic.commands.clipboard import copy_command
+    node_id = args[0] if args else None
+    copy_command(node_id)

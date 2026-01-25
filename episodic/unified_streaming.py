@@ -25,7 +25,8 @@ def unified_stream_response(
     prefix: Optional[str] = None,
     color: Optional[str] = None,
     wrap_width: Optional[int] = None,
-    preserve_formatting: Optional[bool] = None
+    preserve_formatting: Optional[bool] = None,
+    enable_tts: bool = True
 ) -> str:
     """
     Unified streaming function that handles all response streaming with consistent formatting.
@@ -164,7 +165,7 @@ def unified_stream_response(
     # Voice TTS integration - stream sentences to speech
     voice_sentence_buffer = None
     voice_manager = None
-    if config.get("voice_mode", False) and config.get("voice_tts_enabled", True):
+    if enable_tts and config.get("voice_mode", False) and config.get("voice_tts_enabled", True):
         try:
             from episodic.voice import get_voice_manager
             from episodic.voice.sentence_buffer import SentenceBuffer
@@ -287,11 +288,12 @@ def unified_stream_response(
     if current_position > 0:
         typer.echo("")
 
-    # Flush remaining voice TTS and wait for speech to complete
+    # Flush remaining voice TTS (playback continues in background)
     if voice_sentence_buffer:
         voice_sentence_buffer.flush()
-        if voice_manager:
-            voice_manager.wait_for_speech_complete()
+        # Don't wait for speech to complete - let user type while TTS plays
+        # The mic is muted during playback anyway, so voice input won't work
+        # but keyboard input (with auto-complete) will work immediately
 
     # Add extra blank line after muse responses
     if config.get("muse_mode", False):
@@ -321,7 +323,8 @@ def unified_stream_text(
     prefix: Optional[str] = None,
     color: Optional[str] = None,
     wrap_width: Optional[int] = None,
-    preserve_formatting: Optional[bool] = None
+    preserve_formatting: Optional[bool] = None,
+    enable_tts: bool = True
 ) -> str:
     """
     Stream precomputed text through the unified formatter.
@@ -345,7 +348,8 @@ def unified_stream_text(
         prefix=prefix,
         color=color,
         wrap_width=wrap_width,
-        preserve_formatting=preserve_formatting
+        preserve_formatting=preserve_formatting,
+        enable_tts=enable_tts
     )
 
 

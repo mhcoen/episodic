@@ -433,16 +433,19 @@ def show_history_help():
         ("/show <id>", "Show details of a specific node"),
         ("/print", "Print current node content"),
         ("/print <id>", "Print specific node content"),
+        ("/copy", "Copy last response to clipboard"),
+        ("/copy <id>", "Copy specific node to clipboard"),
         ("/head", "Show current node"),
         ("/head <id>", "Set current node"),
         ("/history", "Show conversation history (alias for /list)"),
         ("/tree", "Show conversation tree structure")
     ]
-    
+
     # Navigation examples
     navigation = [
         ("/list", "See recent exchanges"),
         ("/show AB", "View details of node AB"),
+        ("/copy", "Copy last LLM response to clipboard"),
         ("/head CD", "Continue from node CD")
     ]
 
@@ -576,16 +579,16 @@ def show_voice_help():
     # STT providers
     stt_providers = [
         ("local_whisper", "Free, runs locally (default)"),
-        ("openai_whisper", "~$0.006/min, excellent accuracy"),
-        ("deepgram", "~$0.008/min, real-time streaming"),
+        ("openai_whisper", "Cloud API, excellent accuracy"),
+        ("deepgram", "Cloud API, real-time streaming"),
     ]
 
     # TTS providers
     tts_providers = [
         ("local_piper", "Free, fast, lower quality (default)"),
         ("local_xtts", "Free, high quality, slow first load (~18s)"),
-        ("openai_tts", "~$0.015/min, good quality"),
-        ("elevenlabs", "~$0.20/1k chars, highest quality"),
+        ("openai_tts", "Cloud API, good quality"),
+        ("elevenlabs", "Cloud API, highest quality"),
     ]
 
     # Examples
@@ -594,6 +597,7 @@ def show_voice_help():
         ("/voice info", "Check microphone before enabling"),
         ("/set voice_stt_provider openai_whisper", "Use OpenAI for STT"),
         ("/set voice_tts_provider local_xtts", "Use high-quality local TTS"),
+        ("/set voice_wake_word jarvis", "Change wake word (see all with /set voice_wake_word)"),
     ]
 
     # Find the longest item for alignment

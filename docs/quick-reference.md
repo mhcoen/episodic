@@ -89,6 +89,7 @@ Just type to chat! No prefix needed.
 |---------|-------------|
 | `/list` | Recent messages |
 | `/show id` | Show specific node |
+| `/copy` | Copy last response to clipboard |
 | `/ancestry id` | Show conversation thread |
 
 ### Scripts & Automation

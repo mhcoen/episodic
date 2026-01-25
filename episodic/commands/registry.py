@@ -277,7 +277,11 @@ def register_all_commands():
     
     # Developer commands - hidden from normal help
     command_registry.register("dev", dev, "Developer maintenance commands", "Developer")
-    
+
+    # Clipboard command
+    from episodic.commands.clipboard import copy_command
+    command_registry.register("copy", copy_command, "Copy last response to clipboard", "Utility")
+
     # Register memory commands if RAG is available
     if rag_available:
         # Use lazy loading for memory commands

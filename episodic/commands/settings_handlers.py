@@ -454,4 +454,10 @@ PARAM_HANDLERS = {
     'topic_granularity': handle_topic_granularity,
     'topic_temperature': handle_topic_temperature,
     'topic_strategy': handle_topic_strategy,
+
+    # Reasoning control (for models that support it: GPT-5.2, Nemotron, Qwen3, etc.)
+    'reasoning': lambda v: handle_boolean_param('reasoning_enabled', v),
+    'reasoning_enabled': lambda v: handle_boolean_param('reasoning_enabled', v),
+    'reasoning_effort': lambda v: handle_string_param('reasoning_effort', v, ['minimal', 'low', 'medium', 'high']),
+    'reasoning_verbosity': lambda v: handle_string_param('reasoning_verbosity', v, ['low', 'medium', 'high']),
 }

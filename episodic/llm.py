@@ -11,6 +11,11 @@ from litellm.utils import supports_prompt_caching
 from episodic.config import config
 from episodic.llm_config import get_current_provider, get_provider_config
 from episodic.llm_manager import llm_manager
+from episodic.reasoning import (
+    get_reasoning_controller_for_model,
+    get_session_reasoning_config,
+    ReasoningConfig
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -320,19 +325,35 @@ def _execute_llm_query(
             logger.debug(f"[{msg['role']}]: {msg.get('content', msg)}")
         logger.debug("===================================")
 
-    # Handle GPT-5 specific parameters
-    if "gpt-5" in full_model.lower():
-        # GPT-5 supports verbosity and reasoning_effort parameters from 'gpt' config
-        gpt_params = config.get('gpt', {})
-        if gpt_params:
-            api_params.update(gpt_params)
+    # Handle reasoning control via ReasoningController
+    reasoning_controller = get_reasoning_controller_for_model(model)
+    reasoning_config = get_session_reasoning_config()
 
+    if reasoning_controller and reasoning_controller.has_reasoning:
+        # Get API params from reasoning controller (handles GPT-5, Ollama think, etc.)
+        reasoning_params = reasoning_controller.get_api_params(reasoning_config)
+        api_params.update(reasoning_params)
+
+        # Modify system prompt if needed (for system_prompt_tag mechanism like Nemotron)
+        if reasoning_controller.mechanism == "system_prompt_tag":
+            for msg in messages:
+                if msg.get("role") == "system":
+                    original = msg.get("content", "")
+                    msg["content"] = reasoning_controller.modify_system_prompt(original, reasoning_config)
+                    break
+
+        if config.get("debug", False):
+            logger.debug(f"Reasoning: mechanism={reasoning_controller.mechanism}, enabled={reasoning_config.enabled}, params={reasoning_params}")
+
+    # Handle GPT-5 specific temperature/stop restrictions (separate from reasoning)
+    if "gpt-5" in full_model.lower():
         # GPT-5 only supports default temperature (1.0) and doesn't support stop sequences
         unsupported_gpt5_params = ['temperature', 'stop', 'top_p', 'presence_penalty', 'frequency_penalty']
         for param in unsupported_gpt5_params:
             api_params.pop(param, None)
     else:
-        # Non-GPT-5 models don't support verbosity or reasoning_effort
+        # Non-GPT-5 models don't support verbosity or reasoning_effort from legacy gpt config
+        # (now handled by reasoning controller, but remove any legacy params)
         gpt5_only_params = ['verbosity', 'reasoning_effort']
         for param in gpt5_only_params:
             api_params.pop(param, None)

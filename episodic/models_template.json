@@ -169,7 +169,20 @@
             "Pro variant more expensive",
             "May be overkill for simple tasks"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": ["chat", "detection", "synthesis"],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "reasoning_effort": {
+                "options": ["minimal", "low", "medium", "high"],
+                "default": "medium"
+              },
+              "verbosity": {
+                "options": ["low", "medium", "high"],
+                "default": "medium"
+              }
+            }
+          }
         }
       ]
     },
@@ -589,7 +602,12 @@
             "Slower due to reasoning traces",
             "Full model needs good hardware"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": ["detection", "synthesis"],
+          "reasoning": {
+            "mechanism": "inherent",
+            "always_on": true,
+            "note": "Always reasons in <think> tags; cannot be disabled without custom template"
+          }
         },
         {
           "name": "deepseek-v3.1",
@@ -612,7 +630,16 @@
             "Large model needs good hardware",
             "Slower in thinking mode"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": ["chat", "detection", "synthesis"],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "enable_thinking": {
+                "options": [true, false],
+                "default": false
+              }
+            }
+          }
         },
         {
           "name": "nemotron-3-nano",
@@ -635,7 +662,13 @@
             "Slightly lower accuracy without reasoning",
             "New architecture may have quirks"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": ["chat", "detection", "synthesis"],
+          "reasoning": {
+            "mechanism": "system_prompt_tag",
+            "tags": {"on": "/think", "off": "/no_think"},
+            "default": "on",
+            "placement": "end_of_system"
+          }
         },
         {
           "name": "qwen3-coder",
@@ -658,7 +691,47 @@
             "Optimized for code tasks",
             "May overthink simple queries"
           ],
-          "recommended_for": ["synthesis", "detection"]
+          "recommended_for": ["synthesis", "detection"],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "think": {
+                "options": [true, false],
+                "default": true
+              }
+            },
+            "note": "Ollama wraps native /think tags with API parameter"
+          }
+        },
+        {
+          "name": "qwen3",
+          "display_name": "Qwen 3",
+          "type": "both",
+          "context_window": 131072,
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "April 2025",
+          "description": "Alibaba's Qwen 3 via Ollama. Features hybrid thinking mode - use /think for chain-of-thought reasoning or /no_think for direct answers. Strong multilingual support (119 languages). Available in multiple sizes. Excels at reasoning, coding, and instruction following.",
+          "strengths": [
+            "Hybrid thinking mode",
+            "119 language support",
+            "128K context window",
+            "Strong reasoning"
+          ],
+          "weaknesses": [
+            "Newer, less battle-tested"
+          ],
+          "recommended_for": ["chat", "detection"],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "think": {
+                "options": [true, false],
+                "default": true
+              }
+            },
+            "note": "Ollama wraps native /think tags with API parameter"
+          }
         },
         {
           "name": "qwen2.5",
@@ -1626,6 +1699,8 @@
     "chat": "[C]",
     "base": "[B]",
     "both": "[CI]",
-    "unknown": "[?]"
+    "unknown": "[?]",
+    "_reasoning_suffix": "R",
+    "_note": "When model has 'reasoning' field, append R to indicator: [CI] -> [CIR], [I] -> [I R]"
   }
 }

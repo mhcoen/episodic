@@ -24,6 +24,21 @@ from contextlib import redirect_stdout, redirect_stderr
 # Constants
 PRICING_TOKEN_COUNT = 1000
 
+
+def _get_indicator_color(type_indicator: str):
+    """Get color for a type indicator, handling reasoning suffix."""
+    # Strip R suffix for base type detection
+    base = type_indicator.strip('[]').replace('R', '').strip()
+
+    color_map = {
+        'D': typer.colors.YELLOW,
+        'I': typer.colors.GREEN,
+        'C': typer.colors.BLUE,
+        'CI': typer.colors.CYAN,
+        'B': typer.colors.MAGENTA,
+    }
+    return color_map.get(base)
+
 # Import cost_per_token from litellm if available
 try:
     from litellm import cost_per_token
@@ -138,18 +153,11 @@ def show_current_models():
         # Display the model info
         typer.secho(f"  {description:<12} ", fg=get_text_color(), nl=False)
         
-        # Show type indicator with color (pad to 4 chars for alignment)
-        padding = " " * (4 - len(type_indicator))
-        if type_indicator == '[D]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.YELLOW, bold=True)
-        elif type_indicator == '[I]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.GREEN, bold=True)
-        elif type_indicator == '[C]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.BLUE, bold=True)
-        elif type_indicator == '[CI]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.CYAN, bold=True)
-        elif type_indicator == '[B]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.MAGENTA, bold=True)
+        # Show type indicator with color (pad to 5 chars for alignment with reasoning suffix)
+        padding = " " * (5 - len(type_indicator))
+        indicator_color = _get_indicator_color(type_indicator)
+        if indicator_color:
+            typer.secho(type_indicator, nl=False, fg=indicator_color, bold=True)
         else:
             typer.secho(type_indicator, nl=False, fg=get_text_color(), dim=True)
 
@@ -163,7 +171,7 @@ def show_current_models():
     
     # Add legend for model types (only show types that are actually present)
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
-    
+
     type_info = {
         '[D]': ("Detection model (local, boundary detection)", typer.colors.YELLOW),
         '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
@@ -173,19 +181,32 @@ def show_current_models():
         '[?]': ("Unknown type", None)  # No color, will use dim
     }
 
+    # Check if any reasoning models are present (R suffix)
+    has_reasoning_models = any('R' in t for t in seen_types)
+
+    # Normalize seen types by stripping R suffix for legend display
+    normalized_seen = {t.replace('R', '').replace(' ', '') for t in seen_types}
+
     # Only show types that were actually seen (D first for detection, then C as most familiar)
     for type_indicator in ['[D]', '[C]', '[I]', '[CI]', '[B]', '[?]']:
-        if type_indicator in seen_types:
+        normalized = type_indicator.strip('[]')
+        if f'[{normalized}]' in normalized_seen or type_indicator in normalized_seen or normalized in [t.strip('[]') for t in normalized_seen]:
             description, color = type_info[type_indicator]
-            # Pad indicator to align equals signs (longest is [CI] at 4 chars)
-            padded_indicator = f"{type_indicator:4}"
+            # Pad indicator to align equals signs (longest is [CIR] at 5 chars)
+            padded_indicator = f"{type_indicator:5}"
             typer.secho("  ", nl=False)
             if color:
                 typer.secho(padded_indicator, fg=color, bold=True, nl=False)
             else:
                 typer.secho(padded_indicator, fg=get_text_color(), dim=True, nl=False)
             typer.secho(f" = {description}", fg=get_text_color())
-    
+
+    # Show reasoning suffix explanation if any reasoning models present
+    if has_reasoning_models:
+        typer.secho("  ", nl=False)
+        typer.secho("R     ", fg=typer.colors.WHITE, bold=True, nl=False)
+        typer.secho("= Reasoning control (use /set reasoning on|off)", fg=get_text_color())
+
     typer.secho("\nUse '/model list' to see available models", fg=get_text_color(), dim=True)
 
 
@@ -273,21 +294,14 @@ def show_available_models():
             typer.secho(f". ", nl=False, fg=get_text_color())
             
             # Show type indicator with color
-            if info['type_indicator'] == '[D]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.YELLOW, bold=True)
-            elif info['type_indicator'] == '[I]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.GREEN, bold=True)
-            elif info['type_indicator'] == '[C]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.BLUE, bold=True)
-            elif info['type_indicator'] == '[CI]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.CYAN, bold=True)
-            elif info['type_indicator'] == '[B]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.MAGENTA, bold=True)
+            indicator_color = _get_indicator_color(info['type_indicator'])
+            if indicator_color:
+                typer.secho(info['type_indicator'], nl=False, fg=indicator_color, bold=True)
             else:
                 typer.secho(info['type_indicator'], nl=False, fg=get_text_color(), dim=True)
-            
-            # Pad type indicator to 4 chars (longest is [CI]) for alignment
-            type_padding = " " * (4 - len(info['type_indicator']))
+
+            # Pad type indicator to 5 chars (longest is [CIR]) for alignment
+            type_padding = " " * (5 - len(info['type_indicator']))
             typer.secho(f"{type_padding} {info['formatted_display']}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
             
             # Show technical info if available
@@ -331,7 +345,7 @@ def show_available_models():
     
     # Add legend for model types (only show types that are actually present)
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
-    
+
     type_info = {
         '[D]': ("Detection model (local, boundary detection)", typer.colors.YELLOW),
         '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
@@ -341,19 +355,32 @@ def show_available_models():
         '[?]': ("Unknown type", None)  # No color, will use dim
     }
 
+    # Check if any reasoning models are present (R suffix)
+    has_reasoning_models = any('R' in t for t in seen_types)
+
+    # Normalize seen types by stripping R suffix for legend display
+    normalized_seen = {t.replace('R', '').replace(' ', '') for t in seen_types}
+
     # Only show types that were actually seen (D first for detection, then C as most familiar)
     for type_indicator in ['[D]', '[C]', '[I]', '[CI]', '[B]', '[?]']:
-        if type_indicator in seen_types:
+        normalized = type_indicator.strip('[]')
+        if f'[{normalized}]' in normalized_seen or type_indicator in normalized_seen or normalized in [t.strip('[]') for t in normalized_seen]:
             description, color = type_info[type_indicator]
-            # Pad indicator to align equals signs (longest is [CI] at 4 chars)
-            padded_indicator = f"{type_indicator:4}"
+            # Pad indicator to align equals signs (longest is [CIR] at 5 chars)
+            padded_indicator = f"{type_indicator:5}"
             typer.secho("  ", nl=False)
             if color:
                 typer.secho(padded_indicator, fg=color, bold=True, nl=False)
             else:
                 typer.secho(padded_indicator, fg=get_text_color(), dim=True, nl=False)
             typer.secho(f" = {description}", fg=get_text_color())
-    
+
+    # Show reasoning suffix explanation if any reasoning models present
+    if has_reasoning_models:
+        typer.secho("  ", nl=False)
+        typer.secho("R     ", fg=typer.colors.WHITE, bold=True, nl=False)
+        typer.secho("= Reasoning control (use /set reasoning on|off)", fg=get_text_color())
+
     typer.secho("\nTo change a model:", fg=get_text_color())
     typer.secho("  /model chat <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model detection <number|full-model-name>", fg=get_system_color())
@@ -465,21 +492,10 @@ def show_model_info(model_number: int):
     typer.secho(creator or "Unknown", fg=get_heading_color())
 
     typer.secho("Type:           ", fg=get_text_color(), nl=False)
-    if type_indicator == '[D]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.YELLOW, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.YELLOW, bold=True)
-    elif type_indicator == '[I]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.GREEN, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.GREEN, bold=True)
-    elif type_indicator == '[C]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.BLUE, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.BLUE, bold=True)
-    elif type_indicator == '[CI]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.CYAN, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.CYAN, bold=True)
-    elif type_indicator == '[B]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.MAGENTA, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.MAGENTA, bold=True)
+    indicator_color = _get_indicator_color(type_indicator)
+    if indicator_color:
+        typer.secho(f"{type_desc} ", nl=False, fg=indicator_color, bold=True)
+        typer.secho(type_indicator, fg=indicator_color, bold=True)
     else:
         typer.secho(f"{type_desc} {type_indicator}", fg=get_text_color())
 

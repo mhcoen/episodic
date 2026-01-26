@@ -104,30 +104,46 @@ def get_ollama_model_info(model_name: str) -> Dict[str, Optional[str]]:
 def get_model_info_string(model_name: str, provider: str) -> Tuple[str, str]:
     """
     Get a formatted string with model type and technical info.
-    
+
     Returns: (type_indicator, tech_info)
+
+    Type indicator includes reasoning suffix 'R' if model supports reasoning control.
+    Examples: [CI] -> [CIR], [I] -> [I R], [C] -> [C R]
     """
     model_config = get_model_config()
-    
+
     # Get model type
     model_type = detect_model_type(model_name)
-    type_indicator = model_config.get_type_indicator(model_type)
-    
+    base_indicator = model_config.get_type_indicator(model_type)
+
+    # Check if model has reasoning support
+    model_info = model_config.get_model_info(provider, model_name)
+    has_reasoning = model_info and "reasoning" in model_info
+
+    # Build indicator with reasoning suffix if applicable
+    if has_reasoning:
+        # Extract base letters (e.g., 'CI' from '[CI]')
+        base = base_indicator.strip('[]').strip()
+        # Append R and pad to 3 chars for consistent width
+        indicator = f"[{base}R]"
+    else:
+        indicator = base_indicator
+
     # Get technical info (parameters)
     tech_info = ""
-    
+
     # First try to get from model config
     params = model_config.get_model_parameters(provider, model_name)
     if params:
         tech_info = f"({params})"
-    
+
     # If Ollama and no params found, try to get from runtime
     elif provider == "ollama":
         info = get_ollama_model_info(model_name)
         if info['parameters']:
             tech_info = f"({info['parameters']})"
-    
-    return type_indicator, tech_info
+
+    return indicator, tech_info
 
 
 def format_model_display_name(display_name: str, max_length: int = 30) -> str:

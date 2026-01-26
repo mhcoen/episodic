@@ -497,7 +497,7 @@
         {
           "name": "llama3.3",
           "display_name": "Llama 3.3",
-          "type": "instruct",
+          "type": "both",
           "detect_params": true,
           "creator": "Meta",
           "released": "December 2024",
@@ -557,7 +557,7 @@
         {
           "name": "mistral-nemo",
           "display_name": "Mistral Nemo",
-          "type": "chat",
+          "type": "both",
           "parameters": "12B",
           "detect_params": true,
           "creator": "Mistral AI",
@@ -599,7 +599,7 @@
         {
           "name": "phi4",
           "display_name": "Phi-4",
-          "type": "instruct",
+          "type": "both",
           "parameters": "14B",
           "detect_params": true,
           "creator": "Microsoft",
@@ -620,7 +620,7 @@
         {
           "name": "llama4-scout",
           "display_name": "Llama 4 Scout",
-          "type": "instruct",
+          "type": "both",
           "detect_params": true,
           "creator": "Meta",
           "released": "2025",
@@ -640,7 +640,7 @@
         {
           "name": "deepseek-r1",
           "display_name": "DeepSeek R1",
-          "type": "instruct",
+          "type": "both",
           "detect_params": true,
           "creator": "DeepSeek",
           "released": "2025",
@@ -928,7 +928,7 @@
         {
           "name": "openrouter/deepseek/deepseek-r1",
           "display_name": "DeepSeek R1 (OR)",
-          "type": "instruct",
+          "type": "both",
           "creator": "DeepSeek",
           "description": "DeepSeek R1 reasoning model via OpenRouter. Access DeepSeek's chain-of-thought reasoning capabilities through OpenRouter's unified API.",
           "strengths": [
@@ -960,7 +960,7 @@
         {
           "name": "openrouter/meta-llama/llama-4-scout:free",
           "display_name": "Llama 4 Scout (OR)",
-          "type": "instruct",
+          "type": "both",
           "creator": "Meta",
           "description": "Meta's Llama 4 Scout via OpenRouter's free tier. Access the efficient Llama 4 variant at no cost through OpenRouter.",
           "strengths": [
@@ -977,7 +977,7 @@
         {
           "name": "openrouter/meta-llama/llama-4-maverick:free",
           "display_name": "Llama 4 Maverick (OR)",
-          "type": "instruct",
+          "type": "both",
           "creator": "Meta",
           "description": "Meta's flagship Llama 4 Maverick via OpenRouter's free tier. Access the most capable Llama 4 at no cost.",
           "strengths": [

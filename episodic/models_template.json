@@ -515,26 +515,6 @@
           "recommended_for": ["chat", "detection"]
         },
         {
-          "name": "mistral",
-          "display_name": "Mistral",
-          "type": "both",
-          "detect_params": true,
-          "creator": "Mistral AI",
-          "released": "2023",
-          "description": "Mistral AI's 7B model running locally via Ollama. Known for exceptional efficiency - delivers strong performance from a compact 7B architecture. One of the best quality-to-size ratios available.",
-          "strengths": [
-            "Excellent efficiency",
-            "Fast on modest hardware",
-            "Strong for 7B size",
-            "No API costs"
-          ],
-          "weaknesses": [
-            "Limited by 7B size",
-            "Less capable than larger models"
-          ],
-          "recommended_for": ["chat", "compression"]
-        },
-        {
           "name": "mistral:instruct",
           "display_name": "Mistral Instruct",
           "type": "instruct",
@@ -658,6 +638,64 @@
           "recommended_for": ["detection", "synthesis"]
         },
         {
+          "name": "deepseek-v3.1",
+          "display_name": "DeepSeek V3.1",
+          "type": "both",
+          "detect_params": true,
+          "creator": "DeepSeek",
+          "released": "2025",
+          "description": "DeepSeek's V3.1 model running locally via Ollama. Strong general-purpose model with excellent coding and reasoning capabilities.",
+          "strengths": [
+            "Strong general abilities",
+            "Good coding",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Needs good hardware"
+          ],
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "nemotron-3-nano",
+          "display_name": "Nemotron 3 Nano",
+          "type": "both",
+          "detect_params": true,
+          "creator": "NVIDIA",
+          "released": "2025",
+          "description": "NVIDIA's Nemotron 3 Nano running locally via Ollama. A compact, efficient model optimized for fast inference on consumer hardware.",
+          "strengths": [
+            "Fast inference",
+            "Efficient architecture",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Limited by smaller size"
+          ],
+          "recommended_for": ["chat", "compression"]
+        },
+        {
+          "name": "qwen3-coder",
+          "display_name": "Qwen 3 Coder",
+          "type": "instruct",
+          "detect_params": true,
+          "creator": "Alibaba",
+          "released": "2025",
+          "description": "Alibaba's Qwen 3 Coder via Ollama. The latest coding-focused model with strong code generation and understanding abilities.",
+          "strengths": [
+            "Strong coding focus",
+            "Good code generation",
+            "Runs locally (private)",
+            "No API costs"
+          ],
+          "weaknesses": [
+            "Less general-purpose",
+            "Coding-specific tuning"
+          ],
+          "recommended_for": ["synthesis"]
+        },
+        {
           "name": "qwen2.5",
           "display_name": "Qwen 2.5",
           "type": "both",
@@ -736,26 +774,6 @@
             "Slower inference"
           ],
           "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
-          "name": "qwen2.5-coder",
-          "display_name": "Qwen 2.5 Coder",
-          "type": "instruct",
-          "detect_params": true,
-          "creator": "Alibaba",
-          "released": "2024",
-          "description": "Qwen 2.5 variant optimized for coding via Ollama. Fine-tuned specifically for programming tasks with strong code generation and understanding abilities.",
-          "strengths": [
-            "Strong coding focus",
-            "Good code generation",
-            "Runs locally (private)",
-            "No API costs"
-          ],
-          "weaknesses": [
-            "Less general-purpose",
-            "Coding-specific tuning"
-          ],
-          "recommended_for": ["synthesis"]
         },
         {
           "name": "gemma2",

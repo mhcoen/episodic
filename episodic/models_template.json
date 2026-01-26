@@ -591,59 +591,70 @@
           "name": "deepseek-v3.1",
           "display_name": "DeepSeek V3.1",
           "type": "both",
+          "parameters": "671B (37B active)",
+          "context_window": 128000,
           "detect_params": true,
           "creator": "DeepSeek",
-          "released": "2025",
-          "description": "DeepSeek's V3.1 model running locally via Ollama. Strong general-purpose model with excellent coding and reasoning capabilities.",
+          "released": "August 2025",
+          "description": "DeepSeek's hybrid V3.1 combines V3 and R1 capabilities in one model. Features switchable thinking/non-thinking modes - use chain-of-thought reasoning for complex tasks or direct answers for speed. Excels at tool use, agentic workflows, and multi-step reasoning with 43% improvement over previous versions and 38% fewer hallucinations.",
           "strengths": [
-            "Strong general abilities",
-            "Good coding",
-            "Runs locally (private)",
-            "No API costs"
+            "Hybrid thinking modes (reasoning + direct)",
+            "Superior tool use and agentic capabilities",
+            "128K context (1M enterprise)",
+            "43% better multi-step reasoning",
+            "100+ language support"
           ],
           "weaknesses": [
-            "Needs good hardware"
+            "Large model needs good hardware",
+            "Slower in thinking mode"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
           "name": "nemotron-3-nano",
           "display_name": "Nemotron 3 Nano",
           "type": "both",
+          "parameters": "30B (3B active)",
+          "context_window": 1000000,
           "detect_params": true,
           "creator": "NVIDIA",
-          "released": "2025",
-          "description": "NVIDIA's Nemotron 3 Nano running locally via Ollama. A compact, efficient model optimized for fast inference on consumer hardware.",
+          "released": "December 2025",
+          "description": "NVIDIA's most efficient open model for agentic AI. Features configurable reasoning - enable chain-of-thought for complex problems or disable for faster direct answers. Unique hybrid Mamba-2/MoE architecture delivers 4x higher throughput than previous generation with 60% fewer reasoning tokens. Supports granular reasoning budget control.",
           "strengths": [
-            "Fast inference",
-            "Efficient architecture",
-            "Runs locally (private)",
-            "No API costs"
+            "Configurable reasoning on/off",
+            "1M token context window",
+            "4x throughput improvement",
+            "Granular reasoning budget control",
+            "Hybrid Mamba-2/MoE architecture"
           ],
           "weaknesses": [
-            "Limited by smaller size"
+            "Slightly lower accuracy without reasoning",
+            "New architecture may have quirks"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
           "name": "qwen3-coder",
           "display_name": "Qwen 3 Coder",
-          "type": "instruct",
+          "type": "both",
+          "parameters": "30B (3.3B active)",
+          "context_window": 256000,
           "detect_params": true,
           "creator": "Alibaba",
-          "released": "2025",
-          "description": "Alibaba's Qwen 3 Coder via Ollama. The latest coding-focused model with strong code generation and understanding abilities.",
+          "released": "July 2025",
+          "description": "Alibaba's most agentic code model. Achieved 69.6% on SWE-Bench Verified - production-ready code generation. Features hybrid thinking mode that auto-detects task complexity. Supports 119 programming languages with 256K native context (1M with extrapolation). Excels at multi-turn agentic coding with planning, tool use, and iterative refinement.",
           "strengths": [
-            "Strong coding focus",
-            "Good code generation",
-            "Runs locally (private)",
-            "No API costs"
+            "69.6% SWE-Bench (production-ready)",
+            "119 programming languages",
+            "Hybrid auto-thinking mode",
+            "256K context (1M extended)",
+            "Strong agentic/tool calling"
           ],
           "weaknesses": [
-            "Less general-purpose",
-            "Coding-specific tuning"
+            "Optimized for code tasks",
+            "May overthink simple queries"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": ["synthesis", "detection"]
         },
         {
           "name": "qwen2.5",

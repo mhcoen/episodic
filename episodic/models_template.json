@@ -456,7 +456,7 @@
         {
           "name": "llama3.1",
           "display_name": "Llama 3.1",
-          "type": "chat",
+          "type": "both",
           "detect_params": true,
           "creator": "Meta",
           "released": "July 2024",
@@ -477,7 +477,7 @@
         {
           "name": "llama3.2",
           "display_name": "Llama 3.2",
-          "type": "chat",
+          "type": "both",
           "detect_params": true,
           "creator": "Meta",
           "released": "September 2024",
@@ -497,7 +497,7 @@
         {
           "name": "llama3.3",
           "display_name": "Llama 3.3",
-          "type": "chat",
+          "type": "instruct",
           "detect_params": true,
           "creator": "Meta",
           "released": "December 2024",
@@ -517,7 +517,7 @@
         {
           "name": "mistral",
           "display_name": "Mistral",
-          "type": "chat",
+          "type": "both",
           "detect_params": true,
           "creator": "Mistral AI",
           "released": "2023",
@@ -620,7 +620,7 @@
         {
           "name": "llama4-scout",
           "display_name": "Llama 4 Scout",
-          "type": "chat",
+          "type": "instruct",
           "detect_params": true,
           "creator": "Meta",
           "released": "2025",
@@ -640,7 +640,7 @@
         {
           "name": "deepseek-r1",
           "display_name": "DeepSeek R1",
-          "type": "chat",
+          "type": "instruct",
           "detect_params": true,
           "creator": "DeepSeek",
           "released": "2025",
@@ -660,7 +660,7 @@
         {
           "name": "qwen2.5",
           "display_name": "Qwen 2.5",
-          "type": "chat",
+          "type": "both",
           "detect_params": true,
           "creator": "Alibaba",
           "released": "2024",
@@ -679,7 +679,7 @@
         {
           "name": "qwen2.5:7b",
           "display_name": "Qwen 2.5 7B",
-          "type": "chat",
+          "type": "both",
           "parameters": "7B",
           "detect_params": true,
           "creator": "Alibaba",
@@ -699,7 +699,7 @@
         {
           "name": "qwen2.5:14b",
           "display_name": "Qwen 2.5 14B",
-          "type": "chat",
+          "type": "both",
           "parameters": "14B",
           "detect_params": true,
           "creator": "Alibaba",
@@ -719,7 +719,7 @@
         {
           "name": "qwen2.5:32b",
           "display_name": "Qwen 2.5 32B",
-          "type": "chat",
+          "type": "both",
           "parameters": "32B",
           "detect_params": true,
           "creator": "Alibaba",
@@ -740,7 +740,7 @@
         {
           "name": "qwen2.5-coder",
           "display_name": "Qwen 2.5 Coder",
-          "type": "chat",
+          "type": "instruct",
           "detect_params": true,
           "creator": "Alibaba",
           "released": "2024",
@@ -760,7 +760,7 @@
         {
           "name": "gemma2",
           "display_name": "Gemma 2",
-          "type": "chat",
+          "type": "both",
           "detect_params": true,
           "creator": "Google",
           "released": "2024",
@@ -779,7 +779,7 @@
         {
           "name": "gemma2:2b",
           "display_name": "Gemma 2 2B",
-          "type": "chat",
+          "type": "both",
           "parameters": "2B",
           "detect_params": true,
           "creator": "Google",
@@ -800,7 +800,7 @@
         {
           "name": "gemma2:9b",
           "display_name": "Gemma 2 9B",
-          "type": "chat",
+          "type": "both",
           "parameters": "9B",
           "detect_params": true,
           "creator": "Google",
@@ -928,7 +928,7 @@
         {
           "name": "openrouter/deepseek/deepseek-r1",
           "display_name": "DeepSeek R1 (OR)",
-          "type": "chat",
+          "type": "instruct",
           "creator": "DeepSeek",
           "description": "DeepSeek R1 reasoning model via OpenRouter. Access DeepSeek's chain-of-thought reasoning capabilities through OpenRouter's unified API.",
           "strengths": [
@@ -960,7 +960,7 @@
         {
           "name": "openrouter/meta-llama/llama-4-scout:free",
           "display_name": "Llama 4 Scout (OR)",
-          "type": "chat",
+          "type": "instruct",
           "creator": "Meta",
           "description": "Meta's Llama 4 Scout via OpenRouter's free tier. Access the efficient Llama 4 variant at no cost through OpenRouter.",
           "strengths": [
@@ -977,7 +977,7 @@
         {
           "name": "openrouter/meta-llama/llama-4-maverick:free",
           "display_name": "Llama 4 Maverick (OR)",
-          "type": "chat",
+          "type": "instruct",
           "creator": "Meta",
           "description": "Meta's flagship Llama 4 Maverick via OpenRouter's free tier. Access the most capable Llama 4 at no cost.",
           "strengths": [

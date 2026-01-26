@@ -118,56 +118,6 @@
           "recommended_for": ["detection"]
         },
         {
-          "name": "gpt-3.5-turbo",
-          "display_name": "GPT-3.5 Turbo (Legacy)",
-          "type": "chat",
-          "parameters": "175B",
-          "context_window": 16385,
-          "pricing": {
-            "input": 0.50,
-            "output": 1.50,
-            "unit": "per_1m_tokens",
-            "last_updated": "2025-01-01"
-          },
-          "creator": "OpenAI",
-          "released": "March 2023",
-          "description": "OpenAI's legacy chat model that powered the original ChatGPT. Still available for backwards compatibility but superseded by GPT-4o Mini for most use cases. Fast and inexpensive, but notably less capable than newer models.",
-          "strengths": [
-            "Very fast responses",
-            "Low cost",
-            "Well-understood behavior",
-            "Good for simple tasks"
-          ],
-          "weaknesses": [
-            "Superseded by GPT-4o Mini",
-            "Smaller context window (16K)",
-            "Less accurate than GPT-4 class",
-            "May be deprecated soon"
-          ],
-          "recommended_for": ["chat"]
-        },
-        {
-          "name": "gpt-3.5-turbo-instruct",
-          "display_name": "GPT-3.5 Turbo Instruct (Legacy)",
-          "type": "instruct",
-          "parameters": "175B",
-          "context_window": 4096,
-          "creator": "OpenAI",
-          "released": "September 2023",
-          "description": "OpenAI's instruction-following variant of GPT-3.5. Uses a completion-style API rather than chat format. Useful for specific instruction-following tasks and legacy integrations that rely on the instruct format.",
-          "strengths": [
-            "Good instruction following",
-            "Completion-style API",
-            "Predictable outputs"
-          ],
-          "weaknesses": [
-            "Very small context (4K)",
-            "Legacy model",
-            "Not recommended for new projects"
-          ],
-          "recommended_for": ["compression"]
-        },
-        {
           "name": "gpt-5",
           "display_name": "GPT-5",
           "type": "chat",

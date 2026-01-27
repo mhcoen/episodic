@@ -25,12 +25,17 @@ DEFAULT_K_MAX = 4        # Max clusters to consider (allows up to 3 options + "o
 DEFAULT_MIN_CLUSTER_SIZE = 3  # Clusters smaller than this are dropped
 
 # Competitiveness: rank-gap based (score-scale invariant)
-DEFAULT_RANK_GAP = 3     # Max rank difference between top items of competing clusters
+# Scales with N: ceil(0.1 * N) clamped to [2, 5]
+DEFAULT_RANK_GAP_FRACTION = 0.1  # Fraction of N for rank gap
+DEFAULT_RANK_GAP_MIN = 2
+DEFAULT_RANK_GAP_MAX = 5
 
 # Cohesion: relative to overall distance (prevents chain-connected garbage partitions)
+# Uses max intra-cluster distance (diameter)
 DEFAULT_COHESION_RATIO = 1.5  # Max cluster diameter / overall mean distance
 
 # Separation: clusters must be well-separated (prevents chain splits)
+# Uses MIN inter-cluster distance (strongest check for chain detection)
 DEFAULT_SEPARATION_RATIO = 1.0  # Min inter-cluster distance / overall mean distance
 
 # Stopwords for label extraction (minimal set)
@@ -77,16 +82,18 @@ class AmbiguityResult:
     reason: str
     options: list[ClusterOption] = field(default_factory=list)
     # Diagnostics
+    n_candidates: int = 0
     chosen_k: Optional[int] = None
     cluster_sizes: list[int] = field(default_factory=list)
     best_scores: list[float] = field(default_factory=list)
     best_ranks: list[int] = field(default_factory=list)  # Ranks of best items per cluster
     rank_gap: Optional[int] = None  # ρ2 - ρ1
     score_gap: Optional[float] = None  # b1 - b2 (for logging/calibration)
-    cohesion_ratios: list[float] = field(default_factory=list)  # Per-cluster cohesion/mean_dist
+    cohesion_ratios: list[float] = field(default_factory=list)  # Per-cluster max intra dist / mean_dist
     separation_ratio: Optional[float] = None  # Min inter-cluster dist / mean_dist
-    # Config used
-    max_rank_gap: int = DEFAULT_RANK_GAP
+    overall_mean_dist: Optional[float] = None  # For calibration logging
+    # Config used (effective values)
+    max_rank_gap: int = 3  # Computed from N
     max_cohesion_ratio: float = DEFAULT_COHESION_RATIO
     min_separation_ratio: float = DEFAULT_SEPARATION_RATIO
 
@@ -98,11 +105,24 @@ class AmbiguityConfig:
     k_max: int = DEFAULT_K_MAX
     min_cluster_size: int = DEFAULT_MIN_CLUSTER_SIZE
     # Competitiveness (rank-gap based, score-scale invariant)
-    rank_gap: int = DEFAULT_RANK_GAP
-    # Cohesion (prevents garbage partitions of diffuse topics)
+    # If None, computed as ceil(0.1 * n) clamped to [2, 5]
+    rank_gap: Optional[int] = None
+    rank_gap_fraction: float = DEFAULT_RANK_GAP_FRACTION
+    rank_gap_min: int = DEFAULT_RANK_GAP_MIN
+    rank_gap_max: int = DEFAULT_RANK_GAP_MAX
+    # Cohesion: max intra-cluster distance (diameter) / mean_dist
     cohesion_ratio: float = DEFAULT_COHESION_RATIO
-    # Separation (clusters must be well-separated, prevents chain splits)
+    # Separation: min inter-cluster distance / mean_dist (strongest chain check)
     separation_ratio: float = DEFAULT_SEPARATION_RATIO
+
+    def compute_rank_gap(self, n: int) -> int:
+        """Compute effective rank gap, scaling with N if not explicitly set."""
+        if self.rank_gap is not None:
+            return self.rank_gap
+        # Scale with N: ceil(fraction * n), clamped
+        import math
+        gap = math.ceil(self.rank_gap_fraction * n)
+        return max(self.rank_gap_min, min(self.rank_gap_max, gap))
 
 
 def _compute_distance_matrix(embeddings: np.ndarray) -> np.ndarray:
@@ -259,10 +279,13 @@ def ambiguity_detect(
     # Build rank lookup: candidate index -> rank (0-based)
     rank_of = {i: i for i in range(n)}  # Already sorted, so index = rank
 
+    # Compute effective rank gap (scales with N)
+    effective_rank_gap = config.compute_rank_gap(n)
+
     logger.debug(
         f"ambiguity_detect: query='{query}', n={n}, k_max={config.k_max}, "
-        f"m={config.min_cluster_size}, rank_gap={config.rank_gap}, "
-        f"cohesion_ratio={config.cohesion_ratio}"
+        f"m={config.min_cluster_size}, rank_gap={effective_rank_gap} (from n={n}), "
+        f"cohesion_ratio={config.cohesion_ratio}, separation_ratio={config.separation_ratio}"
     )
 
     # Need at least 2*min_cluster_size candidates to have 2 valid clusters
@@ -271,7 +294,8 @@ def ambiguity_detect(
         return AmbiguityResult(
             ambiguous=False,
             reason=f"insufficient candidates (n={n} < 2*m={2*config.min_cluster_size})",
-            max_rank_gap=config.rank_gap,
+            n_candidates=n,
+            max_rank_gap=config.compute_rank_gap(n),
             max_cohesion_ratio=config.cohesion_ratio,
             min_separation_ratio=config.separation_ratio,
         )
@@ -336,7 +360,8 @@ def ambiguity_detect(
             logger.debug(f"k={k}: only {len(valid_clusters)} valid clusters after cohesion filter")
             continue
 
-        # Separation check: clusters must be well-separated from each other
+        # Separation check: ALL cluster pairs must be well-separated
+        # Uses min inter-cluster distance (strongest check for chain detection)
         cluster_list = list(valid_clusters.items())
         min_separation = float('inf')
         for i in range(len(cluster_list)):
@@ -351,7 +376,7 @@ def ambiguity_detect(
 
         if separation_ratio < config.separation_ratio:
             logger.debug(
-                f"k={k}: clusters too close (separation_ratio={separation_ratio:.2f} < {config.separation_ratio})"
+                f"k={k}: clusters too close (min_inter_dist/mean_dist={separation_ratio:.2f} < {config.separation_ratio})"
             )
             continue
 
@@ -385,11 +410,11 @@ def ambiguity_detect(
 
         logger.debug(
             f"k={k}: {len(valid_clusters)} valid clusters, "
-            f"ρ1={rho1}, ρ2={rho2}, rank_gap={rank_gap}, "
+            f"ρ1={rho1}, ρ2={rho2}, rank_gap={rank_gap}, max_rank_gap={effective_rank_gap}, "
             f"b1={b1:.4f}, b2={b2:.4f}, score_gap={score_gap:.4f}"
         )
 
-        if rank_gap <= config.rank_gap:
+        if rank_gap <= effective_rank_gap:
             # Ambiguous! Build result
             chosen_k = k
 
@@ -431,6 +456,7 @@ def ambiguity_detect(
                 ambiguous=True,
                 reason=f"found {len(valid_clusters)} competitive clusters at k={k}",
                 options=options,
+                n_candidates=n,
                 chosen_k=chosen_k,
                 cluster_sizes=cluster_sizes,
                 best_scores=best_scores,
@@ -439,7 +465,8 @@ def ambiguity_detect(
                 score_gap=score_gap,
                 cohesion_ratios=cohesion_ratio_list,
                 separation_ratio=separation_ratio,
-                max_rank_gap=config.rank_gap,
+                overall_mean_dist=overall_mean_dist,
+                max_rank_gap=effective_rank_gap,
                 max_cohesion_ratio=config.cohesion_ratio,
                 min_separation_ratio=config.separation_ratio,
             )
@@ -458,7 +485,9 @@ def ambiguity_detect(
     return AmbiguityResult(
         ambiguous=False,
         reason="single coherent neighborhood (no competitive clusters found)",
-        max_rank_gap=config.rank_gap,
+        n_candidates=n,
+        overall_mean_dist=overall_mean_dist,
+        max_rank_gap=effective_rank_gap,
         max_cohesion_ratio=config.cohesion_ratio,
         min_separation_ratio=config.separation_ratio,
     )

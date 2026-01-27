@@ -66,7 +66,8 @@ class TestAmbiguityDetection:
         cluster_b = make_cluster(centroid_b, 5, 5, "Coffee brewing", 0.89, score_decay=0.04, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        # With n=10, scaled rank_gap = ceil(0.1 * 10) = 1, but clamped to min=2
+        config = AmbiguityConfig(min_cluster_size=3)
 
         result = ambiguity_detect("java", candidates, config)
 
@@ -74,7 +75,7 @@ class TestAmbiguityDetection:
         assert result.chosen_k == 2
         assert len(result.options) == 2
         assert result.cluster_sizes == [5, 5]
-        assert result.rank_gap <= config.rank_gap
+        assert result.rank_gap <= result.max_rank_gap
 
     def test_case2_one_cluster_too_small(self):
         """Two clusters but one is tiny (< m) → unambiguous."""
@@ -89,7 +90,7 @@ class TestAmbiguityDetection:
         cluster_b = make_cluster(centroid_b, 2, 8, "Minor topic", 0.88, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
 
         result = ambiguity_detect("query", candidates, config)
 
@@ -110,7 +111,7 @@ class TestAmbiguityDetection:
         cluster_c = make_cluster(centroid_c, 4, 8, "Topic C content", 0.88, score_decay=0.06, rng=rng)
 
         candidates = cluster_a + cluster_b + cluster_c
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3, k_max=4)
+        config = AmbiguityConfig(min_cluster_size=3, k_max=4)
 
         result = ambiguity_detect("multi-topic", candidates, config)
 
@@ -126,7 +127,7 @@ class TestAmbiguityDetection:
         centroid = np.array([1.0, 0.0, 0.0])
         candidates = make_cluster(centroid, 10, 0, "Unified topic", 0.90, rng=rng)
 
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
         result = ambiguity_detect("focused-query", candidates, config)
 
         assert result.ambiguous is False
@@ -153,7 +154,7 @@ class TestAmbiguityDetection:
             ))
 
         candidates = main_cluster + scattered
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
 
         result = ambiguity_detect("query", candidates, config)
 
@@ -172,6 +173,7 @@ class TestAmbiguityDetection:
         cluster_b = make_cluster(centroid_b, 5, 5, "Weak topic", 0.70, score_decay=0.01, rng=rng)
 
         candidates = cluster_a + cluster_b
+        # Force rank_gap=3 explicitly (not scaled)
         config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result = ambiguity_detect("query", candidates, config)
@@ -179,6 +181,34 @@ class TestAmbiguityDetection:
         # Cluster A occupies ranks 0-4, cluster B occupies ranks 5-9
         # Rank gap = 5 - 0 = 5 > 3, so not competitive
         assert result.ambiguous is False
+
+    def test_one_sense_dominates_strongly(self):
+        """Two valid clusters but one dominates ranks 1-8, other has 9-10 → unambiguous.
+
+        Even though both clusters are valid by size, if one sense completely
+        dominates the top ranks, we shouldn't ask for disambiguation.
+        """
+        rng = np.random.default_rng(42)
+
+        centroid_a = np.array([1.0, 0.0, 0.0])
+        centroid_b = np.array([0.0, 1.0, 0.0])
+
+        # Cluster A dominates ranks 0-7 (8 items)
+        cluster_a = make_cluster(centroid_a, 8, 0, "Dominant sense", 0.95, score_decay=0.01, rng=rng)
+        # Cluster B only has ranks 8-10 (3 items, barely valid)
+        cluster_b = make_cluster(centroid_b, 3, 8, "Minor sense", 0.70, score_decay=0.01, rng=rng)
+
+        candidates = cluster_a + cluster_b
+        # With n=11, scaled rank_gap = ceil(0.1 * 11) = 2, clamped to [2, 5] = 2
+        config = AmbiguityConfig(min_cluster_size=3)
+
+        result = ambiguity_detect("query", candidates, config)
+
+        # Cluster A best rank = 0, Cluster B best rank = 8
+        # Rank gap = 8 - 0 = 8 > 2 (or any reasonable threshold)
+        # This should NOT trigger ambiguity
+        assert result.ambiguous is False
+        assert result.max_rank_gap == 2  # ceil(0.1 * 11) = 2
 
     def test_insufficient_candidates(self):
         """Too few candidates → unambiguous."""
@@ -188,7 +218,7 @@ class TestAmbiguityDetection:
         # Only 4 candidates, need 2*m = 6 for ambiguity
         candidates = make_cluster(centroid, 4, 0, "Small set", 0.90, rng=rng)
 
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
         result = ambiguity_detect("query", candidates, config)
 
         assert result.ambiguous is False
@@ -207,7 +237,7 @@ class TestAmbiguityDetection:
         cluster_b = make_cluster(centroid_b, 5, 5, "Topic B", 0.89, score_decay=0.04, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
 
         result1 = ambiguity_detect("test", candidates, config)
         result2 = ambiguity_detect("test", candidates, config)
@@ -250,7 +280,7 @@ class TestAmbiguityDetection:
             ))
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
 
         result = ambiguity_detect("python", candidates, config)
 
@@ -272,8 +302,9 @@ class TestAmbiguityDetection:
     def test_chain_structure_no_false_split(self):
         """Chain-connected points (A—B—C—D) should not falsely split into 2 clusters.
 
-        This tests the cohesion check: a chain where adjacent points are close
-        but endpoints are far should be rejected as a valid cluster split.
+        This tests the separation check: a chain where adjacent points are close
+        but endpoints are far should be rejected because min inter-cluster
+        distance is small (the chain creates bridges between any split).
         """
         rng = np.random.default_rng(42)
 
@@ -296,12 +327,12 @@ class TestAmbiguityDetection:
                 retr_score=0.90 - i * 0.01,  # All high scores, interleaved
             ))
 
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3, cohesion_ratio=1.5)
+        config = AmbiguityConfig(min_cluster_size=3, cohesion_ratio=1.5)
         result = ambiguity_detect("chain-query", chain_points, config)
 
         # A chain should NOT trigger ambiguity because:
-        # 1. Any split would create clusters with high diameter (low cohesion)
-        # 2. The cohesion check should reject such splits
+        # Any split creates clusters with small min inter-cluster distance
+        # (the adjacent points at the split boundary are close)
         assert result.ambiguous is False
 
     def test_score_scaling_invariance(self):
@@ -321,7 +352,7 @@ class TestAmbiguityDetection:
         cluster_b = make_cluster(centroid_b, 5, 5, "Topic B", 0.89, score_decay=0.04, rng=rng)
         candidates_original = cluster_a + cluster_b
 
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        config = AmbiguityConfig(min_cluster_size=3)
         result_original = ambiguity_detect("test", candidates_original, config)
 
         # Scaled scores (multiply by 10)
@@ -387,7 +418,7 @@ class TestAmbiguityDetection:
             ))
 
         # With strict cohesion, these loose "clusters" should be rejected
-        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3, cohesion_ratio=0.5)
+        config = AmbiguityConfig(min_cluster_size=3, cohesion_ratio=0.5)
         result = ambiguity_detect("scattered", candidates, config)
 
         # Should not be ambiguous because clusters fail cohesion check
@@ -541,6 +572,7 @@ class TestIntegrationWithSyntheticCorpus:
                 continue
 
             # Use lower separation ratio for synthetic data which may not be as well-separated
+            # Force explicit rank_gap for consistent behavior
             config = AmbiguityConfig(min_cluster_size=3, rank_gap=5, separation_ratio=0.5)
             result = ambiguity_detect(query, candidates, config)
 
@@ -604,7 +636,7 @@ class TestIntegrationWithSyntheticCorpus:
             if len(candidates) < 6:
                 continue
 
-            config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+            config = AmbiguityConfig(min_cluster_size=3)
             result = ambiguity_detect(query, candidates, config)
 
             # Disambiguated queries should have a single coherent cluster

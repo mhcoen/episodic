@@ -55,7 +55,9 @@ class RecallPipelineConfig:
     ambiguity_n: int = 30  # Candidates to consider for ambiguity
     ambiguity_k_max: int = 4
     ambiguity_min_cluster_size: int = 3
-    ambiguity_rank_gap: int = 3  # Max rank gap for competitiveness
+    # Rank gap scales with N: ceil(0.1 * N) clamped to [2, 5]
+    # Set to None to use automatic scaling, or explicit int to override
+    ambiguity_rank_gap: Optional[int] = None
     ambiguity_cohesion_ratio: float = 1.5  # Max cluster diameter / mean dist
     ambiguity_separation_ratio: float = 1.0  # Min inter-cluster dist / mean dist
     # Reranking

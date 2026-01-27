@@ -410,7 +410,7 @@ def _get_semantic_hits(
     n_results: int,
     temporal: Optional[Tuple],
     broad_horizon: bool,
-    min_similarity: float = 0.10,  # Filter out garbage hits (L2 dist ~1.8 cutoff)
+    min_similarity: float = 0.35,  # Filter noise (sim < 0.35 means L2 dist > 1.3)
     include_embeddings: bool = False,
 ) -> List[SemanticHit]:
     """Get semantic hits from Chroma.

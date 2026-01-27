@@ -69,16 +69,16 @@ class TestGetSemanticHitsIntegration:
         with patch('episodic.recall.pipeline.get_multi_collection_rag', return_value=fake_rag):
             hits = _get_semantic_hits("test query", 10, None, False)
 
-        # All 3 should pass the similarity threshold (0.10)
-        # distance 0.5 -> similarity 0.75
-        # distance 1.0 -> similarity 0.50
-        # distance 1.5 -> similarity 0.25
-        assert len(hits) == 3
+        # Only 2 should pass the similarity threshold (0.35)
+        # distance 0.5 -> similarity 0.75 (PASS)
+        # distance 1.0 -> similarity 0.50 (PASS)
+        # distance 1.5 -> similarity 0.25 (FILTERED - below 0.35)
+        assert len(hits) == 2
         assert all(isinstance(h, SemanticHit) for h in hits)
         assert hits[0].exchange_id == 'id_1'
         assert hits[0].relevance_score == pytest.approx(0.75, rel=0.01)
         assert hits[1].relevance_score == pytest.approx(0.50, rel=0.01)
-        assert hits[2].relevance_score == pytest.approx(0.25, rel=0.01)
+        # hits[2] (sim 0.25) is filtered out by 0.35 threshold
 
     def test_similarity_threshold_filters_low_scores(self):
         """Hits below min_similarity are filtered out."""
@@ -257,14 +257,14 @@ class TestGetSemanticHitsIntegration:
 
 
 class TestMinSimilarityThreshold:
-    """Verify the min_similarity threshold is calibrated correctly."""
+    """Verify the min_similarity threshold (0.35) is calibrated correctly."""
 
     def test_default_threshold_allows_reasonable_distances(self):
-        """Default threshold (0.10) allows distances up to ~1.8."""
-        # L2 distance of 1.8 -> similarity of 0.10 (exactly at threshold)
+        """Default threshold (0.35) allows distances up to ~1.3."""
+        # L2 distance of 1.30 -> similarity of 0.35 (exactly at threshold)
         fake_results = {
             'ids': [['id_1']],
-            'distances': [[1.79]],  # Just under 1.8, should pass
+            'distances': [[1.29]],  # Just under 1.30, should pass (sim ~0.355)
             'documents': [['doc 1']],
             'metadatas': [[{'user_id': 'id_1'}]],
             'embeddings': None,
@@ -276,13 +276,13 @@ class TestMinSimilarityThreshold:
         with patch('episodic.recall.pipeline.get_multi_collection_rag', return_value=fake_rag):
             hits = _get_semantic_hits("test", 10, None, False)
 
-        assert len(hits) == 1  # Should pass at 0.10 threshold
+        assert len(hits) == 1  # Should pass at 0.35 threshold
 
     def test_threshold_filters_very_distant_hits(self):
-        """Threshold filters hits with L2 distance > 1.8."""
+        """Threshold filters hits with L2 distance > 1.3 (similarity < 0.35)."""
         fake_results = {
             'ids': [['id_1']],
-            'distances': [[1.81]],  # Just over 1.8, should fail
+            'distances': [[1.31]],  # Just over 1.3, should fail (sim ~0.345)
             'documents': [['doc 1']],
             'metadatas': [[{'user_id': 'id_1'}]],
             'embeddings': None,

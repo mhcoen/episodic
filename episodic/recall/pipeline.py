@@ -456,9 +456,12 @@ def _get_semantic_hits(
 
             # Get embedding if requested
             embedding = None
-            if include_embeddings and results.get('embeddings') and results['embeddings'][0]:
-                emb_data = results['embeddings'][0][i]
-                embedding = np.array(emb_data) if emb_data is not None else None
+            if include_embeddings and results.get('embeddings') is not None:
+                embeddings_list = results['embeddings'][0]
+                if embeddings_list is not None and len(embeddings_list) > i:
+                    emb_data = embeddings_list[i]
+                    if emb_data is not None:
+                        embedding = np.array(emb_data)
 
             # Convert distance to similarity (Chroma uses L2 distance)
             # L2 distance of 0 = identical, higher = less similar

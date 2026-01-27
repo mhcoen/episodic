@@ -188,8 +188,61 @@ def _handle_memory_query(user_input: str) -> bool:
                 typer.secho("[DEBUG] [MQL] Classifier: GENERAL → routing to LLM", fg="cyan", dim=True)
             return False
 
+        # Classifier identified as memory query - route to NEW recall system
+        if config.get("enable_recall_system", True):
+            if config.get("debug"):
+                typer.secho("[DEBUG] [MQL] Classifier: MEMORY → routing to recall system", fg="cyan", dim=True)
+
+            now_utc = datetime.now(timezone.utc)
+            user_tz = config.get("timezone", "America/Chicago")
+
+            # Build ResolvedQuery from classifier result
+            from episodic.query.types import ResolvedQuery
+            resolved = ResolvedQuery(
+                mode=classification.mode or 'answer',
+                target=classification.target,
+                segment_explicit=False,
+                segment_query=None,
+                segment_resolved_ids=None,
+                segment_ambiguous=False,
+                segment_candidates=None,
+                temporal=None,  # TODO: resolve temporal_hint if present
+                speaker=classification.speaker_hint if classification.speaker_hint != 'both' else None,
+                deictic=None,
+                has_broadness_cue=False,
+                audit_trace='{"source": "classifier"}'
+            )
+
+            with get_connection() as conn:
+                from episodic.recall import recall
+                from episodic.recall.cli_integration import _display_recall_results, _display_no_results
+
+                result = recall(conn=conn, query=resolved, query_form=None)
+
+                if result.is_empty():
+                    _display_no_results(classification.target)
+                else:
+                    _display_recall_results(result)
+
+                # Store meta-query
+                try:
+                    from episodic.db_nodes import insert_node
+                    from episodic.db import get_head
+                    current_head = get_head()
+                    parent_id = current_head if current_head else None
+                    insert_node(
+                        content=user_input,
+                        parent_id=parent_id,
+                        role="user",
+                        is_meta_query=True
+                    )
+                except Exception:
+                    pass
+
+                return True
+
         if config.get("debug"):
-            typer.secho("[DEBUG] [MQL] Classifier: MEMORY → routing to retrieval", fg="cyan", dim=True)
+            typer.secho("[DEBUG] [MQL] Classifier: MEMORY → routing to retrieval (legacy)", fg="cyan", dim=True)
 
     # Definite non-memory query
     elif not memory_result:
@@ -198,7 +251,7 @@ def _handle_memory_query(user_input: str) -> bool:
         return False
 
     if config.get("debug"):
-        typer.secho("[DEBUG] [MQL] Memory query detected → routing to retrieval", fg="cyan", dim=True)
+        typer.secho("[DEBUG] [MQL] Memory query detected → routing to retrieval (legacy)", fg="cyan", dim=True)
 
     # Get current time and timezone
     now_utc = datetime.now(timezone.utc)

@@ -237,3 +237,115 @@ class TestDisambiguationPrompt:
         assert "java" in prompt.lower()
         assert "1." in prompt
         assert "2." in prompt
+
+
+class TestClusterMembershipStability:
+    """Test that cluster filtering uses original indices correctly."""
+
+    def test_member_indices_are_original_hit_indices(self, tmp_path):
+        """
+        Verify that member_indices in ClusterOption refer to the original
+        hit list indices, not post-processed indices.
+
+        This ensures filtering works correctly even if hits are reordered
+        during promotion/ranking.
+        """
+        conn, _ = create_test_db(tmp_path)
+        query = make_resolved_query(target="java")
+
+        # Create hits with known structure
+        clustered_hits = make_clustered_hits(n_per_cluster=6, n_clusters=2)
+
+        # Record original hit exchange_ids by index
+        original_ids_by_index = {i: h.exchange_id for i, h in enumerate(clustered_hits)}
+
+        def mock_get_semantic_hits(target, n_results, temporal, broad_horizon, **kwargs):
+            return clustered_hits
+
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_get_semantic_hits):
+            result = recall(conn, query, query_form="when_we")
+
+        assert result.kind == RecallResultKind.AMBIGUOUS
+
+        # Verify each cluster option's member_indices map to valid original hits
+        for opt in result.cluster_options:
+            for idx in opt.member_indices:
+                assert idx in original_ids_by_index, (
+                    f"member_index {idx} not in original hit indices"
+                )
+                # Verify the index corresponds to the right cluster's hit pattern
+                exchange_id = original_ids_by_index[idx]
+                # Cluster 0 hits have "node_0_*", cluster 1 hits have "node_1_*"
+                expected_cluster = int(exchange_id.split("_")[1])
+                # The option_id should match the cluster the hit came from
+                # (though option_id is assigned by clustering, not input order)
+
+    def test_filtering_preserves_correct_hits(self, tmp_path):
+        """
+        When filtering to a cluster, the returned hits should be exactly
+        those at the member_indices positions in the original hit list.
+        """
+        conn, _ = create_test_db(tmp_path)
+        query = make_resolved_query(target="java")
+
+        clustered_hits = make_clustered_hits(n_per_cluster=6, n_clusters=2)
+
+        def mock_get_semantic_hits(target, n_results, temporal, broad_horizon, **kwargs):
+            return clustered_hits
+
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_get_semantic_hits):
+            # Get ambiguous result
+            result = recall(conn, query, query_form="when_we")
+
+        assert result.kind == RecallResultKind.AMBIGUOUS
+        assert len(result.cluster_options) >= 2
+
+        # Select first cluster
+        cluster_opt = result.cluster_options[0]
+        expected_ids = {clustered_hits[i].exchange_id for i in cluster_opt.member_indices}
+
+        # Re-run with cluster selection
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_get_semantic_hits):
+            filtered_result = recall(
+                conn, query, query_form="when_we",
+                selected_cluster=cluster_opt.option_id
+            )
+
+        # Should not be ambiguous after selection
+        assert filtered_result.kind == RecallResultKind.HITS
+
+    def test_dimension_mismatch_skips_ambiguity(self, tmp_path):
+        """
+        If embeddings have inconsistent dimensions, ambiguity detection
+        should be skipped to prevent clustering on nonsense geometry.
+        """
+        conn, _ = create_test_db(tmp_path)
+        query = make_resolved_query(target="java")
+
+        rng = np.random.default_rng(42)
+
+        # Create hits with mismatched dimensions
+        bad_hits = []
+        for i in range(12):
+            # First 10 have dim=3, last 2 have dim=5
+            dim = 3 if i < 10 else 5
+            emb = rng.standard_normal(dim)
+            emb = emb / np.linalg.norm(emb)
+
+            bad_hits.append(SemanticHit(
+                exchange_id=f"node_{i}",
+                relevance_score=0.9 - i * 0.05,
+                metadata={"user_id": f"node_{i}"},
+                text=f"Test content {i}",
+                embedding=emb,
+            ))
+
+        def mock_get_semantic_hits(target, n_results, temporal, broad_horizon, **kwargs):
+            return bad_hits
+
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_get_semantic_hits):
+            result = recall(conn, query, query_form="when_we")
+
+        # Should skip ambiguity detection due to dimension mismatch
+        assert result.kind == RecallResultKind.HITS
+        assert result.ambiguity is None

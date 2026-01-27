@@ -254,14 +254,31 @@ def _check_ambiguity(target: str, hits: List[SemanticHit]) -> Optional[Ambiguity
     """
     # Build candidate list for ambiguity detection
     candidates = []
+    expected_dim = None
+
     for i, hit in enumerate(hits):
         if hit.embedding is None:
+            logger.debug(f"Hit {i} ({hit.exchange_id}) has no embedding, skipping")
             continue
-        # Ensure embedding is L2-normalized
+
         emb = hit.embedding
+
+        # Dimension consistency check
+        if expected_dim is None:
+            expected_dim = len(emb)
+            logger.debug(f"Embedding dimension: {expected_dim}")
+        elif len(emb) != expected_dim:
+            logger.warning(
+                f"Hit {i} ({hit.exchange_id}) has dimension {len(emb)}, "
+                f"expected {expected_dim}. Skipping ambiguity detection."
+            )
+            return None
+
+        # Ensure embedding is L2-normalized
         norm = np.linalg.norm(emb)
         if norm > 0:
             emb = emb / norm
+
         candidates.append(AmbiguityCandidate(
             id=i,  # Use index as ID for filtering later
             text=hit.text,
@@ -274,7 +291,22 @@ def _check_ambiguity(target: str, hits: List[SemanticHit]) -> Optional[Ambiguity
         return None
 
     config = AmbiguityConfig()
-    return ambiguity_detect(target, candidates, config)
+    result = ambiguity_detect(target, candidates, config)
+
+    # Log calibration data for tuning
+    if result:
+        logger.info(
+            f"Ambiguity check: query='{target}', n={result.n_candidates}, "
+            f"ambiguous={result.ambiguous}, k={result.chosen_k}, "
+            f"sizes={result.cluster_sizes}, rank_gap={result.rank_gap}, "
+            f"max_rank_gap={result.max_rank_gap}, "
+            f"cohesion={result.cohesion_ratios}, separation={result.separation_ratio:.3f}"
+            if result.separation_ratio else
+            f"Ambiguity check: query='{target}', n={result.n_candidates}, "
+            f"ambiguous={result.ambiguous}, reason='{result.reason}'"
+        )
+
+    return result
 
 
 def _filter_to_cluster(

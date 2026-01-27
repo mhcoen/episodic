@@ -77,27 +77,45 @@ def handle_recall_query(
     # Handle AMBIGUOUS result - disambiguation needed
     if result.kind == RecallResultKind.AMBIGUOUS:
         selected = _handle_disambiguation(resolved.target or "", result)
+        token = result.disambiguation_token
 
         if selected is None:
-            # User cancelled or invalid selection
-            typer.secho("\nNo selection made. Please refine your query.", fg="yellow")
-            return True, None
-
-        # Re-run recall with selected cluster
-        if debug_enabled("memory"):
-            debug_print(f"User selected cluster {selected}", category="memory")
-
-        try:
-            result = recall(
-                conn=conn,
-                query=resolved,
-                query_form=ast.query_form,
-                selected_cluster=selected,
-            )
-        except Exception as e:
+            # User chose "0" - skip filtering, show all results
             if debug_enabled("memory"):
-                debug_print(f"Recall error after disambiguation: {e}", category="memory")
-            return False, None
+                debug_print("User skipped disambiguation, showing unfiltered results", category="memory")
+            try:
+                result = recall(
+                    conn=conn,
+                    query=resolved,
+                    query_form=ast.query_form,
+                    skip_ambiguity_check=True,
+                )
+            except Exception as e:
+                if debug_enabled("memory"):
+                    debug_print(f"Recall error after skip: {e}", category="memory")
+                return False, None
+        else:
+            # Re-run recall with selected cluster and token for drift detection
+            if debug_enabled("memory"):
+                debug_print(f"User selected cluster {selected}", category="memory")
+
+            try:
+                result = recall(
+                    conn=conn,
+                    query=resolved,
+                    query_form=ast.query_form,
+                    selected_cluster=selected,
+                    disambiguation_token=token,
+                )
+            except Exception as e:
+                if debug_enabled("memory"):
+                    debug_print(f"Recall error after disambiguation: {e}", category="memory")
+                return False, None
+
+        # If we got AMBIGUOUS again (drift detected), recurse
+        if result.kind == RecallResultKind.AMBIGUOUS:
+            typer.secho("\nData changed, please re-select:", fg="yellow")
+            return handle_recall_query(user_input, conn, now_utc, user_tz)
 
     if debug_enabled("memory"):
         debug_print(f"Topics: {len(result.formatted.conversation_blocks)}, "
@@ -132,7 +150,7 @@ def _handle_disambiguation(target: str, result) -> Optional[int]:
         result: RecallResult with kind=AMBIGUOUS
 
     Returns:
-        Selected cluster option_id, or None if cancelled
+        Selected cluster option_id, or None if cancelled/skip
     """
     if not result.ambiguity or not result.cluster_options:
         return None
@@ -148,18 +166,19 @@ def _handle_disambiguation(target: str, result) -> Optional[int]:
         else:
             label = opt.label_snippet[:50] + "..." if len(opt.label_snippet) > 50 else opt.label_snippet
 
+        # Show option with hit count
         typer.secho(f"  {i}. ", fg=get_heading_color(), bold=True, nl=False)
-        typer.secho(label, fg=get_text_color())
+        typer.secho(f"{label} ", fg=get_text_color(), nl=False)
+        typer.secho(f"({opt.cluster_size} hits)", fg=get_system_color(), dim=True)
 
-        # Show example snippet
-        if opt.representative_snippets:
-            snippet = opt.representative_snippets[0]
-            if len(snippet) > 80:
-                snippet = snippet[:80] + "..."
-            typer.secho(f"     e.g., \"{snippet}\"", fg=get_text_color(), dim=True)
+        # Show 1-2 representative snippets
+        for j, snippet in enumerate(opt.representative_snippets[:2]):
+            if len(snippet) > 70:
+                snippet = snippet[:70] + "..."
+            typer.secho(f"     \"{snippet}\"", fg=get_text_color(), dim=True)
 
     typer.echo()
-    typer.secho(f"  0. Search all (no filter)", fg=get_system_color(), dim=True)
+    typer.secho(f"  0. Show all results (no filter)", fg=get_system_color(), dim=True)
     typer.echo()
 
     # Get user input

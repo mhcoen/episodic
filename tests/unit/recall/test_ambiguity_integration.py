@@ -239,6 +239,92 @@ class TestDisambiguationPrompt:
         assert "2." in prompt
 
 
+class TestDriftDetection:
+    """Test that token-based drift detection works correctly."""
+
+    def test_disambiguation_token_is_stable(self, tmp_path):
+        """
+        Same query and hits should produce the same disambiguation token.
+        """
+        conn, _ = create_test_db(tmp_path)
+        query = make_resolved_query(target="java")
+
+        clustered_hits = make_clustered_hits(n_per_cluster=6, n_clusters=2)
+
+        def mock_get_semantic_hits(target, n_results, temporal, broad_horizon, **kwargs):
+            return clustered_hits
+
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_get_semantic_hits):
+            result1 = recall(conn, query, query_form="when_we")
+            result2 = recall(conn, query, query_form="when_we")
+
+        assert result1.kind == RecallResultKind.AMBIGUOUS
+        assert result2.kind == RecallResultKind.AMBIGUOUS
+        assert result1.disambiguation_token == result2.disambiguation_token
+
+    def test_token_changes_with_different_hits(self, tmp_path):
+        """
+        Different hits should produce different disambiguation tokens.
+        """
+        conn, _ = create_test_db(tmp_path)
+        query = make_resolved_query(target="java")
+
+        hits1 = make_clustered_hits(n_per_cluster=6, n_clusters=2)
+        hits2 = make_clustered_hits(n_per_cluster=7, n_clusters=2)  # Different count
+
+        def mock_hits1(target, n_results, temporal, broad_horizon, **kwargs):
+            return hits1
+
+        def mock_hits2(target, n_results, temporal, broad_horizon, **kwargs):
+            return hits2
+
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_hits1):
+            result1 = recall(conn, query, query_form="when_we")
+
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_hits2):
+            result2 = recall(conn, query, query_form="when_we")
+
+        assert result1.kind == RecallResultKind.AMBIGUOUS
+        assert result2.kind == RecallResultKind.AMBIGUOUS
+        assert result1.disambiguation_token != result2.disambiguation_token
+
+    def test_drift_detected_returns_new_ambiguous(self, tmp_path):
+        """
+        If token mismatches during cluster selection, should return new AMBIGUOUS.
+        """
+        conn, _ = create_test_db(tmp_path)
+        query = make_resolved_query(target="java")
+
+        hits_v1 = make_clustered_hits(n_per_cluster=6, n_clusters=2)
+        hits_v2 = make_clustered_hits(n_per_cluster=7, n_clusters=2)
+
+        def mock_hits_v1(target, n_results, temporal, broad_horizon, **kwargs):
+            return hits_v1
+
+        def mock_hits_v2(target, n_results, temporal, broad_horizon, **kwargs):
+            return hits_v2
+
+        # Get initial ambiguous result
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_hits_v1):
+            result1 = recall(conn, query, query_form="when_we")
+
+        assert result1.kind == RecallResultKind.AMBIGUOUS
+        old_token = result1.disambiguation_token
+        cluster_id = result1.cluster_options[0].option_id
+
+        # Now data has changed (different hits)
+        with patch('episodic.recall.pipeline._get_semantic_hits', mock_hits_v2):
+            result2 = recall(
+                conn, query, query_form="when_we",
+                selected_cluster=cluster_id,
+                disambiguation_token=old_token,
+            )
+
+        # Should detect drift and return new AMBIGUOUS
+        assert result2.kind == RecallResultKind.AMBIGUOUS
+        assert result2.disambiguation_token != old_token
+
+
 class TestClusterMembershipStability:
     """Test that cluster filtering uses original indices correctly."""
 

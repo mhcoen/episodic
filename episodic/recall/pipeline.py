@@ -54,6 +54,33 @@ class SemanticHit:
     embedding: Optional[np.ndarray] = None
 
 
+def _compute_disambiguation_token(
+    target: str,
+    hits: List["SemanticHit"],
+    config: AmbiguityConfig,
+) -> str:
+    """
+    Compute a token that uniquely identifies the disambiguation context.
+
+    Used to detect if the underlying data changed between showing options
+    and user selection, preventing silent drift.
+    """
+    import hashlib
+    # Include: normalized query, ambiguity params, ordered candidate IDs
+    parts = [
+        target.lower().strip(),
+        str(config.n),
+        str(config.k_max),
+        str(config.min_cluster_size),
+        str(config.cohesion_ratio),
+        str(config.separation_ratio),
+    ]
+    # Add ordered hit IDs
+    parts.extend(h.exchange_id for h in hits)
+    combined = "|".join(parts)
+    return hashlib.sha256(combined.encode()).hexdigest()[:16]
+
+
 @dataclass
 class RecallResult:
     """Complete result of a recall operation."""
@@ -68,6 +95,8 @@ class RecallResult:
     ambiguity: Optional[AmbiguityResult] = None
     cluster_options: List[ClusterOption] = field(default_factory=list)
     raw_hits: List[SemanticHit] = field(default_factory=list)
+    # Token for drift detection on cluster selection
+    disambiguation_token: Optional[str] = None
 
     def to_context_string(self) -> str:
         """Get formatted context string for LLM injection."""
@@ -101,6 +130,7 @@ def recall(
     expansion_config: ExpansionConfig = DEFAULT_CONFIG,
     skip_ambiguity_check: bool = False,
     selected_cluster: Optional[int] = None,
+    disambiguation_token: Optional[str] = None,
 ) -> RecallResult:
     """
     Execute a recall query.
@@ -113,6 +143,7 @@ def recall(
         expansion_config: Configuration for expansion tiers
         skip_ambiguity_check: If True, skip ambiguity detection
         selected_cluster: If set, filter to this cluster (after disambiguation)
+        disambiguation_token: Token from previous AMBIGUOUS result for drift detection
 
     Returns:
         RecallResult with formatted blocks and metadata, or AMBIGUOUS result
@@ -128,7 +159,8 @@ def recall(
 
     # Step 2: Get semantic hits (with embeddings for ambiguity detection)
     n_fetch = int(max_semantic_hits * budget.overfetch_multiplier)
-    need_embeddings = not skip_ambiguity_check and selected_cluster is None
+    # Need embeddings if doing ambiguity check OR if verifying token for cluster selection
+    need_embeddings = not skip_ambiguity_check
     hits = _get_semantic_hits(
         query.target,
         n_fetch,
@@ -142,8 +174,12 @@ def recall(
 
     logger.debug(f"Semantic search returned {len(hits)} hits")
 
+    # Compute current token for drift detection
+    config = AmbiguityConfig()
+    current_token = _compute_disambiguation_token(query.target or "", hits, config)
+
     # Step 3: Ambiguity detection (unless skipped or cluster already selected)
-    if need_embeddings and len(hits) >= MIN_CANDIDATES_FOR_AMBIGUITY:
+    if selected_cluster is None and not skip_ambiguity_check and len(hits) >= MIN_CANDIDATES_FOR_AMBIGUITY:
         ambiguity_result = _check_ambiguity(query.target or "", hits)
 
         if ambiguity_result and ambiguity_result.ambiguous:
@@ -162,10 +198,35 @@ def recall(
                 ambiguity=ambiguity_result,
                 cluster_options=ambiguity_result.options,
                 raw_hits=hits,
+                disambiguation_token=current_token,
             )
 
     # Step 4: Filter to selected cluster if specified
     if selected_cluster is not None:
+        # Drift detection: if token provided, verify it matches
+        if disambiguation_token is not None and disambiguation_token != current_token:
+            logger.warning(
+                f"Disambiguation token mismatch for '{query.target}': "
+                f"expected {disambiguation_token}, got {current_token}. "
+                "Underlying data changed, re-running ambiguity detection."
+            )
+            # Re-run ambiguity detection and return new options
+            ambiguity_result = _check_ambiguity(query.target or "", hits)
+            if ambiguity_result and ambiguity_result.ambiguous:
+                return RecallResult(
+                    kind=RecallResultKind.AMBIGUOUS,
+                    formatted=FormattedRecall(
+                        conversation_blocks=[],
+                        statement_blocks=[],
+                        total_exchanges=0,
+                    ),
+                    budget=budget,
+                    ambiguity=ambiguity_result,
+                    cluster_options=ambiguity_result.options,
+                    raw_hits=hits,
+                    disambiguation_token=current_token,
+                )
+
         hits = _filter_to_cluster(query.target or "", hits, selected_cluster)
         if not hits:
             return _empty_result(budget)

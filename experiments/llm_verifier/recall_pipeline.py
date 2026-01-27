@@ -55,7 +55,9 @@ class RecallPipelineConfig:
     ambiguity_n: int = 30  # Candidates to consider for ambiguity
     ambiguity_k_max: int = 4
     ambiguity_min_cluster_size: int = 3
-    ambiguity_delta: float = 0.03
+    ambiguity_rank_gap: int = 3  # Max rank gap for competitiveness
+    ambiguity_cohesion_ratio: float = 1.5  # Max cluster diameter / mean dist
+    ambiguity_separation_ratio: float = 1.0  # Min inter-cluster dist / mean dist
     # Reranking
     rerank_batch_size: int = 10
     rerank_threshold: float = 0.5
@@ -126,7 +128,9 @@ class RecallPipeline:
                 n=self.config.ambiguity_n,
                 k_max=self.config.ambiguity_k_max,
                 min_cluster_size=self.config.ambiguity_min_cluster_size,
-                delta=self.config.ambiguity_delta,
+                rank_gap=self.config.ambiguity_rank_gap,
+                cohesion_ratio=self.config.ambiguity_cohesion_ratio,
+                separation_ratio=self.config.ambiguity_separation_ratio,
             )
 
             ambiguity_result = ambiguity_detect(query, candidates, ambiguity_config)
@@ -163,7 +167,9 @@ class RecallPipeline:
                 n=self.config.ambiguity_n,
                 k_max=self.config.ambiguity_k_max,
                 min_cluster_size=self.config.ambiguity_min_cluster_size,
-                delta=self.config.ambiguity_delta,
+                rank_gap=self.config.ambiguity_rank_gap,
+                cohesion_ratio=self.config.ambiguity_cohesion_ratio,
+                separation_ratio=self.config.ambiguity_separation_ratio,
             )
             ambiguity_result = ambiguity_detect(query, candidates, ambiguity_config)
 

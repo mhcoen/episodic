@@ -61,11 +61,12 @@ class TestAmbiguityDetection:
         centroid_a = np.array([1.0, 0.0, 0.0])
         centroid_b = np.array([0.0, 1.0, 0.0])
 
-        cluster_a = make_cluster(centroid_a, 5, 0, "Programming topic", 0.90, rng=rng)
-        cluster_b = make_cluster(centroid_b, 5, 5, "Coffee brewing", 0.88, rng=rng)
+        # Interleave scores so both clusters have top-ranked items
+        cluster_a = make_cluster(centroid_a, 5, 0, "Programming topic", 0.90, score_decay=0.04, rng=rng)
+        cluster_b = make_cluster(centroid_b, 5, 5, "Coffee brewing", 0.89, score_decay=0.04, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result = ambiguity_detect("java", candidates, config)
 
@@ -73,7 +74,7 @@ class TestAmbiguityDetection:
         assert result.chosen_k == 2
         assert len(result.options) == 2
         assert result.cluster_sizes == [5, 5]
-        assert result.score_gap <= config.delta
+        assert result.rank_gap <= config.rank_gap
 
     def test_case2_one_cluster_too_small(self):
         """Two clusters but one is tiny (< m) → unambiguous."""
@@ -88,7 +89,7 @@ class TestAmbiguityDetection:
         cluster_b = make_cluster(centroid_b, 2, 8, "Minor topic", 0.88, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result = ambiguity_detect("query", candidates, config)
 
@@ -96,25 +97,26 @@ class TestAmbiguityDetection:
         assert "single coherent" in result.reason or "insufficient" in result.reason
 
     def test_case3_three_clusters(self):
-        """Three competitive clusters → k=3 with 3 options."""
+        """Three competitive clusters → ambiguous with 2+ options."""
         rng = np.random.default_rng(42)
 
         centroid_a = np.array([1.0, 0.0, 0.0])
         centroid_b = np.array([0.0, 1.0, 0.0])
         centroid_c = np.array([0.0, 0.0, 1.0])
 
-        cluster_a = make_cluster(centroid_a, 4, 0, "Topic A content", 0.90, rng=rng)
-        cluster_b = make_cluster(centroid_b, 4, 4, "Topic B content", 0.89, rng=rng)
-        cluster_c = make_cluster(centroid_c, 4, 8, "Topic C content", 0.88, rng=rng)
+        # Interleave scores so all clusters have near-top ranks
+        cluster_a = make_cluster(centroid_a, 4, 0, "Topic A content", 0.90, score_decay=0.06, rng=rng)
+        cluster_b = make_cluster(centroid_b, 4, 4, "Topic B content", 0.89, score_decay=0.06, rng=rng)
+        cluster_c = make_cluster(centroid_c, 4, 8, "Topic C content", 0.88, score_decay=0.06, rng=rng)
 
         candidates = cluster_a + cluster_b + cluster_c
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03, k_max=4)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3, k_max=4)
 
         result = ambiguity_detect("multi-topic", candidates, config)
 
         assert result.ambiguous is True
-        # Should pick smallest k that works - could be 2 or 3 depending on cluster merging
-        assert result.chosen_k in [2, 3]
+        # Should find competitive clusters at some k (2, 3, or 4 depending on separation)
+        assert result.chosen_k in [2, 3, 4]
         assert len(result.options) >= 2
 
     def test_case4_single_cluster(self):
@@ -124,7 +126,7 @@ class TestAmbiguityDetection:
         centroid = np.array([1.0, 0.0, 0.0])
         candidates = make_cluster(centroid, 10, 0, "Unified topic", 0.90, rng=rng)
 
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
         result = ambiguity_detect("focused-query", candidates, config)
 
         assert result.ambiguous is False
@@ -134,11 +136,11 @@ class TestAmbiguityDetection:
         """One main cluster and scattered points → unambiguous."""
         rng = np.random.default_rng(42)
 
-        # Main cluster
+        # Main cluster with high scores
         centroid = np.array([1.0, 0.0, 0.0])
-        main_cluster = make_cluster(centroid, 8, 0, "Main topic", 0.90, rng=rng)
+        main_cluster = make_cluster(centroid, 8, 0, "Main topic", 0.90, score_decay=0.01, rng=rng)
 
-        # Scattered points (each in different directions, won't form a cluster)
+        # Scattered points with much lower scores (won't be competitive by rank)
         scattered = []
         for i in range(4):
             direction = rng.standard_normal(3)
@@ -147,33 +149,35 @@ class TestAmbiguityDetection:
                 id=8 + i,
                 text=f"Random noise {i}",
                 emb=direction,
-                retr_score=0.70 - i * 0.05,  # Lower scores than main cluster
+                retr_score=0.50 - i * 0.05,  # Much lower scores
             ))
 
         candidates = main_cluster + scattered
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result = ambiguity_detect("query", candidates, config)
 
         assert result.ambiguous is False
 
-    def test_non_competitive_clusters(self):
-        """Two clusters but one dominates (b1 - b2 > delta) → unambiguous."""
+    def test_non_competitive_by_rank(self):
+        """Two clusters but second cluster's best item is far down in rank → unambiguous."""
         rng = np.random.default_rng(42)
 
         centroid_a = np.array([1.0, 0.0, 0.0])
         centroid_b = np.array([0.0, 1.0, 0.0])
 
-        # Dominant cluster with much higher scores
-        cluster_a = make_cluster(centroid_a, 5, 0, "Dominant topic", 0.95, rng=rng)
-        # Weaker cluster with lower scores
-        cluster_b = make_cluster(centroid_b, 5, 5, "Weak topic", 0.80, rng=rng)
+        # Cluster A dominates top ranks
+        cluster_a = make_cluster(centroid_a, 5, 0, "Dominant topic", 0.95, score_decay=0.01, rng=rng)
+        # Cluster B starts much lower in rank
+        cluster_b = make_cluster(centroid_b, 5, 5, "Weak topic", 0.70, score_decay=0.01, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result = ambiguity_detect("query", candidates, config)
 
+        # Cluster A occupies ranks 0-4, cluster B occupies ranks 5-9
+        # Rank gap = 5 - 0 = 5 > 3, so not competitive
         assert result.ambiguous is False
 
     def test_insufficient_candidates(self):
@@ -184,7 +188,7 @@ class TestAmbiguityDetection:
         # Only 4 candidates, need 2*m = 6 for ambiguity
         candidates = make_cluster(centroid, 4, 0, "Small set", 0.90, rng=rng)
 
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
         result = ambiguity_detect("query", candidates, config)
 
         assert result.ambiguous is False
@@ -197,16 +201,13 @@ class TestAmbiguityDetection:
         centroid_a = np.array([1.0, 0.0, 0.0])
         centroid_b = np.array([0.0, 1.0, 0.0])
 
-        cluster_a = make_cluster(centroid_a, 5, 0, "Topic A", 0.90, rng=rng)
-
-        rng = np.random.default_rng(42)  # Reset RNG to get same cluster_a
-        cluster_a_copy = make_cluster(centroid_a, 5, 0, "Topic A", 0.90, rng=rng)
+        cluster_a = make_cluster(centroid_a, 5, 0, "Topic A", 0.90, score_decay=0.04, rng=rng)
 
         rng = np.random.default_rng(43)  # Different seed for cluster_b
-        cluster_b = make_cluster(centroid_b, 5, 5, "Topic B", 0.88, rng=rng)
+        cluster_b = make_cluster(centroid_b, 5, 5, "Topic B", 0.89, score_decay=0.04, rng=rng)
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result1 = ambiguity_detect("test", candidates, config)
         result2 = ambiguity_detect("test", candidates, config)
@@ -214,7 +215,7 @@ class TestAmbiguityDetection:
         assert result1.ambiguous == result2.ambiguous
         assert result1.chosen_k == result2.chosen_k
         assert result1.cluster_sizes == result2.cluster_sizes
-        assert result1.score_gap == result2.score_gap
+        assert result1.rank_gap == result2.rank_gap
 
     def test_option_labels_are_distinctive(self):
         """Options have meaningful label terms derived from cluster content."""
@@ -223,7 +224,7 @@ class TestAmbiguityDetection:
         centroid_a = np.array([1.0, 0.0, 0.0])
         centroid_b = np.array([0.0, 1.0, 0.0])
 
-        # Distinct content for each cluster
+        # Distinct content for each cluster with interleaved scores
         cluster_a = []
         for i in range(5):
             noise = rng.standard_normal(3) * 0.1
@@ -233,7 +234,7 @@ class TestAmbiguityDetection:
                 id=i,
                 text=f"Python programming language syntax example {i}",
                 emb=emb,
-                retr_score=0.90 - i * 0.02,
+                retr_score=0.90 - i * 0.04,
             ))
 
         cluster_b = []
@@ -245,11 +246,11 @@ class TestAmbiguityDetection:
                 id=i + 5,
                 text=f"Python snake reptile wildlife nature {i}",
                 emb=emb,
-                retr_score=0.88 - i * 0.02,
+                retr_score=0.89 - i * 0.04,
             ))
 
         candidates = cluster_a + cluster_b
-        config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
 
         result = ambiguity_detect("python", candidates, config)
 
@@ -267,6 +268,130 @@ class TestAmbiguityDetection:
         # Snake cluster should have terms like snake, reptile, wildlife
         assert any(t in terms_str for t in ["programming", "syntax", "language", "example"])
         assert any(t in terms_str for t in ["snake", "reptile", "wildlife", "nature"])
+
+    def test_chain_structure_no_false_split(self):
+        """Chain-connected points (A—B—C—D) should not falsely split into 2 clusters.
+
+        This tests the cohesion check: a chain where adjacent points are close
+        but endpoints are far should be rejected as a valid cluster split.
+        """
+        rng = np.random.default_rng(42)
+
+        # Create a chain in embedding space
+        # Each point is close to neighbors but far from endpoints
+        chain_points = []
+        n_points = 10
+
+        for i in range(n_points):
+            # Linear interpolation from [1,0,0] to [0,1,0]
+            t = i / (n_points - 1)
+            base = np.array([1.0 - t, t, 0.0])
+            noise = rng.standard_normal(3) * 0.02  # Small noise
+            emb = base + noise
+            emb = emb / np.linalg.norm(emb)
+            chain_points.append(Candidate(
+                id=i,
+                text=f"Chain point {i} with gradual transition topic",
+                emb=emb,
+                retr_score=0.90 - i * 0.01,  # All high scores, interleaved
+            ))
+
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3, cohesion_ratio=1.5)
+        result = ambiguity_detect("chain-query", chain_points, config)
+
+        # A chain should NOT trigger ambiguity because:
+        # 1. Any split would create clusters with high diameter (low cohesion)
+        # 2. The cohesion check should reject such splits
+        assert result.ambiguous is False
+
+    def test_score_scaling_invariance(self):
+        """Ambiguity decision should not change under score scaling/translation.
+
+        Since we use rank-gap, multiplying or shifting scores should not
+        affect the result.
+        """
+        rng = np.random.default_rng(42)
+
+        centroid_a = np.array([1.0, 0.0, 0.0])
+        centroid_b = np.array([0.0, 1.0, 0.0])
+
+        # Original scores
+        cluster_a = make_cluster(centroid_a, 5, 0, "Topic A", 0.90, score_decay=0.04, rng=rng)
+        rng = np.random.default_rng(43)
+        cluster_b = make_cluster(centroid_b, 5, 5, "Topic B", 0.89, score_decay=0.04, rng=rng)
+        candidates_original = cluster_a + cluster_b
+
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
+        result_original = ambiguity_detect("test", candidates_original, config)
+
+        # Scaled scores (multiply by 10)
+        candidates_scaled = []
+        for c in candidates_original:
+            candidates_scaled.append(Candidate(
+                id=c.id,
+                text=c.text,
+                emb=c.emb,
+                retr_score=c.retr_score * 10,
+            ))
+        result_scaled = ambiguity_detect("test", candidates_scaled, config)
+
+        # Translated scores (add 5)
+        candidates_translated = []
+        for c in candidates_original:
+            candidates_translated.append(Candidate(
+                id=c.id,
+                text=c.text,
+                emb=c.emb,
+                retr_score=c.retr_score + 5,
+            ))
+        result_translated = ambiguity_detect("test", candidates_translated, config)
+
+        # All should have the same ambiguity decision
+        assert result_original.ambiguous == result_scaled.ambiguous
+        assert result_original.ambiguous == result_translated.ambiguous
+        assert result_original.chosen_k == result_scaled.chosen_k
+        assert result_original.chosen_k == result_translated.chosen_k
+        assert result_original.rank_gap == result_scaled.rank_gap
+        assert result_original.rank_gap == result_translated.rank_gap
+
+    def test_cohesion_rejects_loose_clusters(self):
+        """Clusters that are internally loose (high diameter) should be rejected."""
+        rng = np.random.default_rng(42)
+
+        # Create two "clusters" that are actually just scattered points
+        # with no internal cohesion
+        candidates = []
+
+        # "Cluster 1": 4 widely scattered points in one hemisphere
+        for i in range(4):
+            angle = i * np.pi / 4  # Spread across quadrant
+            emb = np.array([np.cos(angle), np.sin(angle), 0.1])
+            emb = emb / np.linalg.norm(emb)
+            candidates.append(Candidate(
+                id=i,
+                text=f"Scattered A point {i}",
+                emb=emb,
+                retr_score=0.90 - i * 0.02,
+            ))
+
+        # "Cluster 2": 4 widely scattered points in opposite hemisphere
+        for i in range(4):
+            angle = i * np.pi / 4 + np.pi  # Opposite quadrant
+            emb = np.array([np.cos(angle), np.sin(angle), -0.1])
+            emb = emb / np.linalg.norm(emb)
+            candidates.append(Candidate(
+                id=i + 4,
+                text=f"Scattered B point {i}",
+                emb=emb,
+                retr_score=0.89 - i * 0.02,
+            ))
+
+        # With strict cohesion, these loose "clusters" should be rejected
+        config = AmbiguityConfig(min_cluster_size=3, rank_gap=3, cohesion_ratio=0.5)
+        result = ambiguity_detect("scattered", candidates, config)
+
+        # Should not be ambiguous because clusters fail cohesion check
+        assert result.ambiguous is False
 
 
 class TestDisambiguationPrompt:
@@ -376,6 +501,8 @@ class TestIntegrationWithSyntheticCorpus:
             centroid_neg = centroid_neg / np.linalg.norm(centroid_neg)
 
             candidates = []
+            pos_count = 0
+            neg_count = 0
             for cid in candidates_ids:
                 if cid not in statements:
                     continue
@@ -385,15 +512,19 @@ class TestIntegrationWithSyntheticCorpus:
 
                 if is_positive:
                     centroid = centroid_pos
-                    base_score = 0.90
+                    # Interleave scores: positives get ranks 0, 2, 4, ...
+                    base_score = 0.90 - pos_count * 0.04
+                    pos_count += 1
                 elif is_hard_neg:
                     centroid = centroid_neg
-                    base_score = 0.85  # Hard negatives have high scores too
+                    # Hard negatives get ranks 1, 3, 5, ... (competitive)
+                    base_score = 0.89 - neg_count * 0.04
+                    neg_count += 1
                 else:
-                    # Regular negatives - scattered
+                    # Regular negatives - scattered with low scores
                     centroid = rng.standard_normal(64)
                     centroid = centroid / np.linalg.norm(centroid)
-                    base_score = 0.60
+                    base_score = 0.50
 
                 noise = rng.standard_normal(64) * 0.1
                 emb = centroid + noise
@@ -403,13 +534,14 @@ class TestIntegrationWithSyntheticCorpus:
                     id=cid,
                     text=statements[cid],
                     emb=emb,
-                    retr_score=base_score + rng.uniform(-0.02, 0.02),
+                    retr_score=base_score + rng.uniform(-0.005, 0.005),
                 ))
 
             if len(candidates) < 6:  # Need at least 2*m candidates
                 continue
 
-            config = AmbiguityConfig(min_cluster_size=3, delta=0.10)  # Wider delta for test
+            # Use lower separation ratio for synthetic data which may not be as well-separated
+            config = AmbiguityConfig(min_cluster_size=3, rank_gap=5, separation_ratio=0.5)
             result = ambiguity_detect(query, candidates, config)
 
             # For polysemy queries with hard negatives, we expect ambiguity
@@ -435,13 +567,14 @@ class TestIntegrationWithSyntheticCorpus:
             gold = case.get("gold_relevant", {})
             candidates_ids = case["candidates"][:20]
 
-            # Create synthetic embeddings - all positives in one cluster
+            # Create synthetic embeddings - all positives in one tight cluster
             rng = np.random.default_rng(hash(query) % 2**32)
 
             centroid = rng.standard_normal(64)
             centroid = centroid / np.linalg.norm(centroid)
 
             candidates = []
+            pos_idx = 0
             for cid in candidates_ids:
                 if cid not in statements:
                     continue
@@ -449,11 +582,13 @@ class TestIntegrationWithSyntheticCorpus:
                 is_positive = gold.get(str(cid), 0) == 1
 
                 if is_positive:
-                    noise = rng.standard_normal(64) * 0.1
+                    noise = rng.standard_normal(64) * 0.05  # Tight cluster
                     emb = centroid + noise
-                    base_score = 0.90
+                    # Positives dominate top ranks
+                    base_score = 0.95 - pos_idx * 0.01
+                    pos_idx += 1
                 else:
-                    # Negatives are scattered and low-scoring
+                    # Negatives are scattered and low-scoring (not competitive by rank)
                     emb = rng.standard_normal(64)
                     base_score = 0.50
 
@@ -463,17 +598,17 @@ class TestIntegrationWithSyntheticCorpus:
                     id=cid,
                     text=statements[cid],
                     emb=emb,
-                    retr_score=base_score + rng.uniform(-0.05, 0.05),
+                    retr_score=base_score + rng.uniform(-0.005, 0.005),
                 ))
 
             if len(candidates) < 6:
                 continue
 
-            config = AmbiguityConfig(min_cluster_size=3, delta=0.03)
+            config = AmbiguityConfig(min_cluster_size=3, rank_gap=3)
             result = ambiguity_detect(query, candidates, config)
 
             # Disambiguated queries should have a single coherent cluster
-            # (This depends on the synthetic embedding structure we created)
+            # with positives dominating top ranks (negatives not competitive)
 
 
 if __name__ == "__main__":

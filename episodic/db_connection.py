@@ -75,6 +75,8 @@ class ConnectionPool:
     def _create_connection(self) -> sqlite3.Connection:
         """Create a new database connection."""
         conn = sqlite3.connect(self.db_path)
+        # Enable dict-like row access
+        conn.row_factory = sqlite3.Row
         # Enable WAL mode for better concurrency
         try:
             conn.execute("PRAGMA journal_mode=WAL")
@@ -187,6 +189,7 @@ def get_connection():
     if os.environ.get("EPISODIC_DISABLE_POOL", "").lower() == "true":
         # Fall back to creating a new connection each time
         connection = sqlite3.connect(get_db_path())
+        connection.row_factory = sqlite3.Row
         try:
             yield connection
         except Exception:
@@ -251,8 +254,11 @@ def database_exists():
 
 def close_pool():
     """Close all connections in the pool. Call this on application shutdown."""
-    global _connection_pool
-    
+    global _connection_pool, _resolved_db_path
+
     if _connection_pool:
         _connection_pool.close_all()
         _connection_pool = None
+
+    # Reset the resolved path so it will be re-read from env on next access
+    _resolved_db_path = None

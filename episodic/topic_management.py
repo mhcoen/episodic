@@ -24,6 +24,7 @@ from episodic.topics import (
 from episodic.debug_utils import debug_print
 from episodic.debug_system import debug_enabled
 from episodic.benchmark import benchmark_operation
+from episodic.recall.centroid import update_topic_centroid
 
 
 class TopicHandler:
@@ -39,11 +40,21 @@ class TopicHandler:
         recent_nodes: List[Dict[str, Any]],
         user_input: str,
         user_node_id: str,
-        semantic_drift: Optional[float] = None
+        semantic_drift: Optional[float] = None,
+        dry_run: bool = False,
+        decision_override: Optional[str] = None
     ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
         """
         Detect topic change and handle topic management.
-        
+
+        Args:
+            recent_nodes: Recent conversation nodes for context
+            user_input: The user's message text
+            user_node_id: ID of the user's message node
+            semantic_drift: Optional pre-computed semantic drift score
+            dry_run: If True, no state mutation (for probing without side effects)
+            decision_override: If "FORCE_CONTINUE", skip detection and return no change
+
         Returns:
             Tuple of (topic_changed, new_topic_name, topic_cost_info, topic_change_info)
         """
@@ -52,8 +63,16 @@ class TopicHandler:
         topic_cost_info = None
         topic_change_info = None
 
-        # Increment message count for current topic
-        self.increment_message_count()
+        # Handle decision override
+        if decision_override == "FORCE_CONTINUE":
+            # Still increment message count unless dry_run
+            if not dry_run:
+                self.increment_message_count()
+            return topic_changed, new_topic_name, topic_cost_info, topic_change_info
+
+        # Increment message count for current topic (skip if dry_run)
+        if not dry_run:
+            self.increment_message_count()
 
         # Check if automatic topic detection is enabled
         if not config.get("automatic_topic_detection"):
@@ -161,13 +180,15 @@ class TopicHandler:
 
                     # Store topic change info to display later and reset counter
                     if topic_changed:
-                        # Reset message count for new topic (starts at 1 since this message triggered it)
-                        self._messages_in_current_topic = 1
+                        # Skip state mutations if dry_run
+                        if not dry_run:
+                            # Reset message count for new topic (starts at 1 since this message triggered it)
+                            self._messages_in_current_topic = 1
 
-                        # Reset strategy state so next detection starts fresh
-                        # (prevents evidence from old topic affecting new topic)
-                        from episodic.topics.strategy_registry import reset_strategy
-                        reset_strategy()
+                            # Reset strategy state so next detection starts fresh
+                            # (prevents evidence from old topic affecting new topic)
+                            from episodic.topics.strategy_registry import reset_strategy
+                            reset_strategy()
 
                         topic_change_info = {
                             'changed': True,
@@ -499,6 +520,9 @@ class TopicHandler:
 
             # Set as current topic
             self.conversation_manager.set_current_topic(topic_name_to_use, new_topic_start)
+
+            # Initialize centroid for new topic
+            update_topic_centroid(new_topic_start, force=True)
             
             if config.get("topic_change_info", True):
                 typer.echo("")
@@ -577,6 +601,9 @@ class TopicHandler:
                             # Set as current topic so handle_topic_boundaries knows to close it
                             self.conversation_manager.set_current_topic(topic_name, first_user_node_id)
 
+                            # Initialize centroid for initial topic
+                            update_topic_centroid(first_user_node_id, force=True)
+
                             typer.echo("")
                             secho_color(f"📌 Created initial topic: {topic_name}", fg=get_topic_change_color())
             else:
@@ -644,13 +671,40 @@ class TopicHandler:
     ) -> float:
         """Calculate the effective threshold based on topic count."""
         base_threshold = float(config.get("drift_threshold", 0.9))
-        
+
         # For sliding window detection, use the threshold from the detector
         if topic_cost_info and topic_cost_info.get("method") == "sliding_window":
             return topic_cost_info.get("threshold_used", base_threshold)
-        
+
         # For the first 2 topics, use half the threshold
         if topic_count < 2:
             return base_threshold / 2
-        
+
         return base_threshold
+
+    def update_current_topic_centroid(self) -> bool:
+        """
+        Update the centroid for the current topic.
+
+        Should be called after each exchange is added to maintain
+        topic centroid information for implicit reactivation.
+
+        Returns:
+            True if centroid was updated, False otherwise
+        """
+        current_topic = self.conversation_manager.get_current_topic()
+        if not current_topic:
+            return False
+
+        topic_name, start_node_id = current_topic
+
+        try:
+            # Update centroid (will only recompute at checkpoints)
+            updated = update_topic_centroid(start_node_id)
+            if updated and config.get("debug"):
+                debug_print(f"Updated centroid for topic '{topic_name}'", indent=True)
+            return updated
+        except Exception as e:
+            if config.get("debug"):
+                debug_print(f"Failed to update centroid: {e}", indent=True)
+            return False

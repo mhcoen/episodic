@@ -203,6 +203,8 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
         migrate_to_provider_model()
         migrate_topics_nullable_end()
         migrate_to_roles()
+        migrate_to_meta_query_flag()
+        migrate_to_topic_centroids()
         
     logger.info("Database initialized successfully")
 
@@ -347,3 +349,54 @@ def migrate_to_roles():
             
             conn.commit()
             logger.info("Added role column to nodes table and set default values")
+
+
+def migrate_to_meta_query_flag():
+    """Add is_meta_query column to nodes table for filtering out meta-queries from retrieval."""
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if is_meta_query column exists
+        c.execute("PRAGMA table_info(nodes)")
+        columns = [column[1] for column in c.fetchall()]
+
+        if 'is_meta_query' not in columns:
+            # Add the is_meta_query column with default FALSE
+            c.execute("ALTER TABLE nodes ADD COLUMN is_meta_query BOOLEAN DEFAULT FALSE")
+            conn.commit()
+            logger.info("Added is_meta_query column to nodes table")
+
+
+def migrate_to_topic_centroids():
+    """Add topic_centroids table for implicit topic reactivation.
+
+    This table stores centroid/medoid information for each topic, enabling
+    efficient ANN queries to find which dormant topic a new message relates to.
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if topic_centroids table exists
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='topic_centroids'")
+        if c.fetchone():
+            # Table already exists
+            return
+
+        # Create the topic_centroids table
+        c.execute('''
+            CREATE TABLE topic_centroids (
+                start_node_id TEXT PRIMARY KEY,
+                centroid_medoid_exchange_id TEXT,
+                exchange_count INTEGER DEFAULT 0,
+                last_active_turn_idx INTEGER,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (start_node_id) REFERENCES nodes(id),
+                FOREIGN KEY (centroid_medoid_exchange_id) REFERENCES nodes(id)
+            )
+        ''')
+
+        # Create index for efficient turn_idx queries
+        c.execute('CREATE INDEX IF NOT EXISTS idx_topic_centroids_turn ON topic_centroids(last_active_turn_idx)')
+
+        conn.commit()
+        logger.info("Created topic_centroids table for implicit topic reactivation")

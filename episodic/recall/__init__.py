@@ -36,6 +36,19 @@ from .ambiguity import (
     ambiguity_detect,
     format_disambiguation_prompt,
 )
+from .centroid import (
+    update_topic_centroid,
+    get_topic_centroid,
+    compute_medoid,
+    backfill_centroids,
+    is_checkpoint,
+)
+from .reactivation import (
+    probe_reactivation,
+    assemble_reactivation_packet,
+    ReactivationDecision,
+    DisambiguationOption,
+)
 
 __all__ = [
     # Main pipeline
@@ -86,4 +99,17 @@ __all__ = [
     # CLI Integration
     'handle_recall_query',
     'get_recall_context_for_llm',
+
+    # Centroid maintenance
+    'update_topic_centroid',
+    'get_topic_centroid',
+    'compute_medoid',
+    'backfill_centroids',
+    'is_checkpoint',
+
+    # Reactivation
+    'probe_reactivation',
+    'assemble_reactivation_packet',
+    'ReactivationDecision',
+    'DisambiguationOption',
 ]

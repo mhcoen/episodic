@@ -53,11 +53,15 @@ class ConversationManager:
         self.last_loaded_end_id = None    # Track end of last loaded conversation
         self.session_costs = {
             "total_input_tokens": 0,
-            "total_output_tokens": 0,  
+            "total_output_tokens": 0,
             "total_tokens": 0,
             "total_cost_usd": 0.0
         }
-        
+
+        # Reactivation state (for implicit topic reactivation)
+        self.reactivation_cooldown_turns = 0
+        self.last_reactivation_topic_start_node_id = None
+
         # Initialize handlers
         self.topic_handler = TopicHandler(self)
         self.context_builder = ContextBuilder()
@@ -100,7 +104,139 @@ class ConversationManager:
     def get_current_topic(self) -> Optional[Tuple[str, str]]:
         """Get the current topic (name, start_node_id) or None."""
         return self.current_topic
-    
+
+    def probe_topic_reactivation(
+        self,
+        user_input: str,
+        recent_nodes: list,
+        is_meta_query: bool = False,
+        is_recall_intent: bool = False
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """
+        Probe for implicit topic reactivation.
+
+        Args:
+            user_input: The user's message text
+            recent_nodes: Recent conversation nodes
+            is_meta_query: Whether this is a meta/command query
+            is_recall_intent: Whether this is a memory recall query
+
+        Returns:
+            Tuple of (should_reactivate, topic_name, topic_start_node_id)
+        """
+        from datetime import datetime
+        import numpy as np
+
+        # Skip probe for meta queries, recall intents, or very short inputs
+        if is_meta_query or is_recall_intent or len(user_input.split()) < 4:
+            return False, None, None
+
+        # Decrement cooldown
+        if self.reactivation_cooldown_turns > 0:
+            self.reactivation_cooldown_turns -= 1
+
+        # Get active topic
+        active_topic = self.get_current_topic()
+        active_start_node_id = active_topic[1] if active_topic else None
+
+        try:
+            from episodic.recall.reactivation import probe_reactivation
+            from episodic.rag_collections import get_multi_collection_rag, CollectionType
+
+            # Get embedding for user input
+            rag = get_multi_collection_rag()
+            collection = rag.get_collection(CollectionType.CONVERSATION)
+            embeddings = collection._embedding_function([user_input])
+            user_embedding = np.array(embeddings[0])
+
+            # Probe for reactivation
+            decision = probe_reactivation(
+                user_input=user_input,
+                user_embedding=user_embedding,
+                active_topic_start_node_id=active_start_node_id,
+                cooldown_turns=self.reactivation_cooldown_turns,
+                now=datetime.now(),
+                recent_nodes=recent_nodes
+            )
+
+            # Gate reactivation to self
+            if (decision.action == "REACTIVATE" and
+                decision.topic_start_node_id == active_start_node_id):
+                return False, None, None
+
+            # Handle DISAMBIGUATE (for now, just take the first option)
+            # TODO: Implement proper disambiguation UI
+            if decision.action == "DISAMBIGUATE" and decision.options:
+                # Use the best option
+                best_option = decision.options[0]
+                decision.action = "REACTIVATE"
+                decision.topic_name = best_option.topic_name
+                decision.topic_start_node_id = best_option.topic_start_node_id
+
+            if decision.action == "REACTIVATE":
+                return True, decision.topic_name, decision.topic_start_node_id
+
+            return False, None, None
+
+        except Exception as e:
+            if config.get("debug"):
+                debug_print(f"Reactivation probe error: {e}")
+            return False, None, None
+
+    def apply_topic_reactivation(
+        self,
+        topic_name: str,
+        topic_start_node_id: str,
+        user_input: str
+    ) -> Optional[str]:
+        """
+        Apply topic reactivation: switch topic and assemble context packet.
+
+        Args:
+            topic_name: Name of topic to reactivate
+            topic_start_node_id: Start node ID of topic
+            user_input: User's input (for anchor selection)
+
+        Returns:
+            Context packet string to inject, or None on error
+        """
+        import numpy as np
+
+        try:
+            from episodic.recall.reactivation import assemble_reactivation_packet
+            from episodic.rag_collections import get_multi_collection_rag, CollectionType
+
+            # Switch to reactivated topic
+            self.set_current_topic(topic_name, topic_start_node_id)
+
+            # Get embedding for anchor selection
+            rag = get_multi_collection_rag()
+            collection = rag.get_collection(CollectionType.CONVERSATION)
+            embeddings = collection._embedding_function([user_input])
+            user_embedding = np.array(embeddings[0])
+
+            # Assemble context packet
+            packet, debug_info = assemble_reactivation_packet(
+                topic_start_node_id=topic_start_node_id,
+                user_embedding=user_embedding,
+                token_budget=150
+            )
+
+            # Set cooldown
+            self.reactivation_cooldown_turns = 3
+            self.last_reactivation_topic_start_node_id = topic_start_node_id
+
+            if config.get("debug"):
+                debug_print(f"Reactivated topic: {topic_name}")
+                debug_print(f"Packet length: {len(packet)} chars")
+
+            return packet if packet else None
+
+        except Exception as e:
+            if config.get("debug"):
+                debug_print(f"Reactivation apply error: {e}")
+            return None
+
     def finalize_current_topic(self) -> None:
         """
         Finalize the current topic by:
@@ -419,12 +555,51 @@ class ConversationManager:
             if config.get("show_drift") or config.get("use_drift_trigger", True):
                 semantic_drift = self.compute_semantic_drift(user_node_id)
 
+            # Probe for implicit topic reactivation
+            reactivation_packet = None
+            reactivation_applied = False
+            if config.get("enable_topic_reactivation", False):
+                should_reactivate, react_topic_name, react_start_node_id = \
+                    self.probe_topic_reactivation(
+                        user_input=user_input,
+                        recent_nodes=recent_nodes,
+                        is_meta_query=False,
+                        is_recall_intent=False
+                    )
+
+                if should_reactivate and react_topic_name and react_start_node_id:
+                    # Check if tracker would want a new topic (dry run)
+                    raw_topic_changed, _, _, _ = self.topic_handler.detect_and_handle_topic_change(
+                        recent_nodes, user_input, user_node_id,
+                        semantic_drift=semantic_drift,
+                        dry_run=True
+                    )
+
+                    # Reactivation wins unless tracker wants new topic with weak evidence
+                    # (For now, always let reactivation win if probe returned positive)
+                    reactivation_packet = self.apply_topic_reactivation(
+                        react_topic_name, react_start_node_id, user_input
+                    )
+                    if reactivation_packet:
+                        reactivation_applied = True
+                        if config.get("debug"):
+                            secho_color(f"\n📌 Reactivated topic: {react_topic_name}", fg=get_system_color())
+
             # Detect topic change BEFORE querying the main LLM
-            topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
-                self.topic_handler.detect_and_handle_topic_change(
-                    recent_nodes, user_input, user_node_id,
-                    semantic_drift=semantic_drift
-                )
+            if reactivation_applied:
+                # Force continue - we've already switched topics via reactivation
+                topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
+                    self.topic_handler.detect_and_handle_topic_change(
+                        recent_nodes, user_input, user_node_id,
+                        semantic_drift=semantic_drift,
+                        decision_override="FORCE_CONTINUE"
+                    )
+            else:
+                topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
+                    self.topic_handler.detect_and_handle_topic_change(
+                        recent_nodes, user_input, user_node_id,
+                        semantic_drift=semantic_drift
+                    )
             
             # Store topic detection scores for debugging
             self.topic_handler.store_topic_detection_scores(
@@ -540,7 +715,17 @@ class ConversationManager:
                         "content": memory_context
                     }
                     messages.insert(-1, memory_msg)
-            
+
+            # Insert reactivation packet if topic was reactivated
+            if reactivation_packet and messages:
+                if len(messages) >= 2 and messages[-1]["role"] == "user":
+                    # Insert as a system message before the current user message
+                    reactivation_msg = {
+                        "role": "system",
+                        "content": reactivation_packet
+                    }
+                    messages.insert(-1, reactivation_msg)
+
             # Display topic evolution if requested
             if config.get("show_topics") and raw_messages:
                 _display_topic_evolution(user_node_id)
@@ -808,7 +993,11 @@ class ConversationManager:
                 elif self.current_topic:
                     # Update ongoing topic name if needed
                     self.topic_handler.update_ongoing_topic_name(assistant_node_id)
-            
+
+                # Update centroid for current topic (at checkpoint intervals)
+                if self.current_topic and config.get("enable_topic_reactivation", False):
+                    self.topic_handler.update_current_topic_centroid()
+
             # Store conversation in system memory (always on, independent of user RAG)
             self.store_conversation_to_memory(user_input, display_response, user_node_id, assistant_node_id)
             

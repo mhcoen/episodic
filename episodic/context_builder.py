@@ -24,6 +24,7 @@ class ContextBuilder:
         self.rag_context = None
         self.web_context = None
         self.topic_context = None
+        self.last_assembly_debug = None  # Instrumentation from last assembly
         
     def build_conversation_context(
         self,
@@ -63,7 +64,166 @@ class ContextBuilder:
             self.web_context = web_context
         
         return messages, raw_messages, rag_context, web_context
-    
+
+    def build_with_strategy(
+        self,
+        user_node_id: str,
+        user_input: str,
+        active_topic_start_node_id: Optional[str],
+        reactivation_decision: Optional[Any] = None,
+        user_embedding: Optional[Any] = None,
+        token_budget: int = 4000,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Build context using the configured recovery strategy.
+
+        This is the new strategy-based context assembly that supports:
+        - ancestry: Traditional DAG traversal
+        - topic_local: Topic-isolated context
+        - hybrid: Switches based on reactivation
+
+        Args:
+            user_node_id: Current user node ID
+            user_input: Current user message text
+            active_topic_start_node_id: Active topic's start node ID
+            reactivation_decision: Result of reactivation probe (for hybrid mode)
+            user_embedding: Pre-computed embedding for user message
+            token_budget: Maximum tokens for context
+
+        Returns:
+            Tuple of (messages, debug_info)
+        """
+        from episodic.context_recovery.strategy import (
+            ContextRecoveryMode,
+            select_strategy,
+            get_mode_from_config,
+        )
+
+        # Get configured mode
+        mode = get_mode_from_config()
+
+        # Select strategy based on mode and reactivation
+        strategy = select_strategy(mode, reactivation_decision)
+
+        # Assemble context
+        result = strategy.assemble(
+            user_turn_text=user_input,
+            user_node_id=user_node_id,
+            active_topic_start_node_id=active_topic_start_node_id,
+            user_embedding=user_embedding,
+            token_budget=token_budget,
+        )
+
+        # Store debug info
+        self.last_assembly_debug = result.debug
+
+        # Log instrumentation
+        if config.get("debug"):
+            self._log_assembly_debug(result.debug)
+
+        # Compute and persist fingerprint for determinism tracking
+        if user_node_id and config.get("enable_fingerprinting", False):
+            try:
+                from episodic.context_recovery.determinism import (
+                    compute_fingerprint,
+                    persist_fingerprint
+                )
+                fingerprint = compute_fingerprint(user_node_id, result.debug)
+                persist_fingerprint(fingerprint)
+                result.debug["fingerprint_hash"] = fingerprint.hash
+            except Exception as e:
+                debug_print(f"Fingerprinting failed: {e}", category="context")
+
+        return result.messages, result.debug
+
+    def _log_assembly_debug(self, debug: Dict[str, Any]) -> None:
+        """Log context assembly instrumentation."""
+        mode = debug.get("mode", "unknown")
+        topic_id = debug.get("topic_start_node_id", "none")
+        node_count = len(debug.get("included_node_ids", []))
+        tokens = debug.get("token_counts", {}).get("total_estimate", 0)
+        reactivation = debug.get("reactivation_fired", False)
+
+        debug_print(f"Context assembly: mode={mode}, topic={topic_id[:8] if topic_id else 'none'}..., "
+                   f"nodes={node_count}, tokens≈{tokens}, reactivation={reactivation}",
+                   category="context")
+
+    def build_context_full(
+        self,
+        user_node_id: str,
+        user_input: str,
+        active_topic_start_node_id: Optional[str],
+        model: str,
+        reactivation_decision: Optional[Any] = None,
+        user_embedding: Optional[Any] = None,
+        token_budget: Optional[int] = None,
+        skip_rag: bool = False
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Build context using strategy-based assembly with RAG/web enhancements.
+
+        This combines build_with_strategy() for core message assembly with
+        the RAG and web search enhancements from build_conversation_context().
+
+        Args:
+            user_node_id: Current user node ID
+            user_input: Current user message text
+            active_topic_start_node_id: Active topic's start node ID (POST-reactivation)
+            model: Model being used (for RAG/web compatibility)
+            reactivation_decision: Result of reactivation probe (for hybrid mode)
+            user_embedding: Pre-computed embedding for user message
+            token_budget: Maximum tokens for context (from config if not provided)
+            skip_rag: Skip RAG enhancement
+
+        Returns:
+            Tuple of (messages, raw_messages, rag_context, web_context, debug_info)
+        """
+        # Get token budget from config if not provided
+        if token_budget is None:
+            token_budget = config.get("context_token_budget", 4000)
+
+        # Build core messages using strategy
+        with benchmark_resource("Database", "build context with strategy"):
+            messages, debug_info = self.build_with_strategy(
+                user_node_id=user_node_id,
+                user_input=user_input,
+                active_topic_start_node_id=active_topic_start_node_id,
+                reactivation_decision=reactivation_decision,
+                user_embedding=user_embedding,
+                token_budget=token_budget,
+            )
+
+        # Build raw_messages for topic evolution display if enabled
+        raw_messages = []
+        if config.get("show_topics"):
+            conversation_chain = get_ancestry(user_node_id)
+            raw_messages = [
+                {"role": node.get("role"), "content": node.get("content")}
+                for node in conversation_chain
+                if node.get("content") and node.get("content").strip()
+            ]
+
+        # Process @file references in the last user message
+        messages = self._process_file_references(messages)
+
+        # Add topic-aware context retrieval (before RAG)
+        topic_context = self._add_topic_context(user_input, messages)
+        self.topic_context = topic_context
+
+        # Add RAG context if enabled
+        rag_context = None
+        if not skip_rag:
+            rag_context = self._add_rag_context(user_input, messages, model)
+            self.rag_context = rag_context
+
+        # Add web search context if in muse mode
+        web_context = None
+        if config.get("muse_mode"):
+            web_context = self._add_web_context(user_input, model)
+            self.web_context = web_context
+
+        return messages, raw_messages, rag_context, web_context, debug_info
+
     def _build_basic_context(
         self,
         user_node_id: str,

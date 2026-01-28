@@ -114,7 +114,7 @@ def enable_rag():
     config.set('rag_enabled', original_value)
 
 
-@pytest.mark.skip(reason="ChromaDB file locking issues in test isolation - needs refactoring")
+@pytest.mark.quarantine_chroma
 class TestMemoryIntegration:
     """Integration tests for memory commands.
 

@@ -1,0 +1,87 @@
+name: Reactivation CI Gate
+
+on:
+  push:
+    branches: [main, enhance/topic]
+  pull_request:
+    branches: [main]
+
+jobs:
+  reactivation-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run reactivation tests (required gate)
+        run: |
+          pytest -m reactivation -v --tb=short
+        env:
+          EPISODIC_TEST_MODE: "1"
+
+      - name: Verify test count
+        run: |
+          # Ensure we're running the expected number of tests
+          count=$(pytest -m reactivation --collect-only -q 2>/dev/null | grep "test" | wc -l)
+          echo "Collected $count tests"
+          if [ "$count" -lt 100 ]; then
+            echo "ERROR: Expected at least 100 reactivation tests, found $count"
+            exit 1
+          fi
+
+  resume-benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run resume benchmark tests
+        run: |
+          pytest tests/benchmark/ -m benchmark -v --tb=short
+        env:
+          EPISODIC_TEST_MODE: "1"
+
+  main-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run main test suite (excluding quarantined)
+        run: |
+          pytest tests/ -m "not quarantine_chroma" -v --tb=short
+        env:
+          EPISODIC_TEST_MODE: "1"

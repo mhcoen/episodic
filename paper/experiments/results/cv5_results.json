@@ -1,0 +1,115 @@
+{
+  "experiment": "cv5",
+  "dataset": "dialseg711",
+  "n_folds": 5,
+  "total_time_minutes": 26.421573797861736,
+  "folds": [
+    {
+      "fold": 1,
+      "train_size": 512,
+      "test_size": 143,
+      "distilbert": {
+        "exact_f1": 0.8014152514152514,
+        "tolerant_f1": 0.8515984015984016,
+        "bor": 1.0219512195121951,
+        "n_dialogues": 143
+      },
+      "gpt52": {
+        "exact_f1": 0.42607947607947605,
+        "tolerant_f1": 0.6769896769896769,
+        "bor": 1.0048780487804878,
+        "n_dialogues": 143
+      },
+      "time_minutes": 5.196617114543915
+    },
+    {
+      "fold": 2,
+      "train_size": 513,
+      "test_size": 142,
+      "distilbert": {
+        "exact_f1": 0.7923541247484909,
+        "tolerant_f1": 0.8291079812206572,
+        "bor": 0.9828850855745721,
+        "n_dialogues": 142
+      },
+      "gpt52": {
+        "exact_f1": 0.43011960652805725,
+        "tolerant_f1": 0.7005030181086518,
+        "bor": 1.0097799511002445,
+        "n_dialogues": 142
+      },
+      "time_minutes": 5.728082299232483
+    },
+    {
+      "fold": 3,
+      "train_size": 513,
+      "test_size": 142,
+      "distilbert": {
+        "exact_f1": 0.7791582830315223,
+        "tolerant_f1": 0.8324111334674714,
+        "bor": 1.0098039215686274,
+        "n_dialogues": 142
+      },
+      "gpt52": {
+        "exact_f1": 0.4356528057232283,
+        "tolerant_f1": 0.6680248155600268,
+        "bor": 0.9852941176470589,
+        "n_dialogues": 142
+      },
+      "time_minutes": 5.264513365427653
+    },
+    {
+      "fold": 4,
+      "train_size": 513,
+      "test_size": 142,
+      "distilbert": {
+        "exact_f1": 0.8061871227364185,
+        "tolerant_f1": 0.8691649899396379,
+        "bor": 1.0269607843137254,
+        "n_dialogues": 142
+      },
+      "gpt52": {
+        "exact_f1": 0.4156941649899396,
+        "tolerant_f1": 0.654644533869886,
+        "bor": 1.0024509803921569,
+        "n_dialogues": 142
+      },
+      "time_minutes": 5.179645784695944
+    },
+    {
+      "fold": 5,
+      "train_size": 513,
+      "test_size": 142,
+      "distilbert": {
+        "exact_f1": 0.7880281690140846,
+        "tolerant_f1": 0.8239771965124078,
+        "bor": 0.9754299754299754,
+        "n_dialogues": 142
+      },
+      "gpt52": {
+        "exact_f1": 0.42895148669796557,
+        "tolerant_f1": 0.7042924211938296,
+        "bor": 1.0147420147420148,
+        "n_dialogues": 142
+      },
+      "time_minutes": 5.048087882995605
+    }
+  ],
+  "aggregate": {
+    "distilbert_exact_mean": 0.7934285901891536,
+    "distilbert_exact_std": 0.009597162096417094,
+    "distilbert_tolerant_mean": 0.8412519405477152,
+    "distilbert_tolerant_std": 0.016794284635446684,
+    "gpt52_exact_mean": 0.4272995080037334,
+    "gpt52_exact_std": 0.006582279794229786,
+    "gpt52_tolerant_mean": 0.6808908931444143,
+    "gpt52_tolerant_std": 0.01898364441155344
+  },
+  "config": {
+    "batch_size": 16,
+    "epochs": 3,
+    "min_gap": 2,
+    "tolerant_window": 3
+  },
+  "timestamp": "2026-01-19T19:02:10.727363"
+}

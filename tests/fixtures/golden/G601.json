@@ -1,0 +1,18 @@
+{
+  "id": "G601",
+  "description": "browse with empty target",
+  "input_raw": "browse",
+  "input_norm": "browse",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "browse",
+    "target": null
+  },
+  "resolve": {
+    "mode": "browse",
+    "target": null,
+    "segment_explicit": false
+  }
+}

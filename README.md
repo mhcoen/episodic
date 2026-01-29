@@ -319,7 +319,7 @@ I found multiple matching topics:
 Which topic?
 ```
 
-Enable with `/set enable_topic_reactivation true`. See the [Topic Reactivation Guide](docs/user_guide_topic_reactivation.md) for details.
+Topic reactivation is enabled by default. See the [Topic Reactivation Guide](docs/user_guide_topic_reactivation.md) for configuration options.
 
 ### 📝 Save and Resume Conversations
 Export conversations to markdown for sharing, backup, or continuing later:

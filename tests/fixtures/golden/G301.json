@@ -1,0 +1,33 @@
+{
+  "id": "G301",
+  "description": "Did I ever say coffee? -> speaker=user, mode=browse, has_broadness_cue=true",
+  "input_raw": "Did I ever say coffee?",
+  "input_norm": "Did I ever say coffee?",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "tokens": [
+    {"kind": "KW_DID", "lexeme": "Did", "span": [0, 3], "normalized": "did", "index": 0},
+    {"kind": "KW_SPEAKER", "lexeme": "I", "span": [4, 5], "normalized": "user", "index": 1},
+    {"kind": "KW_EVER", "lexeme": "ever", "span": [6, 10], "normalized": "ever", "index": 2},
+    {"kind": "KW_DISCUSS", "lexeme": "say", "span": [11, 14], "normalized": "said", "index": 3},
+    {"kind": "WORD", "lexeme": "coffee", "span": [15, 21], "normalized": "coffee", "index": 4},
+    {"kind": "QUESTION", "lexeme": "?", "span": [21, 22], "normalized": "?", "index": 5},
+    {"kind": "EOF", "lexeme": "", "span": [22, 22], "normalized": null, "index": 6}
+  ],
+  "parse": {
+    "ast_kind": "DiscussionQuery",
+    "query_form": "did_speaker",
+    "target": "coffee",
+    "speaker": {"role": "user"},
+    "has_broadness_cue": true
+  },
+  "resolve": {
+    "mode": "browse",
+    "target": "coffee",
+    "segment_explicit": false,
+    "segment_resolved_ids": null,
+    "speaker": "user",
+    "temporal": null,
+    "has_broadness_cue": true
+  }
+}

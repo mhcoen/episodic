@@ -1,0 +1,18 @@
+{
+  "id": "G602",
+  "description": "summarize with no target text",
+  "input_raw": "summarize",
+  "input_norm": "summarize",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "summarize",
+    "target": null
+  },
+  "resolve": {
+    "mode": "summarize",
+    "target": null,
+    "segment_explicit": false
+  }
+}

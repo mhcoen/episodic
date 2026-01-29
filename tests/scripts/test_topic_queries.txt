@@ -1,0 +1,47 @@
+# Episodic Test Script: Topic-Based Queries
+# ==========================================
+# Tests the query understanding system's ability to parse and resolve
+# topic/segment references.
+#
+# Prerequisites:
+#   - Test fixtures must be injected
+#   - Test mode must be enabled (/test on)
+#
+# Expected topics:
+#   - quantum-computing (closed)
+#   - database-indexing (closed)
+#   - python-asyncio (closed)
+#   - machine-learning-basics (ongoing)
+
+# === EXPLICIT TOPIC QUERIES ===
+# Using "in topic:" syntax
+
+browse in topic: quantum-computing
+
+summarize in topic: database-indexing
+
+in topic: python-asyncio what did we discuss
+
+# === IMPLICIT TOPIC QUERIES ===
+# Topic inferred from target
+
+what did we discuss about quantum computing
+
+summarize our database discussion
+
+browse python asyncio conversations
+
+# === TOPIC DISAMBIGUATION ===
+# Queries that might match multiple topics
+
+in topic: machine
+
+browse topic: python
+
+# === ONGOING VS CLOSED TOPICS ===
+
+what is the current topic
+
+show ongoing topics
+
+list completed topics

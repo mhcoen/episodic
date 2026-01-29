@@ -1,0 +1,31 @@
+{
+  "id": "G501",
+  "description": "Tie-producing query for determinism (segment ambiguous)",
+  "input_raw": "in topic: research",
+  "input_norm": "in topic: research",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "test_db_setup": {
+    "topics": [
+      {"id": "t1", "name": "research-methodology"},
+      {"id": "t2", "name": "research-results"}
+    ]
+  },
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "answer",
+    "segment": {"explicit": true, "query": "research"}
+  },
+  "resolve": {
+    "mode": "answer",
+    "segment_explicit": true,
+    "segment_query": "research",
+    "segment_resolved_ids": [],
+    "segment_ambiguous": true,
+    "segment_candidates": [
+      {"id": "t1", "name": "research-methodology"},
+      {"id": "t2", "name": "research-results"}
+    ]
+  },
+  "notes": "Candidates sorted by id ASC for deterministic ordering"
+}

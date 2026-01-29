@@ -242,8 +242,7 @@ class ConversationManager:
             return False, None, None
 
         except Exception as e:
-            if config.get("debug"):
-                debug_print(f"Reactivation probe error: {e}")
+            debug_print(f"Reactivation probe error: {e}", category="memory")
             return False, None, None
 
     def apply_topic_reactivation(
@@ -296,8 +295,7 @@ class ConversationManager:
             return packet if packet else None
 
         except Exception as e:
-            if config.get("debug"):
-                debug_print(f"Reactivation apply error: {e}")
+            debug_print(f"Reactivation apply error: {e}", category="memory")
             return None
 
     def finalize_current_topic(self) -> None:
@@ -654,8 +652,7 @@ class ConversationManager:
                     from episodic.db_reactivation_decisions import persist_reactivation_decision
                     persist_reactivation_decision(user_node_id, self._last_reactivation_decision)
                 except Exception as e:
-                    if config.get("debug"):
-                        debug_print(f"Failed to persist reactivation decision: {e}")
+                    debug_print(f"Failed to persist reactivation decision: {e}", category="memory")
 
             # Detect topic change BEFORE querying the main LLM
             if reactivation_applied:

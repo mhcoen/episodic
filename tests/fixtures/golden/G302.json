@@ -1,0 +1,22 @@
+{
+  "id": "G302",
+  "description": "Same as G301 with quoted target variant",
+  "input_raw": "did I say 'Fenway'?",
+  "input_norm": "did I say 'Fenway'?",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "DiscussionQuery",
+    "query_form": "did_speaker",
+    "target": "Fenway",
+    "speaker": {"role": "user"},
+    "has_broadness_cue": false
+  },
+  "resolve": {
+    "mode": "browse",
+    "target": "Fenway",
+    "segment_explicit": false,
+    "speaker": "user",
+    "has_broadness_cue": false
+  }
+}

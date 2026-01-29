@@ -1,0 +1,20 @@
+{
+  "id": "G403",
+  "description": "yesterday coffee with DST fall back (November 3, 2024)",
+  "input_raw": "yesterday coffee",
+  "input_norm": "yesterday coffee",
+  "now_utc": "2024-11-03T15:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "answer",
+    "temporal": {"kind": "yesterday", "raw": "yesterday"},
+    "target": "coffee"
+  },
+  "resolve": {
+    "mode": "answer",
+    "target": "coffee",
+    "temporal": ["2024-11-02T05:00:00+00:00", "2024-11-03T05:00:00+00:00"]
+  },
+  "notes": "Nov 2 midnight CDT = 05:00 UTC, Nov 3 'today' midnight uses CDT offset since DST transition happens at 2am"
+}

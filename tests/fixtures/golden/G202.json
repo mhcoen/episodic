@@ -1,0 +1,21 @@
+{
+  "id": "G202",
+  "description": "No segment mentioned -> segment_resolved_ids=None",
+  "input_raw": "browse coffee",
+  "input_norm": "browse coffee",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "browse",
+    "segment": {"explicit": false, "query": null},
+    "target": "coffee"
+  },
+  "resolve": {
+    "mode": "browse",
+    "target": "coffee",
+    "segment_explicit": false,
+    "segment_query": null,
+    "segment_resolved_ids": null
+  }
+}

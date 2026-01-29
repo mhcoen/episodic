@@ -337,7 +337,7 @@ python -m episodic.migrations.m015_topic_local_tables backfill
 |-----------|---------|-------------|
 | `context_recovery_mode` | `"ancestry"` | `ancestry`, `topic_local`, or `hybrid` |
 | `context_token_budget` | `4000` | Max tokens for assembled context |
-| `enable_topic_reactivation` | `false` | Enable reactivation probe |
+| `enable_topic_reactivation` | `true` | Enable reactivation probe |
 | `reactivation_cooldown` | `3` | Turns to wait after reactivation |
 | `reactivation_dormancy_min` | `4` | Min turns before topic eligible |
 | `reactivation_support_threshold` | `2` | Min matching exchanges required |

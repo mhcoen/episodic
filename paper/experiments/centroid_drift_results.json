@@ -1,0 +1,730 @@
+{
+  "config": {
+    "model": "all-MiniLM-L6-v2",
+    "alphas": [
+      0.05,
+      0.1,
+      0.2
+    ],
+    "sample_size": null
+  },
+  "results": [
+    {
+      "corpus": "superseg",
+      "stats": {
+        "num_dialogues": 1322,
+        "total_turns": 17328,
+        "total_user_turns": 8590,
+        "gold_boundaries": 3667,
+        "boundary_density": 0.42689173457508733,
+        "mean_segment_length": 1.721787933453598,
+        "median_segment_length": 1.0,
+        "type": "task-oriented",
+        "encoding": "segmentation_label",
+        "quirks": "short segments (<3 user turns)"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.3531646324040977,
+          "boundary_median": 0.7265729492796545,
+          "nonboundary_p90": 0.9998309652238515
+        },
+        "0.1": {
+          "auroc": 0.36232920785949607,
+          "boundary_median": 0.7242391768011931,
+          "nonboundary_p90": 0.9940565840403721
+        },
+        "0.2": {
+          "auroc": 0.3826082458838851,
+          "boundary_median": 0.7166354459949382,
+          "nonboundary_p90": 0.9891833142701393
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.30413290039195395,
+          "boundary_median": 0.6903655377863892,
+          "nonboundary_p90": 0.9934413148112242
+        },
+        "0.1": {
+          "auroc": 0.3080867455916065,
+          "boundary_median": 0.6727885696480145,
+          "nonboundary_p90": 0.9811146238606463
+        },
+        "0.2": {
+          "auroc": 0.32377368889819186,
+          "boundary_median": 0.6458220539212775,
+          "nonboundary_p90": 0.9734060409477627
+        }
+      },
+      "d3_results": {
+        "auroc": 0.47489709665383223,
+        "boundary_median": 0.8036091013218765,
+        "nonboundary_p90": 1.0008200134572394
+      },
+      "shuffled_auroc": 0.46234619402073496,
+      "best_alpha_d1": 0.2,
+      "best_alpha_d2": 0.2,
+      "separability_label": "poor",
+      "eligibility_curves": null
+    },
+    {
+      "corpus": "dialseg711",
+      "stats": {
+        "num_dialogues": 711,
+        "total_turns": 19350,
+        "total_user_turns": 9710,
+        "gold_boundaries": 2604,
+        "boundary_density": 0.26817713697219364,
+        "mean_segment_length": 2.9291101055806936,
+        "median_segment_length": 3.0,
+        "type": "task-oriented",
+        "encoding": "segmentation_label",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.6366038175465902,
+          "boundary_median": 0.8041646875866932,
+          "nonboundary_p90": 0.898917851584601
+        },
+        "0.1": {
+          "auroc": 0.6395034282975971,
+          "boundary_median": 0.7955240814522195,
+          "nonboundary_p90": 0.8882051554149586
+        },
+        "0.2": {
+          "auroc": 0.6448625378169629,
+          "boundary_median": 0.7796267013111392,
+          "nonboundary_p90": 0.874680540671237
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.4985527167562024,
+          "boundary_median": 0.7605987979530472,
+          "nonboundary_p90": 0.9003291565021007
+        },
+        "0.1": {
+          "auroc": 0.5245254489094182,
+          "boundary_median": 0.7299752850433909,
+          "nonboundary_p90": 0.8667828517413478
+        },
+        "0.2": {
+          "auroc": 0.5659639527328497,
+          "boundary_median": 0.6974233919256111,
+          "nonboundary_p90": 0.8283201647632648
+        }
+      },
+      "d3_results": {
+        "auroc": 0.7199638734658534,
+        "boundary_median": 0.8405138720450976,
+        "nonboundary_p90": 0.9009616414603345
+      },
+      "shuffled_auroc": 0.5068241677866132,
+      "best_alpha_d1": 0.2,
+      "best_alpha_d2": 0.2,
+      "separability_label": "poor",
+      "eligibility_curves": {
+        "curves": [
+          {
+            "theta": 0.05,
+            "eligibility_rate": 1.0,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.28936548505389487
+          },
+          {
+            "theta": 0.1,
+            "eligibility_rate": 1.0,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.28936548505389487
+          },
+          {
+            "theta": 0.15,
+            "eligibility_rate": 0.999777753083676,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.2894298099366455
+          },
+          {
+            "theta": 0.2,
+            "eligibility_rate": 0.9992221357928659,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.28959074733096085
+          },
+          {
+            "theta": 0.3,
+            "eligibility_rate": 0.993888209801089,
+            "eligibility_recall": 0.9942396313364056,
+            "eligibility_precision": 0.28946779964221825
+          },
+          {
+            "theta": 0.4,
+            "eligibility_rate": 0.9716635181686855,
+            "eligibility_recall": 0.9750384024577573,
+            "eligibility_precision": 0.29037053979871913
+          },
+          {
+            "theta": 0.5,
+            "eligibility_rate": 0.8908767640848984,
+            "eligibility_recall": 0.9066820276497696,
+            "eligibility_precision": 0.29449918922290136
+          },
+          {
+            "theta": 0.663219210826329,
+            "eligibility_rate": 0.5268363151461274,
+            "eligibility_recall": 0.5925499231950845,
+            "eligibility_precision": 0.32545876397384516
+          },
+          {
+            "theta": 0.7333643743830177,
+            "eligibility_rate": 0.32548060895655073,
+            "eligibility_recall": 0.3878648233486943,
+            "eligibility_precision": 0.3448275862068966
+          },
+          {
+            "theta": 0.7740654376273214,
+            "eligibility_rate": 0.22424713857095233,
+            "eligibility_recall": 0.2837941628264209,
+            "eligibility_precision": 0.36620416253716553
+          },
+          {
+            "theta": 0.8283201647632648,
+            "eligibility_rate": 0.1185687298588732,
+            "eligibility_recall": 0.1639784946236559,
+            "eligibility_precision": 0.4001874414245548
+          },
+          {
+            "theta": 0.8731403281696403,
+            "eligibility_rate": 0.061895766196244026,
+            "eligibility_recall": 0.09101382488479262,
+            "eligibility_precision": 0.4254937163375224
+          }
+        ],
+        "useful_band": [
+          {
+            "theta": 0.5,
+            "eligibility_rate": 0.8908767640848984,
+            "eligibility_recall": 0.9066820276497696,
+            "eligibility_precision": 0.29449918922290136
+          }
+        ],
+        "has_useful_band": true
+      }
+    },
+    {
+      "corpus": "tiage",
+      "stats": {
+        "num_dialogues": 100,
+        "total_turns": 1564,
+        "total_user_turns": 882,
+        "gold_boundaries": 151,
+        "boundary_density": 0.1712018140589569,
+        "mean_segment_length": 3.5139442231075697,
+        "median_segment_length": 3.0,
+        "type": "task-oriented",
+        "encoding": "segmentation_label",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.4750999674646572,
+          "boundary_median": 0.814262584649001,
+          "nonboundary_p90": 0.949717036897983
+        },
+        "0.1": {
+          "auroc": 0.4923751849791669,
+          "boundary_median": 0.7987801420716956,
+          "nonboundary_p90": 0.9379198122571043
+        },
+        "0.2": {
+          "auroc": 0.5250574616135432,
+          "boundary_median": 0.7730100429710536,
+          "nonboundary_p90": 0.9179355492839303
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.3828255370955385,
+          "boundary_median": 0.7921997174436006,
+          "nonboundary_p90": 0.958735683142815
+        },
+        "0.1": {
+          "auroc": 0.41264260450666973,
+          "boundary_median": 0.7742252192848158,
+          "nonboundary_p90": 0.9359568640247999
+        },
+        "0.2": {
+          "auroc": 0.4623482121304352,
+          "boundary_median": 0.7502147700438337,
+          "nonboundary_p90": 0.9104406759922705
+        }
+      },
+      "d3_results": {
+        "auroc": 0.5904325101541755,
+        "boundary_median": 0.8242253732309704,
+        "nonboundary_p90": 0.9379642272670692
+      },
+      "shuffled_auroc": 0.5493120349282649,
+      "best_alpha_d1": 0.2,
+      "best_alpha_d2": 0.2,
+      "separability_label": "poor",
+      "eligibility_curves": null
+    },
+    {
+      "corpus": "multiwoz",
+      "stats": {
+        "num_dialogues": 765,
+        "total_turns": 12528,
+        "total_user_turns": 6264,
+        "gold_boundaries": 1117,
+        "boundary_density": 0.1783205619412516,
+        "mean_segment_length": 3.328374070138151,
+        "median_segment_length": 3.0,
+        "type": "task-oriented",
+        "encoding": "topic_id_change",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.4821451555500711,
+          "boundary_median": 0.724849327509273,
+          "nonboundary_p90": 0.8921981252965338
+        },
+        "0.1": {
+          "auroc": 0.47333888492314335,
+          "boundary_median": 0.7133277552671908,
+          "nonboundary_p90": 0.8833792704435187
+        },
+        "0.2": {
+          "auroc": 0.4615459107351757,
+          "boundary_median": 0.6946239930664937,
+          "nonboundary_p90": 0.8713774226286818
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.3950455329791811,
+          "boundary_median": 0.7236799485513421,
+          "nonboundary_p90": 0.900964664790336
+        },
+        "0.1": {
+          "auroc": 0.40666954869906063,
+          "boundary_median": 0.7048796973230576,
+          "nonboundary_p90": 0.8784722128435267
+        },
+        "0.2": {
+          "auroc": 0.4270532539929973,
+          "boundary_median": 0.6676832003160316,
+          "nonboundary_p90": 0.8468319086736441
+        }
+      },
+      "d3_results": {
+        "auroc": 0.5442225806148454,
+        "boundary_median": 0.7607251227662124,
+        "nonboundary_p90": 0.8976843813376449
+      },
+      "shuffled_auroc": 0.47861827521802186,
+      "best_alpha_d1": 0.05,
+      "best_alpha_d2": 0.2,
+      "separability_label": "poor",
+      "eligibility_curves": null
+    },
+    {
+      "corpus": "dailydialog",
+      "stats": {
+        "num_dialogues": 100,
+        "total_turns": 2508,
+        "total_user_turns": 1304,
+        "gold_boundaries": 200,
+        "boundary_density": 0.15337423312883436,
+        "mean_segment_length": 4.346666666666667,
+        "median_segment_length": 4.0,
+        "type": "open-domain",
+        "encoding": "topic_id_change",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.6995966135458167,
+          "boundary_median": 0.8760588416050044,
+          "nonboundary_p90": 0.935865084851178
+        },
+        "0.1": {
+          "auroc": 0.707664342629482,
+          "boundary_median": 0.8653201931572188,
+          "nonboundary_p90": 0.9241333736120962
+        },
+        "0.2": {
+          "auroc": 0.7261454183266931,
+          "boundary_median": 0.8556030250801882,
+          "nonboundary_p90": 0.906172817220839
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.5503486055776893,
+          "boundary_median": 0.8465718621300915,
+          "nonboundary_p90": 0.9500639863462512
+        },
+        "0.1": {
+          "auroc": 0.5852739043824702,
+          "boundary_median": 0.8265059244738423,
+          "nonboundary_p90": 0.9220602499601983
+        },
+        "0.2": {
+          "auroc": 0.6500348605577688,
+          "boundary_median": 0.8171925118261609,
+          "nonboundary_p90": 0.8921970928613244
+        }
+      },
+      "d3_results": {
+        "auroc": 0.7799800796812748,
+        "boundary_median": 0.9031932154744009,
+        "nonboundary_p90": 0.9432743140045661
+      },
+      "shuffled_auroc": 0.47862051792828686,
+      "best_alpha_d1": 0.2,
+      "best_alpha_d2": 0.2,
+      "separability_label": "marginal",
+      "eligibility_curves": {
+        "curves": [
+          {
+            "theta": 0.05,
+            "eligibility_rate": 1.0,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.16611295681063123
+          },
+          {
+            "theta": 0.1,
+            "eligibility_rate": 1.0,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.16611295681063123
+          },
+          {
+            "theta": 0.15,
+            "eligibility_rate": 1.0,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.16611295681063123
+          },
+          {
+            "theta": 0.2,
+            "eligibility_rate": 0.9991694352159468,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.1662510390689942
+          },
+          {
+            "theta": 0.3,
+            "eligibility_rate": 0.9991694352159468,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.1662510390689942
+          },
+          {
+            "theta": 0.4,
+            "eligibility_rate": 0.9933554817275747,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.16722408026755853
+          },
+          {
+            "theta": 0.5,
+            "eligibility_rate": 0.9667774086378738,
+            "eligibility_recall": 0.995,
+            "eligibility_precision": 0.17096219931271478
+          },
+          {
+            "theta": 0.7575103650100067,
+            "eligibility_rate": 0.5307308970099668,
+            "eligibility_recall": 0.685,
+            "eligibility_precision": 0.21439749608763695
+          },
+          {
+            "theta": 0.8138930498193394,
+            "eligibility_rate": 0.3347176079734219,
+            "eligibility_recall": 0.51,
+            "eligibility_precision": 0.2531017369727047
+          },
+          {
+            "theta": 0.8503038677855109,
+            "eligibility_rate": 0.23089700996677742,
+            "eligibility_recall": 0.385,
+            "eligibility_precision": 0.27697841726618705
+          },
+          {
+            "theta": 0.8921970928613244,
+            "eligibility_rate": 0.13205980066445183,
+            "eligibility_recall": 0.29,
+            "eligibility_precision": 0.36477987421383645
+          },
+          {
+            "theta": 0.9274033330727497,
+            "eligibility_rate": 0.07059800664451828,
+            "eligibility_recall": 0.17,
+            "eligibility_precision": 0.4
+          }
+        ],
+        "useful_band": [],
+        "has_useful_band": false
+      }
+    },
+    {
+      "corpus": "taskmaster",
+      "stats": {
+        "num_dialogues": 100,
+        "total_turns": 6461,
+        "total_user_turns": 3264,
+        "gold_boundaries": 196,
+        "boundary_density": 0.06004901960784314,
+        "mean_segment_length": 11.027027027027026,
+        "median_segment_length": 11.0,
+        "type": "semi-structured",
+        "encoding": "topic_id_change",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.41961191484680127,
+          "boundary_median": 0.7271495582882834,
+          "nonboundary_p90": 0.8983356276507077
+        },
+        "0.1": {
+          "auroc": 0.42827575774245,
+          "boundary_median": 0.7107728950436217,
+          "nonboundary_p90": 0.8790280389049631
+        },
+        "0.2": {
+          "auroc": 0.501621032510039,
+          "boundary_median": 0.7024863229795801,
+          "nonboundary_p90": 0.8539317453104913
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.37319847076296825,
+          "boundary_median": 0.6948807908001209,
+          "nonboundary_p90": 0.8835427380163376
+        },
+        "0.1": {
+          "auroc": 0.4370513367071896,
+          "boundary_median": 0.6755355381721095,
+          "nonboundary_p90": 0.8485764059107266
+        },
+        "0.2": {
+          "auroc": 0.5626426783651466,
+          "boundary_median": 0.6909722390715431,
+          "nonboundary_p90": 0.8184916864894185
+        }
+      },
+      "d3_results": {
+        "auroc": 0.7128503355520105,
+        "boundary_median": 0.8774009581087702,
+        "nonboundary_p90": 0.9344551271721029
+      },
+      "shuffled_auroc": 0.4358342730623246,
+      "best_alpha_d1": 0.2,
+      "best_alpha_d2": 0.2,
+      "separability_label": "poor",
+      "eligibility_curves": {
+        "curves": [
+          {
+            "theta": 0.05,
+            "eligibility_rate": 0.9987357774968394,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.0620253164556962
+          },
+          {
+            "theta": 0.1,
+            "eligibility_rate": 0.9974715549936789,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.062103929024081114
+          },
+          {
+            "theta": 0.15,
+            "eligibility_rate": 0.9968394437420987,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.062143310082435003
+          },
+          {
+            "theta": 0.2,
+            "eligibility_rate": 0.9965233881163085,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.06216301934665398
+          },
+          {
+            "theta": 0.3,
+            "eligibility_rate": 0.9936788874841972,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.062340966921119595
+          },
+          {
+            "theta": 0.4,
+            "eligibility_rate": 0.9715549936788875,
+            "eligibility_recall": 1.0,
+            "eligibility_precision": 0.06376057254391672
+          },
+          {
+            "theta": 0.5,
+            "eligibility_rate": 0.9036030341340076,
+            "eligibility_recall": 0.9744897959183674,
+            "eligibility_precision": 0.06680657572577825
+          },
+          {
+            "theta": 0.6667695187594329,
+            "eligibility_rate": 0.5072692793931732,
+            "eligibility_recall": 0.6173469387755102,
+            "eligibility_precision": 0.07538940809968847
+          },
+          {
+            "theta": 0.7280666417976303,
+            "eligibility_rate": 0.3018331226295828,
+            "eligibility_recall": 0.32653061224489793,
+            "eligibility_precision": 0.06701570680628273
+          },
+          {
+            "theta": 0.766633298411492,
+            "eligibility_rate": 0.19785082174462706,
+            "eligibility_recall": 0.16326530612244897,
+            "eligibility_precision": 0.051118210862619806
+          },
+          {
+            "theta": 0.8184916864894185,
+            "eligibility_rate": 0.0986093552465234,
+            "eligibility_recall": 0.07653061224489796,
+            "eligibility_precision": 0.04807692307692308
+          },
+          {
+            "theta": 0.8566111469899302,
+            "eligibility_rate": 0.04993678887484197,
+            "eligibility_recall": 0.04591836734693878,
+            "eligibility_precision": 0.056962025316455694
+          }
+        ],
+        "useful_band": [
+          {
+            "theta": 0.5,
+            "eligibility_rate": 0.9036030341340076,
+            "eligibility_recall": 0.9744897959183674,
+            "eligibility_precision": 0.06680657572577825
+          }
+        ],
+        "has_useful_band": true
+      }
+    },
+    {
+      "corpus": "topical_chat",
+      "stats": {
+        "num_dialogues": 100,
+        "total_turns": 6439,
+        "total_user_turns": 3329,
+        "gold_boundaries": 196,
+        "boundary_density": 0.05887653950135176,
+        "mean_segment_length": 11.246621621621621,
+        "median_segment_length": 11.0,
+        "type": "open-domain",
+        "encoding": "topic_id_change",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.30287080212896234,
+          "boundary_median": 0.6609710792963417,
+          "nonboundary_p90": 0.958132464537039
+        },
+        "0.1": {
+          "auroc": 0.3005477166138463,
+          "boundary_median": 0.6292537765913969,
+          "nonboundary_p90": 0.9316170939108033
+        },
+        "0.2": {
+          "auroc": 0.35205763808985513,
+          "boundary_median": 0.6310486826107421,
+          "nonboundary_p90": 0.8970097166305951
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.2694257722871542,
+          "boundary_median": 0.6018679207457659,
+          "nonboundary_p90": 0.9444248396768966
+        },
+        "0.1": {
+          "auroc": 0.2943842225317427,
+          "boundary_median": 0.5860001101934872,
+          "nonboundary_p90": 0.9072017828166349
+        },
+        "0.2": {
+          "auroc": 0.38574321914720394,
+          "boundary_median": 0.6182207484934967,
+          "nonboundary_p90": 0.8748905575942764
+        }
+      },
+      "d3_results": {
+        "auroc": 0.7410440932060262,
+        "boundary_median": 0.8878165016386499,
+        "nonboundary_p90": 0.956523351183388
+      },
+      "shuffled_auroc": 0.4288102976106367,
+      "best_alpha_d1": 0.2,
+      "best_alpha_d2": 0.2,
+      "separability_label": "poor",
+      "eligibility_curves": null
+    },
+    {
+      "corpus": "qmsum",
+      "stats": {
+        "num_dialogues": 35,
+        "total_turns": 20718,
+        "total_user_turns": 10369,
+        "gold_boundaries": 116,
+        "boundary_density": 0.011187192593306973,
+        "mean_segment_length": 68.66887417218543,
+        "median_segment_length": 39.0,
+        "type": "semi-structured",
+        "encoding": "topic_id_change",
+        "quirks": "none"
+      },
+      "d1_results": {
+        "0.05": {
+          "auroc": 0.5197462557623126,
+          "boundary_median": 0.6227151283504317,
+          "nonboundary_p90": 0.8174415324327058
+        },
+        "0.1": {
+          "auroc": 0.500851269902336,
+          "boundary_median": 0.5869573641719561,
+          "nonboundary_p90": 0.7878767207240255
+        },
+        "0.2": {
+          "auroc": 0.46524979583021175,
+          "boundary_median": 0.5561399259406544,
+          "nonboundary_p90": 0.7800736132971204
+        }
+      },
+      "d2_results": {
+        "0.05": {
+          "auroc": 0.5127251773408656,
+          "boundary_median": 0.5709584827388687,
+          "nonboundary_p90": 0.7715374465609358
+        },
+        "0.1": {
+          "auroc": 0.48913681738109216,
+          "boundary_median": 0.5526605988010639,
+          "nonboundary_p90": 0.7588432098816247
+        },
+        "0.2": {
+          "auroc": 0.45944023730941336,
+          "boundary_median": 0.5444228987095602,
+          "nonboundary_p90": 0.7650907311251802
+        }
+      },
+      "d3_results": {
+        "auroc": 0.4710724313415811,
+        "boundary_median": 0.7751121408980401,
+        "nonboundary_p90": 0.9313065434020589
+      },
+      "shuffled_auroc": 0.5241333751797032,
+      "best_alpha_d1": 0.05,
+      "best_alpha_d2": 0.05,
+      "separability_label": "poor",
+      "eligibility_curves": null
+    }
+  ]
+}

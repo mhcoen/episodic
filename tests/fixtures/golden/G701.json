@@ -1,0 +1,28 @@
+{
+  "id": "G701",
+  "description": "-foo LEX_ERROR forces FreeText (dash not silently dropped)",
+  "input_raw": "-foo",
+  "input_norm": "-foo",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "tokens": [
+    {"kind": "LEX_ERROR", "lexeme": "-", "span": [0, 1], "normalized": "leading_dash", "index": 0},
+    {"kind": "WORD", "lexeme": "foo", "span": [1, 4], "normalized": "foo", "index": 1},
+    {"kind": "EOF", "lexeme": "", "span": [4, 4], "normalized": null, "index": 2}
+  ],
+  "parse": {
+    "ast_kind": "FreeText",
+    "parse_error": "lex_error:leading_dash",
+    "text": "-foo"
+  },
+  "resolve": {
+    "mode": "answer",
+    "target": "-foo",
+    "segment_explicit": false,
+    "segment_resolved_ids": null,
+    "speaker": null,
+    "temporal": null,
+    "has_broadness_cue": false
+  },
+  "notes": "LEX_ERROR must force FreeText fallback - cannot partially parse structured command"
+}

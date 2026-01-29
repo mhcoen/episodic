@@ -161,11 +161,12 @@ If you don't want to choose a topic:
 ### Enable/Disable Reactivation
 
 ```bash
-# Enable topic reactivation
-/set enable_topic_reactivation true
-
-# Disable (default)
+# Topic reactivation is enabled by default
+# To disable:
 /set enable_topic_reactivation false
+
+# To re-enable:
+/set enable_topic_reactivation true
 ```
 
 ### Context Recovery Mode
@@ -205,9 +206,13 @@ If you don't want to choose a topic:
 
 ## Debug Log Interpretation
 
-Enable debug mode to see reactivation decisions:
+Enable memory-specific debug output to see reactivation decisions without topic detection noise:
 
 ```bash
+# Memory debugging only (reactivation, recall, context recovery)
+/set debug memory
+
+# All debug output (includes topic detection, drift, etc.)
 /set debug true
 ```
 

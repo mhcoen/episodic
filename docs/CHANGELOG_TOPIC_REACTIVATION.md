@@ -297,7 +297,7 @@ debug = {
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `enable_topic_reactivation` | bool | `false` | Enable implicit topic reactivation |
+| `enable_topic_reactivation` | bool | `true` | Enable implicit topic reactivation |
 | `context_recovery_mode` | str | `"hybrid"` | `ancestry`, `topic_local`, or `hybrid` |
 | `context_token_budget` | int | `4000` | Max tokens for context assembly |
 | `reactivation_log_features` | bool | `true` | Log probe features for every decision |

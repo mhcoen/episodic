@@ -1,0 +1,18 @@
+{
+  "id": "G603",
+  "description": "whitespace-only input becomes empty target",
+  "input_raw": "   ",
+  "input_norm": "",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "answer",
+    "target": null
+  },
+  "resolve": {
+    "mode": "answer",
+    "target": null,
+    "segment_explicit": false
+  }
+}

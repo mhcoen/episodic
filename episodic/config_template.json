@@ -84,6 +84,8 @@
   "import_token_budget": 100,
   "_comment_reactivation_log_features": "Log detailed probe features for every reactivation decision",
   "reactivation_log_features": true,
+  "_comment_show_reactivation_decisions": "Show one-liner when topic reactivation fires (silent for CONTINUE, DISAMBIGUATE has its own prompt)",
+  "show_reactivation_decisions": false,
   "_comment_min_anchors_for_topic_local": "Minimum anchors required before using topic_local (otherwise falls back to ancestry)",
   "min_anchors_for_topic_local": 2,
   "_comment_min_tokens_for_topic_local": "Minimum tokens required before using topic_local (otherwise falls back to ancestry)",
@@ -249,6 +251,8 @@
   ],
   
   "_comment_display": "// === DISPLAY SETTINGS ===",
+  "_comment_timezone": "User timezone for time-based operations (e.g., 'America/Chicago', 'UTC', 'Europe/London')",
+  "timezone": "America/Chicago",
   "_comment_color_mode": "Color mode: none, basic, or full",
   "color_mode": "full",
   "_comment_text_wrap": "Enable text wrapping for long lines",

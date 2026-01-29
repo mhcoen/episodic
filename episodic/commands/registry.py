@@ -278,9 +278,9 @@ def register_all_commands():
     # Developer commands - hidden from normal help
     command_registry.register("dev", dev, "Developer maintenance commands", "Developer")
     
-    # Test mode command
+    # Test mode command (in Utility so it shows in /help)
     from episodic.commands.test_mode import test_command
-    command_registry.register("test", test_command, "Manage test mode and fixtures", "Developer")
+    command_registry.register("test", test_command, "Manage test mode for isolated testing", "Utility")
 
     # Clipboard command
     from episodic.commands.clipboard import copy_command

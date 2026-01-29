@@ -524,6 +524,11 @@ PARAM_HANDLERS = {
 
     # Topic reactivation (with eager centroid computation)
     'enable_topic_reactivation': handle_enable_topic_reactivation,
+    'topic_reactivation': handle_enable_topic_reactivation,  # Alias
+    'reactivation': handle_enable_topic_reactivation,  # Short alias
+
+    # Timezone for time-based operations (topic delete, etc.)
+    'timezone': lambda v: handle_string_param('timezone', v),
 
     # Reasoning control (for models that support it: GPT-5.2, Nemotron, Qwen3, etc.)
     'reasoning': lambda v: handle_boolean_param('reasoning_enabled', v),

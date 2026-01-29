@@ -14,14 +14,14 @@ python -m episodic --execute scripts/my-script.txt
 python -m episodic -e scripts/my-script.txt
 
 # Specify a model at startup
-python -m episodic --model gpt-4.1-2025-04-14
-python -m episodic -m ollama/llama3
+python -m episodic --model gpt-4o
+python -m episodic -m ollama/llama3.3
 
 # Disable streaming output
 python -m episodic --no-stream
 
 # Combine options
-python -m episodic -m gpt-4.1-2025-04-14 -e scripts/test.txt
+python -m episodic -m gpt-4o -e scripts/test.txt
 ```
 
 ## Command Structure
@@ -500,9 +500,9 @@ Script files are plain text files that can contain:
 /set debug true
 /set stream-responses false
 /set show-cost true
-/set main.temperature 0.7
-/set main.max_tokens 500
-/model chat gpt-3.5-turbo
+/mset chat.temperature 0.7
+/mset chat.max_tokens 500
+/model chat gpt-4o-mini
 ```
 
 ### /save
@@ -521,7 +521,7 @@ Manage language models for all contexts
 ```bash
 /model                      # Show all five models in use
 /model list                 # Show available models with pricing
-/model chat gpt-4.1-2025-04-14  # Set chat (main) model
+/model chat gpt-4o  # Set chat (main) model
 /model detection custom/topic-boundary-distilbert  # Set detection model (local or API)
 /model compression ollama/phi4   # Set compression model
 /model synthesis ollama/phi4     # Set web synthesis model
@@ -534,14 +534,15 @@ Manage language models for all contexts
 Example `/model` output:
 ```
 Current models:
-  Chat         [C]  openai/gpt-4o-mini (8B)
-  Detection    [D]  custom/topic-boundary-distilbert
-  Compression  [I]  ollama/phi4
-  Synthesis    [I]  ollama/phi4
-  Critic       [CI] anthropic/claude-opus-4-5-20251101
+  Chat         [C]   openai/gpt-4o-mini (8B)
+  Detection    [D]   custom/topic-boundary-distilbert
+  Compression  [CI]  ollama/phi4
+  Synthesis    [CI]  ollama/phi4
+  Intent       [C]   openai/gpt-4o-mini (8B)
+  Critic       [CI]  anthropic/claude-opus-4-5-20251101
 
 Model Types:
-  [D]  = Detection model (local, boundary detection)
+  [D]   = Detection model (local, boundary detection)
   [C]  = Chat model (best for conversations)
   [I]  = Instruct model (best for detection/compression/synthesis)
   [CI] = Chat & Instruct model (works for both)
@@ -780,7 +781,7 @@ Scripts can contain both messages and commands:
 ```bash
 # Create a script file (example.txt):
 /init
-/model chat gpt-4.1-2025-04-14
+/model chat gpt-4o
 What is quantum computing?
 /topics
 /cost

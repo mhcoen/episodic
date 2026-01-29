@@ -168,12 +168,12 @@ When you interrupt a response:
 
 ### Model Selection
 ```bash
-/model  # Show all four models in use
-/model list  # Show available models with pricing
-/model chat gpt-4  # Set chat (main conversation) model
-/model detection ollama/llama3  # Set topic detection model
-/model compression gpt-3.5-turbo  # Set compression model
-/model synthesis claude-3-haiku  # Set web synthesis model
+/model  # Show all models in use (chat, detection, compression, synthesis, intent, critic)
+/model list  # Show 60+ available models with pricing
+/model chat gpt-4o  # Set chat (main conversation) model
+/model detection custom/topic-boundary-distilbert  # Set topic detection model
+/model compression ollama/phi4  # Set compression model
+/model synthesis ollama/phi4  # Set web synthesis model
 ```
 
 ## Topic Management
@@ -766,10 +766,10 @@ What are the latest developments in quantum computing?
 ### Offline Usage with Ollama
 ```bash
 # Use local models for all contexts
-/model chat ollama/llama3
-/model detection ollama/llama3
-/model compression ollama/llama3
-/model synthesis ollama/llama3
+/model chat ollama/llama3.3
+/model detection ollama/phi4
+/model compression ollama/phi4
+/model synthesis ollama/phi4
 ```
 
 ### Collaborative Documentation
@@ -811,18 +811,18 @@ Create different configuration profiles for various scenarios:
 /set debug true
 /set stream false
 /set cost true
-/set main.temperature 0.7
-/set main.max_tokens 500
-/model chat gpt-3.5-turbo
+/mset chat.temperature 0.7
+/mset chat.max_tokens 500
+/model chat gpt-4o-mini
 ```
 
 **scripts/creative-profile.txt:**
 ```bash
 # Creative writing settings
-/set main.temperature 1.2
-/set main.max_tokens 2000
-/set main.top_p 0.95
-/model chat gpt-4
+/mset chat.temperature 1.2
+/mset chat.max_tokens 2000
+/mset chat.top_p 0.95
+/model chat gpt-4o
 /prompt creative
 ```
 
@@ -850,7 +850,7 @@ Automate your common setup:
 /muse
 /set web-auto true
 /set topics true
-/model chat gpt-4
+/model chat gpt-4o
 /muse
 ```
 

@@ -251,20 +251,20 @@ Use different models for different tasks to optimize performance and cost:
 ```text
 > /model
 Current models:
-  Chat         [C]  openai/gpt-4o-mini (8B)
-  Detection    [D]  custom/topic-boundary-distilbert
-  Compression  [I]  ollama/phi4
-  Synthesis    [I]  ollama/phi4
-  Critic       [CI] anthropic/claude-opus-4-5-20251101
+  Chat         [C]   openai/gpt-4o-mini (8B)
+  Detection    [D]   custom/topic-boundary-distilbert
+  Compression  [CI]  ollama/phi4
+  Synthesis    [CI]  ollama/phi4
+  Intent       [C]   openai/gpt-4o-mini (8B)
+  Critic       [CI]  anthropic/claude-opus-4-5-20251101
 
 Model Types:
-  [D]  = Detection model (local, boundary detection)
-  [C]  = Chat model (best for conversations)
-  [I]  = Instruct model (best for detection/compression/synthesis)
-  [CI] = Chat & Instruct model (works for both)
+  [D]   = Detection model (local, boundary detection)
+  [C]   = Chat model (best for conversations)
+  [CI]  = Chat & Instruct model (works for both)
 
 # Change individual models
-> /model chat gpt-5
+> /model chat gpt-4o
 > /model detection custom/topic-boundary-distilbert
 > /model compression ollama/phi4
 > /model critic claude-opus-4-5-20251101
@@ -526,28 +526,23 @@ The system intelligently adapts prompts based on context - for example, with sma
 
 ### Model Parameters
 
-Fine-tune model behavior across four contexts with `/mset`:
+Fine-tune model behavior across contexts with `/mset`:
 
 ```
-⚙️  Model Parameters:
-──────────────────────────────────────────────────────────────────────
-Parameter            Chat     Detection Compression Synthesis  
-──────────────────────────────────────────────────────────────────────
-temperature           0.7        0.0        0.3        0.3     
-max_tokens           2000         50        500       1500     
-top_p                 1.0       0.95        1.0        1.0     
-presence_penalty      0.0        0.0        0.0        0.0     
-frequency_penalty     0.0        0.0        0.0        0.0     
+> /mset
+⚙️  Model Parameters Across Contexts
+──────────────────────────────────────────────────────────────────────────────
+Context      Model                 Temperature  Max Tokens   Cost/1K
+──────────────────────────────────────────────────────────────────────────────
+Chat         gpt-4o-mini*          0.7          default      $0.000/$0.001
+Detection    custom/topic-boun...* 0.3          50           N/A
+Compression  ollama/phi4*          0.5          500          Local
+Synthesis    ollama/phi4*          default      default      Local
+Intent       gpt-4o-mini*          0.0          200          $0.000/$0.001
+Embedding    paraphrase-mpnet-...  thresh:0.9                Local
 
-Use '/mset <context>' to see details for a specific context
-Use '/mset <context>.<param> default' to reset to default value
-
-🤖 Current Models:
-─────────────────────────────────────────────────────────────
-Chat:        gpt-5
-Detection:   ollama/phi4
-Compression: ollama/phi4
-Synthesis:   ollama/phi4
+Use '/mset <context>' to see all parameters for a context
+Models with * have additional parameters available
 ```
 
 Each context serves a specific purpose:
@@ -555,6 +550,8 @@ Each context serves a specific purpose:
 - **Detection**: Identifying topic changes
 - **Compression**: Summarizing conversation branches
 - **Synthesis**: Web search result synthesis
+- **Intent**: Classifying user intent for routing
+- **Embedding**: Semantic similarity for topic reactivation
 - **Critic**: Analyzing and critiquing responses (`/critique` command)
 
 ## 🏗️ Architecture
@@ -712,34 +709,40 @@ The latest methods build directly on the foundations you documented, with notabl
 ### Multi-Model Configuration
 ```bash
 > /model list
-🤖 Available Models by Provider
-══════════════════════════════════════════════════════════════
-OpenAI:
-  • gpt-5                     Latest model with verbosity control
-  • gpt-4o                    Previous generation model
-  • gpt-4o-mini               Fast and cost-effective  
-  • gpt-3.5-turbo             Legacy but reliable
+Available models from openai:
+   1. [C]   GPT-4o Mini               (8B)        ($0.15/1M in, $0.60/1M out)
+   2. [C]   GPT-4o                    (200B+)     ($2.50/1M in, $10.00/1M out)
+   3. [C]   o3 (Advanced Reasoning)               ($10.00/1M in, $40.00/1M out)
+   4. [C]   o4-mini (Reasoning)                   ($1.10/1M in, $4.40/1M out)
+   5. [C]   GPT-5                                 ($1.25/1M in, $10.00/1M out)
 
-Anthropic:
-  • claude-opus-4-1-20250805   Latest Opus 4.1 model
-  • claude-sonnet-4-5-20250929 Latest Sonnet 4.5 model
-  • claude-3.5-sonnet-20241022 Fast and efficient
+Available models from anthropic:
+   6. [CI]  Claude Opus 4.5                       ($5.00/1M in, $25.00/1M out)
+   7. [CI]  Claude Sonnet 4.5         (~300B)     ($3.00/1M in, $15.00/1M out)
+   8. [CI]  Claude Haiku 4.5          (~70B)      ($1.00/1M in, $5.00/1M out)
 
-Local (Ollama):
-  • llama3:8b                 Meta's open model
-  • mistral:7b                Efficient reasoning
+Available models from google:
+   9. [CI]  Gemini 2.5 Pro                        ($1.25/1M in, $10.00/1M out)
+  10. [CI]  Gemini 2.5 Flash                      ($0.30/1M in, $2.50/1M out)
 
-> /mset
-⚙️ Model Parameters Across Contexts
-──────────────────────────────────────────────────────────────
-Context      Model               Temperature  Max Tokens  Cost/1K
-──────────────────────────────────────────────────────────────
-Chat         gpt-5               1.0         None        $0.011
-Detection    ollama/llama3       0.0         50          $0.000  
-Compression  gpt-3.5-turbo       0.3         500         $0.002
-Synthesis    claude-3-haiku      0.3         1500        $0.001
+Available models from ollama:
+  11. [CI]  llama3.3                              (Local model)
+  12. [CI]  phi4                      (14B)       (Local model)
+  13. [CI]  qwen2.5                               (Local model)
+  14. [CI]  gemma2                                (Local model)
+  15. [CIR] deepseek-r1               (671B)      (Local model)
 
-💡 Tip: Use fast local models for detection to reduce costs
+Available models from openrouter:
+  16. [CI]  DeepSeek R1 (OR)                      ($0.70/1M in, $2.50/1M out)
+  17. [C]   Kimi K2 (OR)              (1T)        ($0.50/1M in, $2.40/1M out)
+  ...and 50+ more models
+
+Model Types:
+  [C]  = Chat model     [CI] = Chat & Instruct    R = Reasoning control
+
+To change a model:
+  /model chat <number|name>      # e.g., /model chat 5 or /model chat gpt-5
+  /model compression ollama/phi4
 ```
 
 ## 👤 Author

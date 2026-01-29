@@ -3,7 +3,7 @@
 ## Starting Episodic
 ```bash
 python -m episodic              # Interactive mode
-python -m episodic -m gpt-4     # Start with specific model
+python -m episodic -m gpt-4o    # Start with specific model
 python -m episodic -e script.txt # Execute script
 ```
 
@@ -109,8 +109,8 @@ Just type to chat! No prefix needed.
 
 ### Offline Mode
 ```bash
-/model chat ollama/llama3
-/model detection ollama/llama3
+/model chat ollama/llama3.3
+/model detection ollama/phi4
 /rag off
 /chat
 ```

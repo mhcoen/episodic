@@ -187,11 +187,14 @@ class TestEnableDisableTestMode:
     def test_disable_clears_config(self, temp_dirs):
         """Test that disable clears config values."""
         mock_config = MagicMock()
+        # Create a mock environ that won't affect the real environment
+        mock_environ = os.environ.copy()
 
         with patch('episodic.commands.test_mode.PROD_DB_PATH', temp_dirs['prod_db']), \
              patch('episodic.commands.test_mode.PROD_CHROMA_PATH', temp_dirs['prod_chroma']), \
              patch('episodic.commands.test_mode.config', mock_config), \
-             patch('episodic.commands.test_mode._reset_connections'):
+             patch('episodic.commands.test_mode._reset_connections'), \
+             patch('episodic.commands.test_mode.os.environ', mock_environ):
 
             from episodic.commands.test_mode import _disable_test_mode
 

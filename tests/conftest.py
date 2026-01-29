@@ -154,7 +154,10 @@ def temp_database(temp_db_path):
     Yields the database path after initialization.
     Automatically cleans up after test completion.
     """
+    from episodic.db_connection import close_pool
     try:
+        # Close any existing connections before creating fresh database
+        close_pool()
         # Ensure a clean database file for each test.
         if os.path.exists(temp_db_path):
             os.remove(temp_db_path)
@@ -162,6 +165,8 @@ def temp_database(temp_db_path):
         initialize_db()
         yield temp_db_path
     finally:
+        # Close pool before cleanup to release file handles
+        close_pool()
         try:
             if os.path.exists(temp_db_path):
                 os.remove(temp_db_path)

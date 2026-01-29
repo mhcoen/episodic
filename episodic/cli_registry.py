@@ -480,7 +480,10 @@ def show_topics_help():
         ("/topics stats", "Show topic statistics and completion status"),
         ("/topics reanalyze", "Re-detect topics using full conversation context"),
         ("/topics reanalyze apply", "Re-detect topics and save to database"),
-        ("/topics reanalyze verbose", "Re-detect with detailed merge history")
+        ("/topics reanalyze verbose", "Re-detect with detailed merge history"),
+        ("/topics delete <name>", "Delete topic by exact name"),
+        ("/topics delete --pattern <pat>", "Delete topics matching pattern"),
+        ("/topics delete --time <expr>", "Delete topics by time range")
     ]
 
     # Examples
@@ -488,7 +491,9 @@ def show_topics_help():
         ("/topics", "List current topics"),
         ("/topics index 5", "Detect topics with 5-node window"),
         ("/topics reanalyze", "Preview re-detected topics using elbow detection"),
-        ("/topics reanalyze apply", "Apply re-detected topics to database")
+        ("/topics reanalyze apply", "Apply re-detected topics to database"),
+        ("/topics delete --pattern test", "Delete all topics containing 'test'"),
+        ("/topics delete --time 'since yesterday'", "Delete topics from yesterday")
     ]
 
     # Find the longest command across ALL sections for uniform alignment

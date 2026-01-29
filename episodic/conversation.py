@@ -628,7 +628,13 @@ class ConversationManager:
                         is_recall_intent=False
                     )
 
-                if should_reactivate and react_topic_name and react_start_node_id:
+                # Debug: Log probe result if show_reactivation_decisions is enabled
+            if config.get("show_reactivation_decisions") or config.get("debug"):
+                decision = getattr(self, '_last_reactivation_decision', None)
+                if decision:
+                    debug_print(f"Probe result: {decision.action}, topic={decision.topic_name}, gates_failed={decision.debug.get('gates_failed', [])}, exit_reason={decision.debug.get('exit_reason')}", category="memory")
+
+            if should_reactivate and react_topic_name and react_start_node_id:
                     # Check if tracker would want a new topic (dry run)
                     raw_topic_changed, _, _, _ = self.topic_handler.detect_and_handle_topic_change(
                         recent_nodes, user_input, user_node_id,
@@ -643,7 +649,10 @@ class ConversationManager:
                     )
                     if reactivation_packet:
                         reactivation_applied = True
-                        if config.get("debug"):
+                        # Show reactivation one-liner if enabled (separate from full debug)
+                        if config.get("show_reactivation_decisions", False):
+                            secho_color(f"🔄 Resuming topic: {react_topic_name}", fg=get_system_color())
+                        elif config.get("debug"):
                             secho_color(f"\n📌 Reactivated topic: {react_topic_name}", fg=get_system_color())
 
             # Persist reactivation decision for calibration (if feature logging enabled)
@@ -750,7 +759,8 @@ class ConversationManager:
                 self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
 
                 # Auto-index in memory system - fire-and-forget (non-blocking)
-                if config.get("enable_memory_rag", False):
+                # Index if memory RAG OR topic reactivation is enabled (reactivation needs embeddings)
+                if config.get("enable_memory_rag", False) or config.get("enable_topic_reactivation", False):
                     user_node = {
                         'id': user_node_id,
                         'content': user_input,
@@ -766,7 +776,7 @@ class ConversationManager:
                     _fire_and_forget_index(user_node, assistant_node, topic_id)
 
                 return assistant_node_id, display_response
-            
+
             # Check for memory context enhancement
             memory_context = None
             memory_indicator = None
@@ -1028,16 +1038,19 @@ class ConversationManager:
                     # Query the LLM with streaming
                     stream_enabled = config.get("stream_responses", True)
 
+                    # Get max_tokens from style setting (if not muse mode)
+                    from episodic.commands.style import get_style_max_tokens
+                    style_max_tokens = get_style_max_tokens() if not config.get("muse_mode") else None
+
                     if stream_enabled:
                         # Get the stream generator
                         with benchmark_resource("LLM", f"query stream - {model}"):
                             from episodic.llm import _execute_llm_query
-                            stream_generator, _ = _execute_llm_query(
-                                messages=messages,
-                                model=model,
-                                stream=True
-                            )
-                        
+                            llm_kwargs = {"messages": messages, "model": model, "stream": True}
+                            if style_max_tokens:
+                                llm_kwargs["max_tokens"] = style_max_tokens
+                            stream_generator, _ = _execute_llm_query(**llm_kwargs)
+
                         # Stream the response
                         typer.echo("")  # Newline before streaming
                         full_response = unified_stream_response(
@@ -1049,11 +1062,10 @@ class ConversationManager:
                         # Non-streaming response
                         with benchmark_resource("LLM", f"query - {model}"):
                             from episodic.llm import _execute_llm_query
-                            response, cost_info = _execute_llm_query(
-                                messages=messages,
-                                model=model,
-                                stream=False
-                            )
+                            llm_kwargs = {"messages": messages, "model": model, "stream": False}
+                            if style_max_tokens:
+                                llm_kwargs["max_tokens"] = style_max_tokens
+                            response, cost_info = _execute_llm_query(**llm_kwargs)
                         
                         # Display the response
                         if response:
@@ -1090,7 +1102,8 @@ class ConversationManager:
             self.set_current_node_id(assistant_node_id)
             
             # Auto-index in memory system - fire-and-forget (non-blocking)
-            if config.get("enable_memory_rag", False):
+            # Index if memory RAG OR topic reactivation is enabled (reactivation needs embeddings)
+            if config.get("enable_memory_rag", False) or config.get("enable_topic_reactivation", False):
                 user_node = {
                     'id': user_node_id,
                     'content': user_input,

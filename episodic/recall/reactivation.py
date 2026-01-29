@@ -3,6 +3,10 @@ Implicit topic reactivation probe.
 
 Detects when a user message relates to a previously inactive topic
 and returns a decision about whether to reactivate that topic.
+
+Uses two-channel matching:
+  Channel A: Semantic similarity (user input ↔ topic centroid)
+  Channel B: Alias matching (distinctive topic terms in referential queries)
 """
 
 import logging
@@ -15,16 +19,24 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import numpy as np
 
 from episodic.db_connection import get_connection
+from episodic.recall.resume_cues import has_resume_cues
+from episodic.recall.topic_aliases import compute_alias_score, get_topic_aliases_batch
 
 logger = logging.getLogger(__name__)
 
 # Default parameters
 K_TOPICS = 7           # Number of topics to consider in ANN
 M_EXCHANGES = 12       # Exchanges to check for support
-S_SUPPORT = 2          # Minimum support count
+S_SUPPORT = 2          # Minimum support count (for channel A)
+S_SUPPORT_ALIAS = 1    # Minimum support for channel B (alias matching) - lower for short topics
 DELTA_BAND = 0.15      # Similarity band for support check (widened for sparse data)
 COOLDOWN_TURNS = 3     # Turns to wait after reactivation
-DORMANCY_MIN = 4       # Minimum turns inactive before reactivation
+DORMANCY_MIN = 2       # Minimum turns inactive before reactivation (lowered for quick switches)
+
+# Two-channel gate thresholds
+SIM_THRESHOLD_NORMAL = 0.30      # Similarity threshold for non-resume-cued turns
+SIM_THRESHOLD_RESUME_CUE = 0.25  # Lower threshold when resume cues detected
+ALIAS_HITS_MIN = 2               # Minimum alias hits for channel B to pass
 
 
 @dataclass
@@ -535,15 +547,22 @@ def probe_reactivation(
     Returns:
         ReactivationDecision with action and optional topic info
     """
+    # Detect resume cues early (affects threshold selection)
+    resume_cues_detected = has_resume_cues(user_input)
+
     debug_info: Dict[str, Any] = {
         'cooldown_turns': cooldown_turns,
         'active_topic': active_topic_start_node_id,
+        'resume_cues_detected': resume_cues_detected,
         # Feature logging for calibration
         'candidates': [],
         'best_vs_active_gap': None,
         'support_counts': {},
+        'alias_scores': {},
         'gates_passed': [],
         'gates_failed': [],
+        'channel_a_pass': False,
+        'channel_b_pass': False,
         'confidence': 0.0,
     }
 
@@ -627,18 +646,50 @@ def probe_reactivation(
                 'dormancy': topic.get('dormancy', 0),
             })
 
-        # Percentile gate: check if best similarity is reasonable
-        # Use P25 threshold (simple heuristic: similarity > 0.3)
+        # Two-channel gate: semantic similarity OR alias matching
         best_topic, best_sim = top_k[0]
-        if best_sim < 0.3:  # P25 approximation
-            debug_info['exit_reason'] = 'similarity_below_threshold'
-            debug_info['best_similarity'] = best_sim
-            debug_info['gates_failed'].append('similarity_threshold')
-            return ReactivationDecision(action="CONTINUE", debug=debug_info)
-
         debug_info['best_similarity'] = best_sim
         debug_info['best_topic'] = best_topic['name']
-        debug_info['gates_passed'].append('similarity_threshold')
+
+        # Select threshold based on resume cue presence
+        sim_threshold = SIM_THRESHOLD_RESUME_CUE if resume_cues_detected else SIM_THRESHOLD_NORMAL
+        debug_info['sim_threshold_used'] = sim_threshold
+
+        # Channel A: Semantic similarity check
+        channel_a_pass = best_sim >= sim_threshold
+        debug_info['channel_a_pass'] = channel_a_pass
+        if channel_a_pass:
+            debug_info['gates_passed'].append('channel_a_similarity')
+
+        # Channel B: Alias matching (only if resume cues detected)
+        channel_b_pass = False
+        best_alias_score = 0
+
+        if resume_cues_detected:
+            # Compute alias scores for top candidates
+            topic_ids = [t['start_node_id'] for t, _ in top_k]
+            topic_aliases = get_topic_aliases_batch(topic_ids, conn=c)
+
+            for topic, sim in top_k:
+                aliases = topic_aliases.get(topic['start_node_id'], set())
+                alias_score = compute_alias_score(user_input, aliases)
+                debug_info['alias_scores'][topic['name']] = alias_score
+                if topic['start_node_id'] == best_topic['start_node_id']:
+                    best_alias_score = alias_score
+
+            # Check if best candidate passes channel B
+            if best_alias_score >= ALIAS_HITS_MIN:
+                channel_b_pass = True
+                debug_info['channel_b_pass'] = True
+                debug_info['gates_passed'].append('channel_b_alias')
+
+        # Must pass at least one channel
+        if not channel_a_pass and not channel_b_pass:
+            debug_info['exit_reason'] = 'neither_channel_passed'
+            debug_info['gates_failed'].append('similarity_threshold')
+            if resume_cues_detected:
+                debug_info['gates_failed'].append('alias_threshold')
+            return ReactivationDecision(action="CONTINUE", debug=debug_info)
 
         # Support check for best candidate (and close contenders for ambiguity)
         # First, identify candidates within rank_gap of best
@@ -673,7 +724,11 @@ def probe_reactivation(
         debug_info['support_counts']['best'] = best_support_count
 
         # Best candidate must pass support threshold
-        if best_support_count < S_SUPPORT:
+        # Use lower threshold for channel B (alias matching) to support short topics
+        required_support = S_SUPPORT_ALIAS if channel_b_pass else S_SUPPORT
+        debug_info['required_support'] = required_support
+
+        if best_support_count < required_support:
             debug_info['exit_reason'] = 'best_candidate_insufficient_support'
             debug_info['gates_failed'].append('support')
             return ReactivationDecision(action="CONTINUE", debug=debug_info)
@@ -743,9 +798,14 @@ def probe_reactivation(
         debug_info['gates_passed'].append('dormancy')
 
         # Compute confidence score (higher = more confident)
-        # Factors: similarity, support count, dormancy, no close contenders
+        # Factors: similarity, alias hits, support count, dormancy, no close contenders
+        # Use dynamic threshold for similarity contribution
+        sim_contrib = max(0, (best_sim - sim_threshold) / 0.4) * 0.3
+        alias_contrib = min(best_alias_score / 3.0, 1.0) * 0.1 if channel_b_pass else 0
+
         confidence = min(1.0, (
-            (best_sim - 0.3) / 0.4 * 0.4 +  # Similarity contribution (0.3-0.7 → 0-0.4)
+            sim_contrib +  # Similarity contribution
+            alias_contrib +  # Alias contribution (if channel B passed)
             min(best_support_count / 4.0, 1.0) * 0.3 +  # Support contribution (up to 0.3)
             (1.0 if not close_with_support else 0.5) * 0.2 +  # Uniqueness contribution
             min(best_topic.get('dormancy', 0) / 10.0, 1.0) * 0.1  # Dormancy contribution

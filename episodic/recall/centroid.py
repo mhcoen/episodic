@@ -143,11 +143,13 @@ def compute_medoid(
             if missing_ids:
                 # Fetch missing from Chroma
                 result = collection.get(ids=missing_ids, include=['embeddings'])
-                if result and result.get('embeddings') and result.get('ids'):
-                    for i, nid in enumerate(result['ids']):
-                        emb = result['embeddings'][i]
-                        # Check for None explicitly (emb could be numpy array)
-                        if emb is None:
+                result_embeddings = result.get('embeddings', []) if result else []
+                result_ids = result.get('ids', []) if result else []
+                if len(result_embeddings) > 0 and len(result_ids) > 0:
+                    for i, nid in enumerate(result_ids):
+                        emb = result_embeddings[i]
+                        # Check for None explicitly using identity check
+                        if emb is None or (hasattr(emb, '__len__') and len(emb) == 0):
                             continue
                         embeddings_cache[nid] = emb
                         embeddings.append(emb)
@@ -156,26 +158,29 @@ def compute_medoid(
         else:
             # Fetch all from Chroma
             result = collection.get(ids=user_node_ids, include=['embeddings'])
-            if not result or not result.get('embeddings'):
+            result_embeddings = result.get('embeddings', []) if result else []
+            result_ids = result.get('ids', []) if result else []
+
+            if len(result_embeddings) == 0:
                 logger.warning("No embeddings found for topic exchanges")
                 return exchanges[-1][0]  # Fallback: return most recent
 
             # Filter out None embeddings
             embeddings = []
             valid_ids = []
-            result_ids = result.get('ids', [])
-            result_embeddings = result.get('embeddings', [])
             for i in range(len(result_embeddings)):
                 emb = result_embeddings[i]
-                # Check for None explicitly (emb could be numpy array)
-                if emb is None:
+                # Check for None explicitly using identity check
+                if emb is None or (hasattr(emb, '__len__') and len(emb) == 0):
                     continue
                 if i < len(result_ids) and result_ids[i]:
                     embeddings.append(emb)
                     valid_ids.append(result_ids[i])
             user_node_ids = valid_ids
 
-        if not embeddings or len(embeddings) < 2:
+        # Check if we have enough embeddings (handle both list and numpy array)
+        emb_count = len(embeddings) if hasattr(embeddings, '__len__') else 0
+        if emb_count < 2:
             return exchanges[-1][0]
 
         # Convert to numpy array
@@ -222,16 +227,16 @@ def _update_topic_centroid_impl(
 
     # Check if we should update
     if not force and not is_checkpoint(exchange_count):
-        # Not at a checkpoint - just update the exchange count and turn_idx
-        # without recomputing the medoid
+        # Not at a checkpoint - update exchange count, turn_idx, and ensure medoid exists
         cursor = conn.execute(
-            "SELECT exchange_count FROM topic_centroids WHERE start_node_id = ?",
+            "SELECT exchange_count, centroid_medoid_exchange_id FROM topic_centroids WHERE start_node_id = ?",
             (topic_start_node_id,)
         )
         row = cursor.fetchone()
         existing_count = row[0] if row else 0
+        existing_medoid = row[1] if row else None
 
-        if exchange_count != existing_count:
+        if exchange_count != existing_count or existing_medoid is None:
             # Get current turn index
             if topic_end_node_id:
                 turn_idx = get_turn_idx(conn, topic_end_node_id)
@@ -239,16 +244,27 @@ def _update_topic_centroid_impl(
                 cursor = conn.execute("SELECT MAX(rowid) FROM nodes")
                 turn_idx = cursor.fetchone()[0]
 
-            # Update count and turn_idx only
+            # If no medoid exists, use the most recent exchange as fallback
+            # This ensures topics are discoverable by the reactivation probe
+            medoid_node_id = existing_medoid
+            if medoid_node_id is None and exchanges:
+                medoid_node_id = exchanges[-1][0]  # Most recent user node
+
+            # Update count, turn_idx, and medoid (if needed)
             conn.execute("""
                 INSERT INTO topic_centroids
-                    (start_node_id, exchange_count, last_active_turn_idx, updated_at)
-                VALUES (?, ?, ?, ?)
+                    (start_node_id, centroid_medoid_exchange_id, exchange_count,
+                     last_active_turn_idx, updated_at)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(start_node_id) DO UPDATE SET
+                    centroid_medoid_exchange_id = COALESCE(
+                        topic_centroids.centroid_medoid_exchange_id,
+                        excluded.centroid_medoid_exchange_id
+                    ),
                     exchange_count = excluded.exchange_count,
                     last_active_turn_idx = excluded.last_active_turn_idx,
                     updated_at = excluded.updated_at
-            """, (topic_start_node_id, exchange_count, turn_idx, datetime.utcnow()))
+            """, (topic_start_node_id, medoid_node_id, exchange_count, turn_idx, datetime.utcnow()))
             conn.commit()
 
         return False

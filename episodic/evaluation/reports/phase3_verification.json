@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-28T19:32:39.929617Z",
+  "timestamp": "2026-01-29T01:36:34.953321Z",
   "all_passed": true,
   "checks": [
     {
@@ -7,10 +7,10 @@
       "passed": true,
       "message": "All 35 docs have correct topic metadata",
       "details": {
-        "total_scanned": 86,
+        "total_scanned": 88,
         "already_has_metadata": 35,
         "would_update": 0,
-        "missing_in_topic_nodes": 51,
+        "missing_in_topic_nodes": 53,
         "conflicts": 0
       }
     },
@@ -40,6 +40,8 @@
           "topic_start_node_id",
           "included_node_ids",
           "token_counts",
+          "token_breakdown",
+          "timing",
           "truncation_info",
           "reactivation_fired",
           "working_set_used",

@@ -6,6 +6,7 @@ This module contains the main talk loop and application entry point.
 
 import asyncio
 import os
+import re
 import time
 import typer
 from typing import Optional
@@ -14,6 +15,32 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
 from episodic.config import config
+
+# Resume cue patterns for detecting topic-resume intent vs recall intent
+RESUME_CUE_PATTERNS = [
+    r"\bback to\b",
+    r"\bcontinuing\b",
+    r"\breturning to\b",
+    r"\bthat\s+.{1,30}\s+thing\b",  # "that Python thing"
+    r"\bas we were\b",
+    r"\banyway\b",
+    r"\bwhere were we\b",
+    r"\blet'?s get back\b",
+    r"\bresume\b",
+]
+
+
+def _has_resume_cues(text: str) -> bool:
+    """Check if text contains resume cues suggesting topic continuation, not recall."""
+    text_lower = text.lower()
+    # Check explicit patterns
+    for pattern in RESUME_CUE_PATTERNS:
+        if re.search(pattern, text_lower):
+            return True
+    # Anaphoric reference + forward question (e.g., "that thing - should I...?")
+    if "that" in text_lower and "?" in text:
+        return True
+    return False
 from episodic.configuration import (
     MAIN_LOOP_SLEEP_INTERVAL,
     get_system_color
@@ -190,6 +217,13 @@ def _handle_memory_query(user_input: str) -> bool:
 
         # Classifier identified as memory query - route to NEW recall system
         if config.get("enable_recall_system", True):
+            # Check for resume cues FIRST - if present AND reactivation enabled, fall through to chat
+            # Resume cues (e.g., "back to that X thing") indicate conversation continuation, not recall
+            if _has_resume_cues(user_input) and config.get("enable_topic_reactivation", False):
+                if config.get("debug"):
+                    typer.secho("[DEBUG] [MQL] Resume cues detected + reactivation enabled → falling through to chat", fg="cyan", dim=True)
+                return False  # Fall through to chat flow where reactivation will run
+
             if config.get("debug"):
                 typer.secho("[DEBUG] [MQL] Classifier: MEMORY → routing to recall system", fg="cyan", dim=True)
 

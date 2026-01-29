@@ -13,7 +13,7 @@ class DebugSystem:
     # Define debug categories and their descriptions
     CATEGORIES = {
         'all': 'All debug output',
-        'memory': 'Memory system (RAG, context injection)',
+        'memory': 'Memory system (recall, RAG, context injection)',
         'topic': 'Topic detection and boundaries',
         'drift': 'Semantic drift calculations',
         'llm': 'LLM queries and responses',

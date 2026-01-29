@@ -35,6 +35,8 @@ class DisambiguationOption:
     similarity: float
     support_count: int
     preview: str = ""  # Short preview of topic content
+    turns_ago: int = 0  # How many turns since last activity
+    snippets: List[str] = field(default_factory=list)  # Evidence snippets
 
 
 @dataclass
@@ -234,6 +236,52 @@ def _get_topic_preview(conn: sqlite3.Connection, start_node_id: str) -> str:
             content += "..."
         return content
     return ""
+
+
+def _get_topic_snippets(
+    conn: sqlite3.Connection,
+    start_node_id: str,
+    max_snippets: int = 2
+) -> List[str]:
+    """Get representative snippets from a topic for disambiguation display."""
+    # Try to get user messages from topic_nodes first
+    cursor = conn.execute("""
+        SELECT n.content
+        FROM topic_nodes tn
+        JOIN nodes n ON tn.node_id = n.id
+        WHERE tn.topic_start_node_id = ?
+          AND n.role = 'user'
+        ORDER BY n.rowid DESC
+        LIMIT ?
+    """, (start_node_id, max_snippets * 2))  # Fetch more to filter
+    rows = cursor.fetchall()
+
+    if not rows:
+        # Fallback: get any nodes from the topic range
+        cursor = conn.execute("""
+            SELECT n.content
+            FROM nodes n
+            WHERE n.rowid >= (SELECT rowid FROM nodes WHERE id = ?)
+              AND n.role = 'user'
+            ORDER BY n.rowid DESC
+            LIMIT ?
+        """, (start_node_id, max_snippets * 2))
+        rows = cursor.fetchall()
+
+    snippets = []
+    for row in rows:
+        if row[0]:
+            content = row[0].strip()
+            # Take first meaningful sentence/question
+            if content:
+                # Truncate long content
+                if len(content) > 60:
+                    content = content[:57] + "..."
+                snippets.append(content)
+                if len(snippets) >= max_snippets:
+                    break
+
+    return snippets
 
 
 def _get_topic_summary(conn: sqlite3.Connection, start_node_id: str) -> Optional[str]:
@@ -490,16 +538,25 @@ def probe_reactivation(
     debug_info: Dict[str, Any] = {
         'cooldown_turns': cooldown_turns,
         'active_topic': active_topic_start_node_id,
+        # Feature logging for calibration
+        'candidates': [],
+        'best_vs_active_gap': None,
+        'support_counts': {},
+        'gates_passed': [],
+        'gates_failed': [],
+        'confidence': 0.0,
     }
 
     # Early exit: cooldown active
     if cooldown_turns > 0:
         debug_info['exit_reason'] = 'cooldown_active'
+        debug_info['gates_failed'].append('cooldown')
         return ReactivationDecision(action="CONTINUE", debug=debug_info)
 
     # Early exit: input too short
     if len(user_input.split()) < 4:
         debug_info['exit_reason'] = 'input_too_short'
+        debug_info['gates_failed'].append('input_length')
         return ReactivationDecision(action="CONTINUE", debug=debug_info)
 
     def _probe(c: sqlite3.Connection) -> ReactivationDecision:
@@ -560,16 +617,28 @@ def probe_reactivation(
         top_k = topic_similarities[:K_TOPICS]
         debug_info['top_k_similarities'] = [(t['name'], s) for t, s in top_k]
 
+        # Build detailed candidates list for feature logging
+        for rank, (topic, sim) in enumerate(top_k):
+            debug_info['candidates'].append({
+                'topic': topic['name'],
+                'topic_start_node_id': topic['start_node_id'],
+                'sim': sim,
+                'rank': rank,
+                'dormancy': topic.get('dormancy', 0),
+            })
+
         # Percentile gate: check if best similarity is reasonable
         # Use P25 threshold (simple heuristic: similarity > 0.3)
         best_topic, best_sim = top_k[0]
         if best_sim < 0.3:  # P25 approximation
             debug_info['exit_reason'] = 'similarity_below_threshold'
             debug_info['best_similarity'] = best_sim
+            debug_info['gates_failed'].append('similarity_threshold')
             return ReactivationDecision(action="CONTINUE", debug=debug_info)
 
         debug_info['best_similarity'] = best_sim
         debug_info['best_topic'] = best_topic['name']
+        debug_info['gates_passed'].append('similarity_threshold')
 
         # Support check for best candidate (and close contenders for ambiguity)
         # First, identify candidates within rank_gap of best
@@ -601,11 +670,15 @@ def probe_reactivation(
 
         debug_info['best_support_count'] = best_support_count
         debug_info['best_exchange_sim'] = best_exchange_sim
+        debug_info['support_counts']['best'] = best_support_count
 
         # Best candidate must pass support threshold
         if best_support_count < S_SUPPORT:
             debug_info['exit_reason'] = 'best_candidate_insufficient_support'
+            debug_info['gates_failed'].append('support')
             return ReactivationDecision(action="CONTINUE", debug=debug_info)
+
+        debug_info['gates_passed'].append('support')
 
         # Check if there are close contenders with support (for ambiguity)
         close_with_support = []
@@ -614,6 +687,7 @@ def probe_reactivation(
             support_count, exchange_sim = _check_support(
                 user_embedding, exchanges, exchange_embeddings, DELTA_BAND
             )
+            debug_info['support_counts'][topic['name']] = support_count
             if support_count >= S_SUPPORT:
                 close_with_support.append({
                     'topic': topic,
@@ -623,6 +697,8 @@ def probe_reactivation(
                 })
 
         debug_info['close_contenders_with_support'] = len(close_with_support)
+        if len(close_with_support) > 0:
+            debug_info['support_counts']['second'] = close_with_support[0]['support_count'] if close_with_support else 0
 
         # Check for ambiguity
         if close_with_support:
@@ -636,7 +712,9 @@ def probe_reactivation(
                     topic_start_node_id=best_topic['start_node_id'],
                     similarity=best_sim,
                     support_count=best_support_count,
-                    preview=_get_topic_preview(c, best_topic['start_node_id'])
+                    preview=_get_topic_preview(c, best_topic['start_node_id']),
+                    turns_ago=best_topic.get('dormancy', 0),
+                    snippets=_get_topic_snippets(c, best_topic['start_node_id']),
                 )
             ]
             for cand in close_with_support:
@@ -646,7 +724,9 @@ def probe_reactivation(
                     topic_start_node_id=topic['start_node_id'],
                     similarity=cand['centroid_sim'],
                     support_count=cand['support_count'],
-                    preview=_get_topic_preview(c, topic['start_node_id'])
+                    preview=_get_topic_preview(c, topic['start_node_id']),
+                    turns_ago=topic.get('dormancy', 0),
+                    snippets=_get_topic_snippets(c, topic['start_node_id']),
                 ))
 
             return ReactivationDecision(
@@ -659,6 +739,18 @@ def probe_reactivation(
         debug_info['support_count'] = best_support_count
         debug_info['rank_gap_passes'] = True
         debug_info['dormancy_turns'] = best_topic.get('dormancy', 0)
+        debug_info['gates_passed'].append('rank_gap')
+        debug_info['gates_passed'].append('dormancy')
+
+        # Compute confidence score (higher = more confident)
+        # Factors: similarity, support count, dormancy, no close contenders
+        confidence = min(1.0, (
+            (best_sim - 0.3) / 0.4 * 0.4 +  # Similarity contribution (0.3-0.7 → 0-0.4)
+            min(best_support_count / 4.0, 1.0) * 0.3 +  # Support contribution (up to 0.3)
+            (1.0 if not close_with_support else 0.5) * 0.2 +  # Uniqueness contribution
+            min(best_topic.get('dormancy', 0) / 10.0, 1.0) * 0.1  # Dormancy contribution
+        ))
+        debug_info['confidence'] = confidence
 
         return ReactivationDecision(
             action="REACTIVATE",

@@ -95,13 +95,20 @@ def get_recent_topics(limit: Optional[int] = 10):
         return list(reversed(topics))
 
 
-def get_all_topics():
+def get_all_topics(conn=None):
     """Get all topics from the database."""
-    with get_connection() as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM topics ORDER BY ROWID ASC")
-        columns = [description[0] for description in c.description]
-        return [dict(zip(columns, row)) for row in c.fetchall()]
+
+    def _get(c):
+        cursor = c.cursor()
+        cursor.execute("SELECT * FROM topics ORDER BY ROWID ASC")
+        columns = [description[0] for description in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    if conn is not None:
+        return _get(conn)
+
+    with get_connection() as c:
+        return _get(c)
 
 
 def update_topic_end_node(topic_name: str, start_node_id: str, new_end_node_id: str):

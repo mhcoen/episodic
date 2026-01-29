@@ -97,6 +97,7 @@ datasets/
 # Model checkpoint: use download script or host on HuggingFace
 
 # AI tool state files
+.planning/
 CLAUDE.md
 PROJECT_MEMORY.md
 DEBUG.md

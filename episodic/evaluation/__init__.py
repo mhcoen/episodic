@@ -31,6 +31,34 @@ from .benchmark_runner import (
     compute_benchmark_metrics,
     format_benchmark_report,
 )
+from .resume_moments import (
+    ResumeMoment,
+    load_resume_moments,
+    save_resume_moments,
+    get_moment_by_id,
+    get_moments_by_category,
+    validate_moments,
+    summarize_moments,
+)
+from .quality_eval import (
+    ModeResult,
+    MomentEvalResult,
+    QualityEvalReport,
+    run_quality_eval,
+    export_for_human_review,
+    save_report as save_quality_report,
+)
+from .calibration import (
+    CalibrationConfig,
+    CalibrationMetrics,
+    CalibrationResult,
+    CalibrationReport,
+    run_calibration_sweep,
+    compute_calibration_metrics,
+    select_best_config,
+    run_full_calibration,
+    load_calibrated_params,
+)
 
 __all__ = [
     # Reactivation replay
@@ -56,4 +84,29 @@ __all__ = [
     'run_deterministic_benchmark',
     'compute_benchmark_metrics',
     'format_benchmark_report',
+    # Resume moments
+    'ResumeMoment',
+    'load_resume_moments',
+    'save_resume_moments',
+    'get_moment_by_id',
+    'get_moments_by_category',
+    'validate_moments',
+    'summarize_moments',
+    # Quality evaluation
+    'ModeResult',
+    'MomentEvalResult',
+    'QualityEvalReport',
+    'run_quality_eval',
+    'export_for_human_review',
+    'save_quality_report',
+    # Calibration
+    'CalibrationConfig',
+    'CalibrationMetrics',
+    'CalibrationResult',
+    'CalibrationReport',
+    'run_calibration_sweep',
+    'compute_calibration_metrics',
+    'select_best_config',
+    'run_full_calibration',
+    'load_calibrated_params',
 ]

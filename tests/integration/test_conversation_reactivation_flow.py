@@ -13,6 +13,9 @@ from typing import Dict, Any, Optional, List, Literal
 import pytest
 import numpy as np
 
+# Mark all tests in this module for the reactivation CI gate
+pytestmark = pytest.mark.reactivation
+
 from episodic.context_recovery.imports import (
     detect_import_intent,
     resolve_import_target,

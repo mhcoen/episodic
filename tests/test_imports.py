@@ -20,6 +20,9 @@ from episodic.context_recovery.imports import (
     _clean_topic_reference,
 )
 
+# Mark all tests in this module for the reactivation CI gate
+pytestmark = pytest.mark.reactivation
+
 
 class TestDetectImportIntent:
     """Tests for detect_import_intent()."""

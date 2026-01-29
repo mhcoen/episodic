@@ -172,6 +172,9 @@ ENV_VAR_MAPPING = {
     'compression_model': 'EPISODIC_COMPRESSION_MODEL',
     'auto_compress_topics': 'EPISODIC_COMPRESS_AUTO',
     'compression_min_nodes': 'EPISODIC_COMPRESS_MIN',
+
+    # Intent classification
+    'intent_model': 'EPISODIC_INTENT_MODEL',
     
     # Display
     'stream_rate': 'EPISODIC_STREAM_RATE',

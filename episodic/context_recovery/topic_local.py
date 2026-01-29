@@ -8,6 +8,7 @@ Supports explicit cross-topic imports when user references another topic.
 """
 
 import sqlite3
+import time
 from typing import List, Dict, Any, Optional
 import logging
 
@@ -125,6 +126,7 @@ class TopicLocalStrategy:
         token_budget: int,
         conn: Optional[sqlite3.Connection] = None,
         chroma_collection: Optional[Any] = None,
+        force_no_recency: bool = False,
     ) -> ContextAssemblyResult:
         """
         Assemble context from only the active topic.
@@ -138,13 +140,30 @@ class TopicLocalStrategy:
            - Anchors (semantic retrieval within topic)
            - Last N exchanges from topic
         4. Current user message (added later by caller)
+
+        Args:
+            force_no_recency: If True, skip loading recent exchanges (for year-later testing)
         """
+        import os
         from episodic.config import config
         from episodic.db_topic_nodes import (
             get_last_n_exchanges_in_topic,
             get_topic_working_set,
         )
         from episodic.db_connection import get_connection
+
+        # Guard: force_no_recency is test-only
+        if force_no_recency:
+            if not (os.environ.get("EPISODIC_TEST_MODE") or config.get("debug")):
+                raise ValueError("force_no_recency is only allowed in test/debug mode")
+
+        # Start timing
+        assembly_start = time.perf_counter()
+        timing = {
+            "sqlite_ops_ms": 0.0,
+            "chroma_query_ms": 0.0,
+            "context_assembly_ms": 0.0,  # Total assembly time (excluding embedding)
+        }
 
         messages = []
         included_node_ids = []
@@ -153,6 +172,15 @@ class TopicLocalStrategy:
             "topic_start_node_id": active_topic_start_node_id,
             "included_node_ids": [],
             "token_counts": {},
+            "token_breakdown": {
+                "summary_tokens": 0,
+                "recency_tokens": 0,
+                "anchor_tokens": 0,
+                "scratchpad_tokens": 0,
+                "import_tokens": 0,
+                "total_tokens": 0,
+            },
+            "timing": timing,
             "truncation_info": None,
             "reactivation_fired": True,  # Topic-local implies reactivation
             "working_set_used": False,
@@ -178,17 +206,19 @@ class TopicLocalStrategy:
         if active_topic_start_node_id is None:
             # No active topic, return empty context
             debug["reactivation_fired"] = False
+            debug["timing"]["context_assembly_ms"] = (time.perf_counter() - assembly_start) * 1000
             return ContextAssemblyResult(messages=messages, debug=debug)
 
-        # Use provided connection or get a new one
+        # Time SQLite operations: build topic context
+        sqlite_start = time.perf_counter()
         if conn is not None:
             topic_context, topic_messages, node_ids = self._build_topic_context(
-                active_topic_start_node_id, conn
+                active_topic_start_node_id, conn, force_no_recency=force_no_recency
             )
         else:
             with get_connection() as c:
                 topic_context, topic_messages, node_ids = self._build_topic_context(
-                    active_topic_start_node_id, c
+                    active_topic_start_node_id, c, force_no_recency=force_no_recency
                 )
 
         included_node_ids = list(node_ids)  # Copy to avoid mutation issues
@@ -202,9 +232,11 @@ class TopicLocalStrategy:
             with get_connection() as c:
                 ws = get_topic_working_set(active_topic_start_node_id, conn=c)
                 summary_text = ws.get("summary_md") if ws else None
+        timing["sqlite_ops_ms"] = (time.perf_counter() - sqlite_start) * 1000
 
-        # Retrieve semantic anchors within the topic
+        # Retrieve semantic anchors within the topic (includes Chroma timing)
         recency_node_ids = set(node_ids)
+        chroma_start = time.perf_counter()
         anchor_context, anchor_debug = self._retrieve_anchors(
             user_turn_text=user_turn_text,
             user_embedding=user_embedding,
@@ -214,6 +246,7 @@ class TopicLocalStrategy:
             chroma_collection=chroma_collection,
             token_budget=token_budget,
         )
+        timing["chroma_query_ms"] = (time.perf_counter() - chroma_start) * 1000
 
         # Add anchor node IDs to included list
         for anchor_id in anchor_debug.get("included_node_ids", []):
@@ -270,12 +303,24 @@ class TopicLocalStrategy:
                 "content": msg["content"]
             })
 
-        # Estimate token counts
+        # Estimate token counts - compute breakdown by section
+        # Extract summary tokens from topic_context (if summary section exists)
+        summary_chars = 0
+        if topic_context and "## Summary" in topic_context:
+            # Find the summary section
+            summary_start = topic_context.find("## Summary")
+            summary_end = topic_context.find("\n##", summary_start + 10)  # Next section
+            if summary_end == -1:
+                summary_end = len(topic_context)
+            summary_chars = summary_end - summary_start
+
         topic_context_chars = len(topic_context) if topic_context else 0
+        non_summary_topic_chars = topic_context_chars - summary_chars
         anchor_context_chars = len(anchor_context) if anchor_context else 0
         import_context_chars = len(import_context) if import_context else 0
         conversation_chars = sum(len(msg["content"]) for msg in topic_messages)
 
+        # Legacy token_counts (for backwards compatibility)
         debug["token_counts"] = {
             "topic_context": topic_context_chars // 4,
             "anchor_context": anchor_context_chars // 4,
@@ -285,6 +330,19 @@ class TopicLocalStrategy:
         }
         debug["anchors"]["tokens_used"] = anchor_context_chars // 4
 
+        # New token_breakdown (structured by section type)
+        debug["token_breakdown"] = {
+            "summary_tokens": summary_chars // 4,
+            "recency_tokens": conversation_chars // 4,
+            "anchor_tokens": anchor_context_chars // 4,
+            "scratchpad_tokens": non_summary_topic_chars // 4,  # Topic name + metadata
+            "import_tokens": import_context_chars // 4,
+            "total_tokens": (topic_context_chars + anchor_context_chars + import_context_chars + conversation_chars) // 4,
+        }
+
+        # Finalize timing
+        timing["context_assembly_ms"] = (time.perf_counter() - assembly_start) * 1000
+
         # Assert no contamination from foreign topics (debug mode only)
         if conn is not None:
             _assert_no_contamination(included_node_ids, active_topic_start_node_id, conn)
@@ -292,15 +350,55 @@ class TopicLocalStrategy:
             with get_connection() as c:
                 _assert_no_contamination(included_node_ids, active_topic_start_node_id, c)
 
+        # Check for thin topic_local - fall back to ancestry if context is insufficient
+        has_summary = debug.get("summary_included", False)
+        anchor_count_retrieved = debug["anchors"].get("included_count", 0)
+        total_tokens = debug["token_counts"].get("total_estimate", 0)
+
+        min_anchors = config.get("min_anchors_for_topic_local", 2)
+        min_tokens = config.get("min_tokens_for_topic_local", 500)
+
+        if (not has_summary and
+            anchor_count_retrieved < min_anchors and
+            total_tokens < min_tokens):
+            debug["fallback_reason"] = "thin_topic_local"
+            debug["thin_fallback_details"] = {
+                "has_summary": has_summary,
+                "anchor_count": anchor_count_retrieved,
+                "total_tokens": total_tokens,
+                "min_anchors_threshold": min_anchors,
+                "min_tokens_threshold": min_tokens,
+            }
+            logger.debug(
+                f"Thin topic_local detected (no summary, {anchor_count_retrieved} anchors, "
+                f"{total_tokens} tokens), falling back to ancestry"
+            )
+            return self._fallback_to_ancestry(
+                user_turn_text=user_turn_text,
+                user_node_id=user_node_id,
+                active_topic_start_node_id=active_topic_start_node_id,
+                user_embedding=user_embedding,
+                token_budget=token_budget,
+                conn=conn,
+                chroma_collection=chroma_collection,
+                original_debug=debug,
+            )
+
         return ContextAssemblyResult(messages=messages, debug=debug)
 
     def _build_topic_context(
         self,
         topic_start_node_id: str,
-        conn: sqlite3.Connection
+        conn: sqlite3.Connection,
+        force_no_recency: bool = False,
     ) -> tuple:
         """
         Build the topic context block.
+
+        Args:
+            topic_start_node_id: The topic's start node ID
+            conn: Database connection
+            force_no_recency: If True, skip loading recent exchanges (for year-later testing)
 
         Returns:
             Tuple of (topic_context_str, messages_list, node_ids_list)
@@ -326,6 +424,11 @@ class TopicLocalStrategy:
                 context_parts.append(f"\n## Summary\n{summary.strip()}")
 
             # Future: add decisions, open_loops, entities from working_set
+
+        # Skip recency loading for year-later testing scenarios
+        if force_no_recency:
+            topic_context = "\n".join(context_parts) if context_parts else ""
+            return topic_context, topic_messages, node_ids
 
         # Get last N exchanges from topic
         exchanges = get_last_n_exchanges_in_topic(
@@ -559,6 +662,55 @@ class TopicLocalStrategy:
         if norm1 == 0 or norm2 == 0:
             return 0.0
         return float(dot / (norm1 * norm2))
+
+    def _fallback_to_ancestry(
+        self,
+        user_turn_text: str,
+        user_node_id: Optional[str],
+        active_topic_start_node_id: Optional[str],
+        user_embedding: Optional[Any],
+        token_budget: int,
+        conn: Optional[sqlite3.Connection] = None,
+        chroma_collection: Optional[Any] = None,
+        original_debug: Optional[Dict] = None,
+    ) -> ContextAssemblyResult:
+        """
+        Fall back to ancestry strategy when topic_local context is too thin.
+
+        Args:
+            user_turn_text: Current user message
+            user_node_id: ID of the current user node
+            active_topic_start_node_id: Start node ID of active topic
+            user_embedding: Pre-computed embedding
+            token_budget: Maximum tokens for context
+            conn: Optional SQLite connection
+            chroma_collection: Optional Chroma collection
+            original_debug: Debug info from topic_local attempt (preserved)
+
+        Returns:
+            ContextAssemblyResult from ancestry strategy with merged debug info
+        """
+        from .ancestry import AncestryStrategy
+
+        ancestry = AncestryStrategy()
+        result = ancestry.assemble(
+            user_turn_text=user_turn_text,
+            user_node_id=user_node_id,
+            active_topic_start_node_id=active_topic_start_node_id,
+            user_embedding=user_embedding,
+            token_budget=token_budget,
+            conn=conn,
+            chroma_collection=chroma_collection,
+        )
+
+        # Merge debug info - preserve fallback reason and thin details
+        if original_debug:
+            result.debug["fallback_reason"] = original_debug.get("fallback_reason")
+            result.debug["thin_fallback_details"] = original_debug.get("thin_fallback_details")
+            result.debug["original_mode"] = original_debug.get("mode")
+        result.debug["mode"] = "ancestry_fallback"
+
+        return result
 
     def _check_import_intent(
         self,

@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-01-28T19:32:39.929617Z",
+  "all_passed": true,
+  "checks": [
+    {
+      "name": "backfill_completeness",
+      "passed": true,
+      "message": "All 35 docs have correct topic metadata",
+      "details": {
+        "total_scanned": 86,
+        "already_has_metadata": 35,
+        "would_update": 0,
+        "missing_in_topic_nodes": 51,
+        "conflicts": 0
+      }
+    },
+    {
+      "name": "summary_validity",
+      "passed": true,
+      "message": "All 8 topics have valid summaries",
+      "details": {
+        "total_topics": 8,
+        "valid": 8,
+        "with_warnings": 0,
+        "with_errors": 0,
+        "errors": [],
+        "warnings": []
+      }
+    },
+    {
+      "name": "long_gap_only",
+      "passed": true,
+      "message": "Year-later resume works for topic ai-limitations-and-capabilities: summary-only context",
+      "details": {
+        "topic_tested": "ai-limitations-and-capabilities",
+        "topic_id": "511d6a4a-aaf3-49",
+        "messages_returned": 1,
+        "debug_keys": [
+          "mode",
+          "topic_start_node_id",
+          "included_node_ids",
+          "token_counts",
+          "truncation_info",
+          "reactivation_fired",
+          "working_set_used",
+          "summary_included",
+          "anchors",
+          "import"
+        ],
+        "summary_included": true,
+        "conversation_messages": 0
+      }
+    }
+  ]
+}

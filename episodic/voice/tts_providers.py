@@ -4,8 +4,10 @@ Text-to-Speech (TTS) provider abstraction for Episodic voice mode.
 Supports multiple providers:
 - local_piper: Piper TTS (free, fast, runs locally)
 - local_xtts: Coqui XTTS v2 (free, high quality, slower)
-- openai_tts: OpenAI TTS API (~$0.015/min)
-- elevenlabs: ElevenLabs API (~$0.20/1k chars, highest quality)
+- openai_tts: OpenAI TTS API (cloud)
+- elevenlabs: ElevenLabs API (cloud, highest quality)
+
+Pricing is loaded from voice_pricing.json for cost tracking.
 """
 
 import io
@@ -205,19 +207,13 @@ class OpenAITTSProvider(BaseTTSProvider):
     """
     Cloud text-to-speech using OpenAI TTS API.
 
-    Cost: $0.015/1K characters (tts-1) or $0.030/1K characters (tts-1-hd)
     Good quality, fast, no local compute needed.
+    Pricing loaded from voice_pricing.json.
     """
 
     name = "openai_tts"
 
     VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-
-    # OpenAI TTS pricing per 1K characters
-    COST_PER_1K_CHARS = {
-        "tts-1": 0.015,
-        "tts-1-hd": 0.030,
-    }
 
     def __init__(self, voice: str = "alloy", model: str = "tts-1", speed: float = 1.0):
         self.voice = voice
@@ -247,9 +243,10 @@ class OpenAITTSProvider(BaseTTSProvider):
 
             audio_bytes = response.content
 
-            # Track cost
+            # Track cost (pricing loaded from voice_pricing.json)
             char_count = len(text)
-            cost_per_1k = self.COST_PER_1K_CHARS.get(self.model, 0.015)
+            from episodic.voice_pricing import get_tts_cost_per_1k_chars
+            cost_per_1k = get_tts_cost_per_1k_chars("openai_tts", model=self.model)
             cost_usd = (char_count / 1000.0) * cost_per_1k
             from episodic.llm_manager import llm_manager
             llm_manager.record_voice_tts(char_count, cost_usd)
@@ -279,14 +276,11 @@ class ElevenLabsProvider(BaseTTSProvider):
     """
     Cloud text-to-speech using ElevenLabs API.
 
-    Cost: ~$0.30/1000 characters (expensive but highest quality)
-    Best quality, most natural sounding.
+    Highest quality, most natural sounding.
+    Pricing loaded from voice_pricing.json.
     """
 
     name = "elevenlabs"
-
-    # ElevenLabs pricing: $0.30 per 1K characters (Creator plan)
-    COST_PER_1K_CHARS = 0.30
 
     def __init__(self, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):  # Rachel
         self.voice_id = voice_id
@@ -313,9 +307,11 @@ class ElevenLabsProvider(BaseTTSProvider):
             # Collect all audio chunks
             audio_bytes = b"".join(audio_generator)
 
-            # Track cost
+            # Track cost (pricing loaded from voice_pricing.json)
             char_count = len(text)
-            cost_usd = (char_count / 1000.0) * self.COST_PER_1K_CHARS
+            from episodic.voice_pricing import get_tts_cost_per_1k_chars
+            cost_per_1k = get_tts_cost_per_1k_chars("elevenlabs")
+            cost_usd = (char_count / 1000.0) * cost_per_1k
             from episodic.llm_manager import llm_manager
             llm_manager.record_voice_tts(char_count, cost_usd)
 

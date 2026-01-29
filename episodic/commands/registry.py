@@ -277,6 +277,10 @@ def register_all_commands():
     
     # Developer commands - hidden from normal help
     command_registry.register("dev", dev, "Developer maintenance commands", "Developer")
+    
+    # Test mode command
+    from episodic.commands.test_mode import test_command
+    command_registry.register("test", test_command, "Manage test mode and fixtures", "Developer")
 
     # Clipboard command
     from episodic.commands.clipboard import copy_command
@@ -307,6 +311,20 @@ def register_all_commands():
             return migrate_command(*args, **kwargs)
         
         command_registry.register("migrate", lazy_migrate_command, "Migrate RAG data to multi-collection system", "Utility")
+
+    # Maintenance command (lazy loading)
+    def lazy_maintenance_command(*args, **kwargs):
+        from episodic.commands.maintenance import maintenance_command
+        return maintenance_command(*args, **kwargs)
+
+    command_registry.register("maintenance", lazy_maintenance_command, "Database maintenance tasks (summarize topics, etc.)", "Utility")
+
+    # Evaluation command (lazy loading)
+    def lazy_evaluate_command(*args, **kwargs):
+        from episodic.commands.evaluate import evaluate_command
+        return evaluate_command(*args, **kwargs)
+
+    command_registry.register("evaluate", lazy_evaluate_command, "Evaluation and calibration tools (reactivation replay, etc.)", "Utility")
 
 
 # Don't initialize on import - will be called when needed

@@ -72,11 +72,21 @@ class SQLiteMemoryRAG:
 
         return new_indexed
 
-    def index_exchange(self, user_node: Dict, assistant_node: Dict):
+    def index_exchange(
+        self,
+        user_node: Dict,
+        assistant_node: Dict,
+        topic_start_node_id: Optional[str] = None
+    ):
         """Index a single user-assistant exchange using rag_collections.
 
         Tracks indexing status in SQLite for durability.
         All operations are synchronous (ChromaDB and SQLite).
+
+        Args:
+            user_node: The user message node
+            assistant_node: The assistant response node
+            topic_start_node_id: Optional topic identifier for filtering anchors
         """
         from episodic.db import update_indexing_status
         from episodic.rag_collections import CollectionType
@@ -96,6 +106,10 @@ class SQLiteMemoryRAG:
                 'assistant_content': assistant_node['content'][:500],
                 'source': 'conversation'
             }
+
+            # Add topic_start_node_id if provided (for anchor retrieval filtering)
+            if topic_start_node_id:
+                metadata['topic_start_node_id'] = topic_start_node_id
 
             # Use rag_collections add_document with explicit doc_id for deduplication
             self.rag.add_document(

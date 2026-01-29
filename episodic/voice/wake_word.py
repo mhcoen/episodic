@@ -7,6 +7,8 @@ Uses Porcupine for efficient, low-latency wake word detection.
 from typing import Callable, Optional
 import numpy as np
 
+from episodic.constants import PORCUPINE_KEYWORDS
+
 
 class PorcupineWakeWordDetector:
     """
@@ -18,13 +20,6 @@ class PorcupineWakeWordDetector:
     Requires a free access key from https://console.picovoice.ai/
     Set via PICOVOICE_ACCESS_KEY environment variable or porcupine_access_key config.
     """
-
-    # Porcupine built-in keywords (free tier)
-    BUILTIN_KEYWORDS = [
-        "alexa", "americano", "blueberry", "bumblebee", "computer",
-        "grapefruit", "grasshopper", "hey google", "hey siri", "jarvis",
-        "ok google", "picovoice", "porcupine", "terminator"
-    ]
 
     def __init__(
         self,
@@ -80,10 +75,10 @@ class PorcupineWakeWordDetector:
         if self._porcupine is None:
             import pvporcupine
 
-            if self.keyword not in self.BUILTIN_KEYWORDS:
+            if self.keyword not in PORCUPINE_KEYWORDS:
                 raise ValueError(
                     f"Unknown keyword '{self.keyword}'. "
-                    f"Available: {', '.join(self.BUILTIN_KEYWORDS)}"
+                    f"Available: {', '.join(PORCUPINE_KEYWORDS)}"
                 )
 
             access_key = self._get_access_key()

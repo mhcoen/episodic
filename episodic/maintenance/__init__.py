@@ -38,6 +38,15 @@ from .validators import (
     validate_summary_provenance,
     validate_working_set_completeness,
 )
+from .verify_phase3 import (
+    CheckResult,
+    Phase3Report,
+    run_all_verifications,
+    save_report,
+    verify_backfill_completeness,
+    verify_long_gap_only,
+    verify_summary_validity,
+)
 
 __all__ = [
     # Summarization
@@ -65,4 +74,12 @@ __all__ = [
     "validate_all_topics",
     "validate_working_set_completeness",
     "format_validation_report",
+    # Phase 3 Verification
+    "CheckResult",
+    "Phase3Report",
+    "run_all_verifications",
+    "verify_backfill_completeness",
+    "verify_summary_validity",
+    "verify_long_gap_only",
+    "save_report",
 ]

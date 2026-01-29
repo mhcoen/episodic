@@ -2,93 +2,106 @@
 Integration tests for memory management functionality.
 
 Tests the complete memory system including database operations and RAG integration.
+
+Note: These tests use hermetic ChromaDB isolation (unique tmp_path and collection
+names per test) to avoid file locking issues. They are marked @serial to ensure
+sequential execution.
 """
 
 import pytest
 import tempfile
 import shutil
 import os
+import uuid
 from pathlib import Path
 from unittest.mock import patch
+
+import chromadb
+from chromadb.config import Settings
 
 from episodic.commands.memory import (
     memory_command, forget_command, memory_stats_command
 )
 from episodic.config import config
-from episodic.rag import get_rag_system, _rag_system
 from episodic.db import get_connection
+from episodic.rag import get_rag_system
 
-
-class DummyEmbeddingFunction:
-    """Lightweight embedding stub for offline tests."""
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __call__(self, input):
-        if isinstance(input, str):
-            input = [input]
-        return [[0.0, 0.0, 0.0] for _ in input]
-
-    def embed_query(self, input):
-        return self.__call__(input)
-
-    def embed_documents(self, inputs):
-        return self.__call__(inputs)
-
-    def name(self):
-        return "dummy-embedding"
-
-    def is_legacy(self):
-        return True
+# Import hermetic Chroma fixtures
+from tests.chroma_isolation import DummyEmbeddingFunction
 
 
 @pytest.fixture
-def temp_episodic_dir():
-    """Create a temporary directory for testing (function-scoped for isolation)."""
+def hermetic_episodic_env(tmp_path, monkeypatch):
+    """
+    Provide a fully isolated Episodic environment for memory tests.
+
+    Features:
+    - Unique tmp_path for all files (DB, Chroma)
+    - Unique collection name per test
+    - Patched embedding function
+    - Proper cleanup with client close
+    """
     import episodic.rag as rag_module
     import episodic.rag_collections as rag_collections_module
+    from episodic.db_connection import close_pool
 
-    temp_dir = tempfile.mkdtemp()
+    # Store originals
     original_home = os.environ.get('EPISODIC_HOME')
     original_user_home = os.environ.get('HOME')
     original_db_path = os.environ.get('EPISODIC_DB_PATH')
 
-    os.environ['EPISODIC_HOME'] = temp_dir
-    os.environ['HOME'] = temp_dir
+    # Set up isolated environment
+    test_dir = str(tmp_path)
+    os.environ['EPISODIC_HOME'] = test_dir
+    os.environ['HOME'] = test_dir
 
-    # Create a unique test DB for this test
-    db_path = os.path.join(temp_dir, 'test_episodic.db')
+    # Create unique DB path
+    db_path = os.path.join(test_dir, 'test_episodic.db')
     os.environ['EPISODIC_DB_PATH'] = db_path
 
-    embedding_patcher = patch(
+    # Patch embedding function
+    monkeypatch.setattr(
         'episodic.rag_utils.SilentSentenceTransformerEmbeddingFunction',
         DummyEmbeddingFunction
     )
-    embedding_patcher.start()
 
-    # Reset RAG singletons
+    # Reset singletons
     rag_module._rag_system = None
-    if hasattr(rag_collections_module, '_multi_rag'):
-        rag_collections_module._multi_rag = None
-
-    # Close connection pool to reset path caching
-    from episodic.db_connection import close_pool
-    close_pool()
-
-    yield temp_dir
-
-    # Cleanup
-    embedding_patcher.stop()
-
-    # Reset RAG singletons
-    rag_module._rag_system = None
-    if hasattr(rag_collections_module, '_multi_rag'):
-        rag_collections_module._multi_rag = None
+    if hasattr(rag_collections_module, '_multi_collection_rag'):
+        rag_collections_module._multi_collection_rag = None
 
     # Close connection pool
     close_pool()
 
+    # Track the RAG system for cleanup
+    created_rag = None
+
+    yield test_dir
+
+    # Get reference to RAG system before reset
+    created_rag = rag_module._rag_system
+
+    # Reset singletons
+    rag_module._rag_system = None
+    if hasattr(rag_collections_module, '_multi_collection_rag'):
+        rag_collections_module._multi_collection_rag = None
+
+    # Close connection pool
+    close_pool()
+
+    # Explicit Chroma client cleanup
+    if created_rag is not None:
+        try:
+            if hasattr(created_rag, 'client'):
+                if hasattr(created_rag.client, 'close'):
+                    created_rag.client.close()
+                elif hasattr(created_rag.client, '_client'):
+                    if hasattr(created_rag.client._client, 'close'):
+                        created_rag.client._client.close()
+        except Exception:
+            pass
+
+    # Restore environment
     if original_home:
         os.environ['EPISODIC_HOME'] = original_home
     else:
@@ -102,7 +115,8 @@ def temp_episodic_dir():
     else:
         os.environ.pop('EPISODIC_DB_PATH', None)
 
-    shutil.rmtree(temp_dir, ignore_errors=True)
+    # Force cleanup of temp directory (handles locked files on some platforms)
+    shutil.rmtree(test_dir, ignore_errors=True)
 
 
 @pytest.fixture
@@ -114,16 +128,15 @@ def enable_rag():
     config.set('rag_enabled', original_value)
 
 
-@pytest.mark.quarantine_chroma
+@pytest.mark.serial
 class TestMemoryIntegration:
     """Integration tests for memory commands.
 
-    Note: These tests are currently skipped due to ChromaDB SQLite file locking
-    issues when running multiple tests in sequence. Each test creates a new
-    temp directory but ChromaDB holds locks on the database files.
+    Uses hermetic ChromaDB isolation with unique tmp_path and collection names
+    per test to avoid file locking issues.
     """
 
-    def test_memory_lifecycle(self, temp_episodic_dir, enable_rag, capsys):
+    def test_memory_lifecycle(self, hermetic_episodic_env, enable_rag, capsys):
         """Test complete memory lifecycle: add, list, search, show, forget."""
         # Initialize database tables
         from episodic.db_migrations import initialize_db
@@ -209,7 +222,7 @@ class TestMemoryIntegration:
         # Second doc should still be visible (either by ID or content)
         assert doc2_id[:8] in output or "machine learning" in output.lower()
     
-    def test_forget_contains(self, temp_episodic_dir, enable_rag, capsys, monkeypatch):
+    def test_forget_contains(self, hermetic_episodic_env, enable_rag, capsys, monkeypatch):
         """Test forgetting memories containing specific text."""
         # Initialize database
         from episodic.db_migrations import initialize_db
@@ -255,7 +268,7 @@ class TestMemoryIntegration:
         # Just verify the operation ran (either found some or found none)
         assert "memories" in output.lower() or "no matching" in output.lower()
     
-    def test_forget_source(self, temp_episodic_dir, enable_rag, capsys):
+    def test_forget_source(self, hermetic_episodic_env, enable_rag, capsys):
         """Test forgetting memories from specific source."""
         # Initialize database
         from episodic.db_migrations import initialize_db
@@ -300,7 +313,7 @@ class TestMemoryIntegration:
         output = capsys.readouterr().out
         assert "Conversation content" in output
     
-    def test_memory_pagination(self, temp_episodic_dir, enable_rag, capsys):
+    def test_memory_pagination(self, hermetic_episodic_env, enable_rag, capsys):
         """Test memory listing with pagination."""
         # Initialize database
         from episodic.db_migrations import initialize_db
@@ -345,7 +358,7 @@ class TestMemoryIntegration:
         output = capsys.readouterr().out
         assert "Showing 15 of 15 memories" in output
     
-    def test_empty_memory_system(self, temp_episodic_dir, enable_rag, capsys):
+    def test_empty_memory_system(self, hermetic_episodic_env, enable_rag, capsys):
         """Test commands with empty/fresh memory system."""
         # Initialize database - use fresh state
         from episodic.db_migrations import initialize_db
@@ -382,7 +395,7 @@ class TestMemoryIntegration:
         # Stats command should show some statistics output
         assert "documents" in output.lower() or "statistics" in output.lower() or "memory" in output.lower()
     
-    def test_preview_truncation(self, temp_episodic_dir, enable_rag, capsys):
+    def test_preview_truncation(self, hermetic_episodic_env, enable_rag, capsys):
         """Test that long content is properly truncated in preview."""
         # Initialize database
         from episodic.db_migrations import initialize_db

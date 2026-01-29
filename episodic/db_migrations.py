@@ -205,7 +205,10 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
         migrate_to_roles()
         migrate_to_meta_query_flag()
         migrate_to_topic_centroids()
-        
+        migrate_to_topic_local_tables()
+        migrate_to_context_assembly_debug()
+        migrate_to_reactivation_decisions()
+
     logger.info("Database initialized successfully")
 
 
@@ -400,3 +403,56 @@ def migrate_to_topic_centroids():
 
         conn.commit()
         logger.info("Created topic_centroids table for implicit topic reactivation")
+
+
+def migrate_to_topic_local_tables():
+    """Add topic_nodes and topic_working_set tables for topic-local context assembly.
+
+    topic_nodes: Fast topic membership mapping for "last N exchanges in topic X" queries.
+    topic_working_set: Persistent topic state for year-later resume without full transcript.
+    """
+    from .migrations.m015_topic_local_tables import migrate_up
+    migrate_up()
+
+
+def migrate_to_context_assembly_debug():
+    """Add context_assembly_debug table for instrumentation.
+
+    Stores debug info from each context assembly operation keyed by user_node_id.
+    """
+    from .migrations.m016_context_assembly_debug import migrate, is_applied
+    with get_connection() as conn:
+        if not is_applied(conn):
+            migrate(conn)
+            logger.info("Created context_assembly_debug table for instrumentation")
+
+
+def migrate_to_reactivation_decisions():
+    """Add reactivation_decisions and reactivation_labels tables for probe calibration.
+
+    reactivation_decisions: Stores detailed feature info for every probe decision.
+    reactivation_labels: Stores human-labeled ground truth for calibration.
+    """
+    from .migrations.m017_reactivation_decisions import migrate as migrate_decisions
+    from .migrations.m018_reactivation_labels import migrate as migrate_labels
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Check if reactivation_decisions table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='reactivation_decisions'
+        """)
+        if not cursor.fetchone():
+            migrate_decisions(conn)
+            logger.info("Created reactivation_decisions table for probe calibration")
+
+        # Check if reactivation_labels table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='reactivation_labels'
+        """)
+        if not cursor.fetchone():
+            migrate_labels(conn)
+            logger.info("Created reactivation_labels table for ground truth")

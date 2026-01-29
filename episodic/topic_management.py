@@ -521,6 +521,22 @@ class TopicHandler:
             # Set as current topic
             self.conversation_manager.set_current_topic(topic_name_to_use, new_topic_start)
 
+            # Initialize topic_nodes and topic_working_set for the new topic
+            try:
+                from episodic.db_topic_nodes import (
+                    add_nodes_to_topic_range,
+                    ensure_topic_working_set
+                )
+                # Add any nodes from topic start onwards to topic_nodes
+                add_nodes_to_topic_range(new_topic_start, new_topic_start)
+                # Ensure working set entry exists (with empty summary initially)
+                ensure_topic_working_set(new_topic_start, topic_name_to_use)
+                if config.get("debug"):
+                    debug_print(f"Initialized topic_nodes and topic_working_set for '{topic_name_to_use}'", indent=True)
+            except Exception as e:
+                if config.get("debug"):
+                    debug_print(f"Failed to initialize topic membership tables: {e}", indent=True)
+
             # Initialize centroid for new topic
             update_topic_centroid(new_topic_start, force=True)
             
@@ -600,6 +616,22 @@ class TopicHandler:
                             store_topic(topic_name, first_user_node_id, None, 'initial')
                             # Set as current topic so handle_topic_boundaries knows to close it
                             self.conversation_manager.set_current_topic(topic_name, first_user_node_id)
+
+                            # Initialize topic_nodes and topic_working_set for initial topic
+                            try:
+                                from episodic.db_topic_nodes import (
+                                    add_nodes_to_topic_range,
+                                    ensure_topic_working_set
+                                )
+                                # Add all nodes from start to current assistant
+                                add_nodes_to_topic_range(first_user_node_id, first_user_node_id, assistant_node_id)
+                                # Ensure working set entry exists
+                                ensure_topic_working_set(first_user_node_id, topic_name)
+                                if config.get("debug"):
+                                    debug_print(f"Initialized topic_nodes for initial topic", indent=True)
+                            except Exception as e:
+                                if config.get("debug"):
+                                    debug_print(f"Failed to initialize topic membership tables: {e}", indent=True)
 
                             # Initialize centroid for initial topic
                             update_topic_centroid(first_user_node_id, force=True)

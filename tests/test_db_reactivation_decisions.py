@@ -12,6 +12,9 @@ from typing import Dict, Any, Optional, List, Literal
 
 import pytest
 
+# Mark all tests in this module for the reactivation CI gate
+pytestmark = pytest.mark.reactivation
+
 
 @dataclass
 class MockReactivationDecision:

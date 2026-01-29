@@ -23,6 +23,9 @@ from episodic.evaluation.reactivation_replay import (
     _count_thrash_events,
 )
 
+# Mark all tests in this module for the reactivation CI gate
+pytestmark = pytest.mark.reactivation
+
 
 class TestReplayResult:
     """Tests for ReplayResult dataclass."""

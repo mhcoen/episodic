@@ -108,10 +108,16 @@ def voice_status():
 
 def voice_stt_menu(selection: Optional[str] = None):
     """Show and configure STT provider."""
+    from episodic.voice_pricing import get_stt_cost_per_minute
+
+    # Build provider list with dynamic pricing
+    whisper_price = get_stt_cost_per_minute("openai_whisper")
+    deepgram_price = get_stt_cost_per_minute("deepgram")
+
     providers = [
         ("local_whisper", "Local (faster-whisper)", "Free, runs locally"),
-        ("openai_whisper", "OpenAI Whisper API", "~$0.006/min, excellent accuracy"),
-        ("deepgram", "Deepgram API", "~$0.008/min, real-time streaming"),
+        ("openai_whisper", "OpenAI Whisper API", f"~${whisper_price}/min, excellent accuracy"),
+        ("deepgram", "Deepgram API", f"~${deepgram_price}/min, real-time streaming"),
     ]
 
     # Handle selection by number
@@ -147,11 +153,17 @@ def voice_stt_menu(selection: Optional[str] = None):
 
 def voice_tts_menu(selection: Optional[str] = None):
     """Show and configure TTS provider."""
+    from episodic.voice_pricing import get_tts_cost_per_1k_chars
+
+    # Build provider list with dynamic pricing
+    openai_price = get_tts_cost_per_1k_chars("openai_tts", "tts-1")
+    elevenlabs_price = get_tts_cost_per_1k_chars("elevenlabs")
+
     providers = [
         ("local_piper", "Local Piper", "Free, fast, lower quality"),
         ("local_xtts", "Local XTTS", "Free, high quality, slow first load (~18s)"),
-        ("openai_tts", "OpenAI TTS", "~$0.015/min, good quality"),
-        ("elevenlabs", "ElevenLabs", "~$0.20/1k chars, highest quality"),
+        ("openai_tts", "OpenAI TTS", f"~${openai_price}/1k chars, good quality"),
+        ("elevenlabs", "ElevenLabs", f"~${elevenlabs_price}/1k chars, highest quality"),
     ]
 
     # Handle selection by number

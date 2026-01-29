@@ -6,6 +6,7 @@ This module provides a single command for managing all model selections:
 - detection (topic detection)
 - compression (conversation compression)
 - synthesis (web search synthesis)
+- intent (memory query classification)
 """
 
 import os
@@ -23,6 +24,21 @@ from contextlib import redirect_stdout, redirect_stderr
 # Constants
 PRICING_TOKEN_COUNT = 1000
 
+
+def _get_indicator_color(type_indicator: str):
+    """Get color for a type indicator, handling reasoning suffix."""
+    # Strip R suffix for base type detection
+    base = type_indicator.strip('[]').replace('R', '').strip()
+
+    color_map = {
+        'D': typer.colors.YELLOW,
+        'I': typer.colors.GREEN,
+        'C': typer.colors.BLUE,
+        'CI': typer.colors.CYAN,
+        'B': typer.colors.MAGENTA,
+    }
+    return color_map.get(base)
+
 # Import cost_per_token from litellm if available
 try:
     from litellm import cost_per_token
@@ -31,20 +47,21 @@ except ImportError:
 
 
 def model_command(
-    context: Optional[str] = typer.Argument(None, help="Context (chat/detection/compression/synthesis/critic), 'list', or model number"),
+    context: Optional[str] = typer.Argument(None, help="Context (chat/detection/compression/synthesis/intent/critic), 'list', or model number"),
     model_name: Optional[str] = typer.Argument(None, help="Model name to set")
 ):
     """
     Manage language models for different contexts.
 
     Usage:
-        /model                              # Show all five models in use
+        /model                              # Show all models in use
         /model list                         # Show available models with pricing
         /model <number>                     # Show detailed info about model #number
         /model chat <number|full-name>      # Set chat model
         /model detection <number|full-name> # Set detection model (instruct recommended)
         /model compression <number|full-name> # Set compression model (instruct recommended)
         /model synthesis <number|full-name>  # Set synthesis model (instruct recommended)
+        /model intent <number|full-name>    # Set intent classifier model
         /model critic <number|full-name>    # Set critic model (for /critique command)
 
     Examples:
@@ -71,7 +88,7 @@ def model_command(
         pass  # Not a number, continue with normal flow
     
     # Validate context
-    valid_contexts = ["chat", "detection", "compression", "synthesis", "critic"]
+    valid_contexts = ["chat", "detection", "compression", "synthesis", "intent", "critic"]
     if context.lower() not in valid_contexts:
         # Check if user is trying to set a model directly (old syntax)
         if "/" in context or context in get_all_available_models():
@@ -80,9 +97,10 @@ def model_command(
             typer.secho("  /model detection <model_name>", fg=get_text_color())
             typer.secho("  /model compression <model_name>", fg=get_text_color())
             typer.secho("  /model synthesis <model_name>", fg=get_text_color())
+            typer.secho("  /model intent <model_name>", fg=get_text_color())
             typer.secho("  /model critic <model_name>", fg=get_text_color())
             return
-        
+
         typer.secho(f"Unknown context: {context}", fg="red")
         typer.secho(f"Valid contexts: {', '.join(valid_contexts)}", fg=get_text_color())
         return
@@ -98,12 +116,13 @@ def model_command(
 
 
 def show_current_models():
-    """Show all four models currently in use."""
+    """Show all models currently in use."""
     contexts = [
         ("Chat", "model", "chat"),
         ("Detection", "topic_detection_model", "detection"),
         ("Compression", "compression_model", "compression"),
         ("Synthesis", "synthesis_model", "synthesis"),
+        ("Intent", "intent_model", "intent"),
         ("Critic", "critic_model", "critic")
     ]
     
@@ -134,18 +153,11 @@ def show_current_models():
         # Display the model info
         typer.secho(f"  {description:<12} ", fg=get_text_color(), nl=False)
         
-        # Show type indicator with color (pad to 4 chars for alignment)
-        padding = " " * (4 - len(type_indicator))
-        if type_indicator == '[D]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.YELLOW, bold=True)
-        elif type_indicator == '[I]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.GREEN, bold=True)
-        elif type_indicator == '[C]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.BLUE, bold=True)
-        elif type_indicator == '[CI]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.CYAN, bold=True)
-        elif type_indicator == '[B]':
-            typer.secho(type_indicator, nl=False, fg=typer.colors.MAGENTA, bold=True)
+        # Show type indicator with color (pad to 5 chars for alignment with reasoning suffix)
+        padding = " " * (5 - len(type_indicator))
+        indicator_color = _get_indicator_color(type_indicator)
+        if indicator_color:
+            typer.secho(type_indicator, nl=False, fg=indicator_color, bold=True)
         else:
             typer.secho(type_indicator, nl=False, fg=get_text_color(), dim=True)
 
@@ -159,7 +171,7 @@ def show_current_models():
     
     # Add legend for model types (only show types that are actually present)
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
-    
+
     type_info = {
         '[D]': ("Detection model (local, boundary detection)", typer.colors.YELLOW),
         '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
@@ -169,19 +181,32 @@ def show_current_models():
         '[?]': ("Unknown type", None)  # No color, will use dim
     }
 
+    # Check if any reasoning models are present (R suffix)
+    has_reasoning_models = any('R' in t for t in seen_types)
+
+    # Normalize seen types by stripping R suffix for legend display
+    normalized_seen = {t.replace('R', '').replace(' ', '') for t in seen_types}
+
     # Only show types that were actually seen (D first for detection, then C as most familiar)
     for type_indicator in ['[D]', '[C]', '[I]', '[CI]', '[B]', '[?]']:
-        if type_indicator in seen_types:
+        normalized = type_indicator.strip('[]')
+        if f'[{normalized}]' in normalized_seen or type_indicator in normalized_seen or normalized in [t.strip('[]') for t in normalized_seen]:
             description, color = type_info[type_indicator]
-            # Pad indicator to align equals signs (longest is [CI] at 4 chars)
-            padded_indicator = f"{type_indicator:4}"
+            # Pad indicator to align equals signs (longest is [CIR] at 5 chars)
+            padded_indicator = f"{type_indicator:5}"
             typer.secho("  ", nl=False)
             if color:
                 typer.secho(padded_indicator, fg=color, bold=True, nl=False)
             else:
                 typer.secho(padded_indicator, fg=get_text_color(), dim=True, nl=False)
             typer.secho(f" = {description}", fg=get_text_color())
-    
+
+    # Show reasoning suffix explanation if any reasoning models present
+    if has_reasoning_models:
+        typer.secho("  ", nl=False)
+        typer.secho("R     ", fg=typer.colors.WHITE, bold=True, nl=False)
+        typer.secho("= Reasoning control (use /set reasoning on|off)", fg=get_text_color())
+
     typer.secho("\nUse '/model list' to see available models", fg=get_text_color(), dim=True)
 
 
@@ -210,18 +235,17 @@ def show_available_models():
                     
                     # Get model type and tech info
                     type_indicator, tech_info = get_model_info_string(model_name, provider_name)
-                    # Adjust display name width based on type indicator length
-                    # Base width is 26, but reduce by 1 for 4-char indicators like [CI]
-                    display_width = 26 if len(type_indicator) <= 3 else 25
+                    # Use consistent display width (type indicator padded to 4 chars)
+                    display_width = 25
                     formatted_display = format_model_display_name(display_name, display_width)
                     
                     # Calculate width for this model
                     # Base: "  XX. " = 6 chars
-                    # Plus type indicator length (3 for [C]/[I]/[B], 4 for [CI], 3 for [?])
+                    # Plus type indicator (padded to 4 chars) = 4
                     # Plus space after indicator = 1
                     # Plus actual formatted display length
                     # Plus tech info if present
-                    width = 6 + len(type_indicator) + 1 + len(formatted_display)
+                    width = 6 + 4 + 1 + len(formatted_display)
                     if tech_info:
                         width += len(tech_info) + 1
                     
@@ -270,20 +294,15 @@ def show_available_models():
             typer.secho(f". ", nl=False, fg=get_text_color())
             
             # Show type indicator with color
-            if info['type_indicator'] == '[D]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.YELLOW, bold=True)
-            elif info['type_indicator'] == '[I]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.GREEN, bold=True)
-            elif info['type_indicator'] == '[C]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.BLUE, bold=True)
-            elif info['type_indicator'] == '[CI]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.CYAN, bold=True)
-            elif info['type_indicator'] == '[B]':
-                typer.secho(info['type_indicator'], nl=False, fg=typer.colors.MAGENTA, bold=True)
+            indicator_color = _get_indicator_color(info['type_indicator'])
+            if indicator_color:
+                typer.secho(info['type_indicator'], nl=False, fg=indicator_color, bold=True)
             else:
                 typer.secho(info['type_indicator'], nl=False, fg=get_text_color(), dim=True)
-            
-            typer.secho(f" {info['formatted_display']}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
+
+            # Pad type indicator to 5 chars (longest is [CIR]) for alignment
+            type_padding = " " * (5 - len(info['type_indicator']))
+            typer.secho(f"{type_padding} {info['formatted_display']}", nl=False, fg=typer.colors.BRIGHT_CYAN, bold=True)
             
             # Show technical info if available
             if info['tech_info']:
@@ -291,10 +310,10 @@ def show_available_models():
             
             # Calculate padding for alignment
             # Base: "  XX. " = 6 chars
-            # Plus actual type indicator length
+            # Plus type indicator (padded to 4 chars) = 4
             # Plus space after indicator = 1
             # Plus actual formatted display length
-            current_length = 6 + len(info['type_indicator']) + 1 + len(info['formatted_display'])
+            current_length = 6 + 4 + 1 + len(info['formatted_display'])
             if info['tech_info']:
                 current_length += len(info['tech_info']) + 1
             
@@ -326,7 +345,7 @@ def show_available_models():
     
     # Add legend for model types (only show types that are actually present)
     typer.secho("\nModel Types:", fg=get_heading_color(), bold=True)
-    
+
     type_info = {
         '[D]': ("Detection model (local, boundary detection)", typer.colors.YELLOW),
         '[C]': ("Chat model (best for conversations)", typer.colors.BLUE),
@@ -336,19 +355,32 @@ def show_available_models():
         '[?]': ("Unknown type", None)  # No color, will use dim
     }
 
+    # Check if any reasoning models are present (R suffix)
+    has_reasoning_models = any('R' in t for t in seen_types)
+
+    # Normalize seen types by stripping R suffix for legend display
+    normalized_seen = {t.replace('R', '').replace(' ', '') for t in seen_types}
+
     # Only show types that were actually seen (D first for detection, then C as most familiar)
     for type_indicator in ['[D]', '[C]', '[I]', '[CI]', '[B]', '[?]']:
-        if type_indicator in seen_types:
+        normalized = type_indicator.strip('[]')
+        if f'[{normalized}]' in normalized_seen or type_indicator in normalized_seen or normalized in [t.strip('[]') for t in normalized_seen]:
             description, color = type_info[type_indicator]
-            # Pad indicator to align equals signs (longest is [CI] at 4 chars)
-            padded_indicator = f"{type_indicator:4}"
+            # Pad indicator to align equals signs (longest is [CIR] at 5 chars)
+            padded_indicator = f"{type_indicator:5}"
             typer.secho("  ", nl=False)
             if color:
                 typer.secho(padded_indicator, fg=color, bold=True, nl=False)
             else:
                 typer.secho(padded_indicator, fg=get_text_color(), dim=True, nl=False)
             typer.secho(f" = {description}", fg=get_text_color())
-    
+
+    # Show reasoning suffix explanation if any reasoning models present
+    if has_reasoning_models:
+        typer.secho("  ", nl=False)
+        typer.secho("R     ", fg=typer.colors.WHITE, bold=True, nl=False)
+        typer.secho("= Reasoning control (use /set reasoning on|off)", fg=get_text_color())
+
     typer.secho("\nTo change a model:", fg=get_text_color())
     typer.secho("  /model chat <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model detection <number|full-model-name>", fg=get_system_color())
@@ -460,21 +492,10 @@ def show_model_info(model_number: int):
     typer.secho(creator or "Unknown", fg=get_heading_color())
 
     typer.secho("Type:           ", fg=get_text_color(), nl=False)
-    if type_indicator == '[D]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.YELLOW, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.YELLOW, bold=True)
-    elif type_indicator == '[I]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.GREEN, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.GREEN, bold=True)
-    elif type_indicator == '[C]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.BLUE, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.BLUE, bold=True)
-    elif type_indicator == '[CI]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.CYAN, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.CYAN, bold=True)
-    elif type_indicator == '[B]':
-        typer.secho(f"{type_desc} ", nl=False, fg=typer.colors.MAGENTA, bold=True)
-        typer.secho(type_indicator, fg=typer.colors.MAGENTA, bold=True)
+    indicator_color = _get_indicator_color(type_indicator)
+    if indicator_color:
+        typer.secho(f"{type_desc} ", nl=False, fg=indicator_color, bold=True)
+        typer.secho(type_indicator, fg=indicator_color, bold=True)
     else:
         typer.secho(f"{type_desc} {type_indicator}", fg=get_text_color())
 
@@ -652,6 +673,7 @@ def set_model_for_context(context: str, model_name: str):
         "detection": "topic_detection_model",
         "compression": "compression_model",
         "synthesis": "synthesis_model",
+        "intent": "intent_model",
         "critic": "critic_model"
     }
 
@@ -660,6 +682,7 @@ def set_model_for_context(context: str, model_name: str):
         "detection": "topic detection",
         "compression": "compression",
         "synthesis": "web synthesis",
+        "intent": "intent classification",
         "critic": "critic"
     }
     
@@ -747,6 +770,7 @@ def get_default_for_context(context: str) -> str:
         "detection": "custom/topic-boundary-distilbert",
         "compression": "ollama/phi4",
         "synthesis": "ollama/phi4",
+        "intent": "gpt-4o-mini",
         "critic": "anthropic/claude-opus-4-5-20251101"
     }
     return defaults.get(context, "gpt-4o-mini")

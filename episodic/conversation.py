@@ -53,11 +53,15 @@ class ConversationManager:
         self.last_loaded_end_id = None    # Track end of last loaded conversation
         self.session_costs = {
             "total_input_tokens": 0,
-            "total_output_tokens": 0,  
+            "total_output_tokens": 0,
             "total_tokens": 0,
             "total_cost_usd": 0.0
         }
-        
+
+        # Reactivation state (for implicit topic reactivation)
+        self.reactivation_cooldown_turns = 0
+        self.last_reactivation_topic_start_node_id = None
+
         # Initialize handlers
         self.topic_handler = TopicHandler(self)
         self.context_builder = ContextBuilder()
@@ -100,7 +104,200 @@ class ConversationManager:
     def get_current_topic(self) -> Optional[Tuple[str, str]]:
         """Get the current topic (name, start_node_id) or None."""
         return self.current_topic
-    
+
+    def add_nodes_to_current_topic(self, user_node_id: str, assistant_node_id: str) -> None:
+        """
+        Add user and assistant nodes to the current topic's membership set.
+        
+        Called after each exchange to maintain topic_nodes table for 
+        topic-local context assembly.
+        """
+        if not self.current_topic:
+            return
+        
+        topic_start_node_id = self.current_topic[1]
+        
+        try:
+            from episodic.db_topic_nodes import add_node_to_topic
+            
+            # Add user node
+            add_node_to_topic(topic_start_node_id, user_node_id, 'user')
+            
+            # Add assistant node
+            add_node_to_topic(topic_start_node_id, assistant_node_id, 'assistant')
+            
+            if config.get("debug"):
+                debug_print(f"Added nodes to topic '{self.current_topic[0]}'", indent=True)
+        except Exception as e:
+            if config.get("debug"):
+                debug_print(f"Failed to add nodes to topic: {e}", indent=True)
+
+    def probe_topic_reactivation(
+        self,
+        user_input: str,
+        recent_nodes: list,
+        is_meta_query: bool = False,
+        is_recall_intent: bool = False
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """
+        Probe for implicit topic reactivation.
+
+        Args:
+            user_input: The user's message text
+            recent_nodes: Recent conversation nodes
+            is_meta_query: Whether this is a meta/command query
+            is_recall_intent: Whether this is a memory recall query
+
+        Returns:
+            Tuple of (should_reactivate, topic_name, topic_start_node_id)
+        """
+        from datetime import datetime
+        import numpy as np
+
+        # Skip probe for meta queries, recall intents, or very short inputs
+        if is_meta_query or is_recall_intent or len(user_input.split()) < 4:
+            return False, None, None
+
+        # Decrement cooldown
+        if self.reactivation_cooldown_turns > 0:
+            self.reactivation_cooldown_turns -= 1
+
+        # Get active topic
+        active_topic = self.get_current_topic()
+        active_start_node_id = active_topic[1] if active_topic else None
+
+        try:
+            from episodic.recall.reactivation import probe_reactivation
+            from episodic.rag_collections import get_multi_collection_rag, CollectionType
+
+            # Get embedding for user input
+            rag = get_multi_collection_rag()
+            collection = rag.get_collection(CollectionType.CONVERSATION)
+            embeddings = collection._embedding_function([user_input])
+            user_embedding = np.array(embeddings[0])
+
+            # Probe for reactivation
+            decision = probe_reactivation(
+                user_input=user_input,
+                user_embedding=user_embedding,
+                active_topic_start_node_id=active_start_node_id,
+                cooldown_turns=self.reactivation_cooldown_turns,
+                now=datetime.now(),
+                recent_nodes=recent_nodes
+            )
+
+            # Store the decision on self for later persistence
+            # (will be persisted once we have the user_node_id)
+            self._last_reactivation_decision = decision
+
+            # Gate reactivation to self
+            if (decision.action == "REACTIVATE" and
+                decision.topic_start_node_id == active_start_node_id):
+                return False, None, None
+
+            # Handle DISAMBIGUATE by prompting user
+            if decision.action == "DISAMBIGUATE" and decision.options:
+                from episodic.ui.disambiguation import (
+                    format_disambiguation_options,
+                    handle_disambiguation_input,
+                )
+
+                # Display options to user
+                prompt = format_disambiguation_options(decision.options)
+                print(prompt, end="", flush=True)
+
+                try:
+                    user_choice = input()
+                    result = handle_disambiguation_input(user_choice, decision.options, attempt=1)
+
+                    if result.action == "reprompt":
+                        print("Invalid choice. Enter a number or 0 to skip: ", end="", flush=True)
+                        user_choice = input()
+                        result = handle_disambiguation_input(user_choice, decision.options, attempt=2)
+
+                    if result.action == "reactivate":
+                        # Update decision for persistence
+                        decision.action = "REACTIVATE"
+                        decision.topic_name = result.topic_name
+                        decision.topic_start_node_id = result.topic_start_node_id
+                        decision.debug["disambiguation_choice"] = result.topic_name
+                        return True, result.topic_name, result.topic_start_node_id
+                    else:
+                        # User chose to continue, do not create new topic
+                        decision.debug["disambiguation_choice"] = "continue"
+                        return False, None, None
+
+                except (EOFError, KeyboardInterrupt):
+                    # Non-interactive mode or interrupted - fall back to best option
+                    best_option = decision.options[0]
+                    decision.action = "REACTIVATE"
+                    decision.topic_name = best_option.topic_name
+                    decision.topic_start_node_id = best_option.topic_start_node_id
+                    decision.debug["disambiguation_choice"] = "auto_best"
+                    return True, best_option.topic_name, best_option.topic_start_node_id
+
+            if decision.action == "REACTIVATE":
+                return True, decision.topic_name, decision.topic_start_node_id
+
+            return False, None, None
+
+        except Exception as e:
+            debug_print(f"Reactivation probe error: {e}", category="memory")
+            return False, None, None
+
+    def apply_topic_reactivation(
+        self,
+        topic_name: str,
+        topic_start_node_id: str,
+        user_input: str
+    ) -> Optional[str]:
+        """
+        Apply topic reactivation: switch topic and assemble context packet.
+
+        Args:
+            topic_name: Name of topic to reactivate
+            topic_start_node_id: Start node ID of topic
+            user_input: User's input (for anchor selection)
+
+        Returns:
+            Context packet string to inject, or None on error
+        """
+        import numpy as np
+
+        try:
+            from episodic.recall.reactivation import assemble_reactivation_packet
+            from episodic.rag_collections import get_multi_collection_rag, CollectionType
+
+            # Switch to reactivated topic
+            self.set_current_topic(topic_name, topic_start_node_id)
+
+            # Get embedding for anchor selection
+            rag = get_multi_collection_rag()
+            collection = rag.get_collection(CollectionType.CONVERSATION)
+            embeddings = collection._embedding_function([user_input])
+            user_embedding = np.array(embeddings[0])
+
+            # Assemble context packet
+            packet, debug_info = assemble_reactivation_packet(
+                topic_start_node_id=topic_start_node_id,
+                user_embedding=user_embedding,
+                token_budget=150
+            )
+
+            # Set cooldown
+            self.reactivation_cooldown_turns = 3
+            self.last_reactivation_topic_start_node_id = topic_start_node_id
+
+            if config.get("debug"):
+                debug_print(f"Reactivated topic: {topic_name}")
+                debug_print(f"Packet length: {len(packet)} chars")
+
+            return packet if packet else None
+
+        except Exception as e:
+            debug_print(f"Reactivation apply error: {e}", category="memory")
+            return None
+
     def finalize_current_topic(self) -> None:
         """
         Finalize the current topic by:
@@ -419,12 +616,59 @@ class ConversationManager:
             if config.get("show_drift") or config.get("use_drift_trigger", True):
                 semantic_drift = self.compute_semantic_drift(user_node_id)
 
+            # Probe for implicit topic reactivation
+            reactivation_packet = None
+            reactivation_applied = False
+            if config.get("enable_topic_reactivation", False):
+                should_reactivate, react_topic_name, react_start_node_id = \
+                    self.probe_topic_reactivation(
+                        user_input=user_input,
+                        recent_nodes=recent_nodes,
+                        is_meta_query=False,
+                        is_recall_intent=False
+                    )
+
+                if should_reactivate and react_topic_name and react_start_node_id:
+                    # Check if tracker would want a new topic (dry run)
+                    raw_topic_changed, _, _, _ = self.topic_handler.detect_and_handle_topic_change(
+                        recent_nodes, user_input, user_node_id,
+                        semantic_drift=semantic_drift,
+                        dry_run=True
+                    )
+
+                    # Reactivation wins unless tracker wants new topic with weak evidence
+                    # (For now, always let reactivation win if probe returned positive)
+                    reactivation_packet = self.apply_topic_reactivation(
+                        react_topic_name, react_start_node_id, user_input
+                    )
+                    if reactivation_packet:
+                        reactivation_applied = True
+                        if config.get("debug"):
+                            secho_color(f"\n📌 Reactivated topic: {react_topic_name}", fg=get_system_color())
+
+            # Persist reactivation decision for calibration (if feature logging enabled)
+            if config.get("reactivation_log_features", True) and hasattr(self, '_last_reactivation_decision'):
+                try:
+                    from episodic.db_reactivation_decisions import persist_reactivation_decision
+                    persist_reactivation_decision(user_node_id, self._last_reactivation_decision)
+                except Exception as e:
+                    debug_print(f"Failed to persist reactivation decision: {e}", category="memory")
+
             # Detect topic change BEFORE querying the main LLM
-            topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
-                self.topic_handler.detect_and_handle_topic_change(
-                    recent_nodes, user_input, user_node_id,
-                    semantic_drift=semantic_drift
-                )
+            if reactivation_applied:
+                # Force continue - we've already switched topics via reactivation
+                topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
+                    self.topic_handler.detect_and_handle_topic_change(
+                        recent_nodes, user_input, user_node_id,
+                        semantic_drift=semantic_drift,
+                        decision_override="FORCE_CONTINUE"
+                    )
+            else:
+                topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
+                    self.topic_handler.detect_and_handle_topic_change(
+                        recent_nodes, user_input, user_node_id,
+                        semantic_drift=semantic_drift
+                    )
             
             # Store topic detection scores for debugging
             self.topic_handler.store_topic_detection_scores(
@@ -436,6 +680,35 @@ class ConversationManager:
             
             # Check if skip_llm_response is enabled
             if config.get("skip_llm_response", False):
+                # Build reactivation decision for strategy-based context assembly
+                reactivation_decision = None
+                if reactivation_applied:
+                    from episodic.recall.reactivation import ReactivationDecision
+                    reactivation_decision = ReactivationDecision(
+                        action="REACTIVATE",
+                        topic_name=self.current_topic[0] if self.current_topic else None,
+                        topic_start_node_id=self.current_topic[1] if self.current_topic else None,
+                        debug={"source": "probe_topic_reactivation"}
+                    )
+
+                # Get active topic ID (POST-reactivation)
+                active_topic_start_node_id = self.current_topic[1] if self.current_topic else None
+
+                # Build context using strategy (even though we skip LLM, ensures "B disappears")
+                _, _, _, _, context_debug = \
+                    self.context_builder.build_context_full(
+                        user_node_id=user_node_id,
+                        user_input=user_input,
+                        active_topic_start_node_id=active_topic_start_node_id,
+                        model=model,
+                        reactivation_decision=reactivation_decision,
+                        skip_rag=True  # Skip RAG for performance when LLM is skipped
+                    )
+
+                # Persist context assembly debug info
+                from episodic.db_context_debug import persist_context_assembly_debug
+                persist_context_assembly_debug(user_node_id, context_debug, reactivation_decision)
+
                 # Create a placeholder response
                 display_response = "[LLM response skipped]"
                 # Extract provider from model if present
@@ -444,75 +717,54 @@ class ConversationManager:
                 else:
                     provider = None
                     model_name = model
-                    
+
                 assistant_node_id, assistant_short_id = insert_node(
-                    display_response, 
-                    user_node_id, 
+                    display_response,
+                    user_node_id,
                     role="assistant",
                     provider=provider,
                     model=model
                 )
-                
+
                 # Display drift if enabled
                 if config.get("show_drift"):
                     self.display_semantic_drift(user_node_id, cached_drift=semantic_drift)
-                
+
                 # Display the skipped response message
                 typer.echo("")
                 secho_color(f"🤖 {display_response}", fg=get_system_color())
-                
+
                 # Update current node
                 self.set_current_node_id(assistant_node_id)
-                
+
                 # Handle topic boundaries
                 self.topic_handler.handle_topic_boundaries(
                     topic_changed, user_node_id, assistant_node_id, topic_change_info, new_topic_name
                 )
-                
+
                 # Check for first topic creation
                 if not topic_changed and not self.current_topic and config.get("automatic_topic_detection"):
                     self.topic_handler.check_and_create_first_topic(user_node_id, assistant_node_id)
-                
-                # Auto-index in memory system - also for skipped responses
-                if config.get("enable_memory_poc", False):
-                    try:
-                        from episodic.rag_memory import memory_system
-                        import asyncio
-                        # Run sync version for now (we'll make it async later)
-                        loop = asyncio.new_event_loop()
-                        loop.run_until_complete(memory_system.on_message(user_input, display_response))
-                        loop.close()
-                    except Exception as e:
-                        debug_print(f"Error indexing: {e}", category="memory")
-                        if config.get("debug"):
-                            import traceback
-                            traceback.print_exc()
-                elif config.get("enable_memory_rag", False):
-                    # Index in SQLite+ChromaDB system
-                    try:
-                        from episodic.rag_memory_sqlite import memory_rag
-                        import asyncio
-                        # Create nodes for indexing
-                        user_node = {
-                            'id': user_node_id,
-                            'content': user_input,
-                            'role': 'user'
-                        }
-                        assistant_node = {
-                            'id': assistant_node_id,
-                            'content': display_response,
-                            'role': 'assistant'
-                        }
-                        loop = asyncio.new_event_loop()
-                        loop.run_until_complete(memory_rag.index_exchange(user_node, assistant_node))
-                        loop.close()
-                        
-                        if config.get("debug"):
-                            debug_print("[Memory] Indexed conversation in ChromaDB")
-                    except Exception as e:
-                        if config.get("debug"):
-                            debug_print(f"[Memory] Indexing error: {e}")
-                
+
+                # Add nodes to topic_nodes table for topic-local context assembly
+                self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
+
+                # Auto-index in memory system - fire-and-forget (non-blocking)
+                if config.get("enable_memory_rag", False):
+                    user_node = {
+                        'id': user_node_id,
+                        'content': user_input,
+                        'role': 'user'
+                    }
+                    assistant_node = {
+                        'id': assistant_node_id,
+                        'content': display_response,
+                        'role': 'assistant'
+                    }
+                    # Include topic_start_node_id for anchor retrieval filtering
+                    topic_id = self.current_topic[1] if self.current_topic else None
+                    _fire_and_forget_index(user_node, assistant_node, topic_id)
+
                 return assistant_node_id, display_response
             
             # Check for memory context enhancement
@@ -550,11 +802,34 @@ class ConversationManager:
                 except Exception as e:
                     debug_print(f"Context enhancement error: {e}", category="memory")
             
-            # Build conversation context
-            messages, raw_messages, rag_context, web_context = \
-                self.context_builder.build_conversation_context(
-                    user_node_id, user_input, context_depth, model
+            # Build reactivation decision for strategy-based context assembly
+            reactivation_decision = None
+            if reactivation_applied:
+                from episodic.recall.reactivation import ReactivationDecision
+                reactivation_decision = ReactivationDecision(
+                    action="REACTIVATE",
+                    topic_name=self.current_topic[0] if self.current_topic else None,
+                    topic_start_node_id=self.current_topic[1] if self.current_topic else None,
+                    debug={"source": "probe_topic_reactivation"}
                 )
+
+            # Get active topic ID (POST-reactivation)
+            active_topic_start_node_id = self.current_topic[1] if self.current_topic else None
+
+            # Build conversation context using strategy-based assembly
+            messages, raw_messages, rag_context, web_context, context_debug = \
+                self.context_builder.build_context_full(
+                    user_node_id=user_node_id,
+                    user_input=user_input,
+                    active_topic_start_node_id=active_topic_start_node_id,
+                    model=model,
+                    reactivation_decision=reactivation_decision,
+                    skip_rag=False
+                )
+
+            # Persist context assembly debug info
+            from episodic.db_context_debug import persist_context_assembly_debug
+            persist_context_assembly_debug(user_node_id, context_debug, reactivation_decision)
             
             # Insert memory context if found
             if memory_context and messages:
@@ -566,7 +841,17 @@ class ConversationManager:
                         "content": memory_context
                     }
                     messages.insert(-1, memory_msg)
-            
+
+            # Insert reactivation packet if topic was reactivated
+            if reactivation_packet and messages:
+                if len(messages) >= 2 and messages[-1]["role"] == "user":
+                    # Insert as a system message before the current user message
+                    reactivation_msg = {
+                        "role": "system",
+                        "content": reactivation_packet
+                    }
+                    messages.insert(-1, reactivation_msg)
+
             # Display topic evolution if requested
             if config.get("show_topics") and raw_messages:
                 _display_topic_evolution(user_node_id)
@@ -729,9 +1014,20 @@ class ConversationManager:
             else:
                 # Regular LLM query
                 with benchmark_resource("LLM Call", f"main query - {model}"):
+                    # Debug: Show messages being sent to LLM
+                    debug_print(f"Messages to LLM ({len(messages)} total):", category="memory")
+                    for i, msg in enumerate(messages):
+                        role = msg.get('role', 'unknown')
+                        content = msg.get('content', '')
+                        if isinstance(content, str):
+                            preview = content[:200].replace('\n', ' ')
+                        else:
+                            preview = str(content)[:200]
+                        debug_print(f"  [{i}] {role}: {preview}...", category="memory")
+
                     # Query the LLM with streaming
                     stream_enabled = config.get("stream_responses", True)
-                    
+
                     if stream_enabled:
                         # Get the stream generator
                         with benchmark_resource("LLM", f"query stream - {model}"):
@@ -793,45 +1089,22 @@ class ConversationManager:
             # Update current node
             self.set_current_node_id(assistant_node_id)
             
-            # Auto-index in memory system
-            if config.get("enable_memory_poc", False):
-                try:
-                    from episodic.rag_memory import memory_system
-                    import asyncio
-                    # Run sync version for now (we'll make it async later)
-                    loop = asyncio.new_event_loop()
-                    loop.run_until_complete(memory_system.on_message(user_input, display_response))
-                    loop.close()
-                    # Show progress for POC only in debug mode
-                    debug_print(f"Indexed: user='{user_input[:30]}...', assistant='{display_response[:30]}...'", category="memory")
-                except Exception as e:
-                    debug_print(f"Error indexing: {e}", category="memory")
-                    import traceback
-                    traceback.print_exc()
-            elif config.get("enable_memory_rag", False):
-                # Index in SQLite+ChromaDB system
-                try:
-                    from episodic.rag_memory_sqlite import memory_rag
-                    import asyncio
-                    # Create nodes for indexing
-                    user_node = {
-                        'id': user_node_id,
-                        'content': user_input,
-                        'role': 'user'
-                    }
-                    assistant_node = {
-                        'id': assistant_node_id,
-                        'content': display_response,
-                        'role': 'assistant'
-                    }
-                    loop = asyncio.new_event_loop()
-                    loop.run_until_complete(memory_rag.index_exchange(user_node, assistant_node))
-                    loop.close()
-                    
-                    debug_print("Indexed conversation in ChromaDB", category="memory")
-                except Exception as e:
-                    debug_print(f"Indexing error: {e}", category="memory")
-            
+            # Auto-index in memory system - fire-and-forget (non-blocking)
+            if config.get("enable_memory_rag", False):
+                user_node = {
+                    'id': user_node_id,
+                    'content': user_input,
+                    'role': 'user'
+                }
+                assistant_node = {
+                    'id': assistant_node_id,
+                    'content': display_response,
+                    'role': 'assistant'
+                }
+                # Include topic_start_node_id for anchor retrieval filtering
+                topic_id = self.current_topic[1] if self.current_topic else None
+                _fire_and_forget_index(user_node, assistant_node, topic_id)
+
             # Track RAG usage if applicable
             if rag_context:
                 self.context_builder.track_rag_usage(assistant_node_id)
@@ -848,7 +1121,15 @@ class ConversationManager:
                 elif self.current_topic:
                     # Update ongoing topic name if needed
                     self.topic_handler.update_ongoing_topic_name(assistant_node_id)
-            
+
+                # Update centroid for current topic (at checkpoint intervals)
+                if self.current_topic and config.get("enable_topic_reactivation", False):
+                    self.topic_handler.update_current_topic_centroid()
+
+            # Add nodes to topic_nodes table for topic-local context assembly
+            # Must be after topic boundaries are handled (so current_topic is set)
+            self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
+
             # Store conversation in system memory (always on, independent of user RAG)
             self.store_conversation_to_memory(user_input, display_response, user_node_id, assistant_node_id)
             
@@ -895,6 +1176,53 @@ class ConversationManager:
             if config.get("debug"):
                 import traceback
                 traceback.print_exc()
+
+
+# Background indexing helper for non-blocking memory storage
+def _fire_and_forget_index(
+    user_node: Dict,
+    assistant_node: Dict,
+    topic_start_node_id: Optional[str] = None
+):
+    """Schedule conversation indexing without blocking the main thread.
+
+    Skips indexing for recall/referential queries to prevent memory pollution.
+    Only indexes actual informational exchanges, not meta-queries like
+    "what did we discuss about X?" which would pollute memory with
+    hallucinated recall responses.
+
+    Args:
+        user_node: The user message node dict
+        assistant_node: The assistant response node dict
+        topic_start_node_id: Topic identifier for anchor retrieval filtering
+    """
+    import threading
+
+    def _index_in_background():
+        try:
+            from episodic.rag_memory_sqlite import memory_rag
+            from episodic.rag_memory_smart import detect_recall_intent
+
+            user_content = user_node.get('content', '')
+
+            # Check if this is a recall query - don't index meta-queries
+            should_retrieve, confidence, reason = detect_recall_intent(user_content)
+            if should_retrieve and confidence > 0.5:
+                debug_print(
+                    f"Skipping indexing for recall query (conf={confidence:.2f}): {user_content[:50]}...",
+                    category="memory"
+                )
+                return
+
+            # Only index non-recall exchanges (with topic_start_node_id for anchor filtering)
+            memory_rag.index_exchange(user_node, assistant_node, topic_start_node_id)
+            debug_print("Indexed conversation in ChromaDB", category="memory")
+        except Exception as e:
+            debug_print(f"Background indexing failed: {e}", category="memory")
+
+    # Fire-and-forget in background thread
+    thread = threading.Thread(target=_index_in_background, daemon=True)
+    thread.start()
 
 
 # Create a module-level instance for backward compatibility

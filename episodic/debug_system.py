@@ -13,8 +13,8 @@ class DebugSystem:
     # Define debug categories and their descriptions
     CATEGORIES = {
         'all': 'All debug output',
-        'memory': 'Memory system (RAG, context injection)',
-        'topic': 'Topic detection and boundaries',
+        'memory': 'Memory system (recall, reactivation, context recovery, RAG)',
+        'topic': 'Topic detection (boundaries, drift, commitment)',
         'drift': 'Semantic drift calculations',
         'llm': 'LLM queries and responses',
         'rag': 'RAG search and indexing',

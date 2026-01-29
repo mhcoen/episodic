@@ -14,12 +14,18 @@ def ensure_not_in_project_root(func):
     def wrapper(*args, **kwargs):
         # Get the project root (where .git directory is)
         current_path = Path(__file__).parent.parent
-        
+
         # Check if we're trying to create a database in the project root
         if args and isinstance(args[0], str):
-            db_path = Path(args[0]).resolve()
+            db_path_str = args[0]
+
+            # Skip validation for in-memory databases
+            if db_path_str == ":memory:" or db_path_str.startswith("file::memory:"):
+                return func(*args, **kwargs)
+
+            db_path = Path(db_path_str).resolve()
             project_root = current_path.resolve()
-            
+
             # If the database would be created in the project directory, raise an error
             if db_path.parent == project_root or db_path.parent == project_root / "episodic":
                 raise ValueError(
@@ -27,7 +33,7 @@ def ensure_not_in_project_root(func):
                     f"Database should be created in ~/.episodic/ instead.\n"
                     f"Set EPISODIC_DB_PATH environment variable or use get_db_path()."
                 )
-        
+
         return func(*args, **kwargs)
     return wrapper
 
@@ -76,19 +82,23 @@ except ImportError:
 def validate_db_path(db_path: str) -> str:
     """
     Validate that a database path is not in the project directory.
-    
+
     Args:
         db_path: The database path to validate
-        
+
     Returns:
         The validated path
-        
+
     Raises:
         ValueError: If the path would create a database in the project directory
     """
+    # Skip validation for in-memory databases
+    if db_path == ":memory:" or db_path.startswith("file::memory:"):
+        return db_path
+
     project_root = Path(__file__).parent.parent.resolve()
     resolved_path = Path(db_path).resolve()
-    
+
     # Check if the path is in the project directory
     if resolved_path.parent == project_root or resolved_path.parent == project_root / "episodic":
         raise ValueError(
@@ -96,5 +106,5 @@ def validate_db_path(db_path: str) -> str:
             f"Database cannot be created in the project directory.\n"
             f"Use ~/.episodic/ or set EPISODIC_DB_PATH environment variable."
         )
-    
+
     return db_path

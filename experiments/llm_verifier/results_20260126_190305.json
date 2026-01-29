@@ -1,0 +1,3889 @@
+{
+  "model_id": "gpt-4o-mini",
+  "prompt_hash": "05026f77e2b6fa73",
+  "timestamp": "2026-01-26T19:03:05.220134",
+  "aggregate": {
+    "num_queries": 24,
+    "mean_precision_at_5": 0.3541666666666667,
+    "mean_precision_at_10": 0.3541666666666667,
+    "mean_recall_at_5": 0.16665552584670232,
+    "mean_recall_at_10": 0.16665552584670232,
+    "coverage_at_5": 0.375,
+    "coverage_at_10": 0.375,
+    "hard_negative_false_accept_rate": 0.02702702702702703,
+    "format_failure_rate": 0.0,
+    "total_llm_calls": 39,
+    "total_cache_hits": 0
+  },
+  "per_query": [
+    {
+      "query": "python",
+      "description": "Python programming language - must NOT match generic computer talk",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.6,
+      "recall_at_10": 0.6,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 4,
+      "accepted_ids": [
+        1,
+        2,
+        3
+      ],
+      "relevant_ids": [
+        1,
+        2,
+        3,
+        4,
+        100
+      ]
+    },
+    {
+      "query": "java",
+      "description": "Java programming language - must NOT match coffee discussion",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [],
+      "relevant_ids": [
+        9,
+        10,
+        11
+      ]
+    },
+    {
+      "query": "apple",
+      "description": "Apple the tech company - must NOT match apple fruit discussion",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 1,
+      "hard_negative_count": 3,
+      "accepted_ids": [
+        19
+      ],
+      "relevant_ids": [
+        15,
+        16,
+        17
+      ]
+    },
+    {
+      "query": "rust",
+      "description": "Rust programming language - must NOT match corrosion discussion",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [],
+      "relevant_ids": [
+        21,
+        22,
+        23
+      ]
+    },
+    {
+      "query": "model",
+      "description": "ML/AI models - must NOT match fashion model discussion",
+      "precision_at_5": 0.5,
+      "precision_at_10": 0.5,
+      "recall_at_5": 0.25,
+      "recall_at_10": 0.25,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [
+        27,
+        42
+      ],
+      "relevant_ids": [
+        27,
+        28,
+        29,
+        30
+      ]
+    },
+    {
+      "query": "sqlite",
+      "description": "SQLite specifically - generic SQL discussion is a near-miss",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [],
+      "relevant_ids": [
+        34,
+        35,
+        36,
+        37
+      ]
+    },
+    {
+      "query": "wake word",
+      "description": "Wake word detection specifically - generic speech recognition is near-miss",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [
+        41,
+        42,
+        43
+      ],
+      "relevant_ids": [
+        41,
+        42,
+        43
+      ]
+    },
+    {
+      "query": "pytorch",
+      "description": "PyTorch specifically - generic deep learning is near-miss",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.6666666666666666,
+      "recall_at_10": 0.6666666666666666,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [
+        59,
+        61
+      ],
+      "relevant_ids": [
+        59,
+        60,
+        61
+      ]
+    },
+    {
+      "query": "linux",
+      "description": "Linux specifically - generic Unix discussion is near-miss",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [],
+      "relevant_ids": [
+        68,
+        69,
+        70
+      ]
+    },
+    {
+      "query": "chromadb",
+      "description": "ChromaDB specifically - generic vector DB discussion is near-miss",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 3,
+      "accepted_ids": [],
+      "relevant_ids": [
+        83,
+        84,
+        85
+      ]
+    },
+    {
+      "query": "philosophy",
+      "description": "Philosophy - should match epistemology, ethics, agnosticism discussions",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [],
+      "relevant_ids": [
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        74,
+        107,
+        108,
+        109,
+        110
+      ]
+    },
+    {
+      "query": "epistemology",
+      "description": "Epistemology - knowledge/belief discussions",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.09090909090909091,
+      "recall_at_10": 0.09090909090909091,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [
+        50
+      ],
+      "relevant_ids": [
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        74,
+        107,
+        108,
+        109,
+        110
+      ]
+    },
+    {
+      "query": "memory system",
+      "description": "Episodic memory system architecture",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.3333333333333333,
+      "recall_at_10": 0.3333333333333333,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [
+        55
+      ],
+      "relevant_ids": [
+        53,
+        54,
+        55
+      ]
+    },
+    {
+      "query": "topic segmentation",
+      "description": "Topic/dialogue segmentation algorithms",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.6666666666666666,
+      "recall_at_10": 0.6666666666666666,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [
+        57,
+        58
+      ],
+      "relevant_ids": [
+        56,
+        57,
+        58
+      ]
+    },
+    {
+      "query": "mcp relay",
+      "description": "MCP relay for inter-process communication",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [],
+      "relevant_ids": [
+        65,
+        66,
+        67
+      ]
+    },
+    {
+      "query": "embeddings",
+      "description": "Word/sentence embeddings",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [],
+      "relevant_ids": [
+        80,
+        81,
+        82
+      ]
+    },
+    {
+      "query": "shell",
+      "description": "Command shell (bash/zsh) - must NOT match seashells",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 2,
+      "accepted_ids": [],
+      "relevant_ids": [
+        68,
+        69,
+        70,
+        71,
+        72,
+        73
+      ]
+    },
+    {
+      "query": "kernel",
+      "description": "OS kernel - must NOT match corn kernels",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 2,
+      "accepted_ids": [],
+      "relevant_ids": [
+        68,
+        69,
+        70
+      ]
+    },
+    {
+      "query": "branch",
+      "description": "Git branches - must NOT match tree branches",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 2,
+      "accepted_ids": [],
+      "relevant_ids": [
+        90
+      ]
+    },
+    {
+      "query": "tensorflow",
+      "description": "TensorFlow ML framework",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.3333333333333333,
+      "recall_at_10": 0.3333333333333333,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [
+        116
+      ],
+      "relevant_ids": [
+        114,
+        115,
+        116
+      ]
+    },
+    {
+      "query": "database",
+      "description": "Database systems in general",
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "recall_at_5": 0.058823529411764705,
+      "recall_at_10": 0.058823529411764705,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [
+        86
+      ],
+      "relevant_ids": [
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        99,
+        117,
+        118,
+        119
+      ]
+    },
+    {
+      "query": "religion",
+      "description": "Religion and theology",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [],
+      "relevant_ids": [
+        74,
+        75,
+        76
+      ]
+    },
+    {
+      "query": "politics",
+      "description": "Politics and governance",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [],
+      "relevant_ids": [
+        77,
+        78,
+        79
+      ]
+    },
+    {
+      "query": "docker",
+      "description": "Docker containerization",
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "hard_negative_accepted": 0,
+      "hard_negative_count": 0,
+      "accepted_ids": [],
+      "relevant_ids": [
+        96
+      ]
+    }
+  ],
+  "detailed_results": [
+    {
+      "query": "python",
+      "results": [
+        {
+          "statement_id": 1,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses Python's Global Interpreter Lock (GIL) and its impact on multithreading, which is directly related to Python."
+        },
+        {
+          "statement_id": 2,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains the use of list comprehensions in Python, which is a specific feature of the Python programming language."
+        },
+        {
+          "statement_id": 3,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses debugging an ImportError in Python, which is directly related to the Python programming language."
+        },
+        {
+          "statement_id": 4,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 6, need 10)"
+          ],
+          "rationale": "The memory describes using Python's asyncio, which is a specific feature of the Python programming language."
+        },
+        {
+          "statement_id": 100,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The memory discusses profiling Python code using cProfile, which is directly related to the Python programming language."
+        },
+        {
+          "statement_id": 5,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses fundamental computer operations, which are not related to Python specifically."
+        },
+        {
+          "statement_id": 6,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains the difference between RAM and storage, which does not relate to Python."
+        },
+        {
+          "statement_id": 7,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses computer networking basics, which is unrelated to Python."
+        },
+        {
+          "statement_id": 8,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory describes how operating systems manage resources, which does not pertain to Python."
+        },
+        {
+          "statement_id": 90,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains git branching strategies, which are unrelated to Python."
+        }
+      ]
+    },
+    {
+      "query": "java",
+      "results": [
+        {
+          "statement_id": 9,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses Java's garbage collection mechanisms, which is directly about the Java programming language."
+        },
+        {
+          "statement_id": 10,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory explains Java interfaces, which is a specific topic within the Java programming language."
+        },
+        {
+          "statement_id": 11,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses debugging a Java NullPointerException, which is directly related to the Java programming language."
+        },
+        {
+          "statement_id": 12,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses coffee brewing methods, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 13,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains the difference between Arabica and Robusta beans, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 14,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses espresso extraction, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 1,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses Python's GIL, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 2,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains Python list comprehensions, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 3,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses a Python ImportError, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 4,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory shows how to use Python's asyncio, which is unrelated to the Java programming language."
+        },
+        {
+          "statement_id": 60,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses PyTorch DataLoader, which is unrelated to Java."
+        },
+        {
+          "statement_id": 35,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses SQLite's locking mechanism, which is unrelated to Java."
+        },
+        {
+          "statement_id": 64,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses activation functions in neural networks, which is unrelated to Java."
+        },
+        {
+          "statement_id": 82,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses embedding similarity thresholds, which is unrelated to Java."
+        },
+        {
+          "statement_id": 42,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses training a custom wake word model, which is unrelated to Java."
+        },
+        {
+          "statement_id": 110,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses virtue ethics and character development, which is unrelated to Java."
+        },
+        {
+          "statement_id": 118,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses database indexing strategies, which is unrelated to Java."
+        },
+        {
+          "statement_id": 104,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses corn kernel anatomy, which is unrelated to Java."
+        },
+        {
+          "statement_id": 125,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses WebSocket connections, which is unrelated to Java."
+        },
+        {
+          "statement_id": 27,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses training neural network models, which is unrelated to Java."
+        }
+      ]
+    },
+    {
+      "query": "apple",
+      "results": [
+        {
+          "statement_id": 15,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 5, need 10)"
+          ],
+          "rationale": "The memory discusses Apple's M-series chips, which are directly related to the company Apple."
+        },
+        {
+          "statement_id": 16,
+          "relation": "UNRELATED",
+          "confidence": 0.7,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "This memory is about iOS development, which is a subtopic of Apple's ecosystem."
+        },
+        {
+          "statement_id": 17,
+          "relation": "UNRELATED",
+          "confidence": 0.7,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "This memory discusses macOS, which is a product of Apple, making it a broader topic that includes Apple."
+        },
+        {
+          "statement_id": 18,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quote 1: 'Honeycrisp apples are sweet and crunchy....' not found in text",
+            "Only 1 quotes validated, need at least 2"
+          ],
+          "rationale": "The memory is directly about apple varieties, which is the same topic as the query."
+        },
+        {
+          "statement_id": 19,
+          "relation": "SAME",
+          "confidence": 0.9,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory is directly about making apple pie, which is related to the query topic of apple."
+        },
+        {
+          "statement_id": 20,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses growing apple trees, which is directly related to the query topic of apple."
+        },
+        {
+          "statement_id": 75,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory discusses theological arguments and has no connection to the topic of apple."
+        },
+        {
+          "statement_id": 22,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory discusses Rust programming and has no connection to the topic of apple."
+        },
+        {
+          "statement_id": 125,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory discusses WebSocket connections and has no connection to the topic of apple."
+        },
+        {
+          "statement_id": 55,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory discusses a memory retrieval issue and has no connection to the topic of apple."
+        }
+      ]
+    },
+    {
+      "query": "rust",
+      "results": [
+        {
+          "statement_id": 21,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The memory discusses specific features of the Rust programming language, including its ownership system and borrow checker."
+        },
+        {
+          "statement_id": 22,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The memory focuses on Rust's specific types for error handling, directly relating to the Rust programming language."
+        },
+        {
+          "statement_id": 23,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The memory describes a debugging experience specifically related to Rust, highlighting its lifetime management."
+        },
+        {
+          "statement_id": 24,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses preventing rust on metal surfaces, which is unrelated to the Rust programming language."
+        },
+        {
+          "statement_id": 25,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains the electrochemical process of rusting, which is not related to the Rust programming language."
+        },
+        {
+          "statement_id": 26,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses rust removal techniques, which are unrelated to the Rust programming language."
+        },
+        {
+          "statement_id": 1,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory is about Python's GIL and multithreading, which is unrelated to the Rust programming language."
+        },
+        {
+          "statement_id": 2,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains Python list comprehensions, which are unrelated to the Rust programming language."
+        },
+        {
+          "statement_id": 3,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses a Python ImportError, which is unrelated to the Rust programming language."
+        },
+        {
+          "statement_id": 4,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory is about Python's asyncio, which is unrelated to the Rust programming language."
+        },
+        {
+          "statement_id": 27,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses neural network models and gradient descent, which are unrelated to the topic of 'rust'."
+        },
+        {
+          "statement_id": 54,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about retrieval mechanisms and vector embeddings, which do not relate to 'rust'."
+        },
+        {
+          "statement_id": 52,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The discussion on epistemic humility and intellectual honesty does not connect to the topic of 'rust'."
+        },
+        {
+          "statement_id": 33,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses model portfolios and comp cards, which are unrelated to 'rust'."
+        },
+        {
+          "statement_id": 92,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains unit tests, which do not pertain to the topic of 'rust'."
+        },
+        {
+          "statement_id": 41,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The discussion on wake word detection algorithms is unrelated to 'rust'."
+        },
+        {
+          "statement_id": 96,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate describes Docker containerization, which does not relate to 'rust'."
+        },
+        {
+          "statement_id": 94,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The explanation of dependency injection is unrelated to the topic of 'rust'."
+        },
+        {
+          "statement_id": 89,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The discussion on markdown formatting for documentation does not connect to 'rust'."
+        },
+        {
+          "statement_id": 10,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The explanation of Java interfaces and abstract classes is unrelated to 'rust'."
+        }
+      ]
+    },
+    {
+      "query": "model",
+      "results": [
+        {
+          "statement_id": 27,
+          "relation": "SAME",
+          "confidence": 0.9,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'neural network models' and the process of training them, which is directly related to the query topic 'model'."
+        },
+        {
+          "statement_id": 28,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses 'transformer models', which is a specific type of model, making it directly relevant to the query topic."
+        },
+        {
+          "statement_id": 29,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate talks about 'model evaluation metrics', which is directly related to the concept of models in the context of performance assessment."
+        },
+        {
+          "statement_id": 30,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'a pretrained language model', which is a specific type of model, thus directly relevant to the query topic."
+        },
+        {
+          "statement_id": 31,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'fashion modeling careers', which is unrelated to the concept of models in a computational or technical context."
+        },
+        {
+          "statement_id": 32,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'fashion photoshoots', which is unrelated to the concept of models in a computational or technical context."
+        },
+        {
+          "statement_id": 33,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'model portfolios and comp cards', which pertains to fashion modeling and is unrelated to the query topic of models in a technical sense."
+        },
+        {
+          "statement_id": 59,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'PyTorch's dynamic computation graph', which does not mention models directly and is unrelated to the query topic."
+        },
+        {
+          "statement_id": 42,
+          "relation": "SAME",
+          "confidence": 0.9,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'a custom wake word model', which is a specific type of model, making it directly relevant to the query topic."
+        },
+        {
+          "statement_id": 9,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'Java's garbage collection mechanisms', which is unrelated to the concept of models."
+        }
+      ]
+    },
+    {
+      "query": "sqlite",
+      "results": [
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses SQLite's architecture, which is directly related to the query topic."
+        },
+        {
+          "statement_id": 35,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory explains a specific aspect of SQLite, namely its locking mechanism, which is directly relevant to the query topic."
+        },
+        {
+          "statement_id": 36,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory addresses a specific error related to SQLite, making it directly relevant to the query topic."
+        },
+        {
+          "statement_id": 37,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses a feature of SQLite, specifically its FTS5 functionality, which is directly related to the query topic."
+        },
+        {
+          "statement_id": 38,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses SQL query optimization in general, without any specific reference to SQLite."
+        },
+        {
+          "statement_id": 39,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains SQL JOIN types, which is a general SQL topic and does not specifically mention SQLite."
+        },
+        {
+          "statement_id": 40,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory talks about SQL injection vulnerabilities, which is a general topic and does not relate specifically to SQLite."
+        },
+        {
+          "statement_id": 18,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses apple varieties, which is completely unrelated to SQLite."
+        },
+        {
+          "statement_id": 73,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory talks about POSIX standards, which does not relate to SQLite."
+        },
+        {
+          "statement_id": 71,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses Unix philosophy and design principles, which are unrelated to SQLite."
+        },
+        {
+          "statement_id": 12,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses coffee brewing methods, which has no connection to SQLite."
+        },
+        {
+          "statement_id": 104,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains corn kernel anatomy, which is unrelated to SQLite."
+        },
+        {
+          "statement_id": 7,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses computer networking basics, which does not relate to SQLite."
+        },
+        {
+          "statement_id": 118,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses database indexing strategies, which is directly relevant to SQLite as it is a database management system."
+        },
+        {
+          "statement_id": 15,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Apple's M-series chips, which is unrelated to SQLite."
+        },
+        {
+          "statement_id": 20,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about growing apple trees, which has no connection to SQLite."
+        },
+        {
+          "statement_id": 88,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses vector database scaling, which does not specifically relate to SQLite."
+        },
+        {
+          "statement_id": 21,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Rust's ownership system, which is unrelated to SQLite."
+        },
+        {
+          "statement_id": 109,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses trolley problems and moral intuitions, which has no connection to SQLite."
+        },
+        {
+          "statement_id": 95,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about continuous integration pipelines, which is unrelated to SQLite."
+        }
+      ]
+    },
+    {
+      "query": "wake word",
+      "results": [
+        {
+          "statement_id": 41,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explicitly discusses 'wake word detection algorithms', which is directly related to the query topic 'wake word'."
+        },
+        {
+          "statement_id": 42,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about training a 'custom wake word model', which is directly relevant to the query topic 'wake word'."
+        },
+        {
+          "statement_id": 43,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'false wake word activations', which is directly related to the query topic 'wake word'."
+        },
+        {
+          "statement_id": 44,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'speech recognition accuracy' but does not mention 'wake word' or any related concepts."
+        },
+        {
+          "statement_id": 45,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains 'Whisper transcription' but does not mention 'wake word' or any related concepts."
+        },
+        {
+          "statement_id": 46,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'real-time transcription latency' but does not mention 'wake word' or any related concepts."
+        },
+        {
+          "statement_id": 105,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'tree pruning and branch management' but does not mention 'wake word' or any related concepts."
+        },
+        {
+          "statement_id": 89,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'markdown formatting for documentation' but does not mention 'wake word' or any related concepts."
+        },
+        {
+          "statement_id": 50,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about 'agnosticism as an epistemic position' but does not mention 'wake word' or any related concepts."
+        },
+        {
+          "statement_id": 15,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'Apple's M-series chips' but does not mention 'wake word' or any related concepts."
+        }
+      ]
+    },
+    {
+      "query": "pytorch",
+      "results": [
+        {
+          "statement_id": 59,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses PyTorch's dynamic computation graph, which is directly related to the query topic."
+        },
+        {
+          "statement_id": 60,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory specifically discusses the PyTorch DataLoader, which is a key component of the PyTorch framework."
+        },
+        {
+          "statement_id": 61,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory addresses a specific issue encountered while using PyTorch, making it directly relevant to the topic."
+        },
+        {
+          "statement_id": 62,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses deep learning fundamentals without mentioning PyTorch specifically."
+        },
+        {
+          "statement_id": 63,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains convolutional neural networks but does not reference PyTorch."
+        },
+        {
+          "statement_id": 64,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses activation functions in neural networks without mentioning PyTorch."
+        },
+        {
+          "statement_id": 124,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory is about async/await patterns and does not relate to PyTorch."
+        },
+        {
+          "statement_id": 1,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses Python's GIL and multithreading, which is unrelated to PyTorch."
+        },
+        {
+          "statement_id": 83,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses ChromaDB for vector storage, which does not relate to PyTorch."
+        },
+        {
+          "statement_id": 42,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains how to train a custom wake word model without any mention of PyTorch."
+        }
+      ]
+    },
+    {
+      "query": "linux",
+      "results": [
+        {
+          "statement_id": 68,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory is directly about Linux process management, explicitly mentioning Linux."
+        },
+        {
+          "statement_id": 69,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory is directly about Linux file permissions, explicitly mentioning Linux."
+        },
+        {
+          "statement_id": 70,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory is directly about Linux shell scripting, explicitly mentioning Linux."
+        },
+        {
+          "statement_id": 71,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses Unix philosophy, which is broader than Linux but relevant as Linux is a Unix-like system."
+        },
+        {
+          "statement_id": 72,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses Unix pipes, which are relevant to Linux as it is a Unix-like operating system."
+        },
+        {
+          "statement_id": 73,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses POSIX standards, which are relevant to Linux as it adheres to these standards."
+        },
+        {
+          "statement_id": 8,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses macOS system preferences, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses SQLite's architecture, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 74,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses comparative religion, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 17,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Missing from verifier response"
+          ],
+          "rationale": "Not returned by verifier"
+        },
+        {
+          "statement_id": 118,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses database indexing strategies, which has no connection to Linux."
+        },
+        {
+          "statement_id": 84,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about ChromaDB collection management, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 55,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses a memory retrieval issue, which does not relate to Linux."
+        },
+        {
+          "statement_id": 28,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains transformer models, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 76,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about religious experience and mysticism, which has no connection to Linux."
+        },
+        {
+          "statement_id": 103,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses profiling Python code, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 95,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about continuous integration pipelines, which does not relate to Linux."
+        },
+        {
+          "statement_id": 26,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses rust removal techniques, which is unrelated to Linux."
+        },
+        {
+          "statement_id": 98,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains microservices architecture, which has no connection to Linux."
+        },
+        {
+          "statement_id": 100,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Missing from verifier response"
+          ],
+          "rationale": "Not returned by verifier"
+        }
+      ]
+    },
+    {
+      "query": "chromadb",
+      "results": [
+        {
+          "statement_id": 83,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 9, need 10)"
+          ],
+          "rationale": "The memory discusses ChromaDB specifically as a vector storage solution and describes its purpose as an embedding database optimized for similarity search."
+        },
+        {
+          "statement_id": 84,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory is directly about ChromaDB, focusing on its collection management features and how collections are structured."
+        },
+        {
+          "statement_id": 85,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "This memory specifically addresses a problem encountered with a ChromaDB query, making it directly relevant to the topic."
+        },
+        {
+          "statement_id": 86,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses vector database architectures in general and does not mention ChromaDB specifically."
+        },
+        {
+          "statement_id": 87,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory focuses on ANN indexing strategies without any reference to ChromaDB."
+        },
+        {
+          "statement_id": 88,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses vector database scaling but does not mention ChromaDB specifically."
+        },
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory is about SQLite's architecture and has no connection to ChromaDB."
+        },
+        {
+          "statement_id": 35,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses SQLite's locking mechanism and does not relate to ChromaDB."
+        },
+        {
+          "statement_id": 36,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This memory addresses a SQLite database error and is unrelated to ChromaDB."
+        },
+        {
+          "statement_id": 37,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory is about SQLite's FTS5 for full-text search and does not mention ChromaDB."
+        },
+        {
+          "statement_id": 29,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses model evaluation metrics, which is unrelated to 'chromadb'."
+        },
+        {
+          "statement_id": 1,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Python's GIL and multithreading, which does not relate to 'chromadb'."
+        },
+        {
+          "statement_id": 10,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains Java interfaces and abstract classes, which are unrelated to 'chromadb'."
+        },
+        {
+          "statement_id": 97,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Kubernetes orchestration, which does not connect to 'chromadb'."
+        },
+        {
+          "statement_id": 81,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains sentence embedding models, which is unrelated to 'chromadb'."
+        },
+        {
+          "statement_id": 8,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Java's garbage collection mechanisms, which does not relate to 'chromadb'."
+        },
+        {
+          "statement_id": 30,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses fine-tuning a pretrained language model, which is unrelated to 'chromadb'."
+        },
+        {
+          "statement_id": 9,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about JWT tokens for stateless authentication, which does not connect to 'chromadb'."
+        },
+        {
+          "statement_id": 5,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses how computers work at a fundamental level, which is unrelated to 'chromadb'."
+        },
+        {
+          "statement_id": 122,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Missing from verifier response"
+          ],
+          "rationale": "Not returned by verifier"
+        }
+      ]
+    },
+    {
+      "query": "philosophy",
+      "results": [
+        {
+          "statement_id": 47,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The memory discusses epistemology, which is a branch of philosophy, making it directly related to the query topic."
+        },
+        {
+          "statement_id": 48,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The memory discusses ethical frameworks, which are a significant area of study within philosophy, thus it is directly related."
+        },
+        {
+          "statement_id": 49,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The mind-body problem is a central topic in philosophy, particularly in metaphysics, making this memory directly relevant."
+        },
+        {
+          "statement_id": 107,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The discussion of radical skepticism is a philosophical inquiry into knowledge, making it directly related to the query topic."
+        },
+        {
+          "statement_id": 108,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The concepts of foundationalism and coherentism are key topics in epistemology, a branch of philosophy, thus directly related."
+        },
+        {
+          "statement_id": 109,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The trolley problem is a well-known ethical dilemma discussed in philosophy, making this memory directly relevant."
+        },
+        {
+          "statement_id": 110,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "Virtue ethics is a significant area of philosophical study, particularly in moral philosophy, making this memory directly related."
+        },
+        {
+          "statement_id": 50,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 7, need 10)"
+          ],
+          "rationale": "Agnosticism is a philosophical stance regarding knowledge and belief about the existence of God, making it directly relevant."
+        },
+        {
+          "statement_id": 51,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The distinction between knowledge and belief is a fundamental topic in epistemology, a branch of philosophy, thus directly related."
+        },
+        {
+          "statement_id": 52,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The concepts of epistemic humility and intellectual honesty are philosophical discussions about knowledge and belief, making this memory directly relevant."
+        },
+        {
+          "statement_id": 74,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The discussion of distinct metaphysics in various religions relates to philosophical concepts, making it a subtopic of philosophy."
+        },
+        {
+          "statement_id": 13,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses coffee bean types, which has no connection to philosophy."
+        },
+        {
+          "statement_id": 92,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about writing unit tests, which is unrelated to philosophy."
+        },
+        {
+          "statement_id": 62,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses deep learning fundamentals, which does not relate to philosophy."
+        },
+        {
+          "statement_id": 46,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about real-time transcription latency, which is unrelated to philosophy."
+        },
+        {
+          "statement_id": 61,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses debugging a PyTorch error, which has no connection to philosophy."
+        },
+        {
+          "statement_id": 59,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about PyTorch's dynamic computation graph, which is unrelated to philosophy."
+        },
+        {
+          "statement_id": 66,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses configuring server endpoints, which does not relate to philosophy."
+        },
+        {
+          "statement_id": 122,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about JWT tokens for authentication, which is unrelated to philosophy."
+        },
+        {
+          "statement_id": 101,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses marine biology, which has no connection to philosophy."
+        }
+      ]
+    },
+    {
+      "query": "epistemology",
+      "results": [
+        {
+          "statement_id": 47,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate directly discusses epistemology and its concepts, making it clearly relevant."
+        },
+        {
+          "statement_id": 50,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses agnosticism, which is a topic within epistemology, thus it is directly relevant."
+        },
+        {
+          "statement_id": 51,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate addresses the fundamental concepts of knowledge and belief, which are central to epistemology."
+        },
+        {
+          "statement_id": 52,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate discusses epistemic humility, a concept directly related to epistemology."
+        },
+        {
+          "statement_id": 74,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses comparative religion and faith traditions, which do not directly relate to epistemology."
+        },
+        {
+          "statement_id": 107,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate discusses radical skepticism, a significant topic within epistemology."
+        },
+        {
+          "statement_id": 108,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate discusses justification theory, which is a key aspect of epistemology."
+        },
+        {
+          "statement_id": 48,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses ethical frameworks, which are not related to epistemology."
+        },
+        {
+          "statement_id": 49,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses the mind-body problem, which is not directly related to epistemology."
+        },
+        {
+          "statement_id": 109,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses trolley problems and moral intuitions, which are not related to epistemology."
+        }
+      ]
+    },
+    {
+      "query": "memory system",
+      "results": [
+        {
+          "statement_id": 53,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate directly discusses the memory system and how it functions."
+        },
+        {
+          "statement_id": 54,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "This candidate discusses a mechanism related to memory retrieval, which is a subtopic of the memory system."
+        },
+        {
+          "statement_id": 55,
+          "relation": "SUBSUMED_BY",
+          "confidence": 0.9,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate addresses an issue related to memory retrieval, which is a component of the memory system."
+        },
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses SQLite's architecture, which is not related to the memory system."
+        },
+        {
+          "statement_id": 122,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate talks about JWT tokens and authentication, which does not connect to the memory system."
+        },
+        {
+          "statement_id": 104,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses corn kernel anatomy, which is unrelated to the memory system."
+        },
+        {
+          "statement_id": 128,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses caching strategies, which are not directly related to the memory system."
+        },
+        {
+          "statement_id": 62,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate talks about deep learning fundamentals, which does not relate to the memory system."
+        },
+        {
+          "statement_id": 37,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses SQLite's FTS5 for full-text search, which is unrelated to the memory system."
+        },
+        {
+          "statement_id": 58,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate talks about evaluating segmentation quality, which does not connect to the memory system."
+        }
+      ]
+    },
+    {
+      "query": "topic segmentation",
+      "results": [
+        {
+          "statement_id": 56,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses 'neural topic segmentation algorithms' and mentions 'TextTiling' which is a method for detecting topic boundaries, directly relating to the query topic."
+        },
+        {
+          "statement_id": 57,
+          "relation": "SAME",
+          "confidence": 0.85,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "This candidate discusses 'coherence-based topic detection' which is a method related to identifying topic boundaries, directly connecting to the concept of topic segmentation."
+        },
+        {
+          "statement_id": 58,
+          "relation": "SAME",
+          "confidence": 0.8,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about 'evaluating segmentation quality' and mentions 'standard metrics for boundary detection', which are relevant to the assessment of topic segmentation."
+        },
+        {
+          "statement_id": 112,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'static versus dynamic typing', which has no connection to topic segmentation."
+        },
+        {
+          "statement_id": 24,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about 'preventing rust on metal surfaces', which is unrelated to topic segmentation."
+        },
+        {
+          "statement_id": 9,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'Java's garbage collection mechanisms', which does not relate to topic segmentation."
+        },
+        {
+          "statement_id": 80,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'word embeddings and semantic similarity', which is unrelated to topic segmentation."
+        },
+        {
+          "statement_id": 128,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'caching strategies for performance', which does not relate to topic segmentation."
+        },
+        {
+          "statement_id": 90,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains 'git branching strategies', which is unrelated to topic segmentation."
+        },
+        {
+          "statement_id": 114,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'TensorFlow's static computation graphs', which does not relate to topic segmentation."
+        }
+      ]
+    },
+    {
+      "query": "mcp relay",
+      "results": [
+        {
+          "statement_id": 65,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses 'MCP relay' and its function in inter-process communication."
+        },
+        {
+          "statement_id": 66,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate directly addresses 'MCP' and describes the role of the relay in routing requests."
+        },
+        {
+          "statement_id": 67,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses an 'MCP relay' connection issue, which is directly related to the query topic."
+        },
+        {
+          "statement_id": 53,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses a memory system and conversation history, which has no connection to 'MCP relay'."
+        },
+        {
+          "statement_id": 39,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains SQL JOIN types, which is unrelated to 'MCP relay'."
+        },
+        {
+          "statement_id": 59,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses PyTorch's dynamic computation graph, which does not relate to 'MCP relay'."
+        },
+        {
+          "statement_id": 41,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about wake word detection algorithms, which is unrelated to 'MCP relay'."
+        },
+        {
+          "statement_id": 122,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses JWT tokens for stateless authentication, which has no connection to 'MCP relay'."
+        },
+        {
+          "statement_id": 100,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate shows how to profile Python code, which is unrelated to 'MCP relay'."
+        },
+        {
+          "statement_id": 123,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses regex for pattern matching, which does not relate to 'MCP relay'."
+        },
+        {
+          "statement_id": 10,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Java interfaces and abstract classes, which are unrelated to 'mcp relay'."
+        },
+        {
+          "statement_id": 2,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains Python list comprehensions, which do not relate to 'mcp relay'."
+        },
+        {
+          "statement_id": 129,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses rate limiting for API protection, which is unrelated to 'mcp relay'."
+        },
+        {
+          "statement_id": 83,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about ChromaDB for vector storage, which does not connect to 'mcp relay'."
+        },
+        {
+          "statement_id": 76,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses religious experience and mysticism, which is unrelated to 'mcp relay'."
+        },
+        {
+          "statement_id": 13,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains the difference between Arabica and Robusta beans, which does not relate to 'mcp relay'."
+        },
+        {
+          "statement_id": 124,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses async/await patterns for concurrency, which is unrelated to 'mcp relay'."
+        },
+        {
+          "statement_id": 72,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains Unix pipes and redirection, which do not connect to 'mcp relay'."
+        },
+        {
+          "statement_id": 28,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains how transformer models work, which is unrelated to 'mcp relay'."
+        },
+        {
+          "statement_id": 68,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Linux process management, which does not relate to 'mcp relay'."
+        }
+      ]
+    },
+    {
+      "query": "embeddings",
+      "results": [
+        {
+          "statement_id": 80,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses 'word embeddings' and provides details about how Word2Vec learns these embeddings, making it directly relevant to the query topic."
+        },
+        {
+          "statement_id": 81,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses 'sentence embedding models' and specifically mentions SBERT, which is a type of embedding, making it directly relevant to the query topic."
+        },
+        {
+          "statement_id": 82,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses 'embedding similarity thresholds', which is directly related to the concept of embeddings and their evaluation."
+        },
+        {
+          "statement_id": 56,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'neural topic segmentation algorithms' which does not relate to embeddings."
+        },
+        {
+          "statement_id": 57,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'coherence-based topic detection', which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 58,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'evaluating segmentation quality', which does not connect to embeddings."
+        },
+        {
+          "statement_id": 123,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'regex for pattern matching', which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 88,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'vector database scaling', which does not specifically relate to embeddings."
+        },
+        {
+          "statement_id": 14,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'espresso extraction', which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 124,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'async/await patterns for concurrency', which does not relate to embeddings."
+        },
+        {
+          "statement_id": 116,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses a TensorFlow shape mismatch error, which does not mention embeddings."
+        },
+        {
+          "statement_id": 18,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses apple varieties, which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses SQLite's file-based architecture, with no mention of embeddings."
+        },
+        {
+          "statement_id": 15,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Apple's M-series chips and ARM architecture, which does not relate to embeddings."
+        },
+        {
+          "statement_id": 117,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses ACID properties in databases, which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 128,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses caching strategies, which do not mention embeddings."
+        },
+        {
+          "statement_id": 99,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses database normalization, which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 71,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Unix philosophy and design principles, with no mention of embeddings."
+        },
+        {
+          "statement_id": 20,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses growing apple trees, which is unrelated to embeddings."
+        },
+        {
+          "statement_id": 35,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses SQLite's locking mechanism, which does not relate to embeddings."
+        }
+      ]
+    },
+    {
+      "query": "shell",
+      "results": [
+        {
+          "statement_id": 68,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Linux process management and systemd, with no mention of 'shell'."
+        },
+        {
+          "statement_id": 69,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate focuses on Linux file permissions, which does not relate to 'shell'."
+        },
+        {
+          "statement_id": 70,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses 'Linux shell scripting', which is directly about the query topic 'shell'."
+        },
+        {
+          "statement_id": 71,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Unix philosophy and design principles, with no mention of 'shell'."
+        },
+        {
+          "statement_id": 72,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains Unix pipes and redirection, which does not directly relate to 'shell'."
+        },
+        {
+          "statement_id": 73,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses POSIX standards for Unix compatibility, with no mention of 'shell'."
+        },
+        {
+          "statement_id": 101,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses seashells and marine biology, which is unrelated to the query topic 'shell'."
+        },
+        {
+          "statement_id": 102,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains how shells protect marine organisms, which is unrelated to the query topic 'shell'."
+        },
+        {
+          "statement_id": 88,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses vector database scaling, which does not relate to 'shell'."
+        },
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses SQLite's file-based architecture, with no mention of 'shell'."
+        },
+        {
+          "statement_id": 21,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Rust's ownership system and borrowing rules, which has no connection to 'shell'."
+        },
+        {
+          "statement_id": 103,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about popcorn kernels and how they pop, which is unrelated to 'shell'."
+        },
+        {
+          "statement_id": 57,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains coherence-based topic detection, which does not relate to 'shell'."
+        },
+        {
+          "statement_id": 77,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses political ideologies, which is unrelated to 'shell'."
+        },
+        {
+          "statement_id": 97,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Kubernetes orchestration, which does not mention 'shell'."
+        },
+        {
+          "statement_id": 55,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about debugging a memory retrieval issue, which is unrelated to 'shell'."
+        },
+        {
+          "statement_id": 78,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains how democratic institutions work, which has no connection to 'shell'."
+        },
+        {
+          "statement_id": 2,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains Python list comprehensions, which is unrelated to 'shell'."
+        },
+        {
+          "statement_id": 15,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Apple's M-series chips, which does not relate to 'shell'."
+        },
+        {
+          "statement_id": 10,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains Java interfaces, which is unrelated to 'shell'."
+        }
+      ]
+    },
+    {
+      "query": "kernel",
+      "results": [
+        {
+          "statement_id": 68,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Linux process management but does not mention the kernel specifically."
+        },
+        {
+          "statement_id": 69,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about Linux file permissions without any reference to the kernel."
+        },
+        {
+          "statement_id": 70,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses Linux shell scripting but does not mention the kernel."
+        },
+        {
+          "statement_id": 8,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses the kernel and its functions in operating systems."
+        },
+        {
+          "statement_id": 17,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses macOS system preferences and security settings without mentioning the kernel."
+        },
+        {
+          "statement_id": 103,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about popcorn kernels, which is unrelated to the query topic."
+        },
+        {
+          "statement_id": 104,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses corn kernel anatomy, which is unrelated to the query topic."
+        },
+        {
+          "statement_id": 89,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses markdown formatting, which does not relate to the kernel."
+        },
+        {
+          "statement_id": 14,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses espresso extraction, which is unrelated to the query topic."
+        },
+        {
+          "statement_id": 46,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses real-time transcription latency, which does not relate to the kernel."
+        },
+        {
+          "statement_id": 105,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses tree pruning and branch management, which has no connection to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 75,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses theological arguments, which are unrelated to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 119,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses database replication, which does not relate to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 117,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses ACID properties in databases, which are unrelated to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 53,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses memory systems for conversation history, which does not connect to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 83,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses ChromaDB for vector storage, which is unrelated to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 99,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses database normalization, which does not relate to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 20,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses growing apple trees, which is unrelated to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 31,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses fashion modeling careers, which has no connection to the topic of 'kernel'."
+        },
+        {
+          "statement_id": 116,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses debugging a TensorFlow error, which is unrelated to the topic of 'kernel'."
+        }
+      ]
+    },
+    {
+      "query": "branch",
+      "results": [
+        {
+          "statement_id": 90,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'git branching strategies' and 'feature branches', which are directly related to the concept of 'branch' in the context of version control."
+        },
+        {
+          "statement_id": 105,
+          "relation": "UNRELATED",
+          "confidence": 0.85,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'branch management' and 'removing dead branches', which are directly related to the concept of 'branch' in the context of trees."
+        },
+        {
+          "statement_id": 106,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'tree branches' and their growth, which is directly related to the concept of 'branch' in the context of botany."
+        },
+        {
+          "statement_id": 14,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses espresso extraction, which has no connection to the concept of 'branch'."
+        },
+        {
+          "statement_id": 49,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses the mind-body problem, which does not relate to the concept of 'branch'."
+        },
+        {
+          "statement_id": 115,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses TensorFlow Serving, which is unrelated to the concept of 'branch'."
+        },
+        {
+          "statement_id": 5,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses how computers work, which does not relate to the concept of 'branch'."
+        },
+        {
+          "statement_id": 113,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses memory management strategies, which are unrelated to the concept of 'branch'."
+        },
+        {
+          "statement_id": 61,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses a PyTorch CUDA error, which does not relate to the concept of 'branch'."
+        },
+        {
+          "statement_id": 29,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses model evaluation metrics, which are unrelated to the concept of 'branch'."
+        },
+        {
+          "statement_id": 26,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses rust removal techniques and does not mention 'branch' in any context."
+        },
+        {
+          "statement_id": 108,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses foundationalism versus coherentism in justification theory, with no mention of 'branch'."
+        },
+        {
+          "statement_id": 121,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains OAuth 2.0 authentication flows, which does not relate to 'branch'."
+        },
+        {
+          "statement_id": 59,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses PyTorch's dynamic computation graph, with no reference to 'branch'."
+        },
+        {
+          "statement_id": 45,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains how Whisper transcription works, which does not involve 'branch'."
+        },
+        {
+          "statement_id": 40,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about SQL injection vulnerabilities, with no mention of 'branch'."
+        },
+        {
+          "statement_id": 109,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses trolley problems and moral intuitions, which do not relate to 'branch'."
+        },
+        {
+          "statement_id": 103,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about popcorn kernels and how they pop, with no connection to 'branch'."
+        },
+        {
+          "statement_id": 128,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses caching strategies for performance, which does not mention 'branch'."
+        },
+        {
+          "statement_id": 30,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate shows how to fine-tune a pretrained language model, with no reference to 'branch'."
+        }
+      ]
+    },
+    {
+      "query": "tensorflow",
+      "results": [
+        {
+          "statement_id": 114,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses TensorFlow specifically, detailing its static computation graphs."
+        },
+        {
+          "statement_id": 115,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory is directly about TensorFlow, specifically its serving capabilities for model deployment."
+        },
+        {
+          "statement_id": 116,
+          "relation": "SAME",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses a specific error encountered in TensorFlow, making it directly relevant."
+        },
+        {
+          "statement_id": 59,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses PyTorch, which is unrelated to TensorFlow."
+        },
+        {
+          "statement_id": 60,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses PyTorch DataLoader, which is unrelated to TensorFlow."
+        },
+        {
+          "statement_id": 61,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses a PyTorch error, which is unrelated to TensorFlow."
+        },
+        {
+          "statement_id": 62,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses deep learning fundamentals without mentioning TensorFlow."
+        },
+        {
+          "statement_id": 52,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses epistemic humility, which is unrelated to TensorFlow."
+        },
+        {
+          "statement_id": 87,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses ANN indexing strategies, which do not mention TensorFlow."
+        },
+        {
+          "statement_id": 108,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses foundationalism versus coherentism, which is unrelated to TensorFlow."
+        }
+      ]
+    },
+    {
+      "query": "database",
+      "results": [
+        {
+          "statement_id": 34,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses SQLite, which is a type of database, and explicitly mentions 'the entire database'."
+        },
+        {
+          "statement_id": 35,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses a specific aspect of SQLite, which is a database, focusing on its locking mechanism."
+        },
+        {
+          "statement_id": 36,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory explicitly mentions a 'SQLite database locked error', directly relating to the topic of databases."
+        },
+        {
+          "statement_id": 37,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses a feature of SQLite, which is a database, specifically related to full-text search capabilities."
+        },
+        {
+          "statement_id": 38,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses SQL query optimization, which is a broader topic that includes databases as a subtopic."
+        },
+        {
+          "statement_id": 39,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses SQL JOIN types, which are relevant to databases but is a broader topic."
+        },
+        {
+          "statement_id": 40,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses SQL injection vulnerabilities, which relate to databases but is a broader topic."
+        },
+        {
+          "statement_id": 83,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses ChromaDB, which is explicitly described as an 'embedding database', directly relating to the topic of databases."
+        },
+        {
+          "statement_id": 84,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses collection management in ChromaDB, which is a specific aspect of a database."
+        },
+        {
+          "statement_id": 85,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses debugging a query in ChromaDB, which is a specific aspect of working with a database."
+        },
+        {
+          "statement_id": 86,
+          "relation": "SAME",
+          "confidence": 0.9,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses 'vector database architectures' and their use of algorithms, which directly relates to the topic of databases."
+        },
+        {
+          "statement_id": 87,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses indexing strategies that are specific to databases, making it a broader discussion that includes the topic of databases."
+        },
+        {
+          "statement_id": 88,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate talks about 'vector database scaling,' which is directly related to the topic of databases."
+        },
+        {
+          "statement_id": 99,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'database normalization,' which is a specific aspect of databases."
+        },
+        {
+          "statement_id": 117,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'ACID properties in databases,' which is directly relevant to the topic of databases."
+        },
+        {
+          "statement_id": 118,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'database indexing strategies,' which is a specific topic within databases."
+        },
+        {
+          "statement_id": 119,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 2, need 10)"
+          ],
+          "rationale": "The candidate discusses 'database replication for high availability,' which is directly related to databases."
+        },
+        {
+          "statement_id": 102,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses shells and marine organisms, which has no connection to databases."
+        },
+        {
+          "statement_id": 107,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses radical skepticism and knowledge, which is unrelated to databases."
+        },
+        {
+          "statement_id": 109,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses trolley problems and moral intuitions, which does not relate to databases."
+        }
+      ]
+    },
+    {
+      "query": "religion",
+      "results": [
+        {
+          "statement_id": 74,
+          "relation": "UNRELATED",
+          "confidence": 0.95,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate explicitly discusses 'comparative religion' and mentions specific faith traditions, making it directly about religion."
+        },
+        {
+          "statement_id": 75,
+          "relation": "UNRELATED",
+          "confidence": 0.85,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses 'theological arguments' which relate to religion, but does not focus on religion as a whole."
+        },
+        {
+          "statement_id": 76,
+          "relation": "UNRELATED",
+          "confidence": 0.9,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses 'religious experience' and 'mysticism', which are directly related to the topic of religion."
+        },
+        {
+          "statement_id": 50,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "Agnosticism is a position related to belief in God, which is a subtopic of religion."
+        },
+        {
+          "statement_id": 51,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses knowledge and belief without any direct reference to religion."
+        },
+        {
+          "statement_id": 77,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses political ideologies, which have no connection to the topic of religion."
+        },
+        {
+          "statement_id": 17,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses macOS system preferences, which is unrelated to religion."
+        },
+        {
+          "statement_id": 25,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains a scientific process, which does not relate to religion."
+        },
+        {
+          "statement_id": 57,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses topic detection, which is unrelated to religion."
+        },
+        {
+          "statement_id": 92,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains unit testing, which has no connection to religion."
+        },
+        {
+          "statement_id": 49,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses the mind-body problem and dualism, which are philosophical concepts, but does not mention religion."
+        },
+        {
+          "statement_id": 93,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement focuses on code review practices in software development, with no connection to religion."
+        },
+        {
+          "statement_id": 102,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses marine biology and the Fibonacci sequence, which are unrelated to religion."
+        },
+        {
+          "statement_id": 122,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about JWT tokens and authentication, with no relevance to religion."
+        },
+        {
+          "statement_id": 23,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses debugging a Rust error, which is unrelated to the topic of religion."
+        },
+        {
+          "statement_id": 85,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about debugging a database query, with no connection to religion."
+        },
+        {
+          "statement_id": 79,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses political polarization and tribalism, which are social issues, not directly related to religion."
+        },
+        {
+          "statement_id": 39,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement explains SQL JOIN types, which is a technical topic unrelated to religion."
+        },
+        {
+          "statement_id": 55,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses a memory retrieval issue in programming, with no relevance to religion."
+        },
+        {
+          "statement_id": 130,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about logging best practices in software, which does not relate to religion."
+        }
+      ]
+    },
+    {
+      "query": "politics",
+      "results": [
+        {
+          "statement_id": 77,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses political ideologies directly, which is a core aspect of politics."
+        },
+        {
+          "statement_id": 78,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate explains the functioning of democratic institutions, which is a fundamental part of political systems."
+        },
+        {
+          "statement_id": 79,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The candidate discusses political polarization, a significant issue within the realm of politics."
+        },
+        {
+          "statement_id": 28,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses transformer models, which are unrelated to politics."
+        },
+        {
+          "statement_id": 66,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses configuring server endpoints, which has no connection to politics."
+        },
+        {
+          "statement_id": 61,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses debugging a PyTorch error, which is unrelated to politics."
+        },
+        {
+          "statement_id": 105,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses tree pruning, which is unrelated to politics."
+        },
+        {
+          "statement_id": 119,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses database replication, which has no connection to politics."
+        },
+        {
+          "statement_id": 127,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate describes message queues, which are unrelated to politics."
+        },
+        {
+          "statement_id": 98,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains microservices architecture, which is unrelated to politics."
+        },
+        {
+          "statement_id": 22,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses Rust's Result and Option types for error handling, which has no connection to politics."
+        },
+        {
+          "statement_id": 88,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement focuses on vector database scaling and sharding, which is unrelated to politics."
+        },
+        {
+          "statement_id": 11,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about debugging a Java NullPointerException, with no relevance to politics."
+        },
+        {
+          "statement_id": 37,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses SQLite's FTS5 for full-text search, which does not relate to politics."
+        },
+        {
+          "statement_id": 129,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement explains rate limiting for API protection, which is unrelated to politics."
+        },
+        {
+          "statement_id": 122,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement talks about JWT tokens for stateless authentication, with no connection to politics."
+        },
+        {
+          "statement_id": 85,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses debugging a ChromaDB query, which is unrelated to politics."
+        },
+        {
+          "statement_id": 83,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement is about ChromaDB for vector storage, with no relevance to politics."
+        },
+        {
+          "statement_id": 43,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement discusses false wake word activations, which does not relate to politics."
+        },
+        {
+          "statement_id": 12,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The statement talks about coffee brewing methods, which is unrelated to politics."
+        }
+      ]
+    },
+    {
+      "query": "docker",
+      "results": [
+        {
+          "statement_id": 96,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory explicitly discusses Docker containerization, making it directly about the query topic."
+        },
+        {
+          "statement_id": 95,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses continuous integration pipelines, which do not mention Docker or containerization."
+        },
+        {
+          "statement_id": 97,
+          "relation": "UNRELATED",
+          "confidence": 0.8,
+          "quote_check_passed": false,
+          "quote_check_errors": [
+            "Quotes 0 and 1 too close (separation: 1, need 10)"
+          ],
+          "rationale": "The memory discusses Kubernetes, which is related to container orchestration, thus it contains Docker as a subtopic."
+        },
+        {
+          "statement_id": 126,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses load balancing strategies, which are not related to Docker."
+        },
+        {
+          "statement_id": 19,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory is about making apple pie, which has no connection to Docker."
+        },
+        {
+          "statement_id": 118,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses database indexing strategies, which do not relate to Docker."
+        },
+        {
+          "statement_id": 54,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains a retrieval mechanism for finding relevant memories, unrelated to Docker."
+        },
+        {
+          "statement_id": 115,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses TensorFlow Serving, which is not related to Docker."
+        },
+        {
+          "statement_id": 81,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory explains sentence embedding models, which do not connect to Docker."
+        },
+        {
+          "statement_id": 74,
+          "relation": "UNRELATED",
+          "confidence": 0.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The memory discusses comparative religion, which is unrelated to Docker."
+        },
+        {
+          "statement_id": 25,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses the electrochemical process of rusting, which has no connection to Docker."
+        },
+        {
+          "statement_id": 92,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about writing unit tests, which is unrelated to Docker."
+        },
+        {
+          "statement_id": 90,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains git branching strategies, which do not mention Docker."
+        },
+        {
+          "statement_id": 50,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses agnosticism as an epistemic position, which is unrelated to Docker."
+        },
+        {
+          "statement_id": 64,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about activation functions in neural networks, which has no connection to Docker."
+        },
+        {
+          "statement_id": 52,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses epistemic humility and intellectual honesty, which are unrelated to Docker."
+        },
+        {
+          "statement_id": 32,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains how fashion photoshoots work, which is unrelated to Docker."
+        },
+        {
+          "statement_id": 130,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate talks about logging best practices, which do not mention Docker."
+        },
+        {
+          "statement_id": 84,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate explains ChromaDB collection management, which is unrelated to Docker."
+        },
+        {
+          "statement_id": 89,
+          "relation": "UNRELATED",
+          "confidence": 1.0,
+          "quote_check_passed": true,
+          "quote_check_errors": [],
+          "rationale": "The candidate discusses markdown formatting for documentation, which has no connection to Docker."
+        }
+      ]
+    }
+  ]
+}

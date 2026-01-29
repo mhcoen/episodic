@@ -62,7 +62,7 @@ def handle_command(command_str: str) -> bool:
     from episodic.commands.interface_mode import is_simple_mode, get_simple_mode_commands
     
     # Developer commands are always available
-    developer_commands = ['dev', 'debug']
+    developer_commands = ['dev', 'debug', 'test']
     
     # In simple mode, restrict to allowed commands (except developer commands)
     if is_simple_mode() and cmd_without_slash not in get_simple_mode_commands() and cmd_without_slash not in developer_commands:
@@ -191,6 +191,12 @@ def handle_command(command_str: str) -> bool:
             _handle_migrate(args)
         elif cmd == "/critique":
             _handle_critique(args)
+        elif cmd == "/copy":
+            _handle_copy(args)
+        elif cmd == "/recall":
+            _handle_recall(args)
+        elif cmd == "/test":
+            _handle_test(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -418,6 +424,12 @@ def _handle_topics(args: List[str]):
                     except ValueError:
                         pass
             handle_topics_action(action="reanalyze", apply=apply, verbose=verbose, min_similarity=min_similarity)
+        elif action == "delete":
+            # Pass remaining args as string for handle_topic_delete to parse
+            # This allows flexible parsing of --pattern, --time, --force, --dry-run etc.
+            # Use shlex.join to preserve arguments that contain spaces
+            args_str = shlex.join(action_args)
+            handle_topics_action(action="delete", args_str=args_str)
         else:
             typer.secho(f"Unknown topics action: {action}", fg=get_error_color())
             typer.secho(f"Available actions: {', '.join(TOPIC_ACTIONS)}", fg=get_warning_color())
@@ -987,3 +999,23 @@ def _handle_critique(args: List[str]):
     from episodic.commands.critique import critique_command
     target = args[0] if args else None
     critique_command(target)
+
+
+def _handle_copy(args: List[str]):
+    """Handle /copy command."""
+    from episodic.commands.clipboard import copy_command
+    node_id = args[0] if args else None
+    copy_command(node_id)
+
+
+def _handle_recall(args: List[str]):
+    """Handle /recall command - search conversation history."""
+    from episodic.commands.recall import recall_command
+    recall_command(args)
+
+
+def _handle_test(args: List[str]):
+    """Handle /test command - manage test mode and fixtures."""
+    from episodic.commands.test_mode import test_command
+    subcommand = args[0] if args else None
+    test_command(subcommand)

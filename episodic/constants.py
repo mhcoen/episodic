@@ -18,7 +18,7 @@ RESPONSE_FORMATS = ['paragraph', 'bulleted', 'mixed', 'academic']
 DETAIL_LEVELS = ['minimal', 'moderate', 'detailed', 'maximum']
 
 # Topic subcommands
-TOPIC_ACTIONS = ['list', 'rename', 'compress', 'index', 'scores', 'stats', 'reanalyze']
+TOPIC_ACTIONS = ['list', 'rename', 'compress', 'index', 'scores', 'stats', 'reanalyze', 'delete']
 
 # Topic granularity levels for neural segmentation
 TOPIC_GRANULARITY_LEVELS = ['fine', 'medium', 'coarse']

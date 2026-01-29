@@ -89,9 +89,13 @@ def switch_to_local():
     config.set("voice_stt_provider", local_stt)
     config.set("voice_tts_provider", local_tts)
 
+    # Set intent model to local model (uses format="json" for reliable JSON output)
+    config.set("intent_model", local_model)
+
     typer.secho("🏠 Local mode ", nl=False, fg=get_system_color(), bold=True)
     typer.secho("ENABLED", fg="bright_green", bold=True)
     typer.secho(f"  Model: {local_model}", fg=get_text_color())
+    typer.secho(f"  Intent: {local_model} (JSON mode)", fg=get_text_color())
     typer.secho(f"  STT: {local_stt}", fg=get_text_color())
     typer.secho(f"  TTS: {local_tts}", fg=get_text_color())
 
@@ -107,9 +111,13 @@ def switch_to_cloud():
     config.set("voice_stt_provider", cloud_stt)
     config.set("voice_tts_provider", cloud_tts)
 
+    # Reset intent model to cloud default
+    config.set("intent_model", "gpt-4o-mini")
+
     typer.secho("☁️  Cloud mode ", nl=False, fg=get_system_color(), bold=True)
     typer.secho("ENABLED", fg="bright_green", bold=True)
     typer.secho(f"  Model: {cloud_model}", fg=get_text_color())
+    typer.secho(f"  Intent: gpt-4o-mini", fg=get_text_color())
     typer.secho(f"  STT: {cloud_stt}", fg=get_text_color())
     typer.secho(f"  TTS: {cloud_tts}", fg=get_text_color())
 

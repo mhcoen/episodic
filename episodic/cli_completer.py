@@ -181,7 +181,7 @@ class EpisodicCompleter(Completer):
         """Complete /model command."""
         if len(parts) == 2:
             # Complete context names
-            contexts = ['chat', 'detection', 'compression', 'synthesis', 'critic', 'list']
+            contexts = ['chat', 'detection', 'compression', 'synthesis', 'intent', 'critic', 'list']
             for ctx in contexts:
                 if ctx.startswith(word.lower()):
                     yield Completion(
@@ -189,7 +189,7 @@ class EpisodicCompleter(Completer):
                         start_position=-len(word),
                         display_meta='model context'
                     )
-        elif len(parts) == 3 and parts[1] in ['chat', 'detection', 'compression', 'synthesis', 'critic']:
+        elif len(parts) == 3 and parts[1] in ['chat', 'detection', 'compression', 'synthesis', 'intent', 'critic']:
             # Complete model names
             yield from self._complete_model_names(word)
     
@@ -277,6 +277,13 @@ class EpisodicCompleter(Completer):
             param_types.update({
                 'gpt.verbosity': 'low/medium/high',
                 'gpt.reasoning-effort': 'minimal/low/medium/high'
+            })
+
+            # Unified reasoning control (works across models that support it)
+            param_types.update({
+                'reasoning': 'on/off',
+                'reasoning-effort': 'minimal/low/medium/high',
+                'reasoning-verbosity': 'low/medium/high'
             })
 
             # For /mset, add model parameter options
@@ -440,6 +447,44 @@ class EpisodicCompleter(Completer):
                         'high': 'thorough reasoning'
                     }
                     for level, desc in effort_meta.items():
+                        if level.startswith(word.lower()):
+                            yield Completion(
+                                level,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
+                elif param == 'reasoning':
+                    # Unified reasoning toggle
+                    for value in ['on', 'off', 'true', 'false']:
+                        if value.startswith(word.lower()):
+                            yield Completion(
+                                value,
+                                start_position=-len(word),
+                                display_meta='toggle reasoning'
+                            )
+                elif param == 'reasoning-effort':
+                    # Reasoning effort for supported models
+                    effort_meta = {
+                        'minimal': 'fastest, less thorough',
+                        'low': 'favors speed',
+                        'medium': 'balanced (default)',
+                        'high': 'most thorough'
+                    }
+                    for level, desc in effort_meta.items():
+                        if level.startswith(word.lower()):
+                            yield Completion(
+                                level,
+                                start_position=-len(word),
+                                display_meta=desc
+                            )
+                elif param == 'reasoning-verbosity':
+                    # Reasoning verbosity for GPT-5
+                    verbosity_meta = {
+                        'low': 'concise answers',
+                        'medium': 'standard (default)',
+                        'high': 'detailed explanations'
+                    }
+                    for level, desc in verbosity_meta.items():
                         if level.startswith(word.lower()):
                             yield Completion(
                                 level,

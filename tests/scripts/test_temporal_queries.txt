@@ -1,0 +1,58 @@
+# Episodic Test Script: Temporal Reference Queries
+# ================================================
+# Tests the query understanding system's ability to parse and resolve
+# temporal references like "yesterday", "last week", "3 days ago".
+#
+# Prerequisites:
+#   - Test fixtures must be injected (run test_fixtures.py first)
+#   - Test mode must be enabled (/test on)
+#
+# Expected fixtures (relative to reference time 2026-01-26):
+#   - "yesterday": machine-learning-basics topic
+#   - "3 days ago": python-asyncio topic  
+#   - "last week": database-indexing topic
+#   - "last month": quantum-computing topic
+
+# === YESTERDAY QUERIES ===
+# Should retrieve machine-learning-basics content
+
+what did we discuss yesterday
+
+when did we talk about overfitting
+
+did I ask about supervised learning yesterday
+
+# === 3 DAYS AGO QUERIES ===
+# Should retrieve python-asyncio content
+
+what did we discuss 3 days ago
+
+when did we talk about asyncio
+
+did I mention gather versus wait
+
+# === LAST WEEK QUERIES ===
+# Should retrieve database-indexing content
+
+what did we discuss last week
+
+when did we talk about B-trees
+
+have we discussed hash indexes before
+
+# === LAST MONTH QUERIES ===
+# Should retrieve quantum-computing content
+
+what did we discuss last month
+
+when did we talk about quantum computing
+
+have we ever discussed qubits
+
+# === COMBINED TEMPORAL + TARGET QUERIES ===
+
+did we discuss machine learning yesterday
+
+what did I ask about databases last week
+
+when did we talk about Python 3 days ago

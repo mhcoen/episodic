@@ -194,6 +194,24 @@ class AudioPlayback:
                 fade_factor = 1.0 - (i / self.FADE_OUT_SAMPLES)
                 self._sample_buffer.append(sample * fade_factor)
 
+    def clear_queue(self):
+        """
+        Clear the playback queue with fade-out to prevent clicks.
+
+        Used for speech interruption (e.g., user presses a key to stop TTS).
+        """
+        self._apply_fade_out_to_buffer()
+        with self._buffer_lock:
+            # Keep only the fade-out portion, discard the rest
+            fade_samples = min(len(self._sample_buffer), self.FADE_OUT_SAMPLES * 2)
+            # Convert to list, keep only fade portion, put back
+            remaining = []
+            for _ in range(fade_samples):
+                if self._sample_buffer:
+                    remaining.append(self._sample_buffer.popleft())
+            self._sample_buffer.clear()
+            self._sample_buffer.extend(remaining)
+
     def play_immediate(self, audio: np.ndarray, sample_rate: int):
         """
         Play audio immediately, clearing the queue.

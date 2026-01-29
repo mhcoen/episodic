@@ -26,7 +26,14 @@ setup(
         "web": ["beautifulsoup4>=4.0.0", "httpx>=0.24.0"],
         "ml": ["scikit-learn>=1.0.0", "nltk>=3.8.0"],
         "pdf": ["pypdf>=3.0.0"],
-        "dev": ["pytest>=7.0.0", "black>=23.0.0", "flake8>=6.0.0", "mypy>=1.0.0"],
+        "dev": [
+            "pytest>=7.0.0",
+            "black>=23.0.0",
+            "flake8>=6.0.0",
+            "mypy>=1.0.0",
+            "chromadb>=0.4.0",
+            "sentence-transformers>=2.0.0",
+        ],
         "all": [
             "chromadb>=0.4.0",
             "sentence-transformers>=2.0.0",

@@ -3,6 +3,7 @@ Unified streaming module that extracts the streaming logic from conversation.py
 to be used by all streaming outputs (LLM, Muse, Summary, etc.)
 """
 
+import sys
 import time
 import math
 import random
@@ -19,13 +20,51 @@ from episodic.llm import process_stream_response
 from episodic.debug_utils import debug_print
 
 
+def _check_keyboard_interrupt() -> bool:
+    """
+    Check for keyboard input without blocking.
+
+    Returns True if Enter or Escape was pressed (interrupt signal).
+    Used to allow users to stop TTS playback by pressing a key.
+    """
+    try:
+        import select
+
+        # Check if there's input available on stdin (Unix only)
+        if sys.platform != 'win32':
+            readable, _, _ = select.select([sys.stdin], [], [], 0)
+            if readable:
+                # Read and discard the input
+                char = sys.stdin.read(1)
+                # Enter (newline) or Escape triggers interrupt
+                if char in ('\n', '\r', '\x1b'):
+                    return True
+    except Exception:
+        pass  # Ignore errors - non-blocking check is best-effort
+
+    return False
+
+
+def _interrupt_tts_if_active() -> None:
+    """Interrupt TTS playback if voice mode is active."""
+    if config.get("voice_mode", False):
+        try:
+            from episodic.voice import get_voice_manager
+            manager = get_voice_manager()
+            if manager.is_active:
+                manager.interrupt_speech()
+        except ImportError:
+            pass
+
+
 def unified_stream_response(
     stream_generator: Generator,
     model: Optional[str] = None,
     prefix: Optional[str] = None,
     color: Optional[str] = None,
     wrap_width: Optional[int] = None,
-    preserve_formatting: Optional[bool] = None
+    preserve_formatting: Optional[bool] = None,
+    enable_tts: bool = True
 ) -> str:
     """
     Unified streaming function that handles all response streaming with consistent formatting.
@@ -164,7 +203,7 @@ def unified_stream_response(
     # Voice TTS integration - stream sentences to speech
     voice_sentence_buffer = None
     voice_manager = None
-    if config.get("voice_mode", False) and config.get("voice_tts_enabled", True):
+    if enable_tts and config.get("voice_mode", False) and config.get("voice_tts_enabled", True):
         try:
             from episodic.voice import get_voice_manager
             from episodic.voice.sentence_buffer import SentenceBuffer
@@ -229,11 +268,16 @@ def unified_stream_response(
                                           current_position, line_start,
                                           in_bold, in_numbered_list, in_list_item, in_header)
                             
-                            # Apply delay
+                            # Apply delay with keyboard interrupt check
                             elapsed = time.time() - start_time
                             delay = calculate_delay(elapsed, word)
                             if delay > 0:
-                                time.sleep(delay)
+                                # Sleep in small increments to allow interrupt detection
+                                sleep_start = time.time()
+                                while time.time() - sleep_start < delay:
+                                    if _check_keyboard_interrupt():
+                                        _interrupt_tts_if_active()
+                                    time.sleep(min(0.05, delay))
                 
                 accumulated_text = remaining_text
             elif '\n' in accumulated_text:
@@ -244,11 +288,15 @@ def unified_stream_response(
                         _print_word(parts[0], color, wrap_width,
                                   current_position, line_start,
                                   in_bold, in_numbered_list, in_list_item, in_header)
-                    # Apply delay
+                    # Apply delay with keyboard interrupt check
                     elapsed = time.time() - start_time
                     delay = calculate_delay(elapsed, parts[0])
                     if delay > 0:
-                        time.sleep(delay)
+                        sleep_start = time.time()
+                        while time.time() - sleep_start < delay:
+                            if _check_keyboard_interrupt():
+                                _interrupt_tts_if_active()
+                            time.sleep(min(0.05, delay))
                 
                 # Print newline
                 _print_word('\n', color, wrap_width,
@@ -287,11 +335,12 @@ def unified_stream_response(
     if current_position > 0:
         typer.echo("")
 
-    # Flush remaining voice TTS and wait for speech to complete
+    # Flush remaining voice TTS (playback continues in background)
     if voice_sentence_buffer:
         voice_sentence_buffer.flush()
-        if voice_manager:
-            voice_manager.wait_for_speech_complete()
+        # Don't wait for speech to complete - let user type while TTS plays
+        # The mic is muted during playback anyway, so voice input won't work
+        # but keyboard input (with auto-complete) will work immediately
 
     # Add extra blank line after muse responses
     if config.get("muse_mode", False):
@@ -321,7 +370,8 @@ def unified_stream_text(
     prefix: Optional[str] = None,
     color: Optional[str] = None,
     wrap_width: Optional[int] = None,
-    preserve_formatting: Optional[bool] = None
+    preserve_formatting: Optional[bool] = None,
+    enable_tts: bool = True
 ) -> str:
     """
     Stream precomputed text through the unified formatter.
@@ -345,7 +395,8 @@ def unified_stream_text(
         prefix=prefix,
         color=color,
         wrap_width=wrap_width,
-        preserve_formatting=preserve_formatting
+        preserve_formatting=preserve_formatting,
+        enable_tts=enable_tts
     )
 
 

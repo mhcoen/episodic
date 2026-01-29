@@ -1,0 +1,27 @@
+{
+  "id": "G702",
+  "description": "in topic: we research - KW_SPEAKER does NOT truncate segment names",
+  "input_raw": "in topic: we research",
+  "input_norm": "in topic: we research",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "tokens": [
+    {"kind": "KW_IN", "lexeme": "in", "span": [0, 2], "normalized": "in", "index": 0},
+    {"kind": "KW_SEGMENT", "lexeme": "topic", "span": [3, 8], "normalized": "topic", "index": 1},
+    {"kind": "COLON", "lexeme": ":", "span": [8, 9], "normalized": ":", "index": 2},
+    {"kind": "KW_SPEAKER", "lexeme": "we", "span": [10, 12], "normalized": "both", "index": 3},
+    {"kind": "WORD", "lexeme": "research", "span": [13, 21], "normalized": "research", "index": 4},
+    {"kind": "EOF", "lexeme": "", "span": [21, 21], "normalized": null, "index": 5}
+  ],
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "answer",
+    "segment": {"explicit": true, "query": "we research"}
+  },
+  "resolve": {
+    "mode": "answer",
+    "segment_explicit": true,
+    "segment_query": "we research"
+  },
+  "notes": "KW_SPEAKER 'we' must be reinterpreted as WORD in segment query - query includes 'we'"
+}

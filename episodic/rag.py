@@ -156,17 +156,11 @@ class EpisodicRAG:
             )
         
             # Get or create the main collection
-            try:
-                self.collection = self.client.get_collection(
-                    name="episodic_docs",
-                    embedding_function=self.embedding_function
-                )
-            except:
-                self.collection = self.client.create_collection(
-                    name="episodic_docs",
-                    embedding_function=self.embedding_function,
-                    metadata={"description": "Episodic conversation knowledge base"}
-                )
+            self.collection = self.client.get_or_create_collection(
+                name="episodic_docs",
+                embedding_function=self.embedding_function,
+                metadata={"description": "Episodic conversation knowledge base"}
+            )
         
         # Ensure SQL database tables exist for RAG functionality
         from .db_rag import create_rag_tables
@@ -572,24 +566,36 @@ _rag_system: Optional[EpisodicRAG] = None
 
 
 def get_rag_system() -> Optional[EpisodicRAG]:
-    """Get the global RAG system instance."""
+    """Get the global RAG system instance.
+
+    The RAG system initializes if either:
+    - rag_enabled is True (user document RAG)
+    - conversation_retrieval_enabled is True (conversation memory)
+
+    Both features share the same ChromaDB infrastructure.
+    """
     global _rag_system
-    
+    from episodic.debug_utils import debug_print
+
     if _rag_system is None:
         try:
-            # Check if we should use the multi-collection system
-            if config.get("collection_migration_completed", False):
-                # Use the adapter for multi-collection system
+            # Use multi-collection system by default (more robust)
+            # Set collection_migration_completed=False only for legacy single-collection mode
+            use_legacy = config.get("collection_migration_completed", True) is False
+            if not use_legacy:
+                debug_print("Initializing RAG system with multi-collection adapter", category="memory")
                 from episodic.rag_adapter import EpisodicRAGAdapter
                 _rag_system = EpisodicRAGAdapter()
             else:
-                # Use the original single-collection system
+                debug_print("Initializing RAG system with single-collection (legacy)", category="memory")
                 _rag_system = EpisodicRAG()
+            debug_print("RAG system initialized successfully", category="memory")
         except Exception as e:
+            debug_print(f"RAG system initialization failed: {e}", category="memory")
             if config.get("debug"):
                 typer.secho(f"Failed to initialize RAG system: {e}", fg="red")
             return None
-    
+
     return _rag_system
 
 

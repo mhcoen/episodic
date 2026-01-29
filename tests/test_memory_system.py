@@ -191,21 +191,21 @@ class TestMemoryCommands:
                 }
             ]
         }
-        
+
         from episodic.commands.memory import search_memories
         search_memories("test query")
-        
+
         # Verify source filter was applied
         mock_rag.search.assert_called_once_with(
-            "test query", 
+            "test query",
             n_results=10,
             source_filter='conversation'
         )
-        
-        # Check output
+
+        # Check output - format is "Found 1 relevant matches:"
         captured = capsys.readouterr()
         assert "Searching memories for: test query" in captured.out
-        assert "Found 1 matches" in captured.out
+        assert "Found 1 relevant matches" in captured.out
     
     def test_list_memories_filters_conversations(self, mock_rag, capsys):
         """Test that list_memories only shows conversation memories."""

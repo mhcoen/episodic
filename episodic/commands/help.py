@@ -469,6 +469,21 @@ def help_command(query: str):
         typer.secho("To switch to simple mode, use:", fg=get_system_color())
         typer.secho("  /simple", fg=get_system_color(), bold=True)
         return
+
+    # Copy/clipboard queries
+    if any(phrase in query_lower for phrase in ['copy', 'clipboard', 'copy response', 'copy to clipboard']):
+        typer.secho("\n📋 Copy Command", fg=get_heading_color(), bold=True)
+        typer.echo()
+        typer.secho("Copy conversation content to your system clipboard.", fg=get_text_color())
+        typer.echo()
+        typer.secho("Usage:", fg=get_text_color())
+        typer.secho("  /copy              ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho("Copy last assistant response", fg=get_text_color())
+        typer.secho("  /copy <node_id>    ", fg=get_system_color(), bold=True, nl=False)
+        typer.secho("Copy specific node content", fg=get_text_color())
+        typer.echo()
+        typer.secho("Cross-platform support: macOS, Linux (X11/Wayland), Windows/WSL", fg=get_text_color(), dim=True)
+        return
     """
     Search Episodic documentation using RAG.
     
@@ -627,8 +642,8 @@ RULES:
                     stream_gen,
                     model=model,
                     color=get_system_color(),
-                    wrap_width=wrap_width
-                    # Let unified_stream_response auto-detect formatting
+                    wrap_width=wrap_width,
+                    enable_tts=False  # Don't speak help output
                 )
             else:
                 # Non-streaming
@@ -638,7 +653,8 @@ RULES:
                     response_text,
                     model=model,
                     color=get_system_color(),
-                    wrap_width=wrap_width
+                    wrap_width=wrap_width,
+                    enable_tts=False  # Don't speak help output
                 )
 
             # Show sources

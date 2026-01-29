@@ -203,7 +203,12 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
         migrate_to_provider_model()
         migrate_topics_nullable_end()
         migrate_to_roles()
-        
+        migrate_to_meta_query_flag()
+        migrate_to_topic_centroids()
+        migrate_to_topic_local_tables()
+        migrate_to_context_assembly_debug()
+        migrate_to_reactivation_decisions()
+
     logger.info("Database initialized successfully")
 
 
@@ -347,3 +352,107 @@ def migrate_to_roles():
             
             conn.commit()
             logger.info("Added role column to nodes table and set default values")
+
+
+def migrate_to_meta_query_flag():
+    """Add is_meta_query column to nodes table for filtering out meta-queries from retrieval."""
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if is_meta_query column exists
+        c.execute("PRAGMA table_info(nodes)")
+        columns = [column[1] for column in c.fetchall()]
+
+        if 'is_meta_query' not in columns:
+            # Add the is_meta_query column with default FALSE
+            c.execute("ALTER TABLE nodes ADD COLUMN is_meta_query BOOLEAN DEFAULT FALSE")
+            conn.commit()
+            logger.info("Added is_meta_query column to nodes table")
+
+
+def migrate_to_topic_centroids():
+    """Add topic_centroids table for implicit topic reactivation.
+
+    This table stores centroid/medoid information for each topic, enabling
+    efficient ANN queries to find which dormant topic a new message relates to.
+    """
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        # Check if topic_centroids table exists
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='topic_centroids'")
+        if c.fetchone():
+            # Table already exists
+            return
+
+        # Create the topic_centroids table
+        c.execute('''
+            CREATE TABLE topic_centroids (
+                start_node_id TEXT PRIMARY KEY,
+                centroid_medoid_exchange_id TEXT,
+                exchange_count INTEGER DEFAULT 0,
+                last_active_turn_idx INTEGER,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (start_node_id) REFERENCES nodes(id),
+                FOREIGN KEY (centroid_medoid_exchange_id) REFERENCES nodes(id)
+            )
+        ''')
+
+        # Create index for efficient turn_idx queries
+        c.execute('CREATE INDEX IF NOT EXISTS idx_topic_centroids_turn ON topic_centroids(last_active_turn_idx)')
+
+        conn.commit()
+        logger.info("Created topic_centroids table for implicit topic reactivation")
+
+
+def migrate_to_topic_local_tables():
+    """Add topic_nodes and topic_working_set tables for topic-local context assembly.
+
+    topic_nodes: Fast topic membership mapping for "last N exchanges in topic X" queries.
+    topic_working_set: Persistent topic state for year-later resume without full transcript.
+    """
+    from .migrations.m015_topic_local_tables import migrate_up
+    migrate_up()
+
+
+def migrate_to_context_assembly_debug():
+    """Add context_assembly_debug table for instrumentation.
+
+    Stores debug info from each context assembly operation keyed by user_node_id.
+    """
+    from .migrations.m016_context_assembly_debug import migrate, is_applied
+    with get_connection() as conn:
+        if not is_applied(conn):
+            migrate(conn)
+            logger.info("Created context_assembly_debug table for instrumentation")
+
+
+def migrate_to_reactivation_decisions():
+    """Add reactivation_decisions and reactivation_labels tables for probe calibration.
+
+    reactivation_decisions: Stores detailed feature info for every probe decision.
+    reactivation_labels: Stores human-labeled ground truth for calibration.
+    """
+    from .migrations.m017_reactivation_decisions import migrate as migrate_decisions
+    from .migrations.m018_reactivation_labels import migrate as migrate_labels
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        # Check if reactivation_decisions table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='reactivation_decisions'
+        """)
+        if not cursor.fetchone():
+            migrate_decisions(conn)
+            logger.info("Created reactivation_decisions table for probe calibration")
+
+        # Check if reactivation_labels table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='reactivation_labels'
+        """)
+        if not cursor.fetchone():
+            migrate_labels(conn)
+            logger.info("Created reactivation_labels table for ground truth")

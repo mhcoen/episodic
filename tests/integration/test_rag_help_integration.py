@@ -147,43 +147,30 @@ class TestRAGHelpIntegration(unittest.TestCase):
     
     def test_rag_enhancement_adds_context(self):
         """Test that RAG enhancement adds documentation context to prompts."""
-        # Set up help collection
-        original_collection = self.rag_system.collection
-        self.rag_system.collection = self.help_rag.collection
-        
-        try:
-            query = "what does muse do"
-            base_prompt = f"Please answer: {query}"
-            
-            mock_results = {
-                "query": query,
-                "results": [
-                    {
-                        "content": "Muse enables a Perplexity-like web search mode in Episodic.",
-                        "metadata": {"source": "docs/cli-reference.md"},
-                        "relevance_score": 0.9,
-                    }
-                ],
-                "total": 1,
-            }
-            with patch.object(self.rag_system, "search", return_value=mock_results):
-                enhanced_prompt = self.rag_system.enhance_with_context(base_prompt)
-            
-            # Check that context was added
-            self.assertGreater(len(enhanced_prompt), len(base_prompt), 
-                             "Enhanced prompt should be longer than base prompt")
-            
-            # Check that muse is mentioned in enhanced prompt
-            self.assertIn('muse', enhanced_prompt.lower(), 
-                         "Enhanced prompt should contain 'muse' from documentation")
-            
-            # Check for specific muse documentation
-            self.assertIn('perplexity', enhanced_prompt.lower(),
-                         "Should include description of muse as Perplexity-like")
-            
-        finally:
-            # Restore original collection
-            self.rag_system.collection = original_collection
+        # Note: enhance_with_context was removed from EpisodicRAGAdapter
+        # This test now verifies the help_rag search returns usable results
+        query = "what does muse do"
+
+        mock_results = {
+            "query": query,
+            "results": [
+                {
+                    "content": "Muse enables a Perplexity-like web search mode in Episodic.",
+                    "metadata": {"source": "docs/cli-reference.md"},
+                    "relevance_score": 0.9,
+                }
+            ],
+            "total": 1,
+        }
+        with patch.object(self.help_rag, "_search", return_value=mock_results):
+            results = self.help_rag.search_help(query, n_results=3)
+
+        # Check that results can be used to build context
+        self.assertGreater(len(results), 0, "Should return search results")
+
+        # Check that muse content is in results
+        found_muse = any('muse' in r.get('content', '').lower() for r in results)
+        self.assertTrue(found_muse, "Results should contain muse documentation")
     
     def test_llm_uses_provided_context(self):
         """Test that LLM actually uses the provided context in its response."""

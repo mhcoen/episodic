@@ -189,6 +189,9 @@ Episodic uses semantic drift detection to identify topic changes. When drift exc
 | `/topics rename` | Rename ongoing topics |
 | `/topics compress` | Manually compress current topic |
 | `/topics stats` | Show topic statistics |
+| `/topics delete <name>` | Delete topic by exact name |
+| `/topics delete --pattern <pat>` | Delete topics matching pattern |
+| `/topics delete --time <expr>` | Delete topics by time range |
 
 ### Topic Detection Methods
 
@@ -226,6 +229,53 @@ When topics end, they can be automatically compressed:
 /set comp-min 10  # Minimum messages before compression
 /compression stats  # View compression queue
 ```
+
+### Topic Deletion
+Remove unwanted topics by name, pattern, or time range:
+
+```bash
+# Delete by exact name
+/topics delete python-retry-mechanisms
+
+# Delete by pattern (case-insensitive)
+/topics delete --pattern "test"
+/topics delete --pattern "sourdough"
+
+# Delete by time range (natural language)
+/topics delete --time "since yesterday"
+/topics delete --time "since 2 hours ago"
+/topics delete --time "before last week"
+/topics delete --time "between 10am and 2pm today"
+
+# Options
+/topics delete --dry-run    # Preview without deleting
+/topics delete --force      # Skip confirmation
+```
+
+**What gets deleted:**
+- Topic metadata (name, boundaries)
+- Topic centroids (embedding data)
+- Topic node associations
+- Working set entries
+- ChromaDB embeddings
+
+**What is preserved:**
+- Conversation nodes (message history)
+- Other topics unaffected
+
+### Test Mode
+For testing and development, use test mode to isolate changes from production:
+
+```bash
+/test                       # Show status and help
+/test clone                 # Copy production → test
+/test on                    # Switch to test ([TEST] prompt)
+/test off                   # Return to production
+/test clear                 # Wipe test environment
+/test status                # Detailed test database info
+```
+
+Test mode uses separate paths (`~/.episodic/test/`) for both SQLite and ChromaDB, ensuring complete isolation from production data.
 
 ## Knowledge Base (RAG)
 

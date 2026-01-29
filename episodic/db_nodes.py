@@ -17,24 +17,33 @@ from .db_ids import generate_short_id
 logger = logging.getLogger(__name__)
 
 
-def insert_node(content, parent_id=None, role=None, provider=None, model=None, max_retries=MAX_DATABASE_RETRIES):
+def insert_node(content, parent_id=None, role=None, provider=None, model=None, is_meta_query=False, max_retries=MAX_DATABASE_RETRIES):
     """
     Insert a new node into the database.
+
+    Args:
+        content: Node content
+        parent_id: Parent node ID
+        role: Node role (user, assistant, system)
+        provider: LLM provider
+        model: LLM model
+        is_meta_query: If True, this node is a meta-query and excluded from retrieval
+        max_retries: Max retries for short_id collision
     """
     node_id = str(uuid.uuid4())
     short_id = None
     retries = 0
-    
+
     while retries < max_retries:
         try:
             short_id = generate_short_id()
-            
+
             with get_connection() as conn:
                 c = conn.cursor()
                 c.execute("""
-                    INSERT INTO nodes (id, short_id, parent_id, content, role, provider, model) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (node_id, short_id, parent_id, content, role, provider, model))
+                    INSERT INTO nodes (id, short_id, parent_id, content, role, provider, model, is_meta_query)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (node_id, short_id, parent_id, content, role, provider, model, is_meta_query))
                 
                 # Update head to point to this new node
                 c.execute("UPDATE state SET head_id = ? WHERE name = 'head'", (node_id,))

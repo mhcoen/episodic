@@ -1,0 +1,20 @@
+{
+  "id": "G402",
+  "description": "yesterday coffee with DST spring forward (March 10, 2024)",
+  "input_raw": "yesterday coffee",
+  "input_norm": "yesterday coffee",
+  "now_utc": "2024-03-10T15:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "answer",
+    "temporal": {"kind": "yesterday", "raw": "yesterday"},
+    "target": "coffee"
+  },
+  "resolve": {
+    "mode": "answer",
+    "target": "coffee",
+    "temporal": ["2024-03-09T06:00:00+00:00", "2024-03-10T06:00:00+00:00"]
+  },
+  "notes": "March 9 midnight CST = 06:00 UTC, March 10 'today' midnight uses CST offset since DST transition happens at 2am"
+}

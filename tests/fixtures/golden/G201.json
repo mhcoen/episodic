@@ -1,0 +1,21 @@
+{
+  "id": "G201",
+  "description": "Explicit segment requested but no match -> segment_resolved_ids=[]",
+  "input_raw": "in topic: nonexistent-topic",
+  "input_norm": "in topic: nonexistent-topic",
+  "now_utc": "2026-01-25T12:00:00Z",
+  "user_tz": "America/Chicago",
+  "parse": {
+    "ast_kind": "MQLCommand",
+    "mode": "answer",
+    "segment": {"explicit": true, "query": "nonexistent-topic"}
+  },
+  "resolve": {
+    "mode": "answer",
+    "segment_explicit": true,
+    "segment_query": "nonexistent-topic",
+    "segment_resolved_ids": [],
+    "segment_ambiguous": false,
+    "segment_candidates": null
+  }
+}

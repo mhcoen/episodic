@@ -254,13 +254,31 @@ def model_params(param_set: Optional[str] = None):
                 typer.secho(f"  {key}: {value}", fg=get_text_color())
         else:
             typer.secho("  (using defaults)", fg=get_text_color())
-            
-        typer.secho("\nUse '/model-params <set>' to configure specific parameter sets", 
+
+        # Synthesis parameters
+        typer.secho("\nSynthesis parameters:", fg=get_system_color())
+        synthesis_params = config.get("synthesis_params", {})
+        if synthesis_params:
+            for key, value in synthesis_params.items():
+                typer.secho(f"  {key}: {value}", fg=get_text_color())
+        else:
+            typer.secho("  (using defaults)", fg=get_text_color())
+
+        # Intent parameters
+        typer.secho("\nIntent parameters:", fg=get_system_color())
+        intent_params = config.get("intent_params", {})
+        if intent_params:
+            for key, value in intent_params.items():
+                typer.secho(f"  {key}: {value}", fg=get_text_color())
+        else:
+            typer.secho("  (using defaults)", fg=get_text_color())
+
+        typer.secho("\nUse '/model-params <set>' to configure specific parameter sets",
                    fg=get_text_color())
         return
     
     # Configure specific parameter set
-    valid_sets = ["main", "topic", "compression"]
+    valid_sets = ["main", "topic", "compression", "synthesis", "intent"]
     if param_set not in valid_sets:
         typer.secho(f"Invalid parameter set: {param_set}", fg="red")
         typer.secho(f"Valid sets: {', '.join(valid_sets)}", fg=get_text_color())

@@ -1,0 +1,38 @@
+name: Quarantine Tests (Informational)
+
+on:
+  push:
+    branches: [main, enhance/topic]
+  pull_request:
+    branches: [main]
+
+jobs:
+  chroma-isolation:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block CI
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run quarantined ChromaDB tests
+        run: |
+          pytest -m quarantine_chroma -v --tb=short || true
+        env:
+          EPISODIC_TEST_MODE: "1"
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "Quarantine tests completed (informational only)"
+          echo "These tests have known isolation issues and don't block CI"

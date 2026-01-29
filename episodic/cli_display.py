@@ -113,14 +113,24 @@ def display_model_info():
 
 def get_prompt() -> str:
     """Get the current prompt string."""
+    # Build prompt prefix for test mode
+    prefix = ""
+    if config.get("test_mode", False):
+        prefix = "[TEST] "
+
     # Check if we're in muse mode
     if config.get("muse_mode", False):
         prompt_text = "» "
-        # Return as HTML for color support
+        if prefix:
+            # Orange [TEST] prefix + magenta muse prompt
+            return HTML(f'<ansiyellow><b>{prefix}</b></ansiyellow><ansibrightmagenta><b>{prompt_text}</b></ansibrightmagenta>')
         return HTML(f'<ansibrightmagenta><b>{prompt_text}</b></ansibrightmagenta>')
-    
+
     # Normal mode prompt
     prompt_text = "> "
+    if prefix:
+        # Orange [TEST] prefix + green normal prompt
+        return HTML(f'<ansiyellow><b>{prefix}</b></ansiyellow><ansigreen><b>{prompt_text}</b></ansigreen>')
     return HTML(f'<ansigreen><b>{prompt_text}</b></ansigreen>')
 
 

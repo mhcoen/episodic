@@ -1,0 +1,39 @@
+{
+  "_comment": "Voice provider pricing - updated January 2026",
+  "_sources": {
+    "openai": "https://platform.openai.com/docs/pricing",
+    "deepgram": "https://deepgram.com/pricing",
+    "elevenlabs": "https://elevenlabs.io/pricing"
+  },
+
+  "stt": {
+    "_comment": "Speech-to-Text pricing per minute of audio",
+    "openai_whisper": {
+      "cost_per_minute": 0.006,
+      "model": "whisper-1",
+      "notes": "OpenAI Whisper API"
+    },
+    "deepgram": {
+      "cost_per_minute": 0.0043,
+      "model": "nova-2",
+      "notes": "Deepgram Nova-2 for pre-recorded audio"
+    }
+  },
+
+  "tts": {
+    "_comment": "Text-to-Speech pricing per 1000 characters",
+    "openai_tts": {
+      "models": {
+        "tts-1": 0.015,
+        "tts-1-hd": 0.030
+      },
+      "default_model": "tts-1",
+      "notes": "OpenAI TTS API"
+    },
+    "elevenlabs": {
+      "cost_per_1k_chars": 0.11,
+      "model": "eleven_monolingual_v1",
+      "notes": "ElevenLabs Creator plan rate (~$11/100K chars)"
+    }
+  }
+}

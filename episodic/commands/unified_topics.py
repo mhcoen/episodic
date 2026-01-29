@@ -17,6 +17,7 @@ from .topics import topics as list_topics_impl, compress_current_topic as compre
 from .topic_rename import rename_ongoing_topics as rename_topics_impl
 from .index_topics import index_topics as index_topics_impl
 from .debug_topics import topic_scores as topic_scores_impl
+from .topic_delete import handle_topic_delete
 
 
 def handle_topics_action(action: str = "list", **kwargs):
@@ -185,13 +186,17 @@ def handle_topics_action(action: str = "list", **kwargs):
         note = kwargs.get('note')
         expected_topic = kwargs.get('expected_topic')
         show_topic_feedback(feedback_type, note, expected_topic, verbose)
+    elif action == "delete":
+        # Pass remaining args as string for handle_topic_delete to parse
+        args_str = kwargs.get('args_str', '')
+        handle_topic_delete(args_str)
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze, feedback", fg="yellow")
+        typer.secho("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze, feedback, delete", fg="yellow")
 
 
 def topics_command(
-    action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats|reanalyze|feedback"),
+    action: str = typer.Argument("list", help="Action to perform: list|rename|compress|index|scores|stats|reanalyze|feedback|delete"),
     # Common options
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information"),
     # Index-specific options
@@ -206,7 +211,12 @@ def topics_command(
     # Feedback-specific options
     feedback_type: Optional[str] = typer.Option(None, "--type", "-t", help="Feedback type: stats|helpful|bad|missing|clear"),
     note: Optional[str] = typer.Option(None, "--note", help="Note for feedback"),
-    expected_topic: Optional[str] = typer.Option(None, "--topic", help="Expected topic (for 'missing' feedback)")
+    expected_topic: Optional[str] = typer.Option(None, "--topic", help="Expected topic (for 'missing' feedback)"),
+    # Delete-specific options
+    pattern: Optional[str] = typer.Option(None, "--pattern", "-p", help="Pattern to match topic names (for delete)"),
+    time: Optional[str] = typer.Option(None, "--time", help="Time range (for delete, e.g. 'since yesterday')"),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation (for delete)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted without deleting")
 ):
     """
     Unified topic management command.
@@ -220,6 +230,7 @@ def topics_command(
       stats     - Show topic statistics
       reanalyze - Re-detect topics using full conversation context
       feedback  - Record/view feedback about topic context retrieval
+      delete    - Delete topics by name, pattern, or time range
 
     Examples:
       /topics                      # List all topics
@@ -230,20 +241,23 @@ def topics_command(
       /topics feedback             # Show feedback stats
       /topics feedback helpful     # Record that context was helpful
       /topics feedback missing     # Record that expected context was missing
+      /topics delete topic-name    # Delete by exact name
+      /topics delete --pattern "test"  # Delete by pattern
+      /topics delete --time "since yesterday"  # Delete by time range
     """
 
     if action == "list":
         # Use existing implementation
         list_topics_impl()
-        
+
     elif action == "rename":
         # Use existing implementation
         rename_topics_impl()
-        
+
     elif action == "compress":
         # Use existing implementation
         compress_topic_impl()
-        
+
     elif action == "index":
         # For index, window_size can be provided as argument or option
         if window_size is None:
@@ -255,11 +269,11 @@ def topics_command(
             except ValueError:
                 window_size = 5
         index_topics_impl(window_size=window_size, apply=apply, verbose=verbose)
-        
+
     elif action == "scores":
         # Call the function from handle_topics_action to avoid Typer decorator issues
         handle_topics_action(action="scores", node_id=node_id, verbose=verbose)
-        
+
     elif action == "stats":
         # New implementation for statistics
         show_topic_stats(verbose=verbose)
@@ -274,9 +288,16 @@ def topics_command(
         fb_type = feedback_type or "stats"
         show_topic_feedback(fb_type, note, expected_topic, verbose)
 
+    elif action == "delete":
+        # Import and call topic_delete with options
+        from .topic_delete import topic_delete
+        # Get name from expected_topic option (repurposed for delete name)
+        # This is a bit awkward but allows using /topics delete <name> syntax
+        topic_delete(name=expected_topic, pattern=pattern, time=time, force=force, dry_run=dry_run)
+
     else:
         typer.secho(f"Unknown action: {action}", fg="red")
-        typer.echo("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze, feedback")
+        typer.echo("\nAvailable actions: list, rename, compress, index, scores, stats, reanalyze, feedback, delete")
 
 
 def show_topic_stats(verbose: bool = False):

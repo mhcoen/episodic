@@ -73,6 +73,15 @@ WARP.md
 /evaluation/
 .cache/
 
+# Experiment cache directories
+.gpt52_cache/
+.gpt52_figure4_cache/
+.gpt52_multi_cache/
+.gpt52_superseg_cache/
+
+# Archive files
+*.zip
+
 # Large model files
 *.pt
 *.safetensors
@@ -97,6 +106,7 @@ datasets/
 # Model checkpoint: use download script or host on HuggingFace
 
 # AI tool state files
+.planning/
 CLAUDE.md
 PROJECT_MEMORY.md
 DEBUG.md

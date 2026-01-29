@@ -1,0 +1,503 @@
+{
+  "description": "GPT-5.2 sanity check with FLIPPED score polarity",
+  "score_formula": "s_i = logP(N) - logP(Y)",
+  "datasets": {
+    "dialseg711": {
+      "best_wf1": 0.7858630952380953,
+      "best_tau": -1.75,
+      "best_bor": 1.3453237410071943,
+      "best_purity": 0.7179563492063493,
+      "best_coverage": 0.90625,
+      "split_half_max_deviation": 0.0625,
+      "auroc": 0.7730149409538722,
+      "cohens_d": 0.7781696797353869,
+      "n_dialogues": 48,
+      "n_gold_boundaries": 2042,
+      "sweep_points": [
+        {
+          "percentile": 99,
+          "tau": 13.749999532699585,
+          "wf1": 0.052083333333333336,
+          "purity": 0.10416666666666667,
+          "coverage": 0.03472222222222222,
+          "bor": 0.04316546762589928,
+          "n_dialogues": 48,
+          "total_pred": 6,
+          "total_gold": 139
+        },
+        {
+          "percentile": 95,
+          "tau": 11.137500858306888,
+          "wf1": 0.23333333333333336,
+          "purity": 0.375,
+          "coverage": 0.17708333333333334,
+          "bor": 0.20863309352517986,
+          "n_dialogues": 48,
+          "total_pred": 29,
+          "total_gold": 139
+        },
+        {
+          "percentile": 90,
+          "tau": 7.924999046325695,
+          "wf1": 0.4044642857142858,
+          "purity": 0.5729166666666666,
+          "coverage": 0.33680555555555564,
+          "bor": 0.38848920863309355,
+          "n_dialogues": 48,
+          "total_pred": 54,
+          "total_gold": 139
+        },
+        {
+          "percentile": 85,
+          "tau": 4.287500000000001,
+          "wf1": 0.5357142857142857,
+          "purity": 0.7708333333333334,
+          "coverage": 0.4479166666666667,
+          "bor": 0.5323741007194245,
+          "n_dialogues": 48,
+          "total_pred": 74,
+          "total_gold": 139
+        },
+        {
+          "percentile": 80,
+          "tau": 2.7500003814697265,
+          "wf1": 0.649355158730159,
+          "purity": 0.8215277777777779,
+          "coverage": 0.5798611111111113,
+          "bor": 0.7194244604316546,
+          "n_dialogues": 48,
+          "total_pred": 100,
+          "total_gold": 139
+        },
+        {
+          "percentile": 75,
+          "tau": 2.0,
+          "wf1": 0.7260416666666667,
+          "purity": 0.838888888888889,
+          "coverage": 0.6840277777777778,
+          "bor": 0.841726618705036,
+          "n_dialogues": 48,
+          "total_pred": 117,
+          "total_gold": 139
+        },
+        {
+          "percentile": 70,
+          "tau": 1.375,
+          "wf1": 0.7503472222222224,
+          "purity": 0.802777777777778,
+          "coverage": 0.746527777777778,
+          "bor": 0.9784172661870504,
+          "n_dialogues": 48,
+          "total_pred": 136,
+          "total_gold": 139
+        },
+        {
+          "percentile": 65,
+          "tau": 0.5,
+          "wf1": 0.7735119047619049,
+          "purity": 0.7649305555555558,
+          "coverage": 0.8159722222222223,
+          "bor": 1.1151079136690647,
+          "n_dialogues": 48,
+          "total_pred": 155,
+          "total_gold": 139
+        },
+        {
+          "percentile": 60,
+          "tau": -0.75,
+          "wf1": 0.7710317460317461,
+          "purity": 0.7329861111111113,
+          "coverage": 0.8506944444444446,
+          "bor": 1.2158273381294964,
+          "n_dialogues": 48,
+          "total_pred": 169,
+          "total_gold": 139
+        },
+        {
+          "percentile": 55,
+          "tau": -1.75,
+          "wf1": 0.7858630952380953,
+          "purity": 0.7179563492063493,
+          "coverage": 0.90625,
+          "bor": 1.3453237410071943,
+          "n_dialogues": 48,
+          "total_pred": 187,
+          "total_gold": 139
+        },
+        {
+          "percentile": 50,
+          "tau": -2.75,
+          "wf1": 0.7725694444444445,
+          "purity": 0.6867063492063492,
+          "coverage": 0.923611111111111,
+          "bor": 1.4172661870503598,
+          "n_dialogues": 48,
+          "total_pred": 197,
+          "total_gold": 139
+        },
+        {
+          "percentile": 45,
+          "tau": -3.612499999999997,
+          "wf1": 0.7431051587301588,
+          "purity": 0.633482142857143,
+          "coverage": 0.9374999999999999,
+          "bor": 1.5467625899280575,
+          "n_dialogues": 48,
+          "total_pred": 215,
+          "total_gold": 139
+        },
+        {
+          "percentile": 40,
+          "tau": -4.5,
+          "wf1": 0.7317460317460319,
+          "purity": 0.6181051587301586,
+          "coverage": 0.9444444444444443,
+          "bor": 1.6115107913669064,
+          "n_dialogues": 48,
+          "total_pred": 224,
+          "total_gold": 139
+        },
+        {
+          "percentile": 35,
+          "tau": -5.124999713897705,
+          "wf1": 0.7234713203463206,
+          "purity": 0.6007440476190476,
+          "coverage": 0.9583333333333334,
+          "bor": 1.6906474820143884,
+          "n_dialogues": 48,
+          "total_pred": 235,
+          "total_gold": 139
+        },
+        {
+          "percentile": 30,
+          "tau": -5.75,
+          "wf1": 0.711698833573834,
+          "purity": 0.5859126984126982,
+          "coverage": 0.9583333333333334,
+          "bor": 1.7410071942446044,
+          "n_dialogues": 48,
+          "total_pred": 242,
+          "total_gold": 139
+        },
+        {
+          "percentile": 25,
+          "tau": -6.5,
+          "wf1": 0.7101070226070229,
+          "purity": 0.5793898809523808,
+          "coverage": 0.9722222222222223,
+          "bor": 1.79136690647482,
+          "n_dialogues": 48,
+          "total_pred": 249,
+          "total_gold": 139
+        },
+        {
+          "percentile": 20,
+          "tau": -7.499999046325684,
+          "wf1": 0.7063867845117849,
+          "purity": 0.5727926587301585,
+          "coverage": 0.9791666666666666,
+          "bor": 1.8345323741007193,
+          "n_dialogues": 48,
+          "total_pred": 255,
+          "total_gold": 139
+        },
+        {
+          "percentile": 15,
+          "tau": -8.250000286102296,
+          "wf1": 0.6961985930735933,
+          "purity": 0.5574900793650792,
+          "coverage": 0.986111111111111,
+          "bor": 1.9064748201438848,
+          "n_dialogues": 48,
+          "total_pred": 265,
+          "total_gold": 139
+        },
+        {
+          "percentile": 10,
+          "tau": -9.749999523162842,
+          "wf1": 0.6878246753246757,
+          "purity": 0.5464781746031745,
+          "coverage": 0.986111111111111,
+          "bor": 1.9424460431654675,
+          "n_dialogues": 48,
+          "total_pred": 270,
+          "total_gold": 139
+        },
+        {
+          "percentile": 5,
+          "tau": -12.250000309944152,
+          "wf1": 0.6795950577200581,
+          "purity": 0.5341517857142856,
+          "coverage": 0.9930555555555555,
+          "bor": 2.0,
+          "n_dialogues": 48,
+          "total_pred": 278,
+          "total_gold": 139
+        },
+        {
+          "percentile": 1,
+          "tau": -15.504999299049377,
+          "wf1": 0.6750811688311692,
+          "purity": 0.5290922619047617,
+          "coverage": 0.9930555555555555,
+          "bor": 2.0215827338129495,
+          "n_dialogues": 48,
+          "total_pred": 281,
+          "total_gold": 139
+        }
+      ]
+    },
+    "dailydialog": {
+      "best_wf1": 0.7488095238095239,
+      "best_tau": -1.0,
+      "best_bor": 1.5148514851485149,
+      "best_purity": 0.666666666666667,
+      "best_coverage": 0.9340277777777777,
+      "split_half_max_deviation": 0.10763888888888906,
+      "auroc": 0.7593309488743951,
+      "cohens_d": 0.7443283289960371,
+      "n_dialogues": 48,
+      "n_gold_boundaries": 200,
+      "sweep_points": [
+        {
+          "percentile": 99,
+          "tau": 14.499999656677247,
+          "wf1": 0.07638888888888888,
+          "purity": 0.125,
+          "coverage": 0.05902777777777777,
+          "bor": 0.0594059405940594,
+          "n_dialogues": 48,
+          "total_pred": 6,
+          "total_gold": 101
+        },
+        {
+          "percentile": 95,
+          "tau": 11.999999380111694,
+          "wf1": 0.3076388888888889,
+          "purity": 0.4513888888888889,
+          "coverage": 0.25,
+          "bor": 0.27722772277227725,
+          "n_dialogues": 48,
+          "total_pred": 28,
+          "total_gold": 101
+        },
+        {
+          "percentile": 90,
+          "tau": 10.30000019073486,
+          "wf1": 0.49980158730158736,
+          "purity": 0.6267361111111112,
+          "coverage": 0.454861111111111,
+          "bor": 0.5148514851485149,
+          "n_dialogues": 48,
+          "total_pred": 52,
+          "total_gold": 101
+        },
+        {
+          "percentile": 85,
+          "tau": 7.150000858306877,
+          "wf1": 0.5284722222222223,
+          "purity": 0.5927083333333335,
+          "coverage": 0.53125,
+          "bor": 0.7227722772277227,
+          "n_dialogues": 48,
+          "total_pred": 73,
+          "total_gold": 101
+        },
+        {
+          "percentile": 80,
+          "tau": 3.850000190734865,
+          "wf1": 0.6551587301587304,
+          "purity": 0.7072916666666668,
+          "coverage": 0.6979166666666666,
+          "bor": 0.9603960396039604,
+          "n_dialogues": 48,
+          "total_pred": 97,
+          "total_gold": 101
+        },
+        {
+          "percentile": 75,
+          "tau": 2.625,
+          "wf1": 0.6969246031746033,
+          "purity": 0.7072916666666669,
+          "coverage": 0.7673611111111112,
+          "bor": 1.0891089108910892,
+          "n_dialogues": 48,
+          "total_pred": 110,
+          "total_gold": 101
+        },
+        {
+          "percentile": 70,
+          "tau": 1.4999992370605468,
+          "wf1": 0.726686507936508,
+          "purity": 0.6878472222222225,
+          "coverage": 0.8541666666666666,
+          "bor": 1.2772277227722773,
+          "n_dialogues": 48,
+          "total_pred": 129,
+          "total_gold": 101
+        },
+        {
+          "percentile": 65,
+          "tau": 0.23750000000000426,
+          "wf1": 0.7292162698412699,
+          "purity": 0.6680555555555557,
+          "coverage": 0.8888888888888888,
+          "bor": 1.4257425742574257,
+          "n_dialogues": 48,
+          "total_pred": 144,
+          "total_gold": 101
+        },
+        {
+          "percentile": 60,
+          "tau": -1.0,
+          "wf1": 0.7488095238095239,
+          "purity": 0.666666666666667,
+          "coverage": 0.9340277777777777,
+          "bor": 1.5148514851485149,
+          "n_dialogues": 48,
+          "total_pred": 153,
+          "total_gold": 101
+        },
+        {
+          "percentile": 55,
+          "tau": -2.2124999999999986,
+          "wf1": 0.7310515873015876,
+          "purity": 0.6305555555555556,
+          "coverage": 0.954861111111111,
+          "bor": 1.6534653465346534,
+          "n_dialogues": 48,
+          "total_pred": 167,
+          "total_gold": 101
+        },
+        {
+          "percentile": 50,
+          "tau": -3.125,
+          "wf1": 0.7134469696969697,
+          "purity": 0.5998759920634922,
+          "coverage": 0.96875,
+          "bor": 1.7920792079207921,
+          "n_dialogues": 48,
+          "total_pred": 181,
+          "total_gold": 101
+        },
+        {
+          "percentile": 45,
+          "tau": -3.7875000000000014,
+          "wf1": 0.704820526695527,
+          "purity": 0.5762896825396825,
+          "coverage": 0.9930555555555557,
+          "bor": 1.9207920792079207,
+          "n_dialogues": 48,
+          "total_pred": 194,
+          "total_gold": 101
+        },
+        {
+          "percentile": 40,
+          "tau": -4.5,
+          "wf1": 0.6808712121212125,
+          "purity": 0.5468749999999999,
+          "coverage": 0.9930555555555557,
+          "bor": 2.01980198019802,
+          "n_dialogues": 48,
+          "total_pred": 204,
+          "total_gold": 101
+        },
+        {
+          "percentile": 35,
+          "tau": -5.25,
+          "wf1": 0.6638528138528142,
+          "purity": 0.520362103174603,
+          "coverage": 1.0,
+          "bor": 2.108910891089109,
+          "n_dialogues": 48,
+          "total_pred": 213,
+          "total_gold": 101
+        },
+        {
+          "percentile": 30,
+          "tau": -5.875,
+          "wf1": 0.643019480519481,
+          "purity": 0.4956101190476187,
+          "coverage": 1.0,
+          "bor": 2.217821782178218,
+          "n_dialogues": 48,
+          "total_pred": 224,
+          "total_gold": 101
+        },
+        {
+          "percentile": 25,
+          "tau": -6.500000953674316,
+          "wf1": 0.6134725228475232,
+          "purity": 0.4601934523809521,
+          "coverage": 1.0,
+          "bor": 2.3366336633663365,
+          "n_dialogues": 48,
+          "total_pred": 236,
+          "total_gold": 101
+        },
+        {
+          "percentile": 20,
+          "tau": -7.22499942779541,
+          "wf1": 0.602266714766715,
+          "purity": 0.44856150793650773,
+          "coverage": 1.0,
+          "bor": 2.4158415841584158,
+          "n_dialogues": 48,
+          "total_pred": 244,
+          "total_gold": 101
+        },
+        {
+          "percentile": 15,
+          "tau": -8.249999046325684,
+          "wf1": 0.5989191364191366,
+          "purity": 0.4458333333333331,
+          "coverage": 1.0,
+          "bor": 2.4455445544554455,
+          "n_dialogues": 48,
+          "total_pred": 247,
+          "total_gold": 101
+        },
+        {
+          "percentile": 10,
+          "tau": -9.000000953674316,
+          "wf1": 0.5829093360343363,
+          "purity": 0.4258184523809523,
+          "coverage": 1.0,
+          "bor": 2.504950495049505,
+          "n_dialogues": 48,
+          "total_pred": 253,
+          "total_gold": 101
+        },
+        {
+          "percentile": 5,
+          "tau": -10.749999713897704,
+          "wf1": 0.5762985856735858,
+          "purity": 0.41933697089947075,
+          "coverage": 1.0,
+          "bor": 2.5445544554455446,
+          "n_dialogues": 48,
+          "total_pred": 257,
+          "total_gold": 101
+        },
+        {
+          "percentile": 1,
+          "tau": -13.8925,
+          "wf1": 0.5721363127613129,
+          "purity": 0.4156415343915343,
+          "coverage": 1.0,
+          "bor": 2.5841584158415842,
+          "n_dialogues": 48,
+          "total_pred": 261,
+          "total_gold": 101
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "split_half_passed": false,
+    "auc_roc_passed": true,
+    "cohens_d_passed": true,
+    "wf1_reasonable": true
+  },
+  "all_passed": false
+}

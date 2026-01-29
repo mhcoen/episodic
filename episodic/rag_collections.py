@@ -36,6 +36,10 @@ class MultiCollectionRAG:
     
     def __init__(self):
         """Initialize the multi-collection RAG system."""
+        # Ensure SQLite RAG tables exist (for document tracking)
+        from episodic.db_rag import create_rag_tables
+        create_rag_tables()
+
         # Set up ChromaDB client
         db_path = os.path.expanduser("~/.episodic/rag/chroma")
         os.makedirs(db_path, exist_ok=True)
@@ -131,17 +135,20 @@ class MultiCollectionRAG:
                     source: str,
                     metadata: Optional[Dict[str, Any]] = None,
                     collection_type: Optional[str] = None,
-                    chunk: bool = True) -> Tuple[str, int]:
+                    chunk: bool = True,
+                    doc_id: Optional[str] = None) -> Tuple[str, int]:
         """
         Add a document to the specified collection.
-        
+
         Args:
             content: The document content
             source: Source identifier (e.g., 'file', 'conversation', 'web')
             metadata: Optional metadata for the document
             collection_type: Which collection to store in (defaults based on source)
             chunk: Whether to chunk the document
-            
+            doc_id: Optional explicit document ID. If provided, enables deduplication
+                   for conversation memory by using node IDs.
+
         Returns:
             Tuple of (document ID, number of chunks)
         """
@@ -151,13 +158,14 @@ class MultiCollectionRAG:
                 collection_type = CollectionType.CONVERSATION
             else:
                 collection_type = CollectionType.USER_DOCS
-        
+
         # Get the appropriate collection
         collection = self.get_collection(collection_type)
-        
-        # Generate document ID
-        import uuid
-        doc_id = str(uuid.uuid4())
+
+        # Use provided doc_id or generate UUID
+        if doc_id is None:
+            import uuid
+            doc_id = str(uuid.uuid4())
         
         # Prepare metadata
         if metadata is None:
@@ -192,16 +200,23 @@ class MultiCollectionRAG:
               source_filter: Optional[str] = None) -> Dict[str, Any]:
         """
         Search for relevant documents in specified collection(s).
-        
+
         Args:
             query: The search query
             n_results: Number of results to return
-            collection_type: Which collection to search (None = all)
-            source_filter: Filter results by source
-            
+            collection_type: Which collection to search (None = infer from source_filter)
+            source_filter: Filter results by source ('conversation', 'file', etc.)
+
         Returns:
             Dictionary with search results
         """
+        # Infer collection_type from source_filter if not explicitly specified
+        if collection_type is None and source_filter:
+            if source_filter == 'conversation':
+                collection_type = CollectionType.CONVERSATION
+            elif source_filter in ('file', 'web'):
+                collection_type = CollectionType.USER_DOCS
+
         # If collection_type specified, search only that collection
         if collection_type:
             collections_to_search = [collection_type]
@@ -241,8 +256,8 @@ class MultiCollectionRAG:
                         'relevance_score': 1.0 - (distance / 2.0) if distance else None
                     })
         
-        # Sort by relevance score
-        all_results.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
+        # Sort by relevance score (handle None values by treating them as 0)
+        all_results.sort(key=lambda x: x.get('relevance_score') or 0, reverse=True)
         
         # Limit to n_results
         all_results = all_results[:n_results]
@@ -271,23 +286,74 @@ class MultiCollectionRAG:
     def get_collection_stats(self, collection_type: Optional[str] = None) -> Dict[str, Any]:
         """Get statistics for collection(s)."""
         stats = {}
-        
+
         if collection_type:
             collections_to_check = [collection_type]
         else:
             collections_to_check = list(self.collections.keys())
-        
+
         for coll_type in collections_to_check:
             collection = self.get_collection(coll_type)
             count = collection.count()
-            
+
             stats[coll_type] = {
                 'count': count,
                 'name': collection.name,
                 'metadata': collection.metadata
             }
-        
+
         return stats
+
+    def delete_by_content_pattern(
+        self,
+        pattern: str,
+        collection_type: str = CollectionType.CONVERSATION
+    ) -> int:
+        """Delete documents containing a pattern in their content or metadata.
+
+        Used to clean up poisoned memory entries (e.g., recall queries
+        that stored hallucinated responses).
+
+        Args:
+            pattern: Text pattern to search for (case-insensitive)
+            collection_type: Which collection to clean
+
+        Returns:
+            Number of documents deleted
+        """
+        collection = self.get_collection(collection_type)
+        pattern_lower = pattern.lower()
+
+        # Get all documents with their content and metadata
+        all_data = collection.get(include=['documents', 'metadatas'])
+
+        if not all_data['ids']:
+            return 0
+
+        # Find IDs to delete
+        ids_to_delete = []
+        for i, doc_id in enumerate(all_data['ids']):
+            document = all_data['documents'][i] if all_data['documents'] else ''
+            metadata = all_data['metadatas'][i] if all_data['metadatas'] else {}
+
+            # Check document content
+            if document and pattern_lower in document.lower():
+                ids_to_delete.append(doc_id)
+                continue
+
+            # Check user_content in metadata
+            user_content = metadata.get('user_content', '')
+            if user_content and pattern_lower in user_content.lower():
+                ids_to_delete.append(doc_id)
+
+        if ids_to_delete:
+            collection.delete(ids=ids_to_delete)
+            debug_print(
+                f"Deleted {len(ids_to_delete)} documents matching '{pattern}' from {collection_type}",
+                category="memory"
+            )
+
+        return len(ids_to_delete)
 
 
 # Singleton instance

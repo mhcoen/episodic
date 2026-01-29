@@ -21,12 +21,17 @@ from episodic.configuration import (
 def memory_command(action: Optional[str] = None, *args):
     """
     View and manage memory entries.
-    
+
     Usage:
         /memory                    # Show recent memory entries
         /memory search <query>     # Search memory entries
         /memory show <id>          # Show specific memory entry
         /memory list [limit]       # List memories with optional limit
+        /memory index [limit]      # Index unindexed conversations
+        /memory index --failed     # Retry failed indexes only
+        /memory stats              # Show indexing statistics
+        /memory clean              # Remove poisoned recall-query entries
+        /memory clean <pattern>    # Remove entries matching pattern
     """
     if not action:
         # Show recent memories
@@ -45,9 +50,24 @@ def memory_command(action: Optional[str] = None, *args):
     elif action == "list":
         limit = int(args[0]) if args else 20
         list_memories(limit=limit)
+    elif action == "index":
+        # Parse args for --failed flag and limit
+        failed_only = '--failed' in args
+        # Filter out --failed from args to get limit
+        limit_args = [a for a in args if a != '--failed']
+        limit = int(limit_args[0]) if limit_args else 100
+        index_recent_conversations(limit=limit, failed_only=failed_only)
+    elif action == "stats":
+        show_indexing_stats()
+    elif action == "clean":
+        if args:
+            pattern = " ".join(args)
+        else:
+            pattern = None
+        clean_poisoned_memories(pattern)
     else:
         typer.secho(f"Unknown memory action: {action}", fg=get_error_color())
-        typer.secho("Available: search, show, list", fg=get_text_color())
+        typer.secho("Available: search, show, list, index, stats, clean", fg=get_text_color())
 
 
 def list_memories(limit: int = 20):
@@ -408,3 +428,165 @@ def memory_stats_command():
     if not rag_enabled:
         typer.secho("\n💡 Tip: Enable auto-context with '/set rag on'", fg=get_text_color(), dim=True)
         typer.secho("   This will automatically use memories to enhance responses", fg=get_text_color(), dim=True)
+
+
+def index_recent_conversations(limit: int = 100, failed_only: bool = False):
+    """Index conversations into memory for semantic search.
+
+    Uses durable status tracking to determine what needs indexing.
+
+    Args:
+        limit: Maximum number of exchanges to index
+        failed_only: If True, only retry previously failed indexes
+    """
+    import asyncio
+    from episodic.db import get_unindexed_nodes, get_failed_nodes, get_indexing_stats, get_node
+    from episodic.rag_memory_sqlite import memory_rag
+
+    # Get nodes to index based on durable status
+    if failed_only:
+        node_rows = get_failed_nodes(index_type='conversation', limit=limit)
+        node_ids = [r['node_id'] for r in node_rows]
+        typer.secho(f"\n🔄 Retrying {len(node_ids)} failed indexes...", fg=get_system_color())
+    else:
+        node_ids = get_unindexed_nodes(index_type='conversation', limit=limit)
+        typer.secho(f"\n🔄 Indexing {len(node_ids)} unindexed exchanges...", fg=get_system_color())
+
+    if not node_ids:
+        typer.secho("✅ Nothing to index", fg=get_success_color())
+        # Show stats
+        stats = get_indexing_stats('conversation')
+        if stats:
+            typer.secho(f"\nTotal indexed: {stats.get('ok', 0)}, Failed: {stats.get('failed', 0)}",
+                        fg=get_text_color(), dim=True)
+        return
+
+    # Index each exchange
+    ok_count = 0
+    fail_count = 0
+    first_error = None
+
+    for node_id in node_ids:
+        # Get the user node
+        user_node = get_node(node_id)
+        if not user_node or user_node.get('role') != 'user':
+            continue
+
+        # Find the assistant response (child node)
+        from episodic.db import get_children
+        children = get_children(node_id)
+        assistant_node = None
+        for child in children:
+            if child.get('role') == 'assistant':
+                assistant_node = child
+                break
+
+        if not assistant_node:
+            continue
+
+        try:
+            # Direct synchronous call - ChromaDB and SQLite are both sync
+            memory_rag.index_exchange(user_node, assistant_node)
+            ok_count += 1
+        except Exception as e:
+            fail_count += 1
+            if first_error is None:
+                first_error = str(e)
+            if config.get("debug"):
+                typer.secho(f"  Failed: {node_id[:8]}: {e}", fg=get_error_color(), dim=True)
+
+    # Show first error if any failures
+    if first_error:
+        typer.secho(f"  First error: {first_error}", fg=get_error_color())
+
+    # Report results
+    typer.secho(f"\n✅ Indexed: {ok_count}", fg=get_success_color())
+    if fail_count:
+        typer.secho(f"❌ Failed: {fail_count}", fg=get_error_color())
+
+    # Show overall stats
+    stats = get_indexing_stats('conversation')
+    typer.secho(f"\nTotal indexed: {stats.get('ok', 0)}, Failed: {stats.get('failed', 0)}",
+                fg=get_text_color(), dim=True)
+
+
+def clean_poisoned_memories(pattern: Optional[str] = None):
+    """Remove poisoned memory entries (recall queries that stored hallucinations).
+
+    By default, removes entries containing recall-query patterns like
+    "what did we discuss" which pollute memory with hallucinated responses.
+
+    Args:
+        pattern: Optional custom pattern to match. If None, uses default
+                 recall-query patterns.
+    """
+    from episodic.rag_collections import get_multi_collection_rag, CollectionType
+
+    rag = get_multi_collection_rag()
+
+    # Default patterns to clean: recall/meta-queries that pollute memory
+    default_patterns = [
+        "what did we discuss",
+        "what did we talk about",
+        "what was that about",
+        "remind me what",
+        "remember when we",
+    ]
+
+    patterns_to_clean = [pattern] if pattern else default_patterns
+    total_deleted = 0
+
+    typer.secho("\n🧹 Cleaning poisoned memory entries...", fg=get_heading_color())
+
+    for p in patterns_to_clean:
+        deleted = rag.delete_by_content_pattern(p, CollectionType.CONVERSATION)
+        if deleted > 0:
+            typer.secho(f"  Removed {deleted} entries matching: '{p}'", fg=get_text_color())
+            total_deleted += deleted
+
+    if total_deleted > 0:
+        typer.secho(f"\n✅ Removed {total_deleted} poisoned memory entries", fg=get_success_color())
+        typer.secho("Future recall queries will not be indexed.", fg=get_text_color(), dim=True)
+    else:
+        typer.secho("\n✅ No poisoned entries found", fg=get_success_color())
+
+
+def show_indexing_stats():
+    """Show detailed indexing statistics."""
+    from episodic.db import get_indexing_stats, get_failed_nodes, get_unindexed_nodes
+
+    typer.secho("\n📊 Memory Indexing Status", fg=get_heading_color(), bold=True)
+    typer.secho("─" * 50, fg=get_heading_color())
+
+    # Get stats
+    stats = get_indexing_stats('conversation')
+    ok_count = stats.get('ok', 0)
+    failed_count = stats.get('failed', 0)
+    pending_count = stats.get('pending', 0)
+
+    # Count unindexed (no status record at all)
+    unindexed = get_unindexed_nodes(limit=10000)
+    unindexed_count = len(unindexed)
+
+    typer.secho("\nStatus:", fg=get_system_color(), bold=True)
+    typer.secho(f"  ✅ Successfully indexed: {ok_count}", fg=get_success_color())
+    typer.secho(f"  ❌ Failed: {failed_count}", fg=get_error_color() if failed_count else get_text_color())
+    typer.secho(f"  ⏳ Never attempted: {unindexed_count - failed_count}", fg=get_text_color())
+
+    # Show recent failures if any
+    if failed_count > 0:
+        typer.secho("\nRecent Failures:", fg=get_system_color(), bold=True)
+        failed_nodes = get_failed_nodes(limit=5)
+        for node in failed_nodes:
+            error_preview = node['last_error'][:60] if node['last_error'] else 'Unknown error'
+            if node['last_error'] and len(node['last_error']) > 60:
+                error_preview += '...'
+            typer.secho(f"  • {node['node_id'][:8]}: {error_preview}", fg=get_text_color())
+            typer.secho(f"    Attempts: {node['attempts']}, Failed: {node['failed_at'][:16] if node['failed_at'] else 'unknown'}",
+                        fg=get_text_color(), dim=True)
+
+    # Hint for retry
+    if failed_count > 0:
+        typer.secho(f"\n💡 Retry failures with: /memory index --failed", fg=get_text_color(), dim=True)
+    elif unindexed_count > failed_count:
+        typer.secho(f"\n💡 Index pending with: /memory index", fg=get_text_color(), dim=True)

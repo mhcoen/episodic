@@ -1,0 +1,44 @@
+# Episodic Test Script: Speaker-Based Queries
+# ============================================
+# Tests the query understanding system's ability to parse and resolve
+# speaker references (I/me/my vs you/your vs we/us/our).
+#
+# Prerequisites:
+#   - Test fixtures must be injected
+#   - Test mode must be enabled (/test on)
+#
+# Speaker mappings:
+#   - I, me, my -> "user"
+#   - you, your -> "assistant"  
+#   - we, us, our -> "both" (maps to None for no restriction)
+
+# === USER SPEAKER QUERIES ===
+# Should filter to user messages only
+
+what did I say about quantum computing
+
+did I ask about B-trees
+
+my questions about asyncio
+
+what did I mention about overfitting
+
+# === ASSISTANT SPEAKER QUERIES ===
+# Should filter to assistant messages only
+
+what did you say about databases
+
+your explanation of supervised learning
+
+what did you tell me about qubits
+
+# === BOTH/WE SPEAKER QUERIES ===
+# Should include both user and assistant messages
+
+what did we discuss about machine learning
+
+our conversation about Python
+
+when did we talk about indexes
+
+have we discussed error correction

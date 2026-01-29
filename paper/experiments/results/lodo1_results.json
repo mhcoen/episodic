@@ -1,0 +1,26 @@
+{
+  "experiment": "lodo1",
+  "train_data": "superseg_2k + tiage",
+  "test_data": "dialseg711",
+  "training_time_minutes": 11.019405583540598,
+  "distilbert": {
+    "exact_f1": 0.2623908362304987,
+    "tolerant_f1": 0.6883079336665834,
+    "bor": 0.9755142017629774,
+    "n_dialogues": 711
+  },
+  "gpt52": {
+    "exact_f1": 0.43682048534369206,
+    "tolerant_f1": 0.7570390462795527,
+    "bor": 0.9946131243878551,
+    "n_dialogues": 711
+  },
+  "config": {
+    "superseg_subsample": 2000,
+    "batch_size": 16,
+    "epochs": 3,
+    "min_gap": 2,
+    "tolerant_window": 3
+  },
+  "timestamp": "2026-01-19T19:14:11.645218"
+}

@@ -3,8 +3,10 @@ Speech-to-Text (STT) provider abstraction for Episodic voice mode.
 
 Supports multiple providers:
 - local_whisper: faster-whisper (free, runs locally)
-- openai_whisper: OpenAI Whisper API (~$0.006/min)
-- deepgram: Deepgram API (~$0.008/min, real-time streaming)
+- openai_whisper: OpenAI Whisper API (cloud)
+- deepgram: Deepgram API (cloud, real-time streaming)
+
+Pricing is loaded from voice_pricing.json for cost tracking.
 """
 
 import io
@@ -67,19 +69,26 @@ def _is_hallucination(text: str) -> bool:
         return True
 
     text_lower = text.lower().strip()
+    # Also create a version without trailing punctuation for matching
+    text_no_punct = text_lower.rstrip('.,!?;:')
 
-    # Common exact hallucinations
+    # Common exact hallucinations (checked with and without trailing punctuation)
     hallucinations = {
-        "bye", "bye.", "bye bye", "bye-bye", "goodbye",
-        "thank you", "thanks", "thanks.", "thank you.",
-        "you", "the", "a", "i", "it", "so", "and",
+        "bye", "bye bye", "bye-bye", "goodbye",
+        "thank you", "thanks", "thank you very much",
+        "you", "the", "a", "i", "it", "so", "and", "um", "uh",
         "...", ".", "", " ",
         "thanks for watching", "thank you for watching",
+        "thanks for listening", "thank you for listening",
         "please subscribe", "subscribe", "like and subscribe",
-        "see you next time", "see you", "see you later",
+        "don't forget to subscribe", "hit the subscribe button",
+        "see you next time", "see you", "see you later", "see you soon",
+        "see you in the next video", "see you in the next one",
         "take care", "have a nice day", "have a good day",
+        "i'll see you in the next video", "until next time",
+        "peace", "peace out", "later", "cheers",
     }
-    if text_lower in hallucinations:
+    if text_lower in hallucinations or text_no_punct in hallucinations:
         return True
 
     # Patterns that indicate hallucinations (URLs, promotional content)
@@ -185,8 +194,8 @@ class OpenAIWhisperProvider(BaseSTTProvider):
     """
     Cloud speech-to-text using OpenAI Whisper API.
 
-    Cost: ~$0.006/minute
     Excellent accuracy, no local compute needed.
+    Pricing loaded from voice_pricing.json.
     """
 
     name = "openai_whisper"
@@ -200,9 +209,6 @@ class OpenAIWhisperProvider(BaseSTTProvider):
             from openai import OpenAI
             self._client = OpenAI()
         return self._client
-
-    # OpenAI Whisper pricing: $0.006 per minute
-    COST_PER_MINUTE = 0.006
 
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> Optional[str]:
         """Transcribe using OpenAI Whisper API."""
@@ -232,8 +238,10 @@ class OpenAIWhisperProvider(BaseSTTProvider):
                     )
                 text = transcript.text.strip()
 
-                # Track cost
-                cost_usd = (duration_seconds / 60.0) * self.COST_PER_MINUTE
+                # Track cost (pricing loaded from voice_pricing.json)
+                from episodic.voice_pricing import get_stt_cost_per_minute
+                cost_per_minute = get_stt_cost_per_minute("openai_whisper")
+                cost_usd = (duration_seconds / 60.0) * cost_per_minute
                 from episodic.llm_manager import llm_manager
                 llm_manager.record_voice_stt(duration_seconds, cost_usd)
 
@@ -258,14 +266,11 @@ class DeepgramProvider(BaseSTTProvider):
     """
     Cloud speech-to-text using Deepgram API.
 
-    Cost: ~$0.0043/minute (Nova-2 model)
     Real-time streaming support, very fast.
+    Pricing loaded from voice_pricing.json.
     """
 
     name = "deepgram"
-
-    # Deepgram Nova-2 pricing: $0.0043 per minute
-    COST_PER_MINUTE = 0.0043
 
     def __init__(self, model: str = "nova-2"):
         self.model = model
@@ -301,8 +306,10 @@ class DeepgramProvider(BaseSTTProvider):
 
             text = response.results.channels[0].alternatives[0].transcript
 
-            # Track cost
-            cost_usd = (duration_seconds / 60.0) * self.COST_PER_MINUTE
+            # Track cost (pricing loaded from voice_pricing.json)
+            from episodic.voice_pricing import get_stt_cost_per_minute
+            cost_per_minute = get_stt_cost_per_minute("deepgram")
+            cost_usd = (duration_seconds / 60.0) * cost_per_minute
             from episodic.llm_manager import llm_manager
             llm_manager.record_voice_stt(duration_seconds, cost_usd)
 

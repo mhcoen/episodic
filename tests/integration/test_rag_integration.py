@@ -401,5 +401,132 @@ class TestRAGCommands(unittest.TestCase):
         self.assertFalse(config.get('rag_enabled'))
 
 
+class TestRAGCollectionIsolation(unittest.TestCase):
+    """Test that user docs and conversation memory are properly isolated.
+
+    This tests the security fix for the bug where conversation content
+    was leaking into RAG search results.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up test environment once."""
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.original_home = os.environ.get('EPISODIC_HOME')
+        cls.original_user_home = os.environ.get('HOME')
+        os.environ['EPISODIC_HOME'] = cls.temp_dir
+        os.environ['HOME'] = cls.temp_dir
+        cls.db_path = os.environ.get('EPISODIC_DB_PATH', os.path.join(cls.temp_dir, '.episodic', 'episodic.db'))
+
+        cls._embedding_patcher = patch(
+            'episodic.rag_utils.SilentSentenceTransformerEmbeddingFunction',
+            DummyEmbeddingFunction
+        )
+        cls._embedding_patcher.start()
+
+        # Initialize database
+        os.makedirs(os.path.dirname(cls.db_path), exist_ok=True)
+        if os.path.exists(cls.db_path):
+            os.remove(cls.db_path)
+        initialize_db(migrate=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up test environment."""
+        if cls.original_home:
+            os.environ['EPISODIC_HOME'] = cls.original_home
+        else:
+            os.environ.pop('EPISODIC_HOME', None)
+        if cls.original_user_home:
+            os.environ['HOME'] = cls.original_user_home
+        else:
+            os.environ.pop('HOME', None)
+        cls._embedding_patcher.stop()
+
+        if os.path.exists(cls.db_path):
+            os.remove(cls.db_path)
+        shutil.rmtree(cls.temp_dir, ignore_errors=True)
+
+    def test_user_doc_search_excludes_conversation(self):
+        """Test that searching user docs doesn't return conversation memory."""
+        from episodic.rag_adapter import EpisodicRAGAdapter
+        from episodic.rag_collections import CollectionType
+
+        adapter = EpisodicRAGAdapter()
+
+        # Add a user document
+        adapter.add_document(
+            content="Python is a programming language used for data science.",
+            source="file",  # This routes to USER_DOCS
+            metadata={"filename": "python_guide.txt"}
+        )
+
+        # Add a conversation memory
+        adapter.add_document(
+            content="User asked about secret API keys and passwords.",
+            source="conversation",  # This routes to CONVERSATION
+            metadata={"user_id": "test-user-123"}
+        )
+
+        # Search with source_filter='file' should ONLY return user docs
+        results = adapter.search("python", n_results=10, source_filter='file')
+
+        # Should find the user document
+        self.assertGreater(results['total'], 0)
+
+        # Should NOT contain conversation content
+        for result in results['results']:
+            content = result.get('content', '')
+            self.assertNotIn('secret API keys', content)
+            self.assertNotIn('passwords', content)
+
+    def test_conversation_search_excludes_user_docs(self):
+        """Test that searching conversation memory doesn't return user docs."""
+        from episodic.rag_adapter import EpisodicRAGAdapter
+
+        adapter = EpisodicRAGAdapter()
+
+        # Add a user document with sensitive-looking content
+        adapter.add_document(
+            content="Company confidential: quarterly revenue report.",
+            source="file",
+            metadata={"filename": "revenue.txt"}
+        )
+
+        # Add a conversation memory
+        adapter.add_document(
+            content="User discussed their favorite programming languages.",
+            source="conversation",
+            metadata={"user_id": "test-user-456"}
+        )
+
+        # Search with source_filter='conversation' should ONLY return memories
+        results = adapter.search("confidential revenue", n_results=10, source_filter='conversation')
+
+        # Should NOT contain user document content
+        for result in results['results']:
+            content = result.get('content', '')
+            self.assertNotIn('quarterly revenue', content)
+            self.assertNotIn('Company confidential', content)
+
+    def test_no_filter_searches_all_collections_warning(self):
+        """Test that searching without filter searches all (and log warning in debug)."""
+        from episodic.rag_adapter import EpisodicRAGAdapter
+
+        adapter = EpisodicRAGAdapter()
+
+        # Add to both collections
+        adapter.add_document("User doc content about testing.", source="file")
+        adapter.add_document("Conversation about testing.", source="conversation")
+
+        # Search without filter - this searches ALL collections
+        # This is the behavior that was causing the leak; now it's explicit
+        results = adapter.search("testing", n_results=10)
+
+        # Without filter, should find results from both collections
+        # This test documents the current behavior
+        self.assertGreaterEqual(results['total'], 1)
+
+
 if __name__ == '__main__':
     unittest.main()

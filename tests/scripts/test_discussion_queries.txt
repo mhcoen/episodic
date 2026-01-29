@@ -1,0 +1,64 @@
+# Episodic Test Script: Discussion Query Forms
+# =============================================
+# Tests the parser's recognition of discussion query patterns
+# that should produce DiscussionQuery AST nodes.
+#
+# These forms all trigger browse mode with no segment scope.
+#
+# Forms tested:
+#   - "when (did)? (we|I|you)? discuss/talked/mentioned..."
+#   - "have/has (we|I|you) (ever)? discuss/talked/mentioned..."
+#   - "did (I|you|we) (ever)? discuss/talked/mentioned..."
+
+# === WHEN FORMS ===
+
+when did we discuss quantum computing
+
+when we talked about databases
+
+when did I mention asyncio
+
+when was the last time we discussed machine learning
+
+when did we last discuss Python
+
+# === HAVE/HAS FORMS ===
+
+have we discussed B-trees before
+
+have I ever mentioned overfitting
+
+has this topic come up previously
+
+have we talked about hash indexes
+
+# === DID FORMS ===
+
+did we discuss qubits
+
+did I say anything about coherence
+
+did you mention regularization
+
+did we ever talk about supervised learning
+
+# === BROADNESS CUE TESTS ===
+# Queries with "before", "previously", "ever", "already"
+# Should set has_broadness_cue=True
+
+have we ever discussed this
+
+did we talk about that before
+
+have I mentioned this previously
+
+was that topic already covered
+
+# === DEICTIC FORMS ===
+# "last time" should set deictic, not temporal
+
+when was the last time we discussed Python
+
+the last time we talked about databases
+
+last time I asked about machine learning

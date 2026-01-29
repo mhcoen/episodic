@@ -219,23 +219,29 @@ def suppress_chromadb_telemetry():
 def requires_rag(func: Callable) -> Callable:
     """
     Decorator that ensures RAG is enabled and initialized.
-    
+
     Use this decorator on any function that requires RAG functionality.
     It will check if RAG is enabled and properly initialized before
     executing the function.
+
+    Note: RAG infrastructure is needed if either user document RAG or
+    conversation memory retrieval is enabled - they share the same backend.
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not config.get('rag_enabled', False):
+        rag_enabled = config.get('rag_enabled', False)
+        conversation_retrieval = config.get('conversation_retrieval_enabled', False)
+
+        if not rag_enabled and not conversation_retrieval:
             typer.secho("RAG is not enabled. Use '/rag on' to enable.", fg="yellow")
             return
-        
+
         from episodic.rag import ensure_rag_initialized
         if not ensure_rag_initialized():
             return
-        
+
         return func(*args, **kwargs)
-    
+
     return wrapper
 
 

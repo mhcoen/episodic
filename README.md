@@ -18,6 +18,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
 - **🧠 Intelligent Topic Detection** - Neural segmentation validated on academic benchmarks, with configurable granularity
+- **🔄 Topic Reactivation** - Seamlessly resume previous topics with full context restoration
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📎 File References (@file)** - Attach local files directly in chat messages
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
@@ -125,6 +126,18 @@ Episodic automatically configures itself based on available providers:
 /forget          # Clear memory of specific topics
 /new             # Start a new conversation branch
 /clear           # Clear current conversation context
+
+# Topic Management
+/topics delete <name>                    # Delete topic by exact name
+/topics delete --pattern "test"          # Delete by pattern match
+/topics delete --time "since yesterday"  # Delete by time range
+
+# Test Mode (for developers)
+/test            # Show test mode status
+/test clone      # Copy production to test environment
+/test on         # Switch to test environment ([TEST] prompt)
+/test off        # Switch back to production
+/test clear      # Wipe test environment
 
 # File References
 @document.txt        # Include text file in message
@@ -286,6 +299,106 @@ Episodic automatically manages long conversations by detecting topic changes and
 📌 New topic: database-scaling-strategies
 💾 Context usage: 38% (previous topic compressed to 420 tokens)
 ```
+
+### 🔄 Topic Reactivation - Resume Any Topic
+When you return to a previously discussed topic, Episodic automatically detects this and restores that topic's context—excluding unrelated conversations:
+
+```text
+> Help me debug this Python IndexError
+📌 New topic: python-debugging
+🤖 Let me help you with that IndexError...
+
+[... discussion about Python ...]
+
+> Let's talk about coffee brewing
+📌 New topic: coffee-brewing
+🤖 Great topic! For pour-over, the ideal ratio is...
+
+[... discussion about coffee ...]
+
+> Back to that Python error - what was the fix?
+🔄 Resuming topic: python-debugging
+🤖 Right, for that IndexError we discussed checking the list bounds...
+```
+
+**Key guarantee:** When you resume Python, the coffee conversation is completely excluded from context—no confusion, no bleed-through.
+
+**Disambiguation:** If your message could match multiple topics (e.g., "more about Java" when you've discussed both Java programming and Java coffee), Episodic shows options:
+```text
+I found multiple matching topics:
+[1] java-programming (12 turns ago) - "How do I use Java streams?"
+[2] java-coffee (45 turns ago) - "Best Java coffee beans?"
+Which topic?
+```
+
+Topic reactivation is enabled by default. See the [Topic Reactivation Guide](docs/user_guide_topic_reactivation.md) for configuration options.
+
+### 🗑️ Topic Deletion
+Clean up unwanted topics by name, pattern, or time range:
+
+```text
+# Delete by exact name
+> /topics delete python-retry-mechanisms
+Topics to delete (1 total):
+  1. python-retry-mechanisms
+Deleted 1 topic(s)
+
+# Delete by pattern (case-insensitive)
+> /topics delete --pattern "test"
+Topics to delete (3 total):
+  1. test-topic-one
+  2. test-debugging-session
+  3. testing-apis
+
+# Delete by time range with natural language
+> /topics delete --time "since yesterday"
+> /topics delete --time "since 2 hours ago"
+> /topics delete --time "between 10am and 2pm today"
+
+# Preview before deleting
+> /topics delete --pattern "old" --dry-run
+Would delete (5 total):
+  1. old-project-notes
+  ...
+(Dry run - no changes made)
+```
+
+Topic deletion cascades through all related data (centroids, topic nodes, working sets, embeddings) while preserving conversation history.
+
+### 🧪 Test Mode
+Isolate testing from production data with a separate environment:
+
+```text
+# Clone production to test environment
+> /test clone
+📋 Cloning production to test environment...
+   ✓ Copied database: ~/.episodic/test/episodic.db
+   ✓ Copied ChromaDB: ~/.episodic/test/chroma
+✅ Clone complete!
+
+# Switch to test mode (note the [TEST] prompt)
+> /test on
+🧪 Test mode ENABLED
+
+[TEST] > What's the best pizza topping?
+🤖 Pepperoni is a classic favorite...
+
+[TEST] > /topics
+📑 Conversation Topics (1 total)
+  [1] ○ pizza-preferences (ongoing)
+
+# Delete test topics without affecting production
+[TEST] > /topics delete --pattern "pizza" --force
+Deleted 1 topic(s)
+
+# Return to production
+[TEST] > /test off
+📦 Test mode DISABLED
+
+> /test clear    # Wipe test environment when done
+```
+
+Test mode uses completely separate SQLite and ChromaDB paths (`~/.episodic/test/`), ensuring test data never pollutes production.
 
 ### 📝 Save and Resume Conversations
 Export conversations to markdown for sharing, backup, or continuing later:
@@ -453,6 +566,7 @@ Episodic uses a modular architecture:
   - *Neural detection*: Fine-tuned DistilBERT model (~80% W-F1 on benchmarks)
   - *Embedding-based*: Dual-window with adaptive thresholds
   - *Granularity control*: Fine/medium/coarse segmentation for different use cases
+- **Context Recovery**: Topic-isolated context assembly with configurable modes (ancestry/topic_local/hybrid)
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Brave, Searx)
 

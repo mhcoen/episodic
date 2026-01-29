@@ -76,6 +76,26 @@ from .db_rag import (
     create_rag_tables
 )
 
+# Indexing status operations
+from .db_indexing import (
+    update_indexing_status,
+    get_indexing_status,
+    should_index,
+    get_unindexed_nodes,
+    get_failed_nodes,
+    get_indexing_stats,
+    clear_indexing_status
+)
+
+# Checkpoint operations
+from .db_checkpoint import (
+    get_embedding_checkpoint,
+    set_embedding_checkpoint,
+    get_nodes_after_checkpoint,
+    get_max_node_rowid,
+    ensure_configuration_table
+)
+
 # Export all functions for backward compatibility
 __all__ = [
     # Connection management
@@ -128,5 +148,21 @@ __all__ = [
     'migrate_to_roles',
     
     # RAG operations
-    'create_rag_tables'
+    'create_rag_tables',
+
+    # Indexing status operations
+    'update_indexing_status',
+    'get_indexing_status',
+    'should_index',
+    'get_unindexed_nodes',
+    'get_failed_nodes',
+    'get_indexing_stats',
+    'clear_indexing_status',
+
+    # Checkpoint operations
+    'get_embedding_checkpoint',
+    'set_embedding_checkpoint',
+    'get_nodes_after_checkpoint',
+    'get_max_node_rowid',
+    'ensure_configuration_table'
 ]

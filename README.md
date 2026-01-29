@@ -18,6 +18,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
 - **🧠 Intelligent Topic Detection** - Neural segmentation validated on academic benchmarks, with configurable granularity
+- **🔄 Topic Reactivation** - Seamlessly resume previous topics with full context restoration
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📎 File References (@file)** - Attach local files directly in chat messages
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
@@ -287,6 +288,39 @@ Episodic automatically manages long conversations by detecting topic changes and
 💾 Context usage: 38% (previous topic compressed to 420 tokens)
 ```
 
+### 🔄 Topic Reactivation - Resume Any Topic
+When you return to a previously discussed topic, Episodic automatically detects this and restores that topic's context—excluding unrelated conversations:
+
+```text
+> Help me debug this Python IndexError
+📌 New topic: python-debugging
+🤖 Let me help you with that IndexError...
+
+[... discussion about Python ...]
+
+> Let's talk about coffee brewing
+📌 New topic: coffee-brewing
+🤖 Great topic! For pour-over, the ideal ratio is...
+
+[... discussion about coffee ...]
+
+> Back to that Python error - what was the fix?
+🔄 Resuming topic: python-debugging
+🤖 Right, for that IndexError we discussed checking the list bounds...
+```
+
+**Key guarantee:** When you resume Python, the coffee conversation is completely excluded from context—no confusion, no bleed-through.
+
+**Disambiguation:** If your message could match multiple topics (e.g., "more about Java" when you've discussed both Java programming and Java coffee), Episodic shows options:
+```text
+I found multiple matching topics:
+[1] java-programming (12 turns ago) - "How do I use Java streams?"
+[2] java-coffee (45 turns ago) - "Best Java coffee beans?"
+Which topic?
+```
+
+Enable with `/set enable_topic_reactivation true`. See the [Topic Reactivation Guide](docs/user_guide_topic_reactivation.md) for details.
+
 ### 📝 Save and Resume Conversations
 Export conversations to markdown for sharing, backup, or continuing later:
 
@@ -453,6 +487,7 @@ Episodic uses a modular architecture:
   - *Neural detection*: Fine-tuned DistilBERT model (~80% W-F1 on benchmarks)
   - *Embedding-based*: Dual-window with adaptive thresholds
   - *Granularity control*: Fine/medium/coarse segmentation for different use cases
+- **Context Recovery**: Topic-isolated context assembly with configurable modes (ancestry/topic_local/hybrid)
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Brave, Searx)
 

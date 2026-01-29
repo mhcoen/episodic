@@ -127,6 +127,18 @@ Episodic automatically configures itself based on available providers:
 /new             # Start a new conversation branch
 /clear           # Clear current conversation context
 
+# Topic Management
+/topics delete <name>                    # Delete topic by exact name
+/topics delete --pattern "test"          # Delete by pattern match
+/topics delete --time "since yesterday"  # Delete by time range
+
+# Test Mode (for developers)
+/test            # Show test mode status
+/test clone      # Copy production to test environment
+/test on         # Switch to test environment ([TEST] prompt)
+/test off        # Switch back to production
+/test clear      # Wipe test environment
+
 # File References
 @document.txt        # Include text file in message
 @paper.pdf           # Include PDF (extracts text)
@@ -320,6 +332,73 @@ Which topic?
 ```
 
 Topic reactivation is enabled by default. See the [Topic Reactivation Guide](docs/user_guide_topic_reactivation.md) for configuration options.
+
+### 🗑️ Topic Deletion
+Clean up unwanted topics by name, pattern, or time range:
+
+```text
+# Delete by exact name
+> /topics delete python-retry-mechanisms
+Topics to delete (1 total):
+  1. python-retry-mechanisms
+Deleted 1 topic(s)
+
+# Delete by pattern (case-insensitive)
+> /topics delete --pattern "test"
+Topics to delete (3 total):
+  1. test-topic-one
+  2. test-debugging-session
+  3. testing-apis
+
+# Delete by time range with natural language
+> /topics delete --time "since yesterday"
+> /topics delete --time "since 2 hours ago"
+> /topics delete --time "between 10am and 2pm today"
+
+# Preview before deleting
+> /topics delete --pattern "old" --dry-run
+Would delete (5 total):
+  1. old-project-notes
+  ...
+(Dry run - no changes made)
+```
+
+Topic deletion cascades through all related data (centroids, topic nodes, working sets, embeddings) while preserving conversation history.
+
+### 🧪 Test Mode
+Isolate testing from production data with a separate environment:
+
+```text
+# Clone production to test environment
+> /test clone
+📋 Cloning production to test environment...
+   ✓ Copied database: ~/.episodic/test/episodic.db
+   ✓ Copied ChromaDB: ~/.episodic/test/chroma
+✅ Clone complete!
+
+# Switch to test mode (note the [TEST] prompt)
+> /test on
+🧪 Test mode ENABLED
+
+[TEST] > What's the best pizza topping?
+🤖 Pepperoni is a classic favorite...
+
+[TEST] > /topics
+📑 Conversation Topics (1 total)
+  [1] ○ pizza-preferences (ongoing)
+
+# Delete test topics without affecting production
+[TEST] > /topics delete --pattern "pizza" --force
+Deleted 1 topic(s)
+
+# Return to production
+[TEST] > /test off
+📦 Test mode DISABLED
+
+> /test clear    # Wipe test environment when done
+```
+
+Test mode uses completely separate SQLite and ChromaDB paths (`~/.episodic/test/`), ensuring test data never pollutes production.
 
 ### 📝 Save and Resume Conversations
 Export conversations to markdown for sharing, backup, or continuing later:

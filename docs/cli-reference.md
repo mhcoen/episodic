@@ -273,9 +273,45 @@ Unified topic management
 /topics reanalyze           # Re-detect topics using full conversation context
 /topics reanalyze apply     # Re-detect and save to database
 /topics reanalyze verbose   # Re-detect with detailed merge history
+/topics delete <name>       # Delete topic by exact name
+/topics delete --pattern "test"  # Delete by pattern match
+/topics delete --time "since yesterday"  # Delete by time range
+/topics delete --dry-run    # Preview without deleting
+/topics delete --force      # Skip confirmation prompt
 ```
 
 The `reanalyze` subcommand uses hierarchical clustering with elbow detection to find natural topic boundaries across the entire conversation, rather than the real-time sliding window approach used during chat.
+
+### Topic Deletion
+
+Delete topics by name, pattern match, or time range:
+```bash
+# By exact name
+/topics delete python-retry-mechanisms
+
+# By pattern (case-insensitive substring match)
+/topics delete --pattern "test"
+/topics delete --pattern "sourdough"
+
+# By time range (natural language)
+/topics delete --time "since yesterday"
+/topics delete --time "since 2 hours ago"
+/topics delete --time "before last week"
+/topics delete --time "between 10am and 2pm today"
+
+# Options
+/topics delete --pattern "old" --dry-run  # Preview only
+/topics delete --pattern "test" --force   # Skip confirmation
+```
+
+Topic deletion cascades through all related data:
+- Topics table
+- Topic centroids
+- Topic nodes
+- Working set entries
+- ChromaDB embeddings
+
+Conversation nodes are preserved - only topic metadata is removed.
 
 ### Topic Segmentation Settings
 
@@ -620,6 +656,37 @@ Development and testing commands (advanced users)
 /dev cache                  # Show cache statistics
 /dev reload                 # Reload configuration
 ```
+
+### /test
+Manage test mode for isolated testing environments
+```bash
+/test                       # Show test mode status and help
+/test on                    # Switch to test environment
+/test off                   # Switch back to production
+/test clone                 # Copy production database and ChromaDB to test
+/test clear                 # Delete all test environment data
+/test status                # Show detailed test database status
+/test setup                 # Initialize test database with fixtures
+```
+
+**Test mode features:**
+- **Isolated paths**: Test uses `~/.episodic/test/` for both SQLite and ChromaDB
+- **Visual indicator**: Prompt shows `[TEST]` when in test mode
+- **Clone support**: Copy production state for realistic testing
+- **Clean reset**: Wipe test environment without affecting production
+
+**Example workflow:**
+```bash
+# Clone production and test changes
+/test clone                 # Copy prod → test
+/test on                    # Switch to test (prompt shows [TEST])
+# ... make changes, test features ...
+/topics delete --pattern "test" --force  # Clean up test topics
+/test off                   # Return to production
+/test clear                 # Optionally wipe test env
+```
+
+**Note:** After switching modes, a restart is recommended for complete connection isolation.
 
 ### /migrate
 Database migration utilities

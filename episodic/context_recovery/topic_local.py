@@ -7,6 +7,7 @@ This enables "year-later" resume without contamination from intervening topics.
 Supports explicit cross-topic imports when user references another topic.
 """
 
+import os
 import sqlite3
 import time
 from typing import List, Dict, Any, Optional

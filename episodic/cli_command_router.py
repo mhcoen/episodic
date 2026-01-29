@@ -424,6 +424,12 @@ def _handle_topics(args: List[str]):
                     except ValueError:
                         pass
             handle_topics_action(action="reanalyze", apply=apply, verbose=verbose, min_similarity=min_similarity)
+        elif action == "delete":
+            # Pass remaining args as string for handle_topic_delete to parse
+            # This allows flexible parsing of --pattern, --time, --force, --dry-run etc.
+            # Use shlex.join to preserve arguments that contain spaces
+            args_str = shlex.join(action_args)
+            handle_topics_action(action="delete", args_str=args_str)
         else:
             typer.secho(f"Unknown topics action: {action}", fg=get_error_color())
             typer.secho(f"Available actions: {', '.join(TOPIC_ACTIONS)}", fg=get_warning_color())

@@ -275,6 +275,73 @@ def handle_topic_strategy(value: str) -> bool:
     return True
 
 
+def handle_enable_topic_reactivation(value: str) -> bool:
+    """Handle enable_topic_reactivation with eager centroid and embedding checks.
+
+    When enabling topic reactivation, check if any topics lack centroids
+    and compute them. Also check for missing embeddings which are required
+    for the reactivation probe to work.
+    """
+    bool_val = value.lower() in ['true', '1', 'yes', 'on']
+    config.set('enable_topic_reactivation', bool_val)
+
+    if bool_val:
+        typer.secho("✅ Set enable_topic_reactivation = True", fg=get_system_color())
+
+        # Check for topics missing centroids and compute them
+        try:
+            from episodic.recall.centroid import backfill_centroids
+            from episodic.db import get_recent_topics
+            from episodic.db_connection import get_connection
+
+            # Count topics needing centroids
+            topics = get_recent_topics(limit=1000)
+            with get_connection() as conn:
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM topics t
+                    LEFT JOIN topic_centroids tc ON t.start_node_id = tc.start_node_id
+                    WHERE tc.centroid_medoid_exchange_id IS NULL
+                """)
+                missing_count = cursor.fetchone()[0]
+
+            if missing_count > 0:
+                typer.secho(f"   Computing centroids for {missing_count} topic(s)...", fg=get_system_color(), dim=True)
+                updated = backfill_centroids()
+                typer.secho(f"   ✓ Computed {updated} centroid(s)", fg=get_system_color(), dim=True)
+            else:
+                typer.secho("   All topics have centroids", fg=get_system_color(), dim=True)
+
+        except Exception as e:
+            typer.secho(f"   ⚠️  Could not compute centroids: {e}", fg="yellow")
+
+        # Check for missing embeddings (required for reactivation probe)
+        # Use incremental backfill (O(new_nodes) instead of O(total_nodes))
+        try:
+            from episodic.maintenance.backfill_conversation_embeddings import (
+                needs_incremental_backfill,
+                backfill_embeddings_incremental
+            )
+
+            needs_it, estimated_count = needs_incremental_backfill()
+            if needs_it:
+                typer.secho(f"   Indexing ~{estimated_count} new conversation(s)...", fg=get_system_color(), dim=True)
+                report = backfill_embeddings_incremental()
+                if report.newly_indexed > 0:
+                    typer.secho(f"   ✓ Indexed {report.newly_indexed} conversation(s)", fg=get_system_color(), dim=True)
+                else:
+                    typer.secho("   All conversations have embeddings", fg=get_system_color(), dim=True)
+            else:
+                typer.secho("   All conversations have embeddings", fg=get_system_color(), dim=True)
+
+        except Exception as e:
+            typer.secho(f"   ⚠️  Could not check/backfill embeddings: {e}", fg="yellow")
+            typer.secho(f"   Reactivation may not work until embeddings are indexed", fg="yellow", dim=True)
+    else:
+        typer.secho("✅ Set enable_topic_reactivation = False", fg=get_system_color())
+
+    return True
+
+
 def handle_list_param(param: str, value: str, valid_values: Optional[list] = None) -> bool:
     """Handle list parameter setting (comma-separated values)."""
     # Parse comma-separated values
@@ -454,6 +521,9 @@ PARAM_HANDLERS = {
     'topic_granularity': handle_topic_granularity,
     'topic_temperature': handle_topic_temperature,
     'topic_strategy': handle_topic_strategy,
+
+    # Topic reactivation (with eager centroid computation)
+    'enable_topic_reactivation': handle_enable_topic_reactivation,
 
     # Reasoning control (for models that support it: GPT-5.2, Nemotron, Qwen3, etc.)
     'reasoning': lambda v: handle_boolean_param('reasoning_enabled', v),

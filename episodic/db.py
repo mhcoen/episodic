@@ -87,6 +87,15 @@ from .db_indexing import (
     clear_indexing_status
 )
 
+# Checkpoint operations
+from .db_checkpoint import (
+    get_embedding_checkpoint,
+    set_embedding_checkpoint,
+    get_nodes_after_checkpoint,
+    get_max_node_rowid,
+    ensure_configuration_table
+)
+
 # Export all functions for backward compatibility
 __all__ = [
     # Connection management
@@ -148,5 +157,12 @@ __all__ = [
     'get_unindexed_nodes',
     'get_failed_nodes',
     'get_indexing_stats',
-    'clear_indexing_status'
+    'clear_indexing_status',
+
+    # Checkpoint operations
+    'get_embedding_checkpoint',
+    'set_embedding_checkpoint',
+    'get_nodes_after_checkpoint',
+    'get_max_node_rowid',
+    'ensure_configuration_table'
 ]

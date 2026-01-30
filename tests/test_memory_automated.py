@@ -12,13 +12,21 @@ from typing import List, Dict, Any
 from episodic.conversation import ConversationManager
 from episodic.config import config
 from episodic.rag import get_rag_system
+from episodic.rag_memory_sqlite import memory_rag
 from episodic.commands.memory import search_memories, list_memories, forget_command, memory_stats_command
 from episodic.db_connection import get_connection
 
 
+def _index_test_conversation(user_input: str, assistant_response: str, user_node_id: str, assistant_node_id: str):
+    """Helper to index a test conversation using the correct path."""
+    user_node = {'id': user_node_id, 'content': user_input, 'role': 'user'}
+    assistant_node = {'id': assistant_node_id, 'content': assistant_response, 'role': 'assistant'}
+    memory_rag.index_exchange(user_node, assistant_node)
+
+
 class MemorySystemTester:
     """Automated testing for the memory system."""
-    
+
     def __init__(self):
         self.manager = ConversationManager()
         self.test_results = []
@@ -48,7 +56,7 @@ class MemorySystemTester:
         assistant_response = f"Quantum computing is a type of computation that uses quantum mechanical phenomena. Test ID: {test_id}"
         
         try:
-            self.manager.store_conversation_to_memory(
+            _index_test_conversation(
                 user_input=user_input,
                 assistant_response=assistant_response,
                 user_node_id=f"user-{test_id}",
@@ -100,7 +108,7 @@ class MemorySystemTester:
         for content, search_terms in test_data:
             # Store conversation
             doc_id = str(uuid.uuid4())[:8]
-            self.manager.store_conversation_to_memory(
+            _index_test_conversation(
                 user_input=content,
                 assistant_response=f"Acknowledged: {content}",
                 user_node_id=f"user-{doc_id}",

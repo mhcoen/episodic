@@ -62,9 +62,9 @@ def memory_command(action: Optional[str] = None, *args):
     elif action == "clean":
         if args:
             pattern = " ".join(args)
+            clean_poisoned_memories(pattern)
         else:
-            pattern = None
-        clean_poisoned_memories(pattern)
+            clean_poisoned_memories(None)
     else:
         typer.secho(f"Unknown memory action: {action}", fg=get_error_color())
         typer.secho("Available: search, show, list, index, stats, clean", fg=get_text_color())

@@ -17,13 +17,21 @@ from typing import List, Dict, Any
 from episodic.config import config
 from episodic.rag import get_rag_system
 from episodic.rag_wordnet import concept_expander, expand_search_query
+from episodic.rag_memory_sqlite import memory_rag
 from episodic.conversation import ConversationManager
 from episodic.db_connection import get_connection
 
 
+def _index_test_conversation(user_input: str, assistant_response: str, user_node_id: str, assistant_node_id: str):
+    """Helper to index a test conversation using the correct path."""
+    user_node = {'id': user_node_id, 'content': user_input, 'role': 'user'}
+    assistant_node = {'id': assistant_node_id, 'content': assistant_response, 'role': 'assistant'}
+    memory_rag.index_exchange(user_node, assistant_node)
+
+
 class WordNetIntegrationTester:
     """Test the WordNet conceptual search integration."""
-    
+
     def __init__(self):
         self.manager = ConversationManager()
         self.test_results = []
@@ -75,7 +83,7 @@ class WordNetIntegrationTester:
         
         for user_msg, assistant_msg in conversations:
             doc_id = str(uuid.uuid4())[:8]
-            self.manager.store_conversation_to_memory(
+            _index_test_conversation(
                 user_input=user_msg,
                 assistant_response=assistant_msg,
                 user_node_id=f"user-{doc_id}",

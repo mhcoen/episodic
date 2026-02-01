@@ -94,11 +94,20 @@ class DistilBertDetector(DetectionModel):
             self._device = self._get_device()
             logger.info(f"Loading DistilBERT model from {self._model_path} on {self._device}")
 
+            # Suppress noisy transformer model loading output
+            import logging as std_logging
+            import warnings
+            std_logging.getLogger("transformers").setLevel(std_logging.ERROR)
+            std_logging.getLogger("transformers.modeling_utils").setLevel(std_logging.ERROR)
+            std_logging.getLogger("safetensors").setLevel(std_logging.ERROR)
+            warnings.filterwarnings("ignore", message=".*position_ids.*")
+            warnings.filterwarnings("ignore", message=".*not sharded.*")
+            warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+
             # Load tokenizer
             self._tokenizer = AutoTokenizer.from_pretrained(self._architecture)
 
             # Suppress the "weights not initialized" warning - we load fine-tuned weights next
-            import logging as std_logging
             transformers_logger = std_logging.getLogger("transformers.modeling_utils")
             prev_level = transformers_logger.level
             transformers_logger.setLevel(std_logging.ERROR)

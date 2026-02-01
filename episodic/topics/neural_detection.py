@@ -74,6 +74,15 @@ def _load_model(model_path: str = None) -> Tuple[Any, Any, Any]:
         device = _get_device()
         logger.info(f"Loading neural topic detection model from {model_path} on {device}")
 
+        # Suppress noisy transformer model loading output
+        import warnings
+        logging.getLogger("transformers").setLevel(logging.ERROR)
+        logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+        logging.getLogger("safetensors").setLevel(logging.ERROR)
+        warnings.filterwarnings("ignore", message=".*position_ids.*")
+        warnings.filterwarnings("ignore", message=".*not sharded.*")
+        warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+
         # Load tokenizer (standard, no special tokens - matches paper training)
         tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 

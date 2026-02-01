@@ -20,6 +20,7 @@ setup(
         "python-dotenv>=1.0.0",
         "requests>=2.25.0",
         "aiohttp>=3.8.0",
+        "dateparser>=1.0.0",
     ],
     extras_require={
         "rag": ["chromadb>=0.4.0", "sentence-transformers>=2.0.0"],
@@ -27,9 +28,14 @@ setup(
         "ml": ["scikit-learn>=1.0.0", "nltk>=3.8.0"],
         "pdf": ["pypdf>=3.0.0"],
         "voice": [
+            "sounddevice>=0.4.0",
+            "webrtcvad>=2.0.0",
+            "pvporcupine>=3.0.0",
+            "pydub>=0.25.0",
+            # Cloud TTS providers (install as needed)
             "azure-cognitiveservices-speech>=1.30.0",
             "elevenlabs>=0.2.0",
-            "pydub>=0.25.0",
+            # For local STT: pip install faster-whisper
         ],
         "dev": [
             "pytest>=7.0.0",

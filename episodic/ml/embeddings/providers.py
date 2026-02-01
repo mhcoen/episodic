@@ -76,13 +76,25 @@ class SentenceTransformersBackend(EmbeddingBackend):
     def _initialize_model(self):
         """Initialize the sentence transformers model with lazy loading."""
         try:
+            import logging
+            import warnings
+            import os
+
+            # Suppress noisy transformer model loading output
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
+            logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+            logging.getLogger("transformers").setLevel(logging.ERROR)
+            logging.getLogger("safetensors").setLevel(logging.ERROR)
+            warnings.filterwarnings("ignore", message=".*position_ids.*")
+            warnings.filterwarnings("ignore", message=".*not sharded.*")
+
             from sentence_transformers import SentenceTransformer
             import typer
             from episodic.config import config
-            
+
             if config.get("debug"):
                 typer.echo(f"[DEBUG] Loading SentenceTransformer model: {self.model_name}")
-            
+
             self.model = SentenceTransformer(self.model_name)
             
             if config.get("debug"):

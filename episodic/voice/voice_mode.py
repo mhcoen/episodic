@@ -60,6 +60,9 @@ class VoiceModeManager:
         self._transcription_result: Optional[str] = None
         self._transcription_event = threading.Event()
 
+        # Cached response style (restored when voice mode stops)
+        self._cached_response_style: Optional[str] = None
+
     def _get_stt_provider(self):
         """Get or create STT provider based on config."""
         if self._stt_provider is None:
@@ -97,6 +100,13 @@ class VoiceModeManager:
 
         # Create cache key to detect config changes
         cache_key = f"{provider_name}:{sorted(kwargs.items())}"
+
+        # For Azure, include credentials in cache key so provider is recreated when they change
+        if provider_name == "azure_neural":
+            import os
+            azure_key = config.get("azure_speech_key") or os.environ.get("AZURE_SPEECH_KEY", "")
+            azure_region = config.get("azure_speech_region") or os.environ.get("AZURE_SPEECH_REGION", "")
+            cache_key += f":{azure_key[:8] if azure_key else ''}:{azure_region}"
 
         # Recreate provider if config changed
         if not hasattr(self, '_tts_cache_key') or self._tts_cache_key != cache_key:
@@ -326,6 +336,10 @@ class VoiceModeManager:
         self._on_transcription = on_transcription
         self._on_state_change = on_state_change
 
+        # Cache current response style and switch to concise for voice
+        self._cached_response_style = config.get("response_style", "standard")
+        config.set("response_style", "concise")
+
         # Initialize components
         capture = self._get_audio_capture()
         playback = self._get_audio_playback()
@@ -377,6 +391,11 @@ class VoiceModeManager:
             self._audio_playback.stop()
 
         self._set_state(VoiceState.OFF)
+
+        # Restore previous response style
+        if hasattr(self, '_cached_response_style') and self._cached_response_style:
+            config.set("response_style", self._cached_response_style)
+            self._cached_response_style = None
 
         # Clear all cached components so they'll be recreated with current config
         # next time voice mode is enabled (allows /mode switch and config changes to take effect)

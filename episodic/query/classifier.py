@@ -35,11 +35,14 @@ Return:
 }}
 
 Field definitions:
-- is_memory_query: Is this asking about our past conversations?
+- is_memory_query: Is this asking about PAST conversations (not the current one)?
 - target: Topic being asked about (if memory query, else null)
 - mode: "browse" for listing/exploring, "answer" for specific answer (if memory query)
 - temporal_hint: Time reference like "yesterday", "last week" (if any)
 - speaker_hint: Who said it - "user", "assistant", "both", or null
+
+IMPORTANT: Questions about what was JUST said in the current exchange are NOT memory queries.
+They are follow-up questions about the immediate conversation context.
 
 Examples:
 "When did we discuss coffee?" → {{"is_memory_query": true, "target": "coffee", "mode": "browse", "temporal_hint": null, "speaker_hint": "both"}}
@@ -47,6 +50,9 @@ Examples:
 "What did I say about the project yesterday?" → {{"is_memory_query": true, "target": "the project", "mode": "answer", "temporal_hint": "yesterday", "speaker_hint": "user"}}
 "Anything about coffee in our past chats?" → {{"is_memory_query": true, "target": "coffee", "mode": "browse", "temporal_hint": null, "speaker_hint": "both"}}
 "Explain quantum physics" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"Why did you say that?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"Why did you mention X?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"What do you mean by that?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 
 Respond with only valid JSON."""
 

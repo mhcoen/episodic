@@ -41,8 +41,12 @@ Field definitions:
 - temporal_hint: Time reference like "yesterday", "last week" (if any)
 - speaker_hint: Who said it - "user", "assistant", "both", or null
 
-IMPORTANT: Questions about what was JUST said in the current exchange are NOT memory queries.
-They are follow-up questions about the immediate conversation context.
+IMPORTANT:
+- Memory queries EXPLICITLY ask about past conversations ("when did we discuss", "what did I say before", "in our past chats")
+- Questions about the current exchange are NOT memory queries
+- Statements about what the user wants/needs to do are NOT memory queries
+- References to being "told" something are NOT memory queries unless explicitly asking to recall past conversations
+- When in doubt, default to is_memory_query: false
 
 Examples:
 "When did we discuss coffee?" → {{"is_memory_query": true, "target": "coffee", "mode": "browse", "temporal_hint": null, "speaker_hint": "both"}}
@@ -53,6 +57,9 @@ Examples:
 "Why did you say that?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 "Why did you mention X?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 "What do you mean by that?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"I need to add X because Y" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"I want to build something" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"I'm told that X" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 
 Respond with only valid JSON."""
 

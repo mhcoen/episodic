@@ -435,9 +435,19 @@ class AzureNeuralProvider(BaseTTSProvider):
 
             elif result.reason == speechsdk.ResultReason.Canceled:
                 cancellation = result.cancellation_details
+                error_msg = cancellation.error_details
+
+                # Check for DragonHD region error
+                if "Unsupported voice" in error_msg and "DragonHD" in self.voice:
+                    raise RuntimeError(
+                        f"DragonHD voice not available in region '{self.region}'. "
+                        f"DragonHD voices require: eastus, westeurope, swedencentral, or southeastasia. "
+                        f"Either change AZURE_SPEECH_REGION or use a standard voice like en-US-JennyNeural."
+                    )
+
                 raise RuntimeError(
                     f"Azure TTS canceled: {cancellation.reason}. "
-                    f"Error: {cancellation.error_details}"
+                    f"Error: {error_msg}"
                 )
             else:
                 raise RuntimeError(f"Azure TTS failed with reason: {result.reason}")

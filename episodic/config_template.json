@@ -427,7 +427,7 @@
   "voice_local_xtts_speaker": "Claribel Dervla",
   "_comment_voice_openai_tts_voice": "OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer",
   "voice_openai_tts_voice": "alloy",
-  "_comment_voice_azure_neural_voice": "Azure Neural voice (e.g., en-US-JennyNeural, en-US-GuyNeural)",
+  "_comment_voice_azure_neural_voice": "Azure Neural voice. DragonHD voices (highest quality) require eastus/westeurope/swedencentral/southeastasia region",
   "voice_azure_neural_voice": "en-US-JennyNeural",
   "_comment_voice_silence_threshold_ms": "Milliseconds of silence to end speech (lower = faster, may cut off)",
   "voice_silence_threshold_ms": 1000,

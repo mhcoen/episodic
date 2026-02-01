@@ -62,6 +62,10 @@ class ConversationManager:
         self.reactivation_cooldown_turns = 0
         self.last_reactivation_topic_start_node_id = None
 
+        # Correction state (for conversational disambiguation)
+        # When DISAMBIGUATE proceeds with best guess, store runner-ups here
+        self.pending_correction = None  # Optional[CorrectionState]
+
         # Initialize handlers
         self.topic_handler = TopicHandler(self)
         self.context_builder = ContextBuilder()
@@ -104,6 +108,14 @@ class ConversationManager:
     def get_current_topic(self) -> Optional[Tuple[str, str]]:
         """Get the current topic (name, start_node_id) or None."""
         return self.current_topic
+
+    def _get_turn_idx(self) -> int:
+        """Get current turn index (max node rowid)."""
+        from episodic.db_connection import get_connection
+        with get_connection() as conn:
+            cursor = conn.execute("SELECT MAX(rowid) FROM nodes")
+            row = cursor.fetchone()
+            return row[0] if row and row[0] else 0
 
     def add_nodes_to_current_topic(self, user_node_id: str, assistant_node_id: str) -> None:
         """
@@ -195,46 +207,29 @@ class ConversationManager:
                 decision.topic_start_node_id == active_start_node_id):
                 return False, None, None
 
-            # Handle DISAMBIGUATE by prompting user
+            # Handle DISAMBIGUATE with best-guess-then-correction approach
             if decision.action == "DISAMBIGUATE" and decision.options:
-                from episodic.ui.disambiguation import (
-                    format_disambiguation_options,
-                    handle_disambiguation_input,
-                )
+                from episodic.recall.correction import CorrectionState
 
-                # Display options to user
-                prompt = format_disambiguation_options(decision.options)
-                print(prompt, end="", flush=True)
+                # Store runner-ups for potential correction on next turn
+                best_option = decision.options[0]
+                runner_ups = decision.options[1:] if len(decision.options) > 1 else []
 
-                try:
-                    user_choice = input()
-                    result = handle_disambiguation_input(user_choice, decision.options, attempt=1)
+                if runner_ups:
+                    self.pending_correction = CorrectionState(
+                        query=user_input,
+                        chosen_option=best_option,
+                        runner_ups=runner_ups,
+                        turn_created=self._get_turn_idx(),
+                    )
 
-                    if result.action == "reprompt":
-                        print("Invalid choice. Enter a number or 0 to skip: ", end="", flush=True)
-                        user_choice = input()
-                        result = handle_disambiguation_input(user_choice, decision.options, attempt=2)
-
-                    if result.action == "reactivate":
-                        # Update decision for persistence
-                        decision.action = "REACTIVATE"
-                        decision.topic_name = result.topic_name
-                        decision.topic_start_node_id = result.topic_start_node_id
-                        decision.debug["disambiguation_choice"] = result.topic_name
-                        return True, result.topic_name, result.topic_start_node_id
-                    else:
-                        # User chose to continue, do not create new topic
-                        decision.debug["disambiguation_choice"] = "continue"
-                        return False, None, None
-
-                except (EOFError, KeyboardInterrupt):
-                    # Non-interactive mode or interrupted - fall back to best option
-                    best_option = decision.options[0]
-                    decision.action = "REACTIVATE"
-                    decision.topic_name = best_option.topic_name
-                    decision.topic_start_node_id = best_option.topic_start_node_id
-                    decision.debug["disambiguation_choice"] = "auto_best"
-                    return True, best_option.topic_name, best_option.topic_start_node_id
+                # Proceed with best option (conversational flow)
+                decision.action = "REACTIVATE"
+                decision.topic_name = best_option.topic_name
+                decision.topic_start_node_id = best_option.topic_start_node_id
+                decision.debug["disambiguation_choice"] = "auto_best"
+                decision.debug["correction_state_stored"] = bool(runner_ups)
+                return True, best_option.topic_name, best_option.topic_start_node_id
 
             if decision.action == "REACTIVATE":
                 return True, decision.topic_name, decision.topic_start_node_id
@@ -616,10 +611,41 @@ class ConversationManager:
             if config.get("show_drift") or config.get("use_drift_trigger", True):
                 semantic_drift = self.compute_semantic_drift(user_node_id)
 
-            # Probe for implicit topic reactivation
+            # Check for correction to previous disambiguation (before normal reactivation probe)
             reactivation_packet = None
             reactivation_applied = False
-            if config.get("enable_topic_reactivation", False):
+            correction_applied = False
+
+            if self.pending_correction:
+                state = self.pending_correction
+                turn_idx = self._get_turn_idx()
+
+                # Check if state is still valid (expires after 1-2 turns)
+                if turn_idx - state.turn_created > 1:
+                    self.pending_correction = None  # Expired
+                else:
+                    from episodic.recall.correction import detect_correction, resolve_correction
+
+                    is_correction, hint = detect_correction(user_input)
+                    if is_correction:
+                        new_option = resolve_correction(state, hint)
+                        self.pending_correction = None  # Clear state after correction
+
+                        if new_option:
+                            # Apply reactivation with corrected topic
+                            reactivation_packet = self.apply_topic_reactivation(
+                                new_option.topic_name,
+                                new_option.topic_start_node_id,
+                                user_input
+                            )
+                            if reactivation_packet:
+                                reactivation_applied = True
+                                correction_applied = True
+                                if config.get("show_reactivation_decisions", False) or config.get("debug"):
+                                    secho_color(f"🔄 Switching to: {new_option.topic_name}", fg=get_system_color())
+
+            # Probe for implicit topic reactivation (skip if correction was applied)
+            if config.get("enable_topic_reactivation", False) and not correction_applied:
                 should_reactivate, react_topic_name, react_start_node_id = \
                     self.probe_topic_reactivation(
                         user_input=user_input,
@@ -745,6 +771,14 @@ class ConversationManager:
 
                 # Update current node
                 self.set_current_node_id(assistant_node_id)
+
+                # Display disambiguation hint if we have pending correction state
+                if self.pending_correction and not correction_applied:
+                    from episodic.ui.disambiguation import format_disambiguation_hint
+                    mode = "voice" if config.get("voice_mode", False) else "text"
+                    hint = format_disambiguation_hint(self.pending_correction.runner_ups, mode)
+                    if hint:
+                        secho_color(hint, fg=get_system_color(), dim=True)
 
                 # Handle topic boundaries
                 self.topic_handler.handle_topic_boundaries(
@@ -1100,7 +1134,15 @@ class ConversationManager:
             
             # Update current node
             self.set_current_node_id(assistant_node_id)
-            
+
+            # Display disambiguation hint if we have pending correction state
+            if self.pending_correction and not correction_applied:
+                from episodic.ui.disambiguation import format_disambiguation_hint
+                mode = "voice" if config.get("voice_mode", False) else "text"
+                hint = format_disambiguation_hint(self.pending_correction.runner_ups, mode)
+                if hint:
+                    secho_color(hint, fg=get_system_color(), dim=True)
+
             # Auto-index in memory system - fire-and-forget (non-blocking)
             # Index if memory RAG OR topic reactivation is enabled (reactivation needs embeddings)
             if config.get("enable_memory_rag", False) or config.get("enable_topic_reactivation", False):

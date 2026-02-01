@@ -91,14 +91,15 @@ def list_memories(limit: int = 20):
         return
     
     for i, doc in enumerate(docs):
-        # Format timestamp
-        indexed_at = doc.get('indexed_at', '')
-        if indexed_at:
+        # Format timestamp - prefer the actual conversation time from metadata
+        metadata = doc.get('metadata', {})
+        timestamp = metadata.get('timestamp') or doc.get('indexed_at', '')
+        if timestamp:
             try:
-                dt = datetime.fromisoformat(indexed_at)
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                 time_str = dt.strftime("%Y-%m-%d %H:%M")
             except:
-                time_str = indexed_at[:16]
+                time_str = timestamp[:16] if timestamp else "Unknown"
         else:
             time_str = "Unknown"
         
@@ -121,9 +122,8 @@ def list_memories(limit: int = 20):
             if len(doc['preview']) > 100:
                 preview += "..."
             typer.secho(f"   {preview}", fg=get_text_color())
-        
-        # Show metadata
-        metadata = doc.get('metadata', {})
+
+        # Show metadata (already retrieved above for timestamp)
         if metadata.get('topic'):
             typer.secho(f"   Topic: {metadata['topic']}", fg=get_text_color(), dim=True)
         if metadata.get('filename'):
@@ -291,9 +291,14 @@ def forget_command(target: Optional[str] = None, *args):
         if not typer.confirm("\n⚠️  Delete ALL memories? This cannot be undone."):
             typer.secho("Cancelled.", fg=get_text_color())
             return
-        
+
         # Clear only conversation memories (not user documents)
         count = rag.clear_documents(source_filter='conversation')
+
+        # Also clear indexing status so nodes can be re-indexed
+        from episodic.db import clear_indexing_status
+        clear_indexing_status(index_type='conversation')
+
         typer.secho(f"\n✅ Removed {count} conversation memories", fg=get_success_color())
         
     elif target == "--contains":
@@ -434,75 +439,103 @@ def index_recent_conversations(limit: int = 100, failed_only: bool = False):
     """Index conversations into memory for semantic search.
 
     Uses durable status tracking to determine what needs indexing.
+    Processes ALL unindexed nodes in batches until complete.
 
     Args:
-        limit: Maximum number of exchanges to index
+        limit: Batch size for processing (default 100)
         failed_only: If True, only retry previously failed indexes
     """
-    import asyncio
     from episodic.db import get_unindexed_nodes, get_failed_nodes, get_indexing_stats, get_node
+    from episodic.db import get_children, update_indexing_status
     from episodic.rag_memory_sqlite import memory_rag
 
-    # Get nodes to index based on durable status
-    if failed_only:
-        node_rows = get_failed_nodes(index_type='conversation', limit=limit)
-        node_ids = [r['node_id'] for r in node_rows]
-        typer.secho(f"\n🔄 Retrying {len(node_ids)} failed indexes...", fg=get_system_color())
-    else:
-        node_ids = get_unindexed_nodes(index_type='conversation', limit=limit)
-        typer.secho(f"\n🔄 Indexing {len(node_ids)} unindexed exchanges...", fg=get_system_color())
+    # Track totals across all batches
+    total_ok = 0
+    total_fail = 0
+    total_skip = 0
+    first_error = None
 
-    if not node_ids:
+    # Process in batches until nothing left
+    batch_num = 0
+    while True:
+        batch_num += 1
+
+        # Get next batch of nodes to index
+        if failed_only:
+            node_rows = get_failed_nodes(index_type='conversation', limit=limit)
+            node_ids = [r['node_id'] for r in node_rows]
+        else:
+            node_ids = get_unindexed_nodes(index_type='conversation', limit=limit)
+
+        if not node_ids:
+            break  # All done
+
+        if batch_num == 1:
+            # Show initial message
+            mode = "failed indexes" if failed_only else "unindexed exchanges"
+            typer.secho(f"\n🔄 Indexing {mode}...", fg=get_system_color())
+
+        # Index each exchange in this batch
+        for node_id in node_ids:
+            # Get the user node
+            user_node = get_node(node_id)
+            if not user_node or user_node.get('role') != 'user':
+                # Mark as skipped so it doesn't keep appearing in unindexed list
+                update_indexing_status(node_id, 'conversation', status='skipped', error='Not a user node')
+                total_skip += 1
+                continue
+
+            # Find the assistant response (child node)
+            children = get_children(node_id)
+            assistant_node = None
+            for child in children:
+                if child.get('role') == 'assistant':
+                    assistant_node = child
+                    break
+
+            if not assistant_node:
+                # Mark as skipped - user message without assistant response
+                update_indexing_status(node_id, 'conversation', status='skipped', error='No assistant response')
+                total_skip += 1
+                continue
+
+            try:
+                # Direct synchronous call - ChromaDB and SQLite are both sync
+                memory_rag.index_exchange(user_node, assistant_node)
+                total_ok += 1
+            except Exception as e:
+                error_str = str(e)
+                # If content already indexed (duplicate hash), treat as success
+                if 'UNIQUE constraint failed' in error_str and 'content_hash' in error_str:
+                    # Content is already in index under different node_id - mark as ok
+                    update_indexing_status(node_id, 'conversation', status='ok')
+                    total_ok += 1
+                else:
+                    total_fail += 1
+                    if first_error is None:
+                        first_error = error_str
+                    if config.get("debug"):
+                        typer.secho(f"  Failed: {node_id[:8]}: {e}", fg=get_error_color(), dim=True)
+
+    # After all batches complete
+    if batch_num == 1 and total_ok == 0 and total_skip == 0 and total_fail == 0:
         typer.secho("✅ Nothing to index", fg=get_success_color())
-        # Show stats
         stats = get_indexing_stats('conversation')
         if stats:
             typer.secho(f"\nTotal indexed: {stats.get('ok', 0)}, Failed: {stats.get('failed', 0)}",
                         fg=get_text_color(), dim=True)
         return
 
-    # Index each exchange
-    ok_count = 0
-    fail_count = 0
-    first_error = None
-
-    for node_id in node_ids:
-        # Get the user node
-        user_node = get_node(node_id)
-        if not user_node or user_node.get('role') != 'user':
-            continue
-
-        # Find the assistant response (child node)
-        from episodic.db import get_children
-        children = get_children(node_id)
-        assistant_node = None
-        for child in children:
-            if child.get('role') == 'assistant':
-                assistant_node = child
-                break
-
-        if not assistant_node:
-            continue
-
-        try:
-            # Direct synchronous call - ChromaDB and SQLite are both sync
-            memory_rag.index_exchange(user_node, assistant_node)
-            ok_count += 1
-        except Exception as e:
-            fail_count += 1
-            if first_error is None:
-                first_error = str(e)
-            if config.get("debug"):
-                typer.secho(f"  Failed: {node_id[:8]}: {e}", fg=get_error_color(), dim=True)
-
     # Show first error if any failures
     if first_error:
         typer.secho(f"  First error: {first_error}", fg=get_error_color())
 
     # Report results
-    typer.secho(f"\n✅ Indexed: {ok_count}", fg=get_success_color())
-    if fail_count:
-        typer.secho(f"❌ Failed: {fail_count}", fg=get_error_color())
+    typer.secho(f"\n✅ Indexed: {total_ok}", fg=get_success_color())
+    if total_skip:
+        typer.secho(f"⏭️  Skipped: {total_skip} (no assistant response)", fg=get_text_color(), dim=True)
+    if total_fail:
+        typer.secho(f"❌ Failed: {total_fail}", fg=get_error_color())
 
     # Show overall stats
     stats = get_indexing_stats('conversation')
@@ -521,6 +554,7 @@ def clean_poisoned_memories(pattern: Optional[str] = None):
                  recall-query patterns.
     """
     from episodic.rag_collections import get_multi_collection_rag, CollectionType
+    from episodic.db_connection import get_connection
 
     rag = get_multi_collection_rag()
 
@@ -538,8 +572,38 @@ def clean_poisoned_memories(pattern: Optional[str] = None):
 
     typer.secho("\n🧹 Cleaning poisoned memory entries...", fg=get_heading_color())
 
+    # Delete from both ChromaDB and SQLite for each pattern
     for p in patterns_to_clean:
-        deleted = rag.delete_by_content_pattern(p, CollectionType.CONVERSATION)
+        # Delete from ChromaDB
+        chroma_deleted = rag.delete_by_content_pattern(p, CollectionType.CONVERSATION)
+
+        # Delete from SQLite rag_documents table (match on preview column)
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            # First get doc_ids to delete from ChromaDB by ID too
+            cursor.execute(
+                "SELECT doc_id FROM rag_documents WHERE source = 'conversation' AND preview LIKE ?",
+                (f'%{p}%',)
+            )
+            doc_ids = [row[0] for row in cursor.fetchall()]
+
+            # Delete matching docs from ChromaDB by ID (in case content search missed them)
+            for doc_id in doc_ids:
+                try:
+                    collection = rag.get_collection(CollectionType.CONVERSATION)
+                    collection.delete(ids=[doc_id])
+                except Exception:
+                    pass  # May already be deleted
+
+            # Delete from SQLite
+            cursor.execute(
+                "DELETE FROM rag_documents WHERE source = 'conversation' AND preview LIKE ?",
+                (f'%{p}%',)
+            )
+            sqlite_deleted = cursor.rowcount
+            conn.commit()
+
+        deleted = max(chroma_deleted, sqlite_deleted)  # Report the higher count
         if deleted > 0:
             typer.secho(f"  Removed {deleted} entries matching: '{p}'", fg=get_text_color())
             total_deleted += deleted
@@ -562,16 +626,20 @@ def show_indexing_stats():
     stats = get_indexing_stats('conversation')
     ok_count = stats.get('ok', 0)
     failed_count = stats.get('failed', 0)
-    pending_count = stats.get('pending', 0)
+    skipped_count = stats.get('skipped', 0)
 
-    # Count unindexed (no status record at all)
+    # Count unindexed (no status record at all, or failed)
     unindexed = get_unindexed_nodes(limit=10000)
     unindexed_count = len(unindexed)
+    never_attempted = unindexed_count - failed_count
 
     typer.secho("\nStatus:", fg=get_system_color(), bold=True)
     typer.secho(f"  ✅ Successfully indexed: {ok_count}", fg=get_success_color())
     typer.secho(f"  ❌ Failed: {failed_count}", fg=get_error_color() if failed_count else get_text_color())
-    typer.secho(f"  ⏳ Never attempted: {unindexed_count - failed_count}", fg=get_text_color())
+    if skipped_count > 0:
+        typer.secho(f"  ⏭️  Skipped (no response): {skipped_count}", fg=get_text_color(), dim=True)
+    if never_attempted > 0:
+        typer.secho(f"  ⏳ Never attempted: {never_attempted}", fg=get_text_color())
 
     # Show recent failures if any
     if failed_count > 0:
@@ -588,5 +656,5 @@ def show_indexing_stats():
     # Hint for retry
     if failed_count > 0:
         typer.secho(f"\n💡 Retry failures with: /memory index --failed", fg=get_text_color(), dim=True)
-    elif unindexed_count > failed_count:
+    elif never_attempted > 0:
         typer.secho(f"\n💡 Index pending with: /memory index", fg=get_text_color(), dim=True)

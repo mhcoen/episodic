@@ -376,8 +376,10 @@ class AzureNeuralProvider(BaseTTSProvider):
         region: Optional[str] = None,
     ):
         self.voice = voice
-        self.speech_key = speech_key or os.environ.get("AZURE_SPEECH_KEY")
-        self.region = region or os.environ.get("AZURE_SPEECH_REGION", "eastus")
+        # Check config first, then env var
+        from episodic.config import config
+        self.speech_key = speech_key or config.get("azure_speech_key") or os.environ.get("AZURE_SPEECH_KEY")
+        self.region = region or config.get("azure_speech_region") or os.environ.get("AZURE_SPEECH_REGION", "eastus")
         self._synthesizer = None
 
         if not self.speech_key:

@@ -10,12 +10,14 @@ from episodic.migrations import run_migrations, get_pending_migrations
 from episodic.migrations.m004_schema_cleanup import migration as m004
 from episodic.migrations.m013_fix_rag_retrievals_retrieved_at import migration as m013
 from episodic.migrations.m014_add_indexing_status import migration as m014
+from episodic.migrations.m020_indexing_status_skipped import migration as m020
 
 # List of all migrations in order
 ALL_MIGRATIONS = [
     m004,
     m013,
     m014,
+    m020,
 ]
 
 

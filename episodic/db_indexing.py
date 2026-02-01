@@ -19,7 +19,7 @@ def ensure_indexing_table():
             CREATE TABLE IF NOT EXISTS indexing_status (
                 node_id TEXT NOT NULL,
                 index_type TEXT NOT NULL DEFAULT 'conversation',
-                status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'ok', 'failed')),
+                status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'ok', 'failed', 'skipped')),
                 indexed_at TEXT,
                 failed_at TEXT,
                 last_error TEXT,
@@ -41,8 +41,8 @@ def update_indexing_status(node_id: str, index_type: str, status: str, error: Op
     Args:
         node_id: The node ID being indexed
         index_type: Type of index (e.g., 'conversation')
-        status: 'ok' for success, 'failed' for failure
-        error: Error message if status is 'failed' (truncated to 500 chars)
+        status: 'ok' for success, 'failed' for failure, 'skipped' for not applicable
+        error: Error message if status is 'failed' or 'skipped' (truncated to 500 chars)
     """
     ensure_indexing_table()
     now = datetime.now(timezone.utc).isoformat()
@@ -61,6 +61,18 @@ def update_indexing_status(node_id: str, index_type: str, status: str, error: Op
                     last_error = NULL,
                     attempts = attempts + 1
             """, (node_id, index_type, now))
+        elif status == 'skipped':
+            # Skipped nodes are not indexable (e.g., no assistant response)
+            error_msg = error[:500] if error else None
+            cursor.execute("""
+                INSERT INTO indexing_status (node_id, index_type, status, indexed_at, last_error, attempts)
+                VALUES (?, ?, 'skipped', ?, ?, 1)
+                ON CONFLICT(node_id, index_type) DO UPDATE SET
+                    status = 'skipped',
+                    indexed_at = excluded.indexed_at,
+                    last_error = excluded.last_error,
+                    attempts = 1
+            """, (node_id, index_type, now, error_msg))
         else:  # failed
             error_msg = error[:500] if error else None
             cursor.execute("""
@@ -134,6 +146,9 @@ def get_unindexed_nodes(index_type: str = 'conversation', limit: int = 100) -> L
     - No indexing_status record exists, OR
     - Status is 'failed'
 
+    Excludes:
+    - Meta-queries (is_meta_query=True) - these are recall queries without LLM responses
+
     Args:
         index_type: Type of index (default: 'conversation')
         limit: Maximum number of nodes to return
@@ -150,6 +165,7 @@ def get_unindexed_nodes(index_type: str = 'conversation', limit: int = 100) -> L
             LEFT JOIN indexing_status s ON n.id = s.node_id AND s.index_type = ?
             WHERE n.role = 'user'
             AND (s.status IS NULL OR s.status = 'failed')
+            AND (n.is_meta_query IS NULL OR n.is_meta_query = 0)
             ORDER BY n.created_at DESC
             LIMIT ?
         """, (index_type, limit))

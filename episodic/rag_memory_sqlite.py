@@ -98,10 +98,12 @@ class SQLiteMemoryRAG:
             doc_text = f"User: {user_node['content']}\nAssistant: {assistant_node['content']}"
 
             # Create metadata
+            # Use the node's original creation time, not indexing time
+            node_timestamp = user_node.get('created_at') or datetime.now(timezone.utc).isoformat()
             metadata = {
                 'user_id': node_id,
                 'assistant_id': assistant_node['id'],
-                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'timestamp': node_timestamp,
                 'user_content': user_node['content'][:500],
                 'assistant_content': assistant_node['content'][:500],
                 'source': 'conversation'

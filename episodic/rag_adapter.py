@@ -138,8 +138,20 @@ class EpisodicRAGAdapter:
     
     def clear_documents(self, source_filter: Optional[str] = None) -> int:
         """Clear documents based on source filter."""
+        from episodic.db_connection import get_connection
+
         if source_filter == 'conversation':
-            return self.multi_rag.clear_collection(CollectionType.CONVERSATION)
+            # Clear from ChromaDB
+            chroma_count = self.multi_rag.clear_collection(CollectionType.CONVERSATION)
+
+            # Also clear from SQLite rag_documents table
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM rag_documents WHERE source = 'conversation'")
+                sqlite_count = cursor.rowcount
+                conn.commit()
+
+            return max(chroma_count, sqlite_count)
         elif source_filter:
             # Clear only documents with specific source from user docs
             # This would need more complex filtering

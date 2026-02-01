@@ -46,6 +46,7 @@ IMPORTANT:
 - Questions about the current exchange are NOT memory queries
 - Statements about what the user wants/needs to do are NOT memory queries
 - References to being "told" something are NOT memory queries unless explicitly asking to recall past conversations
+- Complaints or feedback about current behavior are NOT memory queries ("you were supposed to", "why didn't you", "that didn't work")
 - When in doubt, default to is_memory_query: false
 
 Examples:
@@ -60,6 +61,9 @@ Examples:
 "I need to add X because Y" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 "I want to build something" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 "I'm told that X" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"You were supposed to do X" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"Why didn't you do X?" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
+"That didn't work" → {{"is_memory_query": false, "target": null, "mode": null, "temporal_hint": null, "speaker_hint": null}}
 
 Respond with only valid JSON."""
 

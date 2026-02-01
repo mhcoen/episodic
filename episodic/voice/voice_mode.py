@@ -142,17 +142,25 @@ class VoiceModeManager:
 
     def _get_wake_word_detector(self):
         """Get or create Porcupine wake word detector."""
-        if self._wake_word_detector is None:
-            from episodic.voice.wake_word import PorcupineWakeWordDetector
+        from episodic.voice.wake_word import PorcupineWakeWordDetector
 
-            keyword = config.get("voice_wake_word", "computer").lower()
-            sensitivity = config.get("voice_wake_word_sensitivity", 0.5)
+        keyword = config.get("voice_wake_word", "computer").lower()
+        sensitivity = config.get("voice_wake_word_sensitivity", 0.5)
+
+        # Check if settings changed - recreate detector if so
+        cache_key = f"{keyword}:{sensitivity}"
+        if not hasattr(self, '_wake_word_cache_key') or self._wake_word_cache_key != cache_key:
+            # Cleanup old detector
+            if self._wake_word_detector is not None:
+                self._wake_word_detector.cleanup()
+                self._wake_word_detector = None
 
             self._wake_word_detector = PorcupineWakeWordDetector(
                 keyword=keyword,
                 sensitivity=sensitivity,
                 on_wake_word=self._activate_from_idle,
             )
+            self._wake_word_cache_key = cache_key
 
         return self._wake_word_detector
 

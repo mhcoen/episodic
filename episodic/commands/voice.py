@@ -158,12 +158,14 @@ def voice_tts_menu(selection: Optional[str] = None):
     # Build provider list with dynamic pricing
     openai_price = get_tts_cost_per_1k_chars("openai_tts", "tts-1")
     elevenlabs_price = get_tts_cost_per_1k_chars("elevenlabs")
+    azure_price = get_tts_cost_per_1k_chars("azure_neural")
 
     providers = [
         ("local_piper", "Local Piper", "Free, fast, lower quality"),
         ("local_xtts", "Local XTTS", "Free, high quality, slow first load (~18s)"),
         ("openai_tts", "OpenAI TTS", f"~${openai_price}/1k chars, good quality"),
         ("elevenlabs", "ElevenLabs", f"~${elevenlabs_price}/1k chars, highest quality"),
+        ("azure_neural", "Azure Neural HD", f"~${azure_price}/1k chars, DragonHD voices"),
     ]
 
     # Handle selection by number

@@ -105,6 +105,21 @@ def _is_hallucination(text: str) -> bool:
         if pattern in text_lower:
             return True
 
+    # Prefix patterns - common hallucination starters (often combined with "bye")
+    hallucination_prefixes = [
+        "thanks for watching",
+        "thank you for watching",
+        "thanks for listening",
+        "thank you for listening",
+        "see you next time",
+        "see you in the next",
+        "i'll see you",
+        "don't forget to",
+    ]
+    for prefix in hallucination_prefixes:
+        if text_lower.startswith(prefix):
+            return True
+
     # Very short single words are often hallucinations
     if len(text_lower) <= 2:
         return True
@@ -312,6 +327,10 @@ class DeepgramProvider(BaseSTTProvider):
             cost_usd = (duration_seconds / 60.0) * cost_per_minute
             from episodic.llm_manager import llm_manager
             llm_manager.record_voice_stt(duration_seconds, cost_usd)
+
+            # Filter hallucinations
+            if _is_hallucination(text):
+                return None
 
             return text.strip() if text else None
 

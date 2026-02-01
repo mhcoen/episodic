@@ -77,23 +77,31 @@ class VoiceModeManager:
 
     def _get_tts_provider(self):
         """Get or create TTS provider based on config."""
-        if self._tts_provider is None:
-            from episodic.voice.tts_providers import get_tts_provider
+        from episodic.voice.tts_providers import get_tts_provider
 
-            provider_name = config.get("voice_tts_provider", "openai_tts")
-            kwargs = {}
+        provider_name = config.get("voice_tts_provider", "openai_tts")
+        kwargs = {}
 
-            # Speed setting applies to all providers
+        # Speed setting applies to providers that support it
+        if provider_name in ("local_piper", "openai_tts"):
             kwargs["speed"] = config.get("voice_tts_speed", 1.0)
 
-            if provider_name == "local_piper":
-                kwargs["voice"] = config.get("voice_local_piper_voice", "en_US-lessac-medium")
-            elif provider_name == "local_xtts":
-                kwargs["speaker"] = config.get("voice_local_xtts_speaker", "Claribel Dervla")
-            elif provider_name == "openai_tts":
-                kwargs["voice"] = config.get("voice_openai_tts_voice", "alloy")
+        if provider_name == "local_piper":
+            kwargs["voice"] = config.get("voice_local_piper_voice", "en_US-lessac-medium")
+        elif provider_name == "local_xtts":
+            kwargs["speaker"] = config.get("voice_local_xtts_speaker", "Claribel Dervla")
+        elif provider_name == "openai_tts":
+            kwargs["voice"] = config.get("voice_openai_tts_voice", "alloy")
+        elif provider_name == "azure_neural":
+            kwargs["voice"] = config.get("voice_azure_neural_voice", "en-US-Ava:DragonHDLatestNeural")
 
+        # Create cache key to detect config changes
+        cache_key = f"{provider_name}:{sorted(kwargs.items())}"
+
+        # Recreate provider if config changed
+        if not hasattr(self, '_tts_cache_key') or self._tts_cache_key != cache_key:
             self._tts_provider = get_tts_provider(provider_name, **kwargs)
+            self._tts_cache_key = cache_key
 
         return self._tts_provider
 

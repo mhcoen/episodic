@@ -1,9 +1,10 @@
 {
-  "_comment": "Voice provider pricing - updated January 2026",
+  "_comment": "Voice provider pricing - updated February 2026",
   "_sources": {
     "openai": "https://platform.openai.com/docs/pricing",
     "deepgram": "https://deepgram.com/pricing",
-    "elevenlabs": "https://elevenlabs.io/pricing"
+    "elevenlabs": "https://elevenlabs.io/pricing",
+    "azure": "https://azure.microsoft.com/en-us/pricing/details/cognitive-services/speech-services/"
   },
 
   "stt": {
@@ -34,6 +35,14 @@
       "cost_per_1k_chars": 0.11,
       "model": "eleven_monolingual_v1",
       "notes": "ElevenLabs Creator plan rate (~$11/100K chars)"
+    },
+    "azure_neural": {
+      "models": {
+        "neural": 0.016,
+        "neural_hd": 0.045
+      },
+      "default_model": "neural_hd",
+      "notes": "Azure Neural TTS: $16/1M chars standard, ~$45/1M chars for DragonHD voices"
     }
   }
 }

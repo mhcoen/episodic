@@ -26,6 +26,11 @@ setup(
         "web": ["beautifulsoup4>=4.0.0", "httpx>=0.24.0"],
         "ml": ["scikit-learn>=1.0.0", "nltk>=3.8.0"],
         "pdf": ["pypdf>=3.0.0"],
+        "voice": [
+            "azure-cognitiveservices-speech>=1.30.0",
+            "elevenlabs>=0.2.0",
+            "pydub>=0.25.0",
+        ],
         "dev": [
             "pytest>=7.0.0",
             "black>=23.0.0",

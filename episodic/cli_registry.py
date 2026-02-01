@@ -594,6 +594,7 @@ def show_voice_help():
         ("local_xtts", "Free, high quality, slow first load (~18s)"),
         ("openai_tts", "Cloud API, good quality"),
         ("elevenlabs", "Cloud API, highest quality"),
+        ("azure_neural", "Cloud API, DragonHD voices"),
     ]
 
     # Examples

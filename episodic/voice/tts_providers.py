@@ -6,6 +6,7 @@ Supports multiple providers:
 - local_xtts: Coqui XTTS v2 (free, high quality, slower)
 - openai_tts: OpenAI TTS API (cloud)
 - elevenlabs: ElevenLabs API (cloud, highest quality)
+- azure_neural: Azure Neural TTS (cloud, DragonHD voices)
 
 Pricing is loaded from voice_pricing.json for cost tracking.
 """
@@ -338,12 +339,127 @@ class ElevenLabsProvider(BaseTTSProvider):
             )
 
 
+class AzureNeuralProvider(BaseTTSProvider):
+    """
+    Cloud text-to-speech using Azure Neural TTS (including HD voices).
+
+    High quality neural voices with DragonHD option for premium quality.
+    Supports 150+ languages with multiple voices per locale.
+    """
+
+    name = "azure_neural"
+
+    # Popular HD voices (DragonHD = highest quality)
+    HD_VOICES = [
+        "en-US-Ava:DragonHDLatestNeural",
+        "en-US-Andrew:DragonHDLatestNeural",
+        "en-US-Emma:DragonHDLatestNeural",
+        "en-US-Brian:DragonHDLatestNeural",
+        "en-GB-Sonia:DragonHDLatestNeural",
+        "en-GB-Ryan:DragonHDLatestNeural",
+    ]
+
+    # Standard neural voices (still high quality, lower cost)
+    STANDARD_VOICES = [
+        "en-US-JennyNeural",
+        "en-US-GuyNeural",
+        "en-US-AriaNeural",
+        "en-US-DavisNeural",
+        "en-GB-SoniaNeural",
+        "en-GB-RyanNeural",
+    ]
+
+    def __init__(
+        self,
+        voice: str = "en-US-Ava:DragonHDLatestNeural",
+        speech_key: Optional[str] = None,
+        region: Optional[str] = None,
+    ):
+        self.voice = voice
+        self.speech_key = speech_key or os.environ.get("AZURE_SPEECH_KEY")
+        self.region = region or os.environ.get("AZURE_SPEECH_REGION", "eastus")
+        self._synthesizer = None
+
+        if not self.speech_key:
+            raise ValueError(
+                "Azure Speech key required. Set AZURE_SPEECH_KEY env var or pass speech_key parameter."
+            )
+
+    def _get_synthesizer(self):
+        """Lazy load the Azure Speech synthesizer."""
+        if self._synthesizer is None:
+            import azure.cognitiveservices.speech as speechsdk
+
+            speech_config = speechsdk.SpeechConfig(
+                subscription=self.speech_key,
+                region=self.region,
+            )
+            speech_config.speech_synthesis_voice_name = self.voice
+            speech_config.set_speech_synthesis_output_format(
+                speechsdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm
+            )
+
+            # Output to memory stream instead of speaker
+            self._synthesizer = speechsdk.SpeechSynthesizer(
+                speech_config=speech_config,
+                audio_config=None,  # No audio output, we'll capture the data
+            )
+        return self._synthesizer
+
+    def synthesize(self, text: str) -> Tuple[np.ndarray, int]:
+        """Synthesize using Azure Neural TTS."""
+        try:
+            import azure.cognitiveservices.speech as speechsdk
+
+            synthesizer = self._get_synthesizer()
+            result = synthesizer.speak_text_async(text).get()
+
+            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                # Get audio data from result
+                audio_data = result.audio_data
+
+                # Skip WAV header (44 bytes) and convert to numpy
+                audio_bytes = audio_data[44:]
+                audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
+                audio_float = audio_array.astype(np.float32) / 32768.0
+
+                # Track cost
+                char_count = len(text)
+                from episodic.voice_pricing import get_tts_cost_per_1k_chars
+                cost_per_1k = get_tts_cost_per_1k_chars("azure_neural")
+                cost_usd = (char_count / 1000.0) * cost_per_1k
+                from episodic.llm_manager import llm_manager
+                llm_manager.record_voice_tts(char_count, cost_usd)
+
+                return audio_float, 24000
+
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation = result.cancellation_details
+                raise RuntimeError(
+                    f"Azure TTS canceled: {cancellation.reason}. "
+                    f"Error: {cancellation.error_details}"
+                )
+            else:
+                raise RuntimeError(f"Azure TTS failed with reason: {result.reason}")
+
+        except ImportError:
+            raise RuntimeError(
+                "azure-cognitiveservices-speech not installed. "
+                "Run: pip install azure-cognitiveservices-speech"
+            )
+
+    def cleanup(self) -> None:
+        """Release synthesizer resources."""
+        self._synthesizer = None
+
+
 # Provider registry
 _TTS_PROVIDERS = {
     "local_piper": LocalPiperProvider,
     "local_xtts": LocalXTTSProvider,
     "openai_tts": OpenAITTSProvider,
     "elevenlabs": ElevenLabsProvider,
+    "azure_neural": AzureNeuralProvider,
 }
 
 # Singleton instances (for model caching)
@@ -358,7 +474,8 @@ def get_tts_provider(
     Get a TTS provider instance.
 
     Args:
-        provider_name: One of 'local_piper', 'local_xtts', 'openai_tts', 'elevenlabs'
+        provider_name: One of 'local_piper', 'local_xtts', 'openai_tts',
+                       'elevenlabs', 'azure_neural'
         **kwargs: Provider-specific options (e.g., voice for openai_tts)
 
     Returns:

@@ -76,22 +76,29 @@ def _load_model(model_path: str = None) -> Tuple[Any, Any, Any]:
 
         # Suppress noisy transformer model loading output
         import warnings
+        from contextlib import redirect_stdout, redirect_stderr
+        from io import StringIO
+
         logging.getLogger("transformers").setLevel(logging.ERROR)
         logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
         logging.getLogger("safetensors").setLevel(logging.ERROR)
+        logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
         warnings.filterwarnings("ignore", message=".*position_ids.*")
         warnings.filterwarnings("ignore", message=".*not sharded.*")
         warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+        warnings.filterwarnings("ignore", message=".*unauthenticated.*")
 
-        # Load tokenizer (standard, no special tokens - matches paper training)
-        tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+        # Redirect stdout/stderr during model loading to suppress safetensors output
+        with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+            # Load tokenizer (standard, no special tokens - matches paper training)
+            tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
-        # Load model architecture
-        model = AutoModelForSequenceClassification.from_pretrained(
-            "distilbert-base-uncased",
-            num_labels=2,
-            ignore_mismatched_sizes=True
-        )
+            # Load model architecture
+            model = AutoModelForSequenceClassification.from_pretrained(
+                "distilbert-base-uncased",
+                num_labels=2,
+                ignore_mismatched_sizes=True
+            )
 
         # Load fine-tuned weights
         checkpoint = torch.load(model_path, map_location=device, weights_only=False)

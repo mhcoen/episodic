@@ -79,14 +79,18 @@ class SentenceTransformersBackend(EmbeddingBackend):
             import logging
             import warnings
             import os
+            from contextlib import redirect_stdout, redirect_stderr
+            from io import StringIO
 
             # Suppress noisy transformer model loading output
             os.environ["TOKENIZERS_PARALLELISM"] = "false"
             logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
             logging.getLogger("transformers").setLevel(logging.ERROR)
             logging.getLogger("safetensors").setLevel(logging.ERROR)
+            logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
             warnings.filterwarnings("ignore", message=".*position_ids.*")
             warnings.filterwarnings("ignore", message=".*not sharded.*")
+            warnings.filterwarnings("ignore", message=".*unauthenticated.*")
 
             from sentence_transformers import SentenceTransformer
             import typer
@@ -95,7 +99,9 @@ class SentenceTransformersBackend(EmbeddingBackend):
             if config.get("debug"):
                 typer.echo(f"[DEBUG] Loading SentenceTransformer model: {self.model_name}")
 
-            self.model = SentenceTransformer(self.model_name)
+            # Redirect stdout/stderr during model loading to suppress safetensors output
+            with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                self.model = SentenceTransformer(self.model_name)
             
             if config.get("debug"):
                 typer.echo(f"[DEBUG] Successfully loaded model: {self.model_name}")

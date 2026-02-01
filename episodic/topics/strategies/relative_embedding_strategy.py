@@ -70,15 +70,21 @@ class RelativeEmbeddingStrategy(TopicStrategy):
                 import logging
                 import warnings
                 import os
+                from contextlib import redirect_stdout, redirect_stderr
+                from io import StringIO
+
                 os.environ["TOKENIZERS_PARALLELISM"] = "false"
                 logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
                 logging.getLogger("transformers").setLevel(logging.ERROR)
                 logging.getLogger("safetensors").setLevel(logging.ERROR)
+                logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
                 warnings.filterwarnings("ignore", message=".*not sharded.*")
                 warnings.filterwarnings("ignore", message=".*position_ids.*")
+                warnings.filterwarnings("ignore", message=".*unauthenticated.*")
 
                 from sentence_transformers import SentenceTransformer
-                self._embedder = SentenceTransformer('all-MiniLM-L6-v2')
+                with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                    self._embedder = SentenceTransformer('all-MiniLM-L6-v2')
             except ImportError:
                 raise RuntimeError("sentence-transformers required for RelativeEmbeddingStrategy")
         return self._embedder

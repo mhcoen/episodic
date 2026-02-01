@@ -97,30 +97,29 @@ class DistilBertDetector(DetectionModel):
             # Suppress noisy transformer model loading output
             import logging as std_logging
             import warnings
+            from contextlib import redirect_stdout, redirect_stderr
+            from io import StringIO
+
             std_logging.getLogger("transformers").setLevel(std_logging.ERROR)
             std_logging.getLogger("transformers.modeling_utils").setLevel(std_logging.ERROR)
             std_logging.getLogger("safetensors").setLevel(std_logging.ERROR)
+            std_logging.getLogger("huggingface_hub").setLevel(std_logging.ERROR)
             warnings.filterwarnings("ignore", message=".*position_ids.*")
             warnings.filterwarnings("ignore", message=".*not sharded.*")
             warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+            warnings.filterwarnings("ignore", message=".*unauthenticated.*")
 
-            # Load tokenizer
-            self._tokenizer = AutoTokenizer.from_pretrained(self._architecture)
+            # Redirect stdout/stderr during model loading to suppress safetensors output
+            with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                # Load tokenizer
+                self._tokenizer = AutoTokenizer.from_pretrained(self._architecture)
 
-            # Suppress the "weights not initialized" warning - we load fine-tuned weights next
-            transformers_logger = std_logging.getLogger("transformers.modeling_utils")
-            prev_level = transformers_logger.level
-            transformers_logger.setLevel(std_logging.ERROR)
-
-            # Load model architecture
-            self._model = AutoModelForSequenceClassification.from_pretrained(
-                self._architecture,
-                num_labels=2,
-                ignore_mismatched_sizes=True
-            )
-
-            # Restore logging level
-            transformers_logger.setLevel(prev_level)
+                # Load model architecture
+                self._model = AutoModelForSequenceClassification.from_pretrained(
+                    self._architecture,
+                    num_labels=2,
+                    ignore_mismatched_sizes=True
+                )
 
             # Load fine-tuned weights
             checkpoint = torch.load(self._model_path, map_location=self._device, weights_only=False)

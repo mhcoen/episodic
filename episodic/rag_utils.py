@@ -57,20 +57,27 @@ class SilentSentenceTransformerEmbeddingFunction:
         self.kwargs = kwargs
 
         if model_name not in self.models:
-            # Suppress noisy transformer model loading output
+            # Suppress noisy transformer model loading output (including stdout)
             import logging
             import warnings
             import os as _os
+            from contextlib import redirect_stdout, redirect_stderr
+            from io import StringIO
+
             _os.environ["TOKENIZERS_PARALLELISM"] = "false"
             logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
             logging.getLogger("transformers").setLevel(logging.ERROR)
             logging.getLogger("safetensors").setLevel(logging.ERROR)
+            logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
             warnings.filterwarnings("ignore", message=".*position_ids.*")
             warnings.filterwarnings("ignore", message=".*not sharded.*")
+            warnings.filterwarnings("ignore", message=".*unauthenticated.*")
 
-            self.models[model_name] = SentenceTransformer(
-                model_name_or_path=model_name, device=device, **kwargs
-            )
+            # Redirect stdout/stderr during model loading to suppress safetensors output
+            with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                self.models[model_name] = SentenceTransformer(
+                    model_name_or_path=model_name, device=device, **kwargs
+                )
         self._model = self.models[model_name]
 
     def name(self) -> str:

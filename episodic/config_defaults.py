@@ -166,6 +166,8 @@ CONFIG_DOCS = {
     "web_search_excluded_domains": "List of domains to exclude from search results",
     "web_search_show_urls": "Display URLs in search result output",
     "web_search_extract_content": "Extract actual page content from search results for better information",
+    "web_extract_max_pages": "Maximum number of pages to extract content from (fetched in parallel)",
+    "web_extract_timeout": "Global timeout in seconds for parallel page extraction",
     "web_search_synthesize": "Synthesize search results into comprehensive answer using LLM",
     "web_show_sources": "Show source URLs when displaying synthesized answers",
     "web_show_raw": "Show raw search results instead of synthesizing (overrides synthesis)",

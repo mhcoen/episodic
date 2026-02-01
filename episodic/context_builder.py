@@ -557,33 +557,55 @@ class ContextBuilder:
                     extract_enabled = config.get('web_search_extract_content', True)
                     
                     if extract_enabled:
-                        for i, result in enumerate(results[:3], 1):  # Top 3 results
+                        from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
+                        import urllib.parse
+
+                        def fix_search_url(url: str) -> str:
+                            """Fix DuckDuckGo redirect URLs and ensure proper scheme."""
+                            if url.startswith('//duckduckgo.com/l/?uddg='):
+                                try:
+                                    parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                                    if 'uddg' in parsed:
+                                        url = urllib.parse.unquote(parsed['uddg'][0])
+                                except:
+                                    pass
+
+                            if not url.startswith(('http://', 'https://')):
+                                url = 'https://' + url.lstrip('/')
+
+                            return url
+
+                        # Prepare URLs for parallel fetch
+                        max_pages = config.get('web_extract_max_pages', 3)
+                        url_map = {}  # extract_url -> original result
+                        for result in results[:max_pages]:
+                            extract_url = fix_search_url(result.url)
+                            url_map[extract_url] = result
+
+                        # Fetch in parallel with global timeout
+                        global_timeout = config.get('web_extract_timeout', 8)
+
+                        with ThreadPoolExecutor(max_workers=max_pages) as executor:
+                            futures = {
+                                executor.submit(fetch_page_content_sync, url): url
+                                for url in url_map
+                            }
+
                             try:
-                                # Fix URL if needed
-                                extract_url = result.url
-                                if extract_url.startswith('//duckduckgo.com/l/?uddg='):
-                                    import urllib.parse
+                                for future in as_completed(futures, timeout=global_timeout):
+                                    url = futures[future]
+                                    result = url_map[url]
                                     try:
-                                        parsed = urllib.parse.parse_qs(urllib.parse.urlparse(extract_url).query)
-                                        if 'uddg' in parsed:
-                                            extract_url = urllib.parse.unquote(parsed['uddg'][0])
-                                    except:
-                                        pass
-                                
-                                # Ensure URL has scheme
-                                if not extract_url.startswith(('http://', 'https://')):
-                                    extract_url = 'https://' + extract_url.lstrip('/')
-                                
-                                # Extract content
-                                content = fetch_page_content_sync(extract_url)
-                                
-                                if content and len(content) > 50:
-                                    extracted_content[result.url] = content
-                                    
-                            except Exception as e:
+                                        content = future.result(timeout=0)  # Already complete
+                                        if content and len(content) > 50:
+                                            extracted_content[result.url] = content
+                                    except Exception as e:
+                                        if config.get('debug'):
+                                            debug_print(f"Extract error for {result.url}: {e}")
+                            except FuturesTimeoutError:
+                                # Global timeout reached, use whatever we have
                                 if config.get('debug'):
-                                    debug_print(f"Extract error for {result.url}: {e}")
-                                # Silently continue to next result
+                                    debug_print(f"Web extract timeout after {global_timeout}s, got {len(extracted_content)} results")
                     
                     # Build web context dictionary in the format expected by synthesize_web_response
                     web_context = {

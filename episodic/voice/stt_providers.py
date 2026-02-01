@@ -89,6 +89,7 @@ def _is_hallucination(text: str) -> bool:
         "take care", "have a nice day", "have a good day",
         "i'll see you in the next video", "until next time",
         "peace", "peace out", "later", "cheers",
+        "thank you. bye bye", "thank you, bye bye",
     }
     if text_lower in hallucinations or text_no_punct in hallucinations:
         return True

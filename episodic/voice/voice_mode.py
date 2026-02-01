@@ -320,6 +320,10 @@ class VoiceModeManager:
         if self._audio_capture:
             self._audio_capture.unmute()
 
+        # Return to listening state after speaking completes
+        if self._state == VoiceState.SPEAKING:
+            self._set_state(VoiceState.LISTENING)
+
         # Restart idle timer after speaking completes
         self._start_idle_timer()
 

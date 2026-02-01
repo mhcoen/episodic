@@ -371,7 +371,7 @@ class AzureNeuralProvider(BaseTTSProvider):
 
     def __init__(
         self,
-        voice: str = "en-US-Ava:DragonHDLatestNeural",
+        voice: str = "en-US-JennyNeural",
         speech_key: Optional[str] = None,
         region: Optional[str] = None,
     ):

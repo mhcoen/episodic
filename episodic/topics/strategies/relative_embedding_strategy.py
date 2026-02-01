@@ -66,6 +66,17 @@ class RelativeEmbeddingStrategy(TopicStrategy):
         """Lazy load the embedding function."""
         if self._embedder is None:
             try:
+                # Suppress noisy transformer model loading output
+                import logging
+                import warnings
+                import os
+                os.environ["TOKENIZERS_PARALLELISM"] = "false"
+                logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+                logging.getLogger("transformers").setLevel(logging.ERROR)
+                logging.getLogger("safetensors").setLevel(logging.ERROR)
+                warnings.filterwarnings("ignore", message=".*not sharded.*")
+                warnings.filterwarnings("ignore", message=".*position_ids.*")
+
                 from sentence_transformers import SentenceTransformer
                 self._embedder = SentenceTransformer('all-MiniLM-L6-v2')
             except ImportError:

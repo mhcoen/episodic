@@ -77,6 +77,8 @@ def _is_hallucination(text: str) -> bool:
         "bye", "bye bye", "bye-bye", "goodbye",
         "thank you", "thanks", "thank you very much",
         "you", "the", "a", "i", "it", "so", "and", "um", "uh",
+        "ok", "okay", "yeah", "yes", "no", "hmm", "huh",
+        "click", "click click", "clicking",
         "...", ".", "", " ",
         "thanks for watching", "thank you for watching",
         "thanks for listening", "thank you for listening",
@@ -130,6 +132,11 @@ def _is_hallucination(text: str) -> bool:
 
     # Repeated characters or words
     if len(set(text_lower.replace(" ", ""))) <= 2:
+        return True
+
+    # Repeated word pattern (e.g., "click click", "the the")
+    words = text_lower.split()
+    if len(words) == 2 and words[0] == words[1]:
         return True
 
     return False

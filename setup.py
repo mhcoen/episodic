@@ -21,6 +21,9 @@ setup(
         "requests>=2.25.0",
         "aiohttp>=3.8.0",
         "dateparser>=1.0.0",
+        "duckduckgo-search>=4.0.0",
+        "scipy>=1.10.0",
+        "pyyaml>=6.0.0",
     ],
     extras_require={
         "rag": ["chromadb>=0.4.0", "sentence-transformers>=2.0.0"],

@@ -95,6 +95,7 @@ def _is_hallucination(text: str) -> bool:
     hallucination_patterns = [
         "www.", "http", ".com", ".org", ".net",
         "subscribe", "channel", "video",
+        "stay tuned", "we'll see you",
         "engvid", "learn english",
         "copyright", "all rights reserved",
         "music", "♪", "♫",
@@ -114,7 +115,10 @@ def _is_hallucination(text: str) -> bool:
         "see you next time",
         "see you in the next",
         "i'll see you",
+        "we'll see you",
         "don't forget to",
+        "okay, stay tuned",
+        "stay tuned",
     ]
     for prefix in hallucination_prefixes:
         if text_lower.startswith(prefix):

@@ -57,6 +57,15 @@ def verify_backfill_completeness(
 
     Uses BackfillReport.still_missing_after == 0 as success criterion.
     """
+    # Skip in test mode - no RAG to verify
+    if os.environ.get("EPISODIC_TEST_MODE"):
+        return CheckResult(
+            name="backfill_completeness",
+            passed=True,
+            message="Skipped in test mode (no RAG initialized)",
+            details={"skipped": True, "reason": "EPISODIC_TEST_MODE"},
+        )
+
     from episodic.maintenance.backfill_topic_metadata import (
         backfill_topic_metadata_with_report,
     )
@@ -110,6 +119,15 @@ def verify_summary_validity(
     - schema_version is supported
     - summary_hash matches computed hash
     """
+    # Skip in test mode - no real data to verify
+    if os.environ.get("EPISODIC_TEST_MODE"):
+        return CheckResult(
+            name="summary_validity",
+            passed=True,
+            message="Skipped in test mode (no topics)",
+            details={"skipped": True, "reason": "EPISODIC_TEST_MODE"},
+        )
+
     from episodic.maintenance.validators import (
         validate_all_topics,
         validate_working_set_completeness,
@@ -180,6 +198,15 @@ def verify_long_gap_only(
     - No recency exchanges are included
     - Anchors can still be retrieved
     """
+    # Skip in test mode - no real data to verify
+    if os.environ.get("EPISODIC_TEST_MODE"):
+        return CheckResult(
+            name="long_gap_only",
+            passed=True,
+            message="Skipped in test mode (no topics)",
+            details={"skipped": True, "reason": "EPISODIC_TEST_MODE"},
+        )
+
     from episodic.context_recovery.topic_local import TopicLocalStrategy
     from episodic.db_connection import get_connection
     from episodic.db_topics import get_all_topics

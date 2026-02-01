@@ -423,23 +423,47 @@ def pytest_collection_modifyitems(config, items):
     - Tests in 'unit/' directory get @unit marker
     - Tests with 'llm' in name get @llm marker
     - Tests with 'slow' in name get @slow marker
+    - Tests related to reactivation/recall get @reactivation marker
     """
+    # Patterns that indicate reactivation-related tests
+    reactivation_patterns = [
+        "reactivation",
+        "recall",
+        "context_recovery",
+        "topic_local",
+        "resume_cue",
+        "resume_benchmark",
+        "disambiguation",
+        "centroid",
+        "topic_alias",
+    ]
+
     for item in items:
         # Add markers based on test location
-        test_path = str(item.fspath)
+        test_path = str(item.fspath).lower()
+        test_name = item.name.lower()
+
         if "integration" in test_path:
             item.add_marker(pytest.mark.integration)
         elif "unit" in test_path:
             item.add_marker(pytest.mark.unit)
 
+        # Add reactivation marker based on path or name patterns
+        if any(pattern in test_path or pattern in test_name for pattern in reactivation_patterns):
+            item.add_marker(pytest.mark.reactivation)
+
+        # Add benchmark marker for benchmark tests
+        if "benchmark" in test_path or "benchmark" in test_name:
+            item.add_marker(pytest.mark.benchmark)
+
         # Add markers based on test name
-        if "llm" in item.name.lower():
+        if "llm" in test_name:
             item.add_marker(pytest.mark.llm)
-        if "slow" in item.name.lower():
+        if "slow" in test_name:
             item.add_marker(pytest.mark.slow)
-        if "rag" in item.name.lower():
+        if "rag" in test_name:
             item.add_marker(pytest.mark.rag)
-        if "db" in item.name.lower() or "database" in item.name.lower():
+        if "db" in test_name or "database" in test_name:
             item.add_marker(pytest.mark.db)
 
 

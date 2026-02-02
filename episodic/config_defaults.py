@@ -233,6 +233,7 @@ CONFIG_DOCS = {
     "voice_wake_word": "Wake word (porcupine built-in: alexa, americano, blueberry, bumblebee, computer, grapefruit, grasshopper, hey google, hey siri, jarvis, ok google, picovoice, porcupine, terminator)",
     "voice_wake_word_sensitivity": "Wake word detection sensitivity 0.0-1.0 (higher = more sensitive)",
     "voice_wake_word_enabled": "Enable automatic idle mode with wake word activation",
+    "voice_wake_word_interrupts_speech": "Allow wake word to interrupt TTS playback (requires AEC/full-duplex mic)",
     "porcupine_access_key": "Picovoice access key for wake word detection (free at console.picovoice.ai)",
 
     # Mode switching

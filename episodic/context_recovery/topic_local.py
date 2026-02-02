@@ -66,8 +66,7 @@ def _assert_no_contamination(
 
         if config.get("debug"):
             raise ContaminationError(msg)
-        else:
-            logger.warning(msg)
+        # Don't log at warning level - this is internal diagnostics, not user-actionable
 
 # Default number of exchange pairs to include
 DEFAULT_EXCHANGE_PAIRS = 4  # 4 pairs = 8 messages

@@ -5,6 +5,7 @@ Coordinates STT, TTS, audio capture, and playback into a unified voice interface
 """
 
 import threading
+import time
 from enum import Enum, auto
 from typing import Callable, Optional
 
@@ -62,6 +63,12 @@ class VoiceModeManager:
 
         # Cached response style (restored when voice mode stops)
         self._cached_response_style: Optional[str] = None
+
+        # Interrupt flag - when True, reject new TTS audio until user speaks
+        self._speech_interrupted = False
+
+        # Track when idle timer started for resume-with-remaining-time
+        self._idle_timer_started_at: Optional[float] = None
 
     def _get_stt_provider(self):
         """Get or create STT provider based on config."""
@@ -158,27 +165,41 @@ class VoiceModeManager:
             self._wake_word_detector = PorcupineWakeWordDetector(
                 keyword=keyword,
                 sensitivity=sensitivity,
-                on_wake_word=self._activate_from_idle,
+                on_wake_word=self._on_wake_word_detected,
             )
             self._wake_word_cache_key = cache_key
 
         return self._wake_word_detector
 
-    def _start_idle_timer(self):
+    def _start_idle_timer(self, timeout: Optional[float] = None):
         """Start timer to transition to IDLE state after inactivity."""
         self._cancel_idle_timer()
 
-        timeout = config.get("voice_idle_timeout", 60)
+        if timeout is None:
+            timeout = config.get("voice_idle_timeout", 15)
         if timeout > 0 and config.get("voice_wake_word_enabled", True):
             self._idle_timer = threading.Timer(timeout, self._enter_idle)
             self._idle_timer.daemon = True
             self._idle_timer.start()
+            self._idle_timer_started_at = time.time()
 
     def _cancel_idle_timer(self):
         """Cancel pending idle timer."""
         if self._idle_timer:
             self._idle_timer.cancel()
             self._idle_timer = None
+        # Don't clear _idle_timer_started_at - we need it for resume
+
+    def _resume_idle_timer(self):
+        """Resume idle timer with remaining time (min 2 seconds)."""
+        if self._idle_timer_started_at is None:
+            self._start_idle_timer()
+            return
+
+        elapsed = time.time() - self._idle_timer_started_at
+        full_timeout = config.get("voice_idle_timeout", 15)
+        remaining = max(2.0, full_timeout - elapsed)  # At least 2 seconds
+        self._start_idle_timer(remaining)
 
     def pause_idle_timer(self):
         """Pause the idle timer (call when processing LLM request)."""
@@ -191,18 +212,29 @@ class VoiceModeManager:
 
     def _enter_idle(self):
         """Transition to IDLE state (wake word listening only)."""
-        # Only transition from LISTENING state
-        # If in PROCESSING or SPEAKING, restart timer to try again later
+        import sys
+
+        # If SPEAKING but playback is done, transition to LISTENING first
+        if self._state == VoiceState.SPEAKING:
+            if self._audio_playback and not self._audio_playback.is_playing:
+                # Playback finished, unmute mic if needed
+                if self._audio_capture and not config.get("voice_wake_word_interrupts_speech", False):
+                    self._audio_capture.unmute()
+                self._set_state(VoiceState.LISTENING)
+            else:
+                # Still speaking, try again later
+                self._start_idle_timer()
+                return
+
+        # Transition from LISTENING to IDLE
         if self._state == VoiceState.LISTENING:
             wake_word = config.get("voice_wake_word", "computer")
             if config.get("voice_show_transcription", True):
-                # Flush output since we're in a timer thread
-                import sys
                 typer.secho(f"💤 Idle - say \"{wake_word}\" to wake", fg="yellow")
                 sys.stdout.flush()
             self._set_state(VoiceState.IDLE)
-        elif self._state in (VoiceState.PROCESSING, VoiceState.SPEAKING):
-            # Busy right now, try again in a few seconds
+        elif self._state == VoiceState.PROCESSING:
+            # Busy processing STT, try again later
             self._start_idle_timer()
 
     def _check_wake_word(self, audio: np.ndarray):
@@ -214,21 +246,43 @@ class VoiceModeManager:
         except Exception as e:
             typer.secho(f"Wake word detection error: {e}", fg="red", err=True)
 
-    def _activate_from_idle(self):
-        """Wake up from IDLE state."""
+    def _on_wake_word_detected(self):
+        """Handle wake word detection in any state."""
         import sys
 
-        # Play ready chime
-        if config.get("voice_audio_cues", True):
-            from episodic.voice.audio_playback import play_chime
-            play_chime()
+        if self._state == VoiceState.IDLE:
+            # Normal wake from idle
+            if config.get("voice_audio_cues", True):
+                from episodic.voice.audio_playback import play_chime
+                play_chime()
 
-        if config.get("voice_show_transcription", True):
-            typer.secho("🎤 Listening...", fg="green")
-            sys.stdout.flush()
+            if config.get("voice_show_transcription", True):
+                typer.secho("🎤 Listening...", fg="green")
+                sys.stdout.flush()
 
-        self._set_state(VoiceState.LISTENING)
-        self._start_idle_timer()
+            self._set_state(VoiceState.LISTENING)
+            self._start_idle_timer()
+
+        elif self._state == VoiceState.SPEAKING:
+            # Interrupt speech (only possible if wake_word_interrupts_speech is enabled)
+            if config.get("voice_wake_word_interrupts_speech", False):
+                # Set flag to reject any more TTS audio from current response
+                self._speech_interrupted = True
+
+                # Stop TTS playback
+                if self._audio_playback:
+                    self._audio_playback.clear_queue()
+
+                if config.get("voice_show_transcription", True):
+                    typer.secho("🎤 Listening...", fg="green")
+                    sys.stdout.flush()
+
+                self._set_state(VoiceState.LISTENING)
+                self._start_idle_timer()
+
+    def _activate_from_idle(self):
+        """Wake up from IDLE state. (Legacy - calls _on_wake_word_detected)"""
+        self._on_wake_word_detected()
 
     def force_idle(self):
         """Force transition to IDLE state (for voice commands like 'go to sleep')."""
@@ -274,13 +328,22 @@ class VoiceModeManager:
         # This prevents background noise from resetting the idle timeout
 
         # Don't change state if in IDLE mode (let _on_speech_end handle wake word)
-        if self._state != VoiceState.IDLE:
-            self._set_state(VoiceState.PROCESSING)
+        # Also don't change state if SPEAKING with interrupts enabled (wake word check only)
+        if self._state == VoiceState.IDLE:
+            return
+        if self._state == VoiceState.SPEAKING and config.get("voice_wake_word_interrupts_speech", False):
+            return
+        self._set_state(VoiceState.PROCESSING)
 
     def _on_speech_end(self, audio: np.ndarray):
         """Called when speech ends, process with STT."""
         # Handle IDLE state - check for wake word only
         if self._state == VoiceState.IDLE:
+            self._check_wake_word(audio)
+            return
+
+        # Handle SPEAKING state with interrupts enabled - check for wake word
+        if self._state == VoiceState.SPEAKING and config.get("voice_wake_word_interrupts_speech", False):
             self._check_wake_word(audio)
             return
 
@@ -290,13 +353,20 @@ class VoiceModeManager:
 
             if text:
                 self._transcription_result = text
+
+                # Clear interrupt flag - user has spoken, ready for new TTS
+                self._speech_interrupted = False
+
                 if self._on_transcription:
                     self._on_transcription(text)
 
-                # Only reset idle timer after successful transcription with actual text
-                # This prevents background noise from resetting the timeout
+                # Reset idle timer to full duration after valid input
                 self._cancel_idle_timer()
                 self._start_idle_timer()
+            else:
+                # Non-actionable sound (noise, hallucination filtered)
+                # Resume timer with remaining time instead of full reset
+                self._resume_idle_timer()
 
             self._transcription_event.set()
 
@@ -306,29 +376,33 @@ class VoiceModeManager:
         except Exception as e:
             typer.secho(f"STT error: {e}", fg="red", err=True)
             self._transcription_event.set()
+            self._resume_idle_timer()
             self._set_state(VoiceState.LISTENING)
 
     def _on_playback_start(self):
         """Called when TTS playback starts."""
-        # Mute microphone during playback to prevent feedback
-        if self._audio_capture:
+        # Mute microphone during playback to prevent feedback/self-triggering
+        # Unless wake_word_interrupts_speech is enabled (requires AEC hardware)
+        if self._audio_capture and not config.get("voice_wake_word_interrupts_speech", False):
             self._audio_capture.mute()
 
     def _on_playback_stop(self):
         """Called when TTS playback queue is empty."""
-        # Unmute microphone
-        if self._audio_capture:
+        if self._state != VoiceState.SPEAKING:
+            return
+
+        # Unmute microphone (if it was muted)
+        if self._audio_capture and not config.get("voice_wake_word_interrupts_speech", False):
             self._audio_capture.unmute()
 
-        # Return to listening state after speaking completes
-        if self._state == VoiceState.SPEAKING:
-            self._set_state(VoiceState.LISTENING)
+        # Return to listening state
+        self._set_state(VoiceState.LISTENING)
 
-        # Restart idle timer after speaking completes
+        # Start idle timer - this may be called multiple times during streaming,
+        # but _start_idle_timer cancels any existing timer first, so it just
+        # keeps resetting the countdown. Once streaming is done and no more
+        # speak() calls come in, the timer will finally fire.
         self._start_idle_timer()
-
-        # Note: Don't play beep here - this fires between sentences during streaming.
-        # The ready chime is played only at voice mode start.
 
     def start(
         self,
@@ -460,6 +534,10 @@ class VoiceModeManager:
             return
 
         if not text.strip():
+            return
+
+        # If speech was interrupted, reject new audio until user speaks again
+        if self._speech_interrupted:
             return
 
         try:

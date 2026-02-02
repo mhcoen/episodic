@@ -500,6 +500,7 @@ PARAM_HANDLERS = {
     'voice_wake_word': lambda v: handle_string_param('voice_wake_word', v, PORCUPINE_KEYWORDS),
     'voice_wake_word_sensitivity': lambda v: handle_float_param('voice_wake_word_sensitivity', v, 0.0, 1.0),
     'voice_wake_word_enabled': lambda v: handle_boolean_param('voice_wake_word_enabled', v),
+    'voice_wake_word_interrupts_speech': lambda v: handle_boolean_param('voice_wake_word_interrupts_speech', v),
     'porcupine_access_key': lambda v: handle_string_param('porcupine_access_key', v),
 
     # String parameters with validation

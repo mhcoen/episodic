@@ -449,6 +449,8 @@
   "voice_wake_word_sensitivity": 0.5,
   "_comment_voice_wake_word_enabled": "Enable automatic idle mode with wake word activation",
   "voice_wake_word_enabled": true,
+  "_comment_voice_wake_word_interrupts_speech": "Allow wake word to interrupt TTS playback (requires AEC/full-duplex mic to avoid self-triggering)",
+  "voice_wake_word_interrupts_speech": false,
   "_comment_porcupine_access_key": "Picovoice access key for wake word detection (free at https://console.picovoice.ai/)",
   "porcupine_access_key": "",
   "_comment_azure_speech_key": "Azure Speech key for TTS (or set AZURE_SPEECH_KEY env var)",

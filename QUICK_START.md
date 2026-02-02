@@ -59,9 +59,10 @@ python -m episodic
 # Just start chatting!
 > Hello! What can you help me with?
 
-# Episodic automatically uses Hugging Face models for:
-# - Chat: gpt-4o-mini (or your configured model)
-# - Background tasks: Falcon-7B-Instruct (free tier compatible)
+# Episodic automatically detects available providers and uses them
+# With Hugging Face: Uses compatible models from their inference API
+# With OpenAI: Uses gpt-4o-mini by default
+# With Ollama: Uses your local models
 ```
 
 ## 4. Enable Web Search (No API Key Required!)
@@ -92,13 +93,9 @@ Episodic includes DuckDuckGo search by default - completely free, no setup neede
 # This makes all responses brief and to-the-point
 ```
 
-### Save Your Settings
+### Your Settings Are Auto-Saved
 
-```bash
-# Save current configuration for next time
-> /save config
-✓ Configuration saved to: ~/.episodic/config.json
-```
+Configuration changes (like `/style concise`) are automatically saved to `~/.episodic/config.json` and persist across sessions.
 
 ## 6. (Alternative) Use Ollama for Unlimited Free Local Models
 
@@ -177,6 +174,7 @@ export BRAVE_API_KEY="your_brave_key_here"
 
 ### Essential Commands
 - `/help` - Show available commands
+- `/doctor` - Verify installation health
 - `/muse` - Enable web search mode
 - `/chat` - Return to normal chat
 - `/style concise` - Make responses brief
@@ -202,6 +200,14 @@ export BRAVE_API_KEY="your_brave_key_here"
 4. **Monitor usage** - Enable `/set show-cost true` to track token usage
 
 ## Troubleshooting
+
+### Verify Your Installation
+
+Run the health check to verify everything is working:
+```bash
+> /doctor
+```
+This checks Python version, dependencies, database, API keys, and optional features.
 
 ### "API key not found"
 Make sure you exported the environment variable:
@@ -277,8 +283,8 @@ The wake word detection runs 100% locally with minimal CPU (~1-2%) and works off
 
 - Read the [User Guide](USER_GUIDE.md) for advanced features
 - Try more [Ollama models](https://ollama.com/library) - Llama 3.1, Gemma 2, Qwen, and more
-- Configure [multiple LLM providers](docs/multi-provider.md) for flexibility
-- Enable [RAG](docs/rag-setup.md) to chat with your documents
+- Configure [multiple LLM providers](docs/models-configuration.md) for flexibility
+- Enable RAG to chat with your documents: `/rag on` then `/index <file>`
 
 ## Getting Help
 

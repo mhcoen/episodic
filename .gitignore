@@ -71,6 +71,9 @@ WARP.md
 
 # Evaluation directory (training and testing) - top level only
 /evaluation/
+
+# Experiments directory (internal research code)
+/experiments/
 .cache/
 
 # Experiment cache directories

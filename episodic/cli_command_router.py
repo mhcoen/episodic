@@ -197,6 +197,8 @@ def handle_command(command_str: str) -> bool:
             _handle_recall(args)
         elif cmd == "/test":
             _handle_test(args)
+        elif cmd == "/doctor":
+            _handle_doctor(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -1019,3 +1021,10 @@ def _handle_test(args: List[str]):
     from episodic.commands.test_mode import test_command
     subcommand = args[0] if args else None
     test_command(subcommand)
+
+
+def _handle_doctor(args: List[str]):
+    """Handle /doctor command - installation health check."""
+    from episodic.commands.doctor import doctor
+    verbose = args[0] if args else None
+    doctor(verbose)

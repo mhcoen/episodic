@@ -74,6 +74,9 @@ WARP.md
 
 # Experiments directory (internal research code)
 /experiments/
+
+# Results directory (intermediate analysis artifacts)
+/results/
 .cache/
 
 # Experiment cache directories

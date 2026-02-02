@@ -1,7 +1,0 @@
-method,dataset,n_dialogues,n_gold,n_pred,f1,w_f1,bor,purity,coverage,regime
-CSM,dialseg711,711,2754,1546,0.353,0.393,0.56,0.732,0.931,Conservative
-Even,dialseg711,711,2754,2754,0.211,0.481,1.00,0.806,0.809,Balanced
-TextTiling,dialseg711,711,2754,7404,0.488,0.613,2.69,0.988,0.638,Aggressive
-CSM,tiage,100,315,182,0.306,0.409,0.58,0.760,0.909,Conservative
-Even,tiage,100,315,315,0.276,0.633,1.00,0.824,0.826,Balanced
-TextTiling,tiage,100,315,580,0.434,0.628,1.84,0.933,0.717,Aggressive

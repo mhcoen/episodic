@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "typer>=0.9.0",
-        "rich>=13.0.0", 
+        "rich>=13.0.0",
         "prompt_toolkit>=3.0.0",
         "click>=8.0.0",
         "litellm>=1.0.0",
@@ -24,6 +24,8 @@ setup(
         "duckduckgo-search>=4.0.0",
         "scipy>=1.10.0",
         "pyyaml>=6.0.0",
+        "chromadb>=0.4.0",
+        "sentence-transformers>=2.0.0",
     ],
     extras_require={
         "rag": ["chromadb>=0.4.0", "sentence-transformers>=2.0.0"],

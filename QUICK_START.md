@@ -93,9 +93,9 @@ Episodic includes DuckDuckGo search by default - completely free, no setup neede
 # This makes all responses brief and to-the-point
 ```
 
-### Your Settings Are Auto-Saved
+### Save Your Settings
 
-Configuration changes (like `/style concise`) are automatically saved to `~/.episodic/config.json` and persist across sessions.
+To make settings persist, edit `~/.episodic/config.json` directly, or copy settings from `/config` output.
 
 ## 6. (Alternative) Use Ollama for Unlimited Free Local Models
 

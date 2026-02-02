@@ -26,38 +26,30 @@ setup(
         "pyyaml>=6.0.0",
         "chromadb>=0.4.0",
         "sentence-transformers>=2.0.0",
+        # PDF support
+        "pypdf>=3.0.0",
+        # Voice mode
+        "sounddevice>=0.4.0",
+        "webrtcvad>=2.0.0",
+        "pvporcupine>=3.0.0",
+        "pydub>=0.25.0",
+        "azure-cognitiveservices-speech>=1.30.0",
+        "elevenlabs>=0.2.0",
     ],
     extras_require={
-        "rag": ["chromadb>=0.4.0", "sentence-transformers>=2.0.0"],
         "web": ["beautifulsoup4>=4.0.0", "httpx>=0.24.0"],
         "ml": ["scikit-learn>=1.0.0", "nltk>=3.8.0"],
-        "pdf": ["pypdf>=3.0.0"],
-        "voice": [
-            "sounddevice>=0.4.0",
-            "webrtcvad>=2.0.0",
-            "pvporcupine>=3.0.0",
-            "pydub>=0.25.0",
-            # Cloud TTS providers (install as needed)
-            "azure-cognitiveservices-speech>=1.30.0",
-            "elevenlabs>=0.2.0",
-            # For local STT: pip install faster-whisper
-        ],
         "dev": [
             "pytest>=7.0.0",
             "black>=23.0.0",
             "flake8>=6.0.0",
             "mypy>=1.0.0",
-            "chromadb>=0.4.0",
-            "sentence-transformers>=2.0.0",
         ],
         "all": [
-            "chromadb>=0.4.0",
-            "sentence-transformers>=2.0.0",
             "beautifulsoup4>=4.0.0",
             "httpx>=0.24.0",
             "scikit-learn>=1.0.0",
             "nltk>=3.8.0",
-            "pypdf>=3.0.0",
         ],
     },
     entry_points={

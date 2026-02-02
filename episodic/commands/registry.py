@@ -326,6 +326,13 @@ def register_all_commands():
 
     command_registry.register("evaluate", lazy_evaluate_command, "Evaluation and calibration tools (reactivation replay, etc.)", "Utility")
 
+    # Doctor command (installation health check)
+    def lazy_doctor_command(*args, **kwargs):
+        from episodic.commands.doctor import doctor
+        return doctor(*args, **kwargs)
+
+    command_registry.register("doctor", lazy_doctor_command, "Run installation health checks", "Utility")
+
 
 # Don't initialize on import - will be called when needed
 # register_all_commands()

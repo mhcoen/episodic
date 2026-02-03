@@ -115,8 +115,8 @@ class VoiceModeManager:
             azure_region = config.get("azure_speech_region") or os.environ.get("AZURE_SPEECH_REGION", "")
             cache_key += f":{azure_key[:8] if azure_key else ''}:{azure_region}"
 
-        # Recreate provider if config changed
-        if not hasattr(self, '_tts_cache_key') or self._tts_cache_key != cache_key:
+        # Recreate provider if config changed or provider was cleared
+        if self._tts_provider is None or not hasattr(self, '_tts_cache_key') or self._tts_cache_key != cache_key:
             self._tts_provider = get_tts_provider(provider_name, **kwargs)
             self._tts_cache_key = cache_key
 

@@ -35,6 +35,7 @@ setup(
         "pydub>=0.25.0",
         "azure-cognitiveservices-speech>=1.30.0",
         "elevenlabs>=0.2.0",
+        "deepgram-sdk>=3.0.0",
     ],
     extras_require={
         "web": ["beautifulsoup4>=4.0.0", "httpx>=0.24.0"],

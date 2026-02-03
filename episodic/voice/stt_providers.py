@@ -313,22 +313,16 @@ class DeepgramProvider(BaseSTTProvider):
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> Optional[str]:
         """Transcribe using Deepgram API."""
         try:
-            from deepgram import PrerecordedOptions
-
             # Calculate audio duration for cost tracking
             duration_seconds = len(audio_data) / sample_rate
 
             client = self._get_client()
             wav_bytes = _audio_to_wav_bytes(audio_data, sample_rate)
 
-            options = PrerecordedOptions(
+            response = client.listen.v1.media.transcribe_file(
+                request=wav_bytes,
                 model=self.model,
                 smart_format=True,
-            )
-
-            response = client.listen.prerecorded.v("1").transcribe_file(
-                {"buffer": wav_bytes, "mimetype": "audio/wav"},
-                options
             )
 
             text = response.results.channels[0].alternatives[0].transcript

@@ -1011,6 +1011,37 @@ class ConversationManager:
                         "content": synthesis_result['prompt']
                     })
 
+                    # Gap B: Token guard for muse mode
+                    from episodic.token_guard import guard_assembly, TokenBudget
+                    token_budget = TokenBudget(
+                        full_cap=config.get("token_full_cap", 8000),
+                        summary_min=config.get("token_summary_min", 100),
+                        overhead_reserve=config.get("token_overhead_reserve", 500),
+                    )
+                    synthesis_messages, fallback_response = guard_assembly(synthesis_messages, token_budget)
+
+                    if fallback_response:
+                        display_response = fallback_response
+                        debug_print("Token guard triggered fallback response (muse)", category="memory")
+                        with benchmark_resource("Database", "insert assistant node"):
+                            if "/" in model:
+                                provider, model_name = model.split("/", 1)
+                            else:
+                                provider = None
+                                model_name = model
+                            assistant_node_id, assistant_short_id = insert_node(
+                                display_response,
+                                user_node_id,
+                                role="assistant",
+                                provider=provider,
+                                model=model
+                            )
+                        self.set_current_node_id(assistant_node_id)
+                        self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
+                        typer.echo("")
+                        secho_color(display_response, fg=get_error_color())
+                        return assistant_node_id, display_response
+
                     try:
                         stream_generator, _ = _execute_llm_query(
                             synthesis_messages,
@@ -1068,6 +1099,39 @@ class ConversationManager:
                         else:
                             preview = str(content)[:200]
                         debug_print(f"  [{i}] {role}: {preview}...", category="memory")
+
+                    # Gap B: Full-assembly token assertion
+                    from episodic.token_guard import guard_assembly, TokenBudget
+                    token_budget = TokenBudget(
+                        full_cap=config.get("token_full_cap", 8000),
+                        summary_min=config.get("token_summary_min", 100),
+                        overhead_reserve=config.get("token_overhead_reserve", 500),
+                    )
+                    messages, fallback_response = guard_assembly(messages, token_budget)
+
+                    if fallback_response:
+                        # Token guard triggered abort - use fallback response
+                        display_response = fallback_response
+                        debug_print("Token guard triggered fallback response", category="memory")
+                        # Skip LLM query and store fallback
+                        with benchmark_resource("Database", "insert assistant node"):
+                            if "/" in model:
+                                provider, model_name = model.split("/", 1)
+                            else:
+                                provider = None
+                                model_name = model
+                            assistant_node_id, assistant_short_id = insert_node(
+                                display_response,
+                                user_node_id,
+                                role="assistant",
+                                provider=provider,
+                                model=model
+                            )
+                        self.set_current_node_id(assistant_node_id)
+                        self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
+                        typer.echo("")
+                        secho_color(display_response, fg=get_error_color())
+                        return assistant_node_id, display_response
 
                     # Query the LLM with streaming
                     stream_enabled = config.get("stream_responses", True)

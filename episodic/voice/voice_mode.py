@@ -154,9 +154,9 @@ class VoiceModeManager:
         keyword = config.get("voice_wake_word", "computer").lower()
         sensitivity = config.get("voice_wake_word_sensitivity", 0.5)
 
-        # Check if settings changed - recreate detector if so
+        # Check if settings changed or detector was cleared - recreate if so
         cache_key = f"{keyword}:{sensitivity}"
-        if not hasattr(self, '_wake_word_cache_key') or self._wake_word_cache_key != cache_key:
+        if self._wake_word_detector is None or not hasattr(self, '_wake_word_cache_key') or self._wake_word_cache_key != cache_key:
             # Cleanup old detector
             if self._wake_word_detector is not None:
                 self._wake_word_detector.cleanup()

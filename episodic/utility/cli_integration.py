@@ -461,6 +461,99 @@ def is_utility_command(cmd: str) -> bool:
     return cmd in utility_commands
 
 
+def handle_voice_utterance(text: str) -> Optional[UtilityResult]:
+    """
+    Handle a natural language utterance that may be a utility command.
+
+    This is the integration point for voice/typed input that should be
+    checked for utility commands before falling through to the LLM.
+
+    Args:
+        text: Raw user input
+
+    Returns:
+        UtilityResult if handled as utility, None to fall through to chat
+    """
+    global _last_result
+
+    from ..routing import route, RouteTarget
+    from ..routing.router import RuntimeState
+
+    user_tz = config.get("timezone", "America/Chicago")
+
+    # Create runtime state
+    # TODO: Track actual media/TTS state from adapters
+    state = RuntimeState(timezone=user_tz)
+
+    # Route the utterance
+    result = route(text, state, user_tz=user_tz)
+
+    # Handle based on routing decision
+    if result.target == RouteTarget.PREEMPT:
+        # Execute preempt command
+        return _execute_utility_query(result.utility_query)
+
+    elif result.target == RouteTarget.UTILITY:
+        # Execute utility command
+        return _execute_utility_query(result.utility_query)
+
+    elif result.target == RouteTarget.MQL:
+        # Fall through to chat - MQL will be handled by chat
+        return None
+
+    else:  # LLM fallback
+        return None
+
+
+def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
+    """Execute a UtilityQuery and return the result."""
+    global _last_result
+
+    user_tz = config.get("timezone", "America/Chicago")
+
+    # Initialize only the services needed for this command category
+    scheduler = None
+    adapter_registry = None
+
+    # Categories that need scheduler
+    if query.category in ("timer", "alarm", "reminder"):
+        scheduler = get_scheduler()
+
+    # Categories that need adapter registry
+    if query.category == "media":
+        adapter_registry = get_adapter_registry()
+
+    # System commands may need both
+    if query.category == "system":
+        if query.command in ("stop", "stop_tts"):
+            adapter_registry = get_adapter_registry()
+        elif query.command in ("cancel", "status"):
+            scheduler = get_scheduler()
+            adapter_registry = get_adapter_registry()
+
+    # Ensure utility schema exists
+    _ensure_utility_schema()
+
+    # Get database connection
+    from ..db_connection import get_connection
+
+    # Dispatch the query
+    with get_connection() as conn:
+        utility_result = dispatch_utility(
+            query,
+            conn=conn,
+            user_tz=user_tz,
+            scheduler=scheduler,
+            adapter_registry=adapter_registry,
+            last_result=_last_result,
+        )
+
+    # Store for undo/repeat
+    _last_result = utility_result
+
+    return utility_result
+
+
 def shutdown_utility_services() -> None:
     """Shutdown utility services (scheduler, adapters)."""
     global _scheduler, _adapter_registry

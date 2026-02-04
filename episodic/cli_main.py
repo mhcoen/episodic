@@ -749,8 +749,17 @@ async def _async_talk_loop() -> None:
                         typer.secho("\nGoodbye! 👋", fg=get_system_color())
                         break
                 else:
-                    # It's a chat message
-                    handle_chat_message(user_input)
+                    # Try voice grammar for utility commands first
+                    from episodic.utility.cli_integration import (
+                        handle_voice_utterance,
+                        display_utility_result,
+                    )
+                    utility_result = handle_voice_utterance(user_input)
+                    if utility_result is not None:
+                        display_utility_result(utility_result)
+                    else:
+                        # Fall through to chat message handler
+                        handle_chat_message(user_input)
             finally:
                 # Resume idle timer after processing
                 if config.get("voice_mode", False):

@@ -23,6 +23,49 @@ def get_weather_provider() -> WeatherProvider:
     return _weather_provider
 
 
+def _configure_provider(
+    provider: WeatherProvider, conn: Optional[sqlite3.Connection]
+) -> None:
+    """Configure weather provider with preferences and config file settings."""
+    if conn is None:
+        return
+
+    from ..db import get_preference
+
+    temp_unit = get_preference(conn, "temp_unit") or "F"
+    location_home = get_preference(conn, "location_home")
+    location_work = get_preference(conn, "location_work")
+    location_detected = get_preference(conn, "location_detected")
+
+    # Check config file for default_location override
+    try:
+        from episodic.config import config
+        default_location = config.get("default_location")
+    except Exception:
+        default_location = None
+
+    provider.configure({
+        "temp_unit": temp_unit,
+        "location_home": location_home,
+        "location_work": location_work,
+        "location_detected": location_detected,
+        "default_location": default_location or location_home,
+    })
+
+
+def _save_detected_location(
+    provider: WeatherProvider, conn: Optional[sqlite3.Connection]
+) -> None:
+    """Save newly detected IP location to database."""
+    if conn is None:
+        return
+
+    new_location = provider.get_new_ip_location()
+    if new_location:
+        from ..db import set_preference
+        set_preference(conn, "location_detected", new_location)
+
+
 def handle_weather_now(
     query: UtilityQuery,
     conn: Optional[sqlite3.Connection] = None,
@@ -37,24 +80,13 @@ def handle_weather_now(
         place: Location (optional, defaults to "current")
     """
     provider = get_weather_provider()
-
-    # Get user preferences for configuration
-    if conn is not None:
-        from ..db import get_preference
-
-        temp_unit = get_preference(conn, "temp_unit") or "F"
-        location_home = get_preference(conn, "location_home")
-        location_work = get_preference(conn, "location_work")
-
-        provider.configure({
-            "temp_unit": temp_unit,
-            "location_home": location_home,
-            "location_work": location_work,
-            "default_location": location_home,  # Use home as default
-        })
+    _configure_provider(provider, conn)
 
     place = query.args.get("place", "current")
     result = provider.get("weather_now", {"place": place})
+
+    # Save detected location if we just did IP lookup
+    _save_detected_location(provider, conn)
 
     if result.status == "error":
         return UtilityResult.error(
@@ -84,24 +116,13 @@ def handle_weather_forecast(
         days: Number of days (optional, defaults to 5)
     """
     provider = get_weather_provider()
-
-    # Get user preferences for configuration
-    if conn is not None:
-        from ..db import get_preference
-
-        temp_unit = get_preference(conn, "temp_unit") or "F"
-        location_home = get_preference(conn, "location_home")
-        location_work = get_preference(conn, "location_work")
-
-        provider.configure({
-            "temp_unit": temp_unit,
-            "location_home": location_home,
-            "location_work": location_work,
-            "default_location": location_home,
-        })
+    _configure_provider(provider, conn)
 
     place = query.args.get("place", "current")
     result = provider.get("weather_forecast", {"place": place})
+
+    # Save detected location if we just did IP lookup
+    _save_detected_location(provider, conn)
 
     if result.status == "error":
         return UtilityResult.error(

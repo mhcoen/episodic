@@ -70,9 +70,11 @@ class WeatherProvider(DataProvider):
         self._default_location: Optional[str] = None
         self._home_location: Optional[str] = None
         self._work_location: Optional[str] = None
+        self._detected_location: Optional[str] = None
         self._cache: Dict[str, CacheEntry] = {}
         self._last_refresh: Optional[datetime] = None
         self._error_count: int = 0
+        self._ip_location_cache: Optional[str] = None
 
     def configure(self, config: Dict[str, Any]) -> None:
         """Apply configuration."""
@@ -81,6 +83,7 @@ class WeatherProvider(DataProvider):
         self._default_location = config.get("default_location")
         self._home_location = config.get("location_home")
         self._work_location = config.get("location_work")
+        self._detected_location = config.get("location_detected")
 
     def get(self, command: str, args: Dict[str, Any]) -> ProviderResult:
         """Get weather data from cache or fetch fresh."""
@@ -175,18 +178,81 @@ class WeatherProvider(DataProvider):
         }
 
     def _resolve_location(self, place: str) -> Optional[str]:
-        """Resolve location placeholder to actual location."""
+        """
+        Resolve location placeholder to actual location.
+
+        Resolution order:
+        1. Explicit location (not "current"/"home"/"work")
+        2. For "home" -> location_home preference
+        3. For "work" -> location_work preference
+        4. For "current" -> default_location (config file)
+        5. For "current"/"home" -> location_home preference
+        6. Detected location (cached IP lookup)
+        7. Fresh IP geolocation (then cache)
+        """
         place_lower = place.lower()
 
-        if place_lower == "current":
-            return self._default_location
-        elif place_lower == "home":
-            return self._home_location
-        elif place_lower == "work":
+        if place_lower == "work":
             return self._work_location
+        elif place_lower == "home":
+            return self._home_location or self._get_fallback_location()
+        elif place_lower == "current":
+            # Try default_location first (from config file)
+            if self._default_location:
+                return self._default_location
+            # Then home location
+            if self._home_location:
+                return self._home_location
+            # Fall back to detected/IP location
+            return self._get_fallback_location()
         else:
             # Explicit location
             return place
+
+    def _get_fallback_location(self) -> Optional[str]:
+        """Get fallback location from detected or IP geolocation."""
+        # Use cached detected location first
+        if self._detected_location:
+            return self._detected_location
+
+        # Try IP geolocation (with in-memory cache)
+        if self._ip_location_cache:
+            return self._ip_location_cache
+
+        # Fetch from IP
+        ip_location = self._get_location_from_ip()
+        if ip_location:
+            self._ip_location_cache = ip_location
+        return ip_location
+
+    def _get_location_from_ip(self) -> Optional[str]:
+        """Get location from IP address using ip-api.com."""
+        import urllib.request
+        import json
+
+        try:
+            url = "http://ip-api.com/json/?fields=city,regionCode,country"
+            with urllib.request.urlopen(url, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                if data.get("city"):
+                    region = data.get("regionCode", "")
+                    if region:
+                        return f"{data['city']}, {region}"
+                    return data["city"]
+        except Exception as e:
+            logger.debug(f"IP geolocation failed: {e}")
+        return None
+
+    def get_new_ip_location(self) -> Optional[str]:
+        """
+        Get newly detected IP location that should be saved to DB.
+
+        Returns the IP-detected location if it was just fetched and differs
+        from what was loaded from the database (detected_location).
+        """
+        if self._ip_location_cache and self._ip_location_cache != self._detected_location:
+            return self._ip_location_cache
+        return None
 
     def _fetch_weather(
         self, location: str, command: str, args: Dict[str, Any]

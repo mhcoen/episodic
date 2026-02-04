@@ -202,6 +202,7 @@ DEFAULT_PREFERENCES = {
     "temp_unit": "F",
     "location_home": None,
     "location_work": None,
+    "location_detected": None,  # Auto-detected from IP geolocation
     "dnd_enabled": False,
     "dnd_start": "22:00",
     "dnd_end": "07:00",

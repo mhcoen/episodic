@@ -29,34 +29,68 @@ def handle_stop(
     """
     Handle stop command.
 
-    Stops all audio output: TTS, audio player, media adapters.
+    Priority order:
+    1. Stop sounding alarm/timer first (they demand attention)
+    2. Only stop media (radio) if no alarm/timer is sounding
     """
     stopped = []
 
-    # Stop TTS
-    if tts_engine is not None:
-        try:
-            tts_engine.stop()
-            stopped.append("speech")
-        except Exception:
-            pass
-
-    # Stop audio player
+    # First priority: Check if an alarm or timer is sounding
+    alarm_timer_sounding = False
+    sound_info = None
     if audio_player is not None:
         try:
-            audio_player.stop()
-            stopped.append("audio")
+            if hasattr(audio_player, "is_alarm_or_timer_sounding"):
+                alarm_timer_sounding = audio_player.is_alarm_or_timer_sounding()
+                if alarm_timer_sounding and hasattr(audio_player, "get_current_sound_info"):
+                    sound_info = audio_player.get_current_sound_info()
         except Exception:
             pass
 
-    # Stop media adapters
-    if media_adapters:
-        for name, adapter in media_adapters.items():
+    if alarm_timer_sounding:
+        # Stop only the alarm/timer sound
+        try:
+            audio_player.stop()
+            if sound_info:
+                sound_type, label = sound_info
+                if label:
+                    stopped.append(f"{label} alarm" if sound_type and sound_type.name == "ALARM" else f"{label} timer")
+                else:
+                    stopped.append("alarm" if sound_type and sound_type.name == "ALARM" else "timer")
+            else:
+                stopped.append("alarm")
+        except Exception:
+            pass
+    else:
+        # No alarm/timer sounding - stop TTS and media
+
+        # Stop TTS
+        if tts_engine is not None:
             try:
-                adapter.stop()
-                stopped.append(name)
+                tts_engine.stop()
+                stopped.append("speech")
             except Exception:
                 pass
+
+        # Stop media adapters (radio, etc.)
+        if media_adapters:
+            for name, adapter in media_adapters.items():
+                try:
+                    # Check if adapter was playing
+                    was_playing = False
+                    playing_info = name
+                    if hasattr(adapter, "is_playing"):
+                        was_playing = adapter.is_playing()
+                    # Also check _current_station for radio adapter
+                    if hasattr(adapter, "_current_station") and adapter._current_station:
+                        was_playing = True
+                        playing_info = adapter._current_station.get("name", name)
+
+                    adapter.stop()
+                    if was_playing:
+                        stopped.append(playing_info)
+                except Exception:
+                    pass
 
     if stopped:
         display = f"Stopped: {', '.join(stopped)}"
@@ -275,12 +309,32 @@ def handle_status(
     """
     Handle status command.
 
-    Shows active timers, alarms, and what's playing.
+    Shows what's playing first, then active timers, alarms.
     """
     from ..scheduler import TaskType
 
     status_parts = []
     data = {}
+
+    # Media adapters (show what's playing first)
+    if media_adapters:
+        for name, adapter in media_adapters.items():
+            try:
+                if hasattr(adapter, "is_playing") and adapter.is_playing():
+                    # Try to get what's playing (e.g., station name for radio)
+                    playing_info = name
+                    if hasattr(adapter, "_current_station") and adapter._current_station:
+                        playing_info = adapter._current_station.get("name", name)
+                    status_parts.append(f"Playing: {playing_info}")
+                    data[f"{name}_playing"] = True
+                    data[f"{name}_info"] = playing_info
+            except Exception:
+                pass
+
+    # Audio playing
+    if audio_player and audio_player.is_playing():
+        status_parts.append("Audio: playing")
+        data["audio_playing"] = True
 
     # Active timers
     if scheduler:
@@ -312,21 +366,6 @@ def handle_status(
             if alarm_strs:
                 status_parts.append(f"Alarms: {', '.join(alarm_strs)}")
                 data["alarms"] = len(alarms)
-
-    # Audio playing
-    if audio_player and audio_player.is_playing():
-        status_parts.append("Audio: playing")
-        data["audio_playing"] = True
-
-    # Media adapters
-    if media_adapters:
-        for name, adapter in media_adapters.items():
-            try:
-                if hasattr(adapter, "is_playing") and adapter.is_playing():
-                    status_parts.append(f"{name}: playing")
-                    data[f"{name}_playing"] = True
-            except Exception:
-                pass
 
     # DND status
     if scheduler and scheduler.is_dnd_active():

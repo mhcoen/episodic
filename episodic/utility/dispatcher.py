@@ -188,9 +188,15 @@ def dispatch_utility(
                         audio_player, tts_engine, media_adapters, last_result,
                         adapter_registry
                     )
+                # Build media_adapters dict from adapter_registry if not provided
+                adapters_dict = media_adapters
+                if adapters_dict is None and adapter_registry is not None:
+                    adapters_dict = {
+                        a.name: a for a in adapter_registry.list_adapters()
+                    }
                 result = dispatcher(
                     query, scheduler, conn, audio_player, tts_engine,
-                    media_adapters, last_result, recursive_dispatch, user_tz
+                    adapters_dict, last_result, recursive_dispatch, user_tz
                 )
             elif query.category == "note":
                 result = dispatcher(query, conn, user_tz)

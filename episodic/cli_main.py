@@ -906,6 +906,10 @@ def main(
         from episodic.commands import cost as show_cost
         show_cost()
     
+    # Shutdown utility services (scheduler, adapters)
+    from episodic.utility.cli_integration import shutdown_utility_services
+    shutdown_utility_services()
+
     # Clean up database connections on exit
     from episodic.db_connection import close_pool
     close_pool()
@@ -916,5 +920,7 @@ if __name__ == "__main__":
         app()
     finally:
         # Ensure cleanup happens even on unexpected exit
+        from episodic.utility.cli_integration import shutdown_utility_services
+        shutdown_utility_services()
         from episodic.db_connection import close_pool
         close_pool()

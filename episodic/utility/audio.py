@@ -90,6 +90,8 @@ class AudioPlayerImpl:
         self._thread: Optional[threading.Thread] = None
         self._mixer_initialized = False
         self._pygame_available = False
+        self._current_sound_type: Optional[SoundType] = None
+        self._current_label: Optional[str] = None
 
     def configure(self, config: SoundConfig) -> None:
         """Apply configuration."""
@@ -135,6 +137,10 @@ class AudioPlayerImpl:
             label_file = self._config.sound_dir / f"{label.lower().replace(' ', '_')}.wav"
             if label_file.exists():
                 filename = label_file.name
+
+        # Track what's playing
+        self._current_sound_type = sound_type
+        self._current_label = label
 
         path = self._config.sound_dir / filename
         loop = sound_type == SoundType.ALARM
@@ -275,6 +281,20 @@ class AudioPlayerImpl:
             self._thread.join(timeout=1.0)
 
         self._playing = False
+        self._current_sound_type = None
+        self._current_label = None
+
+    def is_alarm_or_timer_sounding(self) -> bool:
+        """Check if an alarm or timer sound is currently playing."""
+        if not self._playing:
+            return False
+        return self._current_sound_type in (SoundType.ALARM, SoundType.TIMER)
+
+    def get_current_sound_info(self) -> Optional[tuple]:
+        """Get info about current sound (type, label) or None if not playing."""
+        if not self._playing:
+            return None
+        return (self._current_sound_type, self._current_label)
 
     def set_volume(self, volume: float) -> None:
         """Set volume (0.0 to 1.0)."""
@@ -333,6 +353,12 @@ class NullAudioPlayer:
 
     def is_playing(self) -> bool:
         return self._playing
+
+    def is_alarm_or_timer_sounding(self) -> bool:
+        return False
+
+    def get_current_sound_info(self) -> Optional[tuple]:
+        return None
 
 
 def get_default_sound_dir() -> Path:

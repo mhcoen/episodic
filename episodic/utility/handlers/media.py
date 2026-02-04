@@ -91,6 +91,12 @@ def handle_media_play(
             f"{adapter.display_name} requires authentication"
         )
     elif status == AdapterStatus.UNAVAILABLE:
+        # Provide more helpful error messages for known adapters
+        if source == "radio":
+            return UtilityResult.error(
+                "unavailable",
+                "Radio requires VLC. Install with: brew install vlc && pip install python-vlc"
+            )
         return UtilityResult.error(
             "unavailable",
             f"{adapter.display_name} is unavailable"

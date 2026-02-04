@@ -14,7 +14,7 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.2"
 
 SCHEMA_SQL = """
 -- Utility Commands SQLite Schema
@@ -36,14 +36,12 @@ CREATE TABLE IF NOT EXISTS preferences (
 
 CREATE TABLE IF NOT EXISTS alarms (
     id TEXT PRIMARY KEY,
-    time_local TEXT NOT NULL,       -- HH:MM:SS
-    tz TEXT NOT NULL,               -- IANA timezone
-    rrule TEXT,                     -- iCalendar RRULE (NULL = one-shot)
-    enabled INTEGER NOT NULL DEFAULT 1,
+    time TEXT NOT NULL,             -- ISO format datetime
     label TEXT,
-    sound TEXT,                     -- path or "default"
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    enabled INTEGER NOT NULL DEFAULT 1,
+    rrule TEXT,                     -- iCalendar RRULE (NULL = one-shot)
+    dnd_override INTEGER NOT NULL DEFAULT 0,
+    task_id TEXT                    -- FK to scheduled_tasks
 );
 
 CREATE INDEX IF NOT EXISTS idx_alarms_enabled ON alarms(enabled);
@@ -55,15 +53,15 @@ CREATE INDEX IF NOT EXISTS idx_alarms_enabled ON alarms(enabled);
 CREATE TABLE IF NOT EXISTS timers (
     id TEXT PRIMARY KEY,
     duration_s INTEGER NOT NULL,
-    started_at INTEGER NOT NULL,    -- Unix timestamp (monotonic reference)
-    expires_at INTEGER NOT NULL,    -- Unix timestamp (wall clock)
-    status TEXT NOT NULL,           -- "running" | "paused" | "expired" | "cancelled"
     label TEXT,
-    created_at INTEGER NOT NULL
+    status TEXT NOT NULL,           -- "running" | "paused" | "expired" | "cancelled"
+    created_ts INTEGER NOT NULL,    -- Unix timestamp when created
+    expires_ts INTEGER NOT NULL,    -- Unix timestamp when expires
+    task_id TEXT                    -- FK to scheduled_tasks
 );
 
 CREATE INDEX IF NOT EXISTS idx_timers_status ON timers(status);
-CREATE INDEX IF NOT EXISTS idx_timers_expires ON timers(expires_at);
+CREATE INDEX IF NOT EXISTS idx_timers_expires ON timers(expires_ts);
 
 -- ============================================================================
 -- REMINDERS
@@ -165,15 +163,18 @@ CREATE TABLE IF NOT EXISTS undo_stack (
 
 CREATE TABLE IF NOT EXISTS scheduled_tasks (
     id TEXT PRIMARY KEY,
-    task_type TEXT NOT NULL,        -- "alarm" | "timer" | "reminder" | "refresh"
+    task_type TEXT NOT NULL,        -- "ALARM" | "TIMER" | "REMINDER" | "REFRESH"
+    priority INTEGER NOT NULL DEFAULT 1,
+    next_run_ts INTEGER NOT NULL,   -- Unix timestamp (wall clock)
     reference_id TEXT,              -- FK to alarms/timers/reminders (NULL for refresh)
-    next_run_wall INTEGER NOT NULL, -- Unix timestamp
-    recurrence TEXT,                -- RRULE or interval seconds
-    priority INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL
+    label TEXT,
+    dnd_override INTEGER NOT NULL DEFAULT 0,
+    duration_s INTEGER,             -- Original duration for timers
+    paused_remaining REAL,          -- Remaining time when paused (seconds)
+    recurrence_json TEXT            -- JSON: RRULE string or interval seconds
 );
 
-CREATE INDEX IF NOT EXISTS idx_scheduled_next ON scheduled_tasks(next_run_wall);
+CREATE INDEX IF NOT EXISTS idx_scheduled_next ON scheduled_tasks(next_run_ts);
 
 -- ============================================================================
 -- CACHE METADATA (optional, for cache warming on restart)
@@ -236,6 +237,16 @@ def init_utility_schema(conn: sqlite3.Connection) -> bool:
         row = cursor.fetchone()
         if row and row[0] == SCHEMA_VERSION:
             return False  # Already up to date
+
+        # Version mismatch - drop utility tables to recreate with new schema
+        # (This is acceptable for dev; production would use migrations)
+        utility_tables = [
+            "alarms", "timers", "reminders", "notes", "lists", "list_items",
+            "routines", "utility_event_log", "undo_stack", "scheduled_tasks",
+            "cache_metadata", "utility_schema_version"
+        ]
+        for table in utility_tables:
+            cursor.execute(f"DROP TABLE IF EXISTS {table}")
 
     # Create schema
     cursor.executescript(SCHEMA_SQL)

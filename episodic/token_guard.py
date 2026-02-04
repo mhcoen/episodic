@@ -165,6 +165,7 @@ class DropAction(Enum):
     TRUNCATE_SUMMARY = "truncate_summary"
     DROP_RECENCY = "drop_recency"
     DROP_ANCHORS = "drop_anchors"
+    RELEVANCE_TRUNCATION = "relevance_truncation"
     ABORT = "abort"
 
 
@@ -218,6 +219,8 @@ class ValidationResult:
     fallback_response: Optional[str] = None
     bug_event_logged: bool = False
     details: Dict[str, Any] = field(default_factory=dict)
+    # Truncation result for logging (when relevance truncation enabled)
+    truncation_result: Optional[Any] = None  # TruncationResult from truncation module
 
 
 # =============================================================================
@@ -593,6 +596,23 @@ def _emit_token_guard_event(
         else:
             event_type = EventType.TOKEN_OK
 
+        # Build extra fields
+        extra = {
+            "actions_taken": [a.value for a in result.actions_taken],
+            "original_tokens": result.original_tokens,
+        }
+
+        # Include truncation details if relevance truncation was used
+        if result.truncation_result is not None:
+            tr = result.truncation_result
+            extra["truncation"] = {
+                "tokens_before": tr.tokens_before,
+                "tokens_after": tr.tokens_after,
+                "tokens_freed": tr.tokens_before - tr.tokens_after,
+                "decisions_count": len(tr.decisions),
+                "decisions": [d.to_dict() for d in tr.decisions[:10]],  # Limit for event size
+            }
+
         event_logger.emit(
             event_type=event_type,
             assembly_id=assembly_id,
@@ -604,10 +624,7 @@ def _emit_token_guard_event(
             effective_tokens=result.final_tokens,
             cap=effective_cap,
             budget_breakdown=result.details["breakdown"],
-            extra={
-                "actions_taken": [a.value for a in result.actions_taken],
-                "original_tokens": result.original_tokens,
-            }
+            extra=extra
         )
     except Exception as e:
         # Don't fail validation due to event emission errors
@@ -629,11 +646,15 @@ def validate_assembly(
     turn_id: Optional[str] = None,
     assembly_id: Optional[str] = None,
     emit_event: bool = True,
+    enable_relevance_truncation: Optional[bool] = None,
+    current_query: Optional[str] = None,
+    anchor_indices: Optional[set] = None,
 ) -> ValidationResult:
     """
     Validate assembled messages against token cap.
 
     Implements fail-closed policy:
+    0. If relevance truncation enabled: use importance-based drop (Phase 2)
     1. Check if total tokens exceed cap
     2. If over: truncate summary (down to s_min)
     3. If still over: drop recency messages (oldest first)
@@ -642,6 +663,7 @@ def validate_assembly(
 
     Gap A: Safety factor is only applied when counter.is_exact()==False.
     Category D: Emits exactly one structured event per call.
+    Phase 2: Relevance-aware truncation drops by importance score when enabled.
 
     Args:
         messages: List of assembled messages
@@ -654,6 +676,9 @@ def validate_assembly(
         turn_id: Unique ID for conversation turn (auto-generated if None)
         assembly_id: Unique ID for this assembly call (auto-generated if None)
         emit_event: Whether to emit structured event (default True)
+        enable_relevance_truncation: Use importance-based truncation (default: from config)
+        current_query: Current user query for relevance scoring (required if truncation enabled)
+        anchor_indices: Set of message indices that are anchors (for truncation scoring)
 
     Returns:
         ValidationResult with valid flag, actions taken, and optionally modified messages
@@ -721,6 +746,10 @@ def validate_assembly(
         }
     )
 
+    # Resolve relevance truncation setting from config if not explicitly provided
+    if enable_relevance_truncation is None:
+        enable_relevance_truncation = config.get("enable_relevance_truncation", False)
+
     # Check if within cap
     effective_cap = budget.full_cap - budget.overhead_reserve
     if original_tokens <= effective_cap:
@@ -742,7 +771,57 @@ def validate_assembly(
     current_tokens = original_tokens
     target = effective_cap
 
-    # Step 1: Truncate summary
+    # Phase 2: Relevance-aware truncation (when enabled)
+    # This runs BEFORE the legacy drop policy as the preferred approach
+    if enable_relevance_truncation and apply_drops and current_tokens > target:
+        try:
+            from episodic.truncation import truncate_by_relevance
+
+            # Extract current query from last user message if not provided
+            query = current_query
+            if query is None:
+                for msg in reversed(messages):
+                    if msg.get("role") == "user":
+                        content = msg.get("content", "")
+                        if isinstance(content, str):
+                            query = content
+                        elif isinstance(content, list):
+                            query = " ".join(
+                                b.get("text", "") if isinstance(b, dict) else str(b)
+                                for b in content
+                            )
+                        break
+                if query is None:
+                    query = ""
+
+            # Run relevance truncation with same counter for consistency
+            truncation_result = truncate_by_relevance(
+                messages=current_messages,
+                target_tokens=target,
+                current_query=query,
+                counter=counter,
+                anchor_indices=anchor_indices,
+            )
+
+            # Check if truncation made progress
+            if truncation_result.tokens_after < truncation_result.tokens_before:
+                result.actions_taken.append(DropAction.RELEVANCE_TRUNCATION)
+                current_messages = truncation_result.messages
+                # Recount with safety factor for consistency
+                raw_after = counter.count_messages(current_messages)
+                current_tokens = int(raw_after * effective_safety_factor)
+                result.truncation_result = truncation_result
+                result.details["truncation_applied"] = True
+                result.details["truncation_tokens_freed"] = (
+                    truncation_result.tokens_before - truncation_result.tokens_after
+                )
+
+        except ImportError:
+            logger.warning("Relevance truncation enabled but truncation module not available")
+        except Exception as e:
+            logger.warning(f"Relevance truncation failed, falling back to legacy: {e}")
+
+    # Step 1: Truncate summary (legacy fallback if still over)
     if apply_drops and current_tokens > target:
         reduction_needed = current_tokens - target
         new_messages, reduced = _truncate_summary_in_messages(
@@ -853,6 +932,9 @@ def guard_assembly(
     turn_id: Optional[str] = None,
     assembly_id: Optional[str] = None,
     emit_event: bool = True,
+    enable_relevance_truncation: Optional[bool] = None,
+    current_query: Optional[str] = None,
+    anchor_indices: Optional[set] = None,
 ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     """
     Guard assembly - validate and return safe messages.
@@ -870,6 +952,9 @@ def guard_assembly(
         turn_id: Unique ID for conversation turn
         assembly_id: Unique ID for this assembly call
         emit_event: Whether to emit structured event
+        enable_relevance_truncation: Use importance-based truncation (default: from config)
+        current_query: Current user query for relevance scoring
+        anchor_indices: Set of message indices that are anchors
 
     Returns:
         Tuple of (messages, fallback_response)
@@ -879,7 +964,9 @@ def guard_assembly(
     result = validate_assembly(
         messages, budget, safety_factor, apply_drops=True,
         counter=counter, provider_id=provider_id, model_id=model_id,
-        turn_id=turn_id, assembly_id=assembly_id, emit_event=emit_event
+        turn_id=turn_id, assembly_id=assembly_id, emit_event=emit_event,
+        enable_relevance_truncation=enable_relevance_truncation,
+        current_query=current_query, anchor_indices=anchor_indices
     )
 
     if result.valid:

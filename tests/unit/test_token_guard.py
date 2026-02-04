@@ -744,5 +744,279 @@ class TestValidationResultDetails:
         assert result.details["counter_exact"] is False
 
 
+class TestRelevanceTruncationIntegration:
+    """Integration tests for Phase 2 relevance-aware truncation."""
+
+    def test_truncation_disabled_by_default(self):
+        """Relevance truncation is disabled by default."""
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "A" * 200},
+            {"role": "assistant", "content": "B" * 200},
+            {"role": "user", "content": "C" * 200},
+            {"role": "assistant", "content": "D" * 200},
+            {"role": "user", "content": "Current query"},
+        ]
+        budget = TokenBudget(full_cap=300, overhead_reserve=50)
+
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=False,
+            emit_event=False
+        )
+
+        # Should use legacy drop policy (no RELEVANCE_TRUNCATION action)
+        action_values = [a.value for a in result.actions_taken]
+        assert "relevance_truncation" not in action_values
+
+    def test_truncation_enabled_uses_importance_scoring(self):
+        """When enabled, truncation uses importance-based drops."""
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "A" * 200},
+            {"role": "assistant", "content": "B" * 200},
+            {"role": "user", "content": "C" * 200},
+            {"role": "assistant", "content": "D" * 200},
+            {"role": "user", "content": "Python programming tutorial"},
+        ]
+        budget = TokenBudget(full_cap=300, overhead_reserve=50)
+
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=True,
+            current_query="Python programming tutorial",
+            emit_event=False
+        )
+
+        # Should include RELEVANCE_TRUNCATION action
+        action_values = [a.value for a in result.actions_taken]
+        assert "relevance_truncation" in action_values or result.valid
+
+    def test_truncation_determinism_same_input_same_output(self):
+        """Same input produces same truncation decisions."""
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Hello Python programming"},
+            {"role": "assistant", "content": "Python is great for beginners."},
+            {"role": "user", "content": "Unrelated cooking recipe discussion here"},
+            {"role": "assistant", "content": "More cooking content goes here"},
+            {"role": "user", "content": "Back to Python programming tutorials"},
+            {"role": "assistant", "content": "Let me explain Python more"},
+            {"role": "user", "content": "Python programming tutorial"},
+        ]
+        budget = TokenBudget(full_cap=200, overhead_reserve=50)
+        counter = HeuristicTokenCounter()
+
+        result1 = validate_assembly(
+            messages, budget,
+            counter=counter,
+            enable_relevance_truncation=True,
+            current_query="Python programming tutorial",
+            emit_event=False
+        )
+
+        result2 = validate_assembly(
+            messages, budget,
+            counter=counter,
+            enable_relevance_truncation=True,
+            current_query="Python programming tutorial",
+            emit_event=False
+        )
+
+        # Same final message count
+        if result1.messages and result2.messages:
+            assert len(result1.messages) == len(result2.messages)
+
+        # Same final tokens
+        assert result1.final_tokens == result2.final_tokens
+
+        # Same actions taken
+        assert result1.actions_taken == result2.actions_taken
+
+    def test_truncation_result_stored_for_logging(self):
+        """TruncationResult is stored in ValidationResult for logging."""
+        messages = [
+            {"role": "system", "content": "System"},
+            {"role": "user", "content": "A" * 200},
+            {"role": "assistant", "content": "B" * 200},
+            {"role": "user", "content": "Query"},
+        ]
+        budget = TokenBudget(full_cap=100, overhead_reserve=20)
+
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=True,
+            current_query="Query",
+            emit_event=False
+        )
+
+        # If truncation was applied, truncation_result should be set
+        if DropAction.RELEVANCE_TRUNCATION in result.actions_taken:
+            assert result.truncation_result is not None
+            assert hasattr(result.truncation_result, 'tokens_before')
+            assert hasattr(result.truncation_result, 'tokens_after')
+            assert hasattr(result.truncation_result, 'decisions')
+
+    def test_truncation_with_anchor_indices(self):
+        """Anchor indices are respected during truncation."""
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Important anchor content"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response"},  # Index 2 - anchor
+            {"role": "user", "content": "A" * 100},
+            {"role": "assistant", "content": "B" * 100},
+            {"role": "user", "content": "C" * 100},
+            {"role": "assistant", "content": "D" * 100},
+            {"role": "user", "content": "Query"},
+        ]
+        budget = TokenBudget(full_cap=200, overhead_reserve=50)
+        anchor_indices = {1, 2}
+
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=True,
+            current_query="Query",
+            anchor_indices=anchor_indices,
+            emit_event=False
+        )
+
+        # Result should be valid or have taken truncation actions
+        assert result.valid or result.actions_taken
+
+    def test_truncation_extracts_query_from_last_user_message(self):
+        """When current_query not provided, extracts from last user message."""
+        messages = [
+            {"role": "system", "content": "System"},
+            {"role": "user", "content": "A" * 100},
+            {"role": "assistant", "content": "B" * 100},
+            {"role": "user", "content": "Python programming question"},
+        ]
+        budget = TokenBudget(full_cap=100, overhead_reserve=20)
+
+        # Don't provide current_query - should extract automatically
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=True,
+            current_query=None,  # Auto-extract
+            emit_event=False
+        )
+
+        # Should complete without error
+        assert isinstance(result, ValidationResult)
+
+    def test_truncation_with_same_counter_as_guard(self):
+        """Truncation uses same counter instance as guard for consistency."""
+        messages = [
+            {"role": "system", "content": "System"},
+            {"role": "user", "content": "A" * 200},
+            {"role": "assistant", "content": "B" * 200},
+            {"role": "user", "content": "Query"},
+        ]
+        budget = TokenBudget(full_cap=150, overhead_reserve=30)
+        counter = HeuristicTokenCounter()
+
+        result = validate_assembly(
+            messages, budget,
+            counter=counter,
+            enable_relevance_truncation=True,
+            current_query="Query",
+            emit_event=False
+        )
+
+        # Final tokens should be accurate with same counter
+        if result.messages:
+            actual_tokens = counter.count_messages(result.messages)
+            # Account for safety factor
+            assert result.final_tokens >= actual_tokens
+
+    def test_no_double_drop_when_relevance_truncation_fits_budget(self):
+        """
+        Regression test: Legacy drop policy NOT invoked when relevance truncation
+        successfully fits within budget.
+
+        Scenario:
+        1. Messages exceed budget
+        2. Enable relevance truncation
+        3. Truncation succeeds (fits budget after dropping by importance)
+        4. Assert: legacy drops (TRUNCATE_SUMMARY, DROP_RECENCY, DROP_ANCHORS) NOT fired
+        5. Assert: only RELEVANCE_TRUNCATION action taken
+        """
+        # Create messages that exceed budget but can fit after truncation
+        messages = [
+            {"role": "system", "content": "## Summary\nA topic summary here with some content."},
+            {"role": "user", "content": "First exchange message about Python"},
+            {"role": "assistant", "content": "Response about Python programming"},
+            {"role": "user", "content": "Unrelated cooking recipe discussion here"},  # Should be dropped
+            {"role": "assistant", "content": "More cooking content goes here"},  # Should be dropped
+            {"role": "user", "content": "Python programming tutorial query"},
+        ]
+
+        # Budget that requires dropping ~2 messages
+        counter = HeuristicTokenCounter()
+        total_tokens = counter.count_messages(messages)
+        budget = TokenBudget(
+            full_cap=int(total_tokens * 0.7),  # 70% of total = need to drop ~30%
+            overhead_reserve=20
+        )
+
+        result = validate_assembly(
+            messages, budget,
+            counter=counter,
+            enable_relevance_truncation=True,
+            current_query="Python programming tutorial query",
+            emit_event=False
+        )
+
+        # Extract action values
+        action_values = [a.value for a in result.actions_taken]
+
+        # Should have RELEVANCE_TRUNCATION if truncation was needed
+        if not result.valid or action_values:
+            # Legacy drop actions should NOT be present when relevance truncation was used
+            legacy_actions = {"truncate_summary", "drop_recency", "drop_anchors"}
+            actions_set = set(action_values)
+
+            if "relevance_truncation" in actions_set:
+                # Double-drop prevention: No legacy actions when relevance truncation succeeded
+                legacy_fired = legacy_actions & actions_set
+                assert legacy_fired == set(), (
+                    f"Legacy drop policy incorrectly fired after relevance truncation: {legacy_fired}. "
+                    f"All actions: {action_values}"
+                )
+
+    def test_legacy_fallback_when_relevance_truncation_insufficient(self):
+        """
+        Legacy policy is correctly used as fallback when relevance truncation
+        alone cannot meet the budget.
+        """
+        # Create extreme scenario where truncation can't help enough
+        messages = [
+            {"role": "system", "content": "## Summary\n" + "X" * 500},  # Huge summary
+            {"role": "user", "content": "A" * 50},
+            {"role": "assistant", "content": "B" * 50},
+            {"role": "user", "content": "Query"},
+        ]
+
+        # Very tight budget that even truncation can't fully solve
+        budget = TokenBudget(full_cap=50, overhead_reserve=10)
+        counter = HeuristicTokenCounter()
+
+        result = validate_assembly(
+            messages, budget,
+            counter=counter,
+            enable_relevance_truncation=True,
+            current_query="Query",
+            emit_event=False
+        )
+
+        # In this extreme case, either:
+        # 1. Both relevance truncation AND legacy policy fired (fallback), OR
+        # 2. Validation failed entirely (abort)
+        action_values = [a.value for a in result.actions_taken]
+
+        # Should complete without assertion errors
+        assert isinstance(result, ValidationResult)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

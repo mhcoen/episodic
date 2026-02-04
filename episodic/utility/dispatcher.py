@@ -19,6 +19,8 @@ from .handlers.system import dispatch_system_command
 from .handlers.notes import dispatch_note_command
 from .handlers.reminders import dispatch_reminder_command
 from .handlers.media import dispatch_media_command
+from .handlers.weather import dispatch_weather_command
+from .handlers.news import dispatch_news_command
 
 
 # Handler registry by category
@@ -31,9 +33,8 @@ CATEGORY_DISPATCHERS = {
     "note": dispatch_note_command,
     "reminder": dispatch_reminder_command,
     "media": dispatch_media_command,
-    # Future categories:
-    # "weather": dispatch_weather_command,
-    # "routine": dispatch_routine_command,
+    "weather": dispatch_weather_command,
+    "news": dispatch_news_command,
 }
 
 
@@ -216,6 +217,8 @@ def dispatch_utility(
                     )
                 else:
                     result = dispatcher(query, adapter_registry, conn, audio_player)
+            elif query.category in ("weather", "news"):
+                result = dispatcher(query, conn, user_tz)
             else:
                 result = dispatcher(query)
         except Exception as e:

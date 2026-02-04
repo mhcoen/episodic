@@ -349,6 +349,36 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
     elif cmd == "status":
         query = create_utility_query("system", "status", source="cli")
 
+    elif cmd == "weather":
+        # /weather [location]
+        place = args_str.strip() if args_str else "current"
+        query = create_utility_query(
+            "weather", "weather_now",
+            args={"place": place},
+            source="cli",
+            raw_input=f"weather {args_str}" if args_str else "weather",
+        )
+
+    elif cmd == "forecast":
+        # /forecast [location]
+        place = args_str.strip() if args_str else "current"
+        query = create_utility_query(
+            "weather", "weather_forecast",
+            args={"place": place},
+            source="cli",
+            raw_input=f"forecast {args_str}" if args_str else "forecast",
+        )
+
+    elif cmd == "news":
+        # /news [category]
+        category = args_str.strip().lower() if args_str else "general"
+        query = create_utility_query(
+            "news", "news_headlines",
+            args={"category": category},
+            source="cli",
+            raw_input=f"news {args_str}" if args_str else "news",
+        )
+
     else:
         # Not a utility command
         return None
@@ -425,7 +455,8 @@ def is_utility_command(cmd: str) -> bool:
     """Check if a command is a utility command."""
     utility_commands = {
         "stop", "timer", "alarm", "time", "calc", "note",
-        "remind", "play", "pause", "cancel", "undo", "dnd", "status"
+        "remind", "play", "pause", "cancel", "undo", "dnd", "status",
+        "weather", "forecast", "news"
     }
     return cmd in utility_commands
 

@@ -56,6 +56,16 @@ from .media import (
     handle_volume_set,
     dispatch_media_command,
 )
+from .weather import (
+    handle_weather_now,
+    handle_weather_forecast,
+    dispatch_weather_command,
+)
+from .news import (
+    handle_news_headlines,
+    handle_news_topic,
+    dispatch_news_command,
+)
 
 __all__ = [
     # Time/Date
@@ -109,4 +119,12 @@ __all__ = [
     "handle_volume_mute",
     "handle_volume_set",
     "dispatch_media_command",
+    # Weather
+    "handle_weather_now",
+    "handle_weather_forecast",
+    "dispatch_weather_command",
+    # News
+    "handle_news_headlines",
+    "handle_news_topic",
+    "dispatch_news_command",
 ]

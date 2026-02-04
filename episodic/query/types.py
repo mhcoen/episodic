@@ -271,10 +271,12 @@ class ResolvedQuery:
     deictic: Optional[str]                           # Kind if present
     has_broadness_cue: bool                          # True if before/previously/ever present
     audit_trace: str                                 # Canonical JSON
+    ast_kind: str = "FreeText"                       # "MQLCommand", "DiscussionQuery", or "FreeText"
 
     def to_dict(self) -> dict:
         """Canonical serialization."""
         return {
+            "ast_kind": self.ast_kind,
             "deictic": self.deictic,
             "has_broadness_cue": self.has_broadness_cue,
             "mode": self.mode,

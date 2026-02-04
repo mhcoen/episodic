@@ -166,13 +166,28 @@ def route(
 
 
 def _is_free_text(mql_result) -> bool:
-    """Check if MQL result is a FreeText fallback or weak match."""
-    # ResolvedQuery doesn't directly tell us if it came from FreeText,
-    # but we can check for meaningful MQL-specific content
+    """
+    Check if MQL result is effectively free text (should fall to LLM).
+
+    Returns True if:
+    - Result is None
+    - AST was FreeText
+    - AST was MQLCommand but has no meaningful MQL structure
+      (no temporal, no segment, no deictic, no broadness cue)
+    """
     if mql_result is None:
         return True
 
-    # Strong MQL signals: temporal constraint, explicit segment, deictic reference
+    # Explicit FreeText from parser
+    if mql_result.ast_kind == "FreeText":
+        return True
+
+    # DiscussionQuery always has meaningful structure
+    if mql_result.ast_kind == "DiscussionQuery":
+        return False
+
+    # MQLCommand: check if it has meaningful MQL-specific content
+    # If it's just a target with no constraints, treat as free text
     if mql_result.temporal:
         return False
     if mql_result.segment_explicit:
@@ -182,6 +197,5 @@ def _is_free_text(mql_result) -> bool:
     if mql_result.has_broadness_cue:
         return False
 
-    # If only target is set with no other MQL constraints, it's likely free text
-    # (e.g., "tell me about timers" has target but no MQL structure)
+    # MQLCommand with only target is effectively free text
     return True

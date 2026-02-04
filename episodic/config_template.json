@@ -92,7 +92,7 @@
   "min_tokens_for_topic_local": 500,
 
   "_comment_context_assembly_budget": "// === CONTEXT ASSEMBLY BUDGET MODEL ===",
-  "_comment_enable_relevance_truncation": "Enable relevance-aware truncation (Phase 2): drops by importance score instead of age",
+  "_comment_enable_relevance_truncation": "Enable relevance-aware truncation (Phase 2): drops by importance score instead of age. REQUIRES anchor_indices at call site; raises ValueError if enabled without anchors.",
   "enable_relevance_truncation": false,
   "_comment_context_target_T": "Global token target for assembled context (hard cap, conservative value below model max)",
   "context_target_T": 3000,

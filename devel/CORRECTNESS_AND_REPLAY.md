@@ -102,6 +102,18 @@ class EventType(Enum):
 | `prev_hash` | str/null | Previous event hash (null for first) |
 | `hash` | str | SHA-256 of this event |
 
+### TokenGuardEvent.extra (when truncation occurs)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `truncation.tokens_before` | int | Token count before truncation |
+| `truncation.tokens_after` | int | Token count after truncation |
+| `truncation.tokens_freed` | int | Tokens removed |
+| `truncation.decisions_count` | int | Total number of drop decisions (full count) |
+| `truncation.decisions` | list | First 10 drop decisions (capped for log size) |
+
+Note: `decisions` is capped at 10 entries; use `decisions_count` to detect if truncation details were themselves truncated.
+
 ### Exactly-Once Semantics
 
 - Each call to `validate_assembly()` emits exactly one event
@@ -381,12 +393,27 @@ for claim in report.claims:
 
 | Module | Tests | Coverage |
 |--------|-------|----------|
-| `test_token_guard.py` | 48 | Budget enforcement, drop policy, safety factor, truncation integration |
+| `test_token_guard.py` | 58 | Budget enforcement, drop policy, safety factor, truncation integration, verification audit |
 | `test_token_guard_events.py` | 30 | Schema, exactly-once, hash chain, tamper detection |
 | `test_replay.py` | 37 | Snapshot serialization, replay, mutation detection |
 | `test_attribution.py` | 45 | Claim detection, support checking, FAR, adversarial suite |
 | `test_truncation.py` | 35 | Score computation, reference detection, drop order, determinism |
-| **Total** | **195** | |
+| **Total** | **205** | |
+
+### Verification Audit Tests (`TestVerificationAudit`)
+
+The verification audit tests validate Phase 1+2 completion invariants:
+
+| Test | Purpose |
+|------|---------|
+| `test_fail_fast_invariant_enforced` | ValueError raised if `enable_relevance_truncation=True` without `anchor_indices` |
+| `test_no_fail_fast_when_truncation_disabled` | Fail-fast does NOT fire when truncation disabled |
+| `test_anchor_preservation_property` | Within relevance truncation, anchors never dropped before non-anchors exhausted |
+| `test_adversarial_determinism_100_runs` | 100 runs produce byte-identical results |
+| `test_token_counter_identity_in_truncation` | Same counter used for enforcement and truncation measurement |
+| `test_fallback_correctness_legacy_policy_works` | Legacy drop policy functions when truncation disabled |
+| `test_call_site_inventory_production_safe` | Production call sites safe by default (truncation disabled) |
+| `test_replay_snapshot_golden_determinism` | SHA-256 golden hash matches across 10 replays |
 
 ---
 
@@ -455,6 +482,16 @@ Truncation runs in `validate_assembly()` at the exact point where:
 This eliminates audit ambiguity: truncation measurement = enforcement measurement.
 
 When calling `validate_assembly()` with explicit `counter` parameter, that same counter is passed to `truncate_by_relevance()`. When counter is inferred from registry, the same inferred counter is used throughout.
+
+### Invariants
+
+1. **Precondition**: `enable_relevance_truncation=True` requires `anchor_indices` to be non-empty. Raises `ValueError` otherwise.
+
+2. **Determinism**: Truncation decisions are deterministic given: message list, budget, current_query, anchor_indices, and token counter.
+
+3. **Token counting**: Truncation uses the same token counter instance as enforcement—no measurement ambiguity.
+
+4. **Anchor preservation scope**: Anchors are preserved over non-anchors only within relevance truncation. If legacy fallback fires under extreme budget pressure, it is anchor-unaware and may drop anchors.
 
 ### Data Structures
 

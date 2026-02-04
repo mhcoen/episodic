@@ -750,6 +750,14 @@ def validate_assembly(
     if enable_relevance_truncation is None:
         enable_relevance_truncation = config.get("enable_relevance_truncation", False)
 
+    # Fail-fast invariant: If relevance truncation is enabled, anchor_indices MUST be provided
+    # This prevents silent loss of anchor priority when truncation is active
+    if enable_relevance_truncation and (anchor_indices is None or len(anchor_indices) == 0):
+        raise ValueError(
+            "enable_relevance_truncation=True requires anchor_indices to be provided and non-empty. "
+            "Without anchor_indices, anchor priority cannot be enforced during truncation."
+        )
+
     # Check if within cap
     effective_cap = budget.full_cap - budget.overhead_reserve
     if original_tokens <= effective_cap:

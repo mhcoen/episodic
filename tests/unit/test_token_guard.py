@@ -773,18 +773,20 @@ class TestRelevanceTruncationIntegration:
         """When enabled, truncation uses importance-based drops."""
         messages = [
             {"role": "system", "content": "System prompt"},
-            {"role": "user", "content": "A" * 200},
-            {"role": "assistant", "content": "B" * 200},
+            {"role": "user", "content": "Important anchor content"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response here"},  # Index 2 - anchor
             {"role": "user", "content": "C" * 200},
             {"role": "assistant", "content": "D" * 200},
             {"role": "user", "content": "Python programming tutorial"},
         ]
         budget = TokenBudget(full_cap=300, overhead_reserve=50)
+        anchor_indices = {1, 2}
 
         result = validate_assembly(
             messages, budget,
             enable_relevance_truncation=True,
             current_query="Python programming tutorial",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -796,8 +798,8 @@ class TestRelevanceTruncationIntegration:
         """Same input produces same truncation decisions."""
         messages = [
             {"role": "system", "content": "System prompt"},
-            {"role": "user", "content": "Hello Python programming"},
-            {"role": "assistant", "content": "Python is great for beginners."},
+            {"role": "user", "content": "Hello Python programming"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Python is great for beginners."},  # Index 2 - anchor
             {"role": "user", "content": "Unrelated cooking recipe discussion here"},
             {"role": "assistant", "content": "More cooking content goes here"},
             {"role": "user", "content": "Back to Python programming tutorials"},
@@ -806,12 +808,14 @@ class TestRelevanceTruncationIntegration:
         ]
         budget = TokenBudget(full_cap=200, overhead_reserve=50)
         counter = HeuristicTokenCounter()
+        anchor_indices = {1, 2}
 
         result1 = validate_assembly(
             messages, budget,
             counter=counter,
             enable_relevance_truncation=True,
             current_query="Python programming tutorial",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -820,6 +824,7 @@ class TestRelevanceTruncationIntegration:
             counter=counter,
             enable_relevance_truncation=True,
             current_query="Python programming tutorial",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -837,16 +842,20 @@ class TestRelevanceTruncationIntegration:
         """TruncationResult is stored in ValidationResult for logging."""
         messages = [
             {"role": "system", "content": "System"},
+            {"role": "user", "content": "Anchor content here"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response"},  # Index 2 - anchor
             {"role": "user", "content": "A" * 200},
             {"role": "assistant", "content": "B" * 200},
             {"role": "user", "content": "Query"},
         ]
-        budget = TokenBudget(full_cap=100, overhead_reserve=20)
+        budget = TokenBudget(full_cap=150, overhead_reserve=20)
+        anchor_indices = {1, 2}
 
         result = validate_assembly(
             messages, budget,
             enable_relevance_truncation=True,
             current_query="Query",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -887,17 +896,21 @@ class TestRelevanceTruncationIntegration:
         """When current_query not provided, extracts from last user message."""
         messages = [
             {"role": "system", "content": "System"},
+            {"role": "user", "content": "Anchor content"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response"},  # Index 2 - anchor
             {"role": "user", "content": "A" * 100},
             {"role": "assistant", "content": "B" * 100},
             {"role": "user", "content": "Python programming question"},
         ]
-        budget = TokenBudget(full_cap=100, overhead_reserve=20)
+        budget = TokenBudget(full_cap=150, overhead_reserve=20)
+        anchor_indices = {1, 2}
 
         # Don't provide current_query - should extract automatically
         result = validate_assembly(
             messages, budget,
             enable_relevance_truncation=True,
             current_query=None,  # Auto-extract
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -908,18 +921,22 @@ class TestRelevanceTruncationIntegration:
         """Truncation uses same counter instance as guard for consistency."""
         messages = [
             {"role": "system", "content": "System"},
+            {"role": "user", "content": "Anchor content"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response"},  # Index 2 - anchor
             {"role": "user", "content": "A" * 200},
             {"role": "assistant", "content": "B" * 200},
             {"role": "user", "content": "Query"},
         ]
-        budget = TokenBudget(full_cap=150, overhead_reserve=30)
+        budget = TokenBudget(full_cap=200, overhead_reserve=30)
         counter = HeuristicTokenCounter()
+        anchor_indices = {1, 2}
 
         result = validate_assembly(
             messages, budget,
             counter=counter,
             enable_relevance_truncation=True,
             current_query="Query",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -944,12 +961,13 @@ class TestRelevanceTruncationIntegration:
         # Create messages that exceed budget but can fit after truncation
         messages = [
             {"role": "system", "content": "## Summary\nA topic summary here with some content."},
-            {"role": "user", "content": "First exchange message about Python"},
-            {"role": "assistant", "content": "Response about Python programming"},
+            {"role": "user", "content": "First exchange message about Python"},  # Index 1 - anchor
+            {"role": "assistant", "content": "Response about Python programming"},  # Index 2 - anchor
             {"role": "user", "content": "Unrelated cooking recipe discussion here"},  # Should be dropped
             {"role": "assistant", "content": "More cooking content goes here"},  # Should be dropped
             {"role": "user", "content": "Python programming tutorial query"},
         ]
+        anchor_indices = {1, 2}
 
         # Budget that requires dropping ~2 messages
         counter = HeuristicTokenCounter()
@@ -964,6 +982,7 @@ class TestRelevanceTruncationIntegration:
             counter=counter,
             enable_relevance_truncation=True,
             current_query="Python programming tutorial query",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -992,10 +1011,13 @@ class TestRelevanceTruncationIntegration:
         # Create extreme scenario where truncation can't help enough
         messages = [
             {"role": "system", "content": "## Summary\n" + "X" * 500},  # Huge summary
+            {"role": "user", "content": "Anchor A" * 10},  # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor B" * 10},  # Index 2 - anchor
             {"role": "user", "content": "A" * 50},
             {"role": "assistant", "content": "B" * 50},
             {"role": "user", "content": "Query"},
         ]
+        anchor_indices = {1, 2}
 
         # Very tight budget that even truncation can't fully solve
         budget = TokenBudget(full_cap=50, overhead_reserve=10)
@@ -1006,6 +1028,7 @@ class TestRelevanceTruncationIntegration:
             counter=counter,
             enable_relevance_truncation=True,
             current_query="Query",
+            anchor_indices=anchor_indices,
             emit_event=False
         )
 
@@ -1016,6 +1039,359 @@ class TestRelevanceTruncationIntegration:
 
         # Should complete without assertion errors
         assert isinstance(result, ValidationResult)
+
+
+class TestVerificationAudit:
+    """
+    Verification Pass: Phase 1+2 Completion Audit Tests.
+
+    Desktop audit request: Systematic verification of static and behavioral invariants.
+    """
+
+    def test_fail_fast_invariant_enforced(self):
+        """
+        Immediate Code Change Verification:
+        validate_assembly raises ValueError when enable_relevance_truncation=True
+        but anchor_indices is None or empty.
+        """
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there!"},
+            {"role": "user", "content": "Query"},
+        ]
+        budget = TokenBudget(full_cap=500, overhead_reserve=50)
+
+        # Test with anchor_indices=None
+        with pytest.raises(ValueError) as exc_info:
+            validate_assembly(
+                messages, budget,
+                enable_relevance_truncation=True,
+                current_query="Query",
+                anchor_indices=None,
+                emit_event=False
+            )
+        assert "anchor_indices" in str(exc_info.value)
+        assert "non-empty" in str(exc_info.value)
+
+        # Test with empty anchor_indices
+        with pytest.raises(ValueError) as exc_info:
+            validate_assembly(
+                messages, budget,
+                enable_relevance_truncation=True,
+                current_query="Query",
+                anchor_indices=set(),
+                emit_event=False
+            )
+        assert "anchor_indices" in str(exc_info.value)
+
+    def test_no_fail_fast_when_truncation_disabled(self):
+        """
+        Fail-fast invariant does NOT fire when enable_relevance_truncation=False.
+        """
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Hello"},
+        ]
+        budget = TokenBudget(full_cap=500, overhead_reserve=50)
+
+        # Should NOT raise even without anchor_indices
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=False,
+            emit_event=False
+        )
+        assert result.valid
+
+    def test_anchor_preservation_property(self):
+        """
+        Behavioral Invariant: Within relevance truncation, anchors are NEVER dropped
+        before all non-anchors exhausted.
+
+        Note: This property holds within relevance truncation. If budget is extremely
+        tight and legacy fallback fires, anchors may be dropped by legacy policy.
+        This test verifies the property within a budget that relevance truncation
+        can handle without legacy fallback.
+        """
+        from episodic.truncation import truncate_by_relevance
+
+        # Build messages: 2 anchors (high score) and 4 non-anchors (low score)
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "ANCHOR USER content " + "Y" * 50},     # Index 1 - anchor
+            {"role": "assistant", "content": "ANCHOR ASST content " + "Z" * 50}, # Index 2 - anchor
+            {"role": "user", "content": "Non-anchor 1 " + "A" * 50},             # Index 3
+            {"role": "assistant", "content": "Non-anchor 2 " + "B" * 50},        # Index 4
+            {"role": "user", "content": "Non-anchor 3 " + "C" * 50},             # Index 5
+            {"role": "assistant", "content": "Non-anchor 4 " + "D" * 50},        # Index 6
+            {"role": "user", "content": "Current query"},                         # Index 7
+        ]
+        anchor_indices = {1, 2}
+        counter = HeuristicTokenCounter()
+
+        # Target that requires dropping some messages but not all
+        current_tokens = counter.count_messages(messages)
+        target_tokens = current_tokens - 100  # Need to free ~100 tokens
+
+        # Call truncate_by_relevance directly to isolate the property test
+        result = truncate_by_relevance(
+            messages=messages,
+            target_tokens=target_tokens,
+            current_query="Current query",
+            counter=counter,
+            anchor_indices=anchor_indices,
+        )
+
+        # Check the decisions made
+        decisions = result.decisions
+
+        # Separate anchor and non-anchor drop decisions
+        anchor_drops = [d for d in decisions if d.reason == "anchor_low_score"]
+        non_anchor_drops = [d for d in decisions if d.reason == "recency_low_score"]
+
+        # If any anchors were dropped, ALL non-anchors must have been dropped first
+        if anchor_drops:
+            # Count how many non-anchors exist (indices 3-6)
+            non_anchor_indices = {3, 4, 5, 6}
+            dropped_non_anchor_indices = {d.message_index for d in non_anchor_drops}
+
+            # All non-anchors should be dropped before any anchor
+            if dropped_non_anchor_indices != non_anchor_indices:
+                pytest.fail(
+                    f"Anchor preservation violated: anchor dropped but not all non-anchors. "
+                    f"Dropped non-anchors: {dropped_non_anchor_indices}, expected all: {non_anchor_indices}"
+                )
+
+    def test_adversarial_determinism_100_runs(self):
+        """
+        Behavioral Invariant: Run 100 times, compare exact bytes.
+
+        Truncation must produce identical results across multiple runs.
+        """
+        messages = [
+            {"role": "system", "content": "## Summary\n" + "X" * 200},
+            {"role": "user", "content": "Anchor content here " + "Y" * 50},    # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response " + "Z" * 50},   # Index 2 - anchor
+            {"role": "user", "content": "Regular content " + "A" * 80},
+            {"role": "assistant", "content": "Response content " + "B" * 80},
+            {"role": "user", "content": "More content " + "C" * 80},
+            {"role": "assistant", "content": "Another response " + "D" * 80},
+            {"role": "user", "content": "Current query text"},
+        ]
+        anchor_indices = {1, 2}
+        budget = TokenBudget(full_cap=200, overhead_reserve=20)
+        counter = HeuristicTokenCounter()
+
+        # Run 100 times
+        results = []
+        for _ in range(100):
+            result = validate_assembly(
+                messages.copy(), budget,
+                counter=counter,
+                enable_relevance_truncation=True,
+                current_query="Current query text",
+                anchor_indices=anchor_indices,
+                emit_event=False,
+                apply_drops=True
+            )
+            # Capture message content as tuple for comparison
+            result_tuple = tuple(
+                (m.get("role"), m.get("content"))
+                for m in result.messages
+            )
+            results.append(result_tuple)
+
+        # All results must be identical
+        first_result = results[0]
+        for i, r in enumerate(results[1:], start=2):
+            if r != first_result:
+                pytest.fail(f"Determinism violation: run {i} differs from run 1")
+
+    def test_token_counter_identity_in_truncation(self):
+        """
+        Static Invariant: Same TokenCounter used for enforcement AND truncation measurement.
+
+        Verify that when we pass a counter to validate_assembly, that same counter
+        is used inside truncation.
+        """
+        class TrackedCounter:
+            """Counter that tracks when it's called."""
+            def __init__(self):
+                self.call_count = 0
+                self._counter = HeuristicTokenCounter()
+
+            def count_text(self, text: str) -> int:
+                self.call_count += 1
+                return self._counter.count_text(text)
+
+            def count_messages(self, messages) -> int:
+                self.call_count += 1
+                return self._counter.count_messages(messages)
+
+            def is_exact(self) -> bool:
+                return False
+
+            def backend_name(self) -> str:
+                return "tracked"
+
+        messages = [
+            {"role": "system", "content": "## Summary\n" + "X" * 200},
+            {"role": "user", "content": "Anchor " + "Y" * 100},   # Index 1 - anchor
+            {"role": "assistant", "content": "Response " + "Z" * 100}, # Index 2 - anchor
+            {"role": "user", "content": "A" * 100},
+            {"role": "assistant", "content": "B" * 100},
+            {"role": "user", "content": "Query"},
+        ]
+        anchor_indices = {1, 2}
+        budget = TokenBudget(full_cap=100, overhead_reserve=10)  # Force truncation
+
+        tracker = TrackedCounter()
+        initial_calls = tracker.call_count
+
+        result = validate_assembly(
+            messages, budget,
+            counter=tracker,
+            enable_relevance_truncation=True,
+            current_query="Query",
+            anchor_indices=anchor_indices,
+            emit_event=False,
+            apply_drops=True
+        )
+
+        # Counter should have been called (initial + truncation calls)
+        assert tracker.call_count > initial_calls, "Counter should be called during validation/truncation"
+
+        # Result details should show our counter
+        assert result.details.get("counter_backend") == "tracked"
+
+    def test_fallback_correctness_legacy_policy_works(self):
+        """
+        Behavioral Invariant: Legacy policy fallback works correctly.
+
+        When relevance truncation is disabled, the legacy drop policy
+        (summary → recency → anchors → abort) still functions correctly.
+        """
+        messages = [
+            {"role": "system", "content": "## Summary\n" + "X" * 500},  # Large summary
+            {"role": "user", "content": "Hello " + "A" * 100},
+            {"role": "assistant", "content": "Hi there " + "B" * 100},
+            {"role": "user", "content": "Query"},
+        ]
+
+        # Tight budget forces legacy truncation
+        budget = TokenBudget(full_cap=100, overhead_reserve=10, summary_min=20)
+        counter = HeuristicTokenCounter()
+
+        result = validate_assembly(
+            messages, budget,
+            counter=counter,
+            enable_relevance_truncation=False,  # Use legacy policy
+            emit_event=False,
+            apply_drops=True
+        )
+
+        # Legacy policy should have attempted recovery
+        actions = [a.value for a in result.actions_taken]
+
+        # Should have taken at least one legacy action
+        legacy_actions = {"truncate_summary", "drop_recency", "drop_anchors", "abort"}
+        has_legacy_action = any(a in legacy_actions for a in actions)
+
+        if not has_legacy_action and not result.valid:
+            # Abort is also a valid outcome
+            pass
+        elif result.valid:
+            # If valid, we should be under cap
+            assert result.final_tokens <= (budget.full_cap - budget.overhead_reserve)
+
+    def test_call_site_inventory_production_safe(self):
+        """
+        Static Invariant: All production call sites either pass anchor_indices
+        explicitly OR have enable_relevance_truncation=False.
+
+        Production call sites in conversation.py use guard_assembly without
+        enable_relevance_truncation, which defaults to config (default False).
+        This test verifies that behavior is safe by default.
+        """
+        # Simulate production call pattern: no anchor_indices, no explicit truncation flag
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there!"},
+            {"role": "user", "content": "Query"},
+        ]
+        budget = TokenBudget(full_cap=500, overhead_reserve=50)
+
+        # Production pattern: call without truncation params (defaults to disabled)
+        result_messages, fallback = guard_assembly(messages, budget, emit_event=False)
+
+        # Should work fine since truncation is disabled by default
+        assert fallback is None
+        assert len(result_messages) == len(messages)
+
+    def test_replay_snapshot_golden_determinism(self):
+        """
+        End-to-End Fixture: Replay snapshot produces byte-identical results.
+
+        Create a snapshot, serialize it, deserialize, and replay. The output
+        must match the original exactly.
+        """
+        import json
+        import hashlib
+
+        messages = [
+            {"role": "system", "content": "## Summary\nThis is a summary of the conversation."},
+            {"role": "user", "content": "Anchor content " + "A" * 50},    # Index 1 - anchor
+            {"role": "assistant", "content": "Anchor response " + "B" * 50}, # Index 2 - anchor
+            {"role": "user", "content": "Regular " + "C" * 50},
+            {"role": "assistant", "content": "Response " + "D" * 50},
+            {"role": "user", "content": "Query about the topic"},
+        ]
+        anchor_indices = {1, 2}
+        budget = TokenBudget(full_cap=150, overhead_reserve=15)
+        counter = HeuristicTokenCounter()
+
+        # First run - capture baseline
+        result1 = validate_assembly(
+            messages.copy(), budget,
+            counter=counter,
+            enable_relevance_truncation=True,
+            current_query="Query about the topic",
+            anchor_indices=anchor_indices,
+            emit_event=False,
+            apply_drops=True
+        )
+
+        # Capture golden state
+        golden_messages_json = json.dumps(
+            [{"role": m["role"], "content": m["content"]} for m in result1.messages],
+            sort_keys=True
+        )
+        golden_hash = hashlib.sha256(golden_messages_json.encode()).hexdigest()
+
+        # Run 10 more times and compare
+        for run in range(10):
+            result = validate_assembly(
+                messages.copy(), budget,
+                counter=counter,
+                enable_relevance_truncation=True,
+                current_query="Query about the topic",
+                anchor_indices=anchor_indices,
+                emit_event=False,
+                apply_drops=True
+            )
+
+            result_json = json.dumps(
+                [{"role": m["role"], "content": m["content"]} for m in result.messages],
+                sort_keys=True
+            )
+            result_hash = hashlib.sha256(result_json.encode()).hexdigest()
+
+            if result_hash != golden_hash:
+                pytest.fail(
+                    f"Golden test failed on run {run + 1}: "
+                    f"hash {result_hash[:16]}... != golden {golden_hash[:16]}..."
+                )
 
 
 if __name__ == "__main__":

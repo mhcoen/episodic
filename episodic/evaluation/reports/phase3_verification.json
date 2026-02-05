@@ -1,56 +1,32 @@
 {
-  "timestamp": "2026-01-29T01:36:34.953321Z",
+  "timestamp": "2026-02-05T18:19:06.409774Z",
   "all_passed": true,
   "checks": [
     {
       "name": "backfill_completeness",
       "passed": true,
-      "message": "All 35 docs have correct topic metadata",
+      "message": "Skipped in test mode (no RAG initialized)",
       "details": {
-        "total_scanned": 88,
-        "already_has_metadata": 35,
-        "would_update": 0,
-        "missing_in_topic_nodes": 53,
-        "conflicts": 0
+        "skipped": true,
+        "reason": "EPISODIC_TEST_MODE"
       }
     },
     {
       "name": "summary_validity",
       "passed": true,
-      "message": "All 8 topics have valid summaries",
+      "message": "Skipped in test mode (no topics)",
       "details": {
-        "total_topics": 8,
-        "valid": 8,
-        "with_warnings": 0,
-        "with_errors": 0,
-        "errors": [],
-        "warnings": []
+        "skipped": true,
+        "reason": "EPISODIC_TEST_MODE"
       }
     },
     {
       "name": "long_gap_only",
       "passed": true,
-      "message": "Year-later resume works for topic ai-limitations-and-capabilities: summary-only context",
+      "message": "Skipped in test mode (no topics)",
       "details": {
-        "topic_tested": "ai-limitations-and-capabilities",
-        "topic_id": "511d6a4a-aaf3-49",
-        "messages_returned": 1,
-        "debug_keys": [
-          "mode",
-          "topic_start_node_id",
-          "included_node_ids",
-          "token_counts",
-          "token_breakdown",
-          "timing",
-          "truncation_info",
-          "reactivation_fired",
-          "working_set_used",
-          "summary_included",
-          "anchors",
-          "import"
-        ],
-        "summary_included": true,
-        "conversation_messages": 0
+        "skipped": true,
+        "reason": "EPISODIC_TEST_MODE"
       }
     }
   ]

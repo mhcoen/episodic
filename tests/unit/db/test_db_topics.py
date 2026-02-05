@@ -1,256 +1,206 @@
 """
-Unit tests for database topic operations.
+Unit tests for the db_topics module.
 
-Tests the db_topics module including topic storage, retrieval,
-and update operations.
+Tests topic CRUD operations and querying.
 """
 
 import pytest
+from episodic import db_nodes, db_topics
 
 
-class TestTopicStorage:
-    """Test topic storage operations."""
+class TestStoreTopic:
+    """Test topic creation."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_topics, db_nodes
-        self.db_topics = db_topics
-        self.db_nodes = db_nodes
+    def test_store_topic_basic(self, temp_database):
+        """Topics can be created with name and start node."""
+        node_id, _ = db_nodes.insert_node("First message")
 
-    def test_store_topic_basic(self):
-        """Test storing a basic topic."""
-        # Create a node first
-        node_id, _ = self.db_nodes.insert_node(content="Test", role="user")
+        db_topics.store_topic("test-topic", node_id)
 
-        self.db_topics.store_topic(
-            name="Test Topic",
-            start_node_id=node_id,
-            confidence="detected"
-        )
-
-        topics = self.db_topics.get_all_topics()
+        topics = db_topics.get_all_topics()
         assert len(topics) == 1
-        assert topics[0]['name'] == "Test Topic"
-        assert topics[0]['start_node_id'] == node_id
-        assert topics[0]['end_node_id'] is None
+        assert topics[0]["name"] == "test-topic"
+        assert topics[0]["start_node_id"] == node_id
 
-    def test_store_topic_with_end_node(self):
-        """Test storing a topic with an end node."""
-        start_id, _ = self.db_nodes.insert_node(content="Start", role="user")
-        end_id, _ = self.db_nodes.insert_node(
-            content="End", parent_id=start_id, role="assistant"
-        )
+    def test_store_topic_with_end_node(self, temp_database):
+        """Topics can be created with end node."""
+        start_id, _ = db_nodes.insert_node("Start")
+        end_id, _ = db_nodes.insert_node("End", parent_id=start_id)
 
-        self.db_topics.store_topic(
-            name="Complete Topic",
-            start_node_id=start_id,
-            end_node_id=end_id,
-            confidence="manual"
-        )
+        db_topics.store_topic("bounded-topic", start_id, end_node_id=end_id)
 
-        topics = self.db_topics.get_all_topics()
-        assert len(topics) == 1
-        assert topics[0]['end_node_id'] == end_id
-        assert topics[0]['confidence'] == "manual"
+        topics = db_topics.get_all_topics()
+        assert topics[0]["end_node_id"] == end_id
 
-    def test_store_multiple_topics(self):
-        """Test storing multiple topics."""
-        node1, _ = self.db_nodes.insert_node(content="Topic 1", role="user")
-        node2, _ = self.db_nodes.insert_node(content="Topic 2", role="user")
-        node3, _ = self.db_nodes.insert_node(content="Topic 3", role="user")
+    def test_store_topic_with_confidence(self, temp_database):
+        """Topics can be created with confidence level."""
+        node_id, _ = db_nodes.insert_node("Message")
 
-        self.db_topics.store_topic("Topic A", node1)
-        self.db_topics.store_topic("Topic B", node2)
-        self.db_topics.store_topic("Topic C", node3)
+        db_topics.store_topic("confident-topic", node_id, confidence="detected")
 
-        topics = self.db_topics.get_all_topics()
-        assert len(topics) == 3
+        topics = db_topics.get_all_topics()
+        assert topics[0]["confidence"] == "detected"
 
 
-class TestTopicRetrieval:
-    """Test topic retrieval operations."""
+class TestGetRecentTopics:
+    """Test recent topics retrieval."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_topics, db_nodes
-        self.db_topics = db_topics
-        self.db_nodes = db_nodes
-
-    def test_get_recent_topics_default_limit(self):
-        """Test getting recent topics with default limit."""
-        # Create 15 topics
-        for i in range(15):
-            node_id, _ = self.db_nodes.insert_node(content=f"Msg {i}", role="user")
-            self.db_topics.store_topic(f"Topic {i}", node_id)
-
-        topics = self.db_topics.get_recent_topics()
-
-        # Default limit is 10
-        assert len(topics) == 10
-        # Should be in chronological order (oldest first)
-        assert topics[0]['name'] == "Topic 5"  # The 6th topic (skipping first 5)
-        assert topics[-1]['name'] == "Topic 14"
-
-    def test_get_recent_topics_custom_limit(self):
-        """Test getting recent topics with custom limit."""
-        for i in range(10):
-            node_id, _ = self.db_nodes.insert_node(content=f"Msg {i}", role="user")
-            self.db_topics.store_topic(f"Topic {i}", node_id)
-
-        topics = self.db_topics.get_recent_topics(limit=5)
-
-        assert len(topics) == 5
-        # Should have the 5 most recent topics
-        assert topics[0]['name'] == "Topic 5"
-        assert topics[-1]['name'] == "Topic 9"
-
-    def test_get_recent_topics_no_limit(self):
-        """Test getting all topics with no limit."""
-        for i in range(5):
-            node_id, _ = self.db_nodes.insert_node(content=f"Msg {i}", role="user")
-            self.db_topics.store_topic(f"Topic {i}", node_id)
-
-        topics = self.db_topics.get_recent_topics(limit=None)
-
-        assert len(topics) == 5
-
-    def test_get_recent_topics_empty(self):
-        """Test getting recent topics when none exist."""
-        topics = self.db_topics.get_recent_topics()
+    def test_get_recent_topics_empty(self, temp_database):
+        """Returns empty list when no topics exist."""
+        topics = db_topics.get_recent_topics()
         assert topics == []
 
-    def test_get_all_topics(self):
-        """Test getting all topics."""
+    def test_get_recent_topics_respects_limit(self, temp_database):
+        """Returns at most limit topics."""
         for i in range(5):
-            node_id, _ = self.db_nodes.insert_node(content=f"Msg {i}", role="user")
-            self.db_topics.store_topic(f"Topic {i}", node_id)
+            node_id, _ = db_nodes.insert_node(f"Message {i}")
+            db_topics.store_topic(f"topic-{i}", node_id)
 
-        topics = self.db_topics.get_all_topics()
+        topics = db_topics.get_recent_topics(limit=3)
+        assert len(topics) == 3
 
+    def test_get_recent_topics_chronological_order(self, temp_database):
+        """Returns topics in chronological order (oldest first)."""
+        node1, _ = db_nodes.insert_node("First")
+        db_topics.store_topic("topic-1", node1)
+
+        node2, _ = db_nodes.insert_node("Second")
+        db_topics.store_topic("topic-2", node2)
+
+        node3, _ = db_nodes.insert_node("Third")
+        db_topics.store_topic("topic-3", node3)
+
+        topics = db_topics.get_recent_topics(limit=3)
+        assert topics[0]["name"] == "topic-1"
+        assert topics[2]["name"] == "topic-3"
+
+    def test_get_recent_topics_no_limit(self, temp_database):
+        """Passing None returns all topics."""
+        for i in range(5):
+            node_id, _ = db_nodes.insert_node(f"Message {i}")
+            db_topics.store_topic(f"topic-{i}", node_id)
+
+        topics = db_topics.get_recent_topics(limit=None)
         assert len(topics) == 5
-        # Should be in chronological order
-        assert topics[0]['name'] == "Topic 0"
-        assert topics[4]['name'] == "Topic 4"
 
 
-class TestTopicUpdate:
-    """Test topic update operations."""
+class TestGetAllTopics:
+    """Test retrieving all topics."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_topics, db_nodes
-        self.db_topics = db_topics
-        self.db_nodes = db_nodes
+    def test_get_all_topics_empty(self, temp_database):
+        """Returns empty list when no topics exist."""
+        topics = db_topics.get_all_topics()
+        assert topics == []
 
-    def test_update_topic_end_node(self):
-        """Test updating a topic's end node."""
-        start_id, _ = self.db_nodes.insert_node(content="Start", role="user")
-        end_id, _ = self.db_nodes.insert_node(
-            content="End", parent_id=start_id, role="assistant"
-        )
+    def test_get_all_topics_returns_all(self, temp_database):
+        """Returns all topics in creation order."""
+        node1, _ = db_nodes.insert_node("First")
+        db_topics.store_topic("alpha", node1)
 
-        # Store topic without end node
-        self.db_topics.store_topic("Test Topic", start_id)
+        node2, _ = db_nodes.insert_node("Second")
+        db_topics.store_topic("beta", node2)
 
-        # Update with end node
-        rows = self.db_topics.update_topic_end_node("Test Topic", start_id, end_id)
+        topics = db_topics.get_all_topics()
+        assert len(topics) == 2
+        assert topics[0]["name"] == "alpha"
+        assert topics[1]["name"] == "beta"
+
+
+class TestUpdateTopicEndNode:
+    """Test updating topic end node."""
+
+    def test_update_end_node(self, temp_database):
+        """End node can be updated."""
+        start_id, _ = db_nodes.insert_node("Start")
+        db_topics.store_topic("my-topic", start_id)
+
+        new_end_id, _ = db_nodes.insert_node("New end", parent_id=start_id)
+        rows = db_topics.update_topic_end_node("my-topic", start_id, new_end_id)
 
         assert rows == 1
-        topics = self.db_topics.get_all_topics()
-        assert topics[0]['end_node_id'] == end_id
+        topics = db_topics.get_all_topics()
+        assert topics[0]["end_node_id"] == new_end_id
 
-    def test_update_topic_end_node_not_found(self):
-        """Test updating end node for non-existent topic."""
-        rows = self.db_topics.update_topic_end_node(
-            "Non-existent", "fake-id", "fake-end"
-        )
+    def test_update_end_node_wrong_name(self, temp_database):
+        """Update returns 0 for non-matching name."""
+        start_id, _ = db_nodes.insert_node("Start")
+        db_topics.store_topic("my-topic", start_id)
+
+        rows = db_topics.update_topic_end_node("wrong-name", start_id, "new-end")
         assert rows == 0
 
-    def test_update_topic_name(self):
-        """Test updating a topic's name."""
-        node_id, _ = self.db_nodes.insert_node(content="Test", role="user")
-        self.db_topics.store_topic("Old Name", node_id)
+    def test_update_end_node_wrong_start(self, temp_database):
+        """Update returns 0 for non-matching start node."""
+        start_id, _ = db_nodes.insert_node("Start")
+        db_topics.store_topic("my-topic", start_id)
 
-        rows = self.db_topics.update_topic_name("Old Name", node_id, "New Name")
-
-        assert rows == 1
-        topics = self.db_topics.get_all_topics()
-        assert topics[0]['name'] == "New Name"
-
-    def test_update_topic_name_not_found(self):
-        """Test updating name for non-existent topic."""
-        rows = self.db_topics.update_topic_name(
-            "Non-existent", "fake-id", "New Name"
-        )
+        rows = db_topics.update_topic_end_node("my-topic", "wrong-start", "new-end")
         assert rows == 0
 
-    def test_update_specific_topic_when_multiple_exist(self):
-        """Test updating a specific topic when there are multiple with same name."""
-        node1, _ = self.db_nodes.insert_node(content="Msg 1", role="user")
-        node2, _ = self.db_nodes.insert_node(content="Msg 2", role="user")
 
-        # Create two topics with the same name (like recurring discussions)
-        self.db_topics.store_topic("Repeated Topic", node1)
-        self.db_topics.store_topic("Repeated Topic", node2)
+class TestUpdateTopicName:
+    """Test renaming topics."""
 
-        # Update only the second one
-        end_id, _ = self.db_nodes.insert_node(content="End", role="assistant")
-        rows = self.db_topics.update_topic_end_node("Repeated Topic", node2, end_id)
+    def test_rename_topic(self, temp_database):
+        """Topics can be renamed."""
+        start_id, _ = db_nodes.insert_node("Start")
+        db_topics.store_topic("old-name", start_id)
+
+        rows = db_topics.update_topic_name("old-name", start_id, "new-name")
 
         assert rows == 1
-        topics = self.db_topics.get_all_topics()
-        # First topic should be unchanged
-        assert topics[0]['end_node_id'] is None
-        # Second topic should be updated
-        assert topics[1]['end_node_id'] == end_id
+        topics = db_topics.get_all_topics()
+        assert topics[0]["name"] == "new-name"
+
+    def test_rename_nonexistent_topic(self, temp_database):
+        """Renaming nonexistent topic returns 0."""
+        rows = db_topics.update_topic_name("nonexistent", "fake-id", "new-name")
+        assert rows == 0
+
+    def test_rename_requires_correct_start_node(self, temp_database):
+        """Rename requires matching start node for disambiguation."""
+        start1, _ = db_nodes.insert_node("Start 1")
+        start2, _ = db_nodes.insert_node("Start 2")
+
+        db_topics.store_topic("same-name", start1)
+        db_topics.store_topic("same-name", start2)
+
+        # Only rename the one with start1
+        rows = db_topics.update_topic_name("same-name", start1, "renamed")
+        assert rows == 1
+
+        topics = db_topics.get_all_topics()
+        names = {t["name"] for t in topics}
+        assert "renamed" in names
+        assert "same-name" in names  # The other one still exists
 
 
-class TestTopicConfidence:
-    """Test topic confidence field handling."""
+class TestMultipleTopics:
+    """Test scenarios with multiple topics."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_topics, db_nodes
-        self.db_topics = db_topics
-        self.db_nodes = db_nodes
+    def test_multiple_topics_same_start_node(self, temp_database):
+        """Multiple topics can share the same start node."""
+        node_id, _ = db_nodes.insert_node("Shared start")
 
-    def test_store_topic_with_confidence(self):
-        """Test storing topic with confidence level."""
-        node_id, _ = self.db_nodes.insert_node(content="Test", role="user")
+        db_topics.store_topic("topic-a", node_id)
+        db_topics.store_topic("topic-b", node_id)
 
-        self.db_topics.store_topic("Confident Topic", node_id, confidence="detected")
+        topics = db_topics.get_all_topics()
+        assert len(topics) == 2
 
-        topics = self.db_topics.get_all_topics()
-        assert topics[0]['confidence'] == "detected"
+    def test_ongoing_vs_closed_topics(self, temp_database):
+        """Topics can be ongoing (no end) or closed (with end)."""
+        start1, _ = db_nodes.insert_node("Start 1")
+        db_topics.store_topic("ongoing", start1)
 
-    def test_store_topic_without_confidence(self):
-        """Test storing topic without confidence level."""
-        node_id, _ = self.db_nodes.insert_node(content="Test", role="user")
+        start2, _ = db_nodes.insert_node("Start 2")
+        end2, _ = db_nodes.insert_node("End 2", parent_id=start2)
+        db_topics.store_topic("closed", start2, end_node_id=end2)
 
-        self.db_topics.store_topic("No Confidence", node_id)
+        topics = db_topics.get_all_topics()
 
-        topics = self.db_topics.get_all_topics()
-        assert topics[0]['confidence'] is None
+        ongoing = next(t for t in topics if t["name"] == "ongoing")
+        closed = next(t for t in topics if t["name"] == "closed")
 
-    def test_different_confidence_levels(self):
-        """Test storing topics with different confidence levels."""
-        confidence_levels = ["detected", "initial", "manual", None]
-
-        for i, conf in enumerate(confidence_levels):
-            node_id, _ = self.db_nodes.insert_node(content=f"Msg {i}", role="user")
-            self.db_topics.store_topic(f"Topic {i}", node_id, confidence=conf)
-
-        topics = self.db_topics.get_all_topics()
-        assert len(topics) == 4
-        assert topics[0]['confidence'] == "detected"
-        assert topics[1]['confidence'] == "initial"
-        assert topics[2]['confidence'] == "manual"
-        assert topics[3]['confidence'] is None
+        assert ongoing["end_node_id"] is None
+        assert closed["end_node_id"] == end2

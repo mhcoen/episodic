@@ -383,9 +383,17 @@ def unified_stream_text(
         text = ""
 
     def fake_stream():
+        class FakeDelta:
+            def __init__(self, content: str):
+                self.content = content
+
+        class FakeChoice:
+            def __init__(self, content: str):
+                self.delta = FakeDelta(content)
+
         class FakeChunk:
             def __init__(self, content: str):
-                self.choices = [type('obj', (object,), {'delta': {'content': content}})()]
+                self.choices = [FakeChoice(content)]
 
         yield FakeChunk(text)
 

@@ -318,7 +318,8 @@ class Resolver:
             speaker=speaker,
             deictic=deictic,
             has_broadness_cue=False,  # Only set by DiscussionQuery
-            audit_trace=json.dumps(ast.to_dict(), sort_keys=True)
+            audit_trace=json.dumps(ast.to_dict(), sort_keys=True),
+            ast_kind="MQLCommand",
         )
 
     def _resolve_freetext(self, ast: FreeText) -> ResolvedQuery:
@@ -337,7 +338,8 @@ class Resolver:
             speaker=None,
             deictic=None,
             has_broadness_cue=False,
-            audit_trace=json.dumps(ast.to_dict(), sort_keys=True)
+            audit_trace=json.dumps(ast.to_dict(), sort_keys=True),
+            ast_kind="FreeText",
         )
 
     def _resolve_discussion_query(self, ast: DiscussionQuery) -> ResolvedQuery:
@@ -370,7 +372,8 @@ class Resolver:
             speaker=speaker,
             deictic=None,
             has_broadness_cue=ast.has_broadness_cue,
-            audit_trace=json.dumps(ast.to_dict(), sort_keys=True)
+            audit_trace=json.dumps(ast.to_dict(), sort_keys=True),
+            ast_kind="DiscussionQuery",
         )
 
 

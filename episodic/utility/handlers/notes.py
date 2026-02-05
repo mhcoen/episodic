@@ -137,6 +137,7 @@ def handle_note_add(
     return UtilityResult.ok(
         display=f"Note saved: {display_text}",
         speech="Note saved",
+        _command="note_add",
         note_id=note_id,
         text=text,
     )

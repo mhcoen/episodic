@@ -18,6 +18,9 @@ from .handlers.alarm import dispatch_alarm_command
 from .handlers.system import dispatch_system_command
 from .handlers.notes import dispatch_note_command
 from .handlers.reminders import dispatch_reminder_command
+from .handlers.media import dispatch_media_command
+from .handlers.weather import dispatch_weather_command
+from .handlers.news import dispatch_news_command
 
 
 # Handler registry by category
@@ -29,10 +32,9 @@ CATEGORY_DISPATCHERS = {
     "system": dispatch_system_command,
     "note": dispatch_note_command,
     "reminder": dispatch_reminder_command,
-    # Future categories:
-    # "weather": dispatch_weather_command,
-    # "media": dispatch_media_command,
-    # "routine": dispatch_routine_command,
+    "media": dispatch_media_command,
+    "weather": dispatch_weather_command,
+    "news": dispatch_news_command,
 }
 
 
@@ -117,6 +119,7 @@ def dispatch_utility(
     tts_engine=None,
     media_adapters=None,
     last_result: Optional[UtilityResult] = None,
+    adapter_registry=None,
 ) -> UtilityResult:
     """
     Dispatch a utility command to the appropriate handler.
@@ -131,6 +134,7 @@ def dispatch_utility(
         tts_engine: TTS engine for speech output (optional)
         media_adapters: Media adapter dict for system controls (optional)
         last_result: Last result for repeat command (optional)
+        adapter_registry: AdapterRegistry for media commands (optional)
 
     Returns:
         UtilityResult from handler
@@ -182,11 +186,18 @@ def dispatch_utility(
                 def recursive_dispatch(q):
                     return dispatch_utility(
                         q, conn, user_tz, confirm_mutations, scheduler,
-                        audio_player, tts_engine, media_adapters, last_result
+                        audio_player, tts_engine, media_adapters, last_result,
+                        adapter_registry
                     )
+                # Build media_adapters dict from adapter_registry if not provided
+                adapters_dict = media_adapters
+                if adapters_dict is None and adapter_registry is not None:
+                    adapters_dict = {
+                        a.name: a for a in adapter_registry.list_adapters()
+                    }
                 result = dispatcher(
                     query, scheduler, conn, audio_player, tts_engine,
-                    media_adapters, last_result, recursive_dispatch, user_tz
+                    adapters_dict, last_result, recursive_dispatch, user_tz
                 )
             elif query.category == "note":
                 result = dispatcher(query, conn, user_tz)
@@ -198,6 +209,16 @@ def dispatch_utility(
                     )
                 else:
                     result = dispatcher(query, scheduler, conn, user_tz, tts_engine)
+            elif query.category == "media":
+                if adapter_registry is None:
+                    result = UtilityResult.error(
+                        "adapter_registry_required",
+                        "Media commands require an adapter registry"
+                    )
+                else:
+                    result = dispatcher(query, adapter_registry, conn, audio_player)
+            elif query.category in ("weather", "news"):
+                result = dispatcher(query, conn, user_tz)
             else:
                 result = dispatcher(query)
         except Exception as e:

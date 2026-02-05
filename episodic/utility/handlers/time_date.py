@@ -35,6 +35,7 @@ def handle_time(query: UtilityQuery, user_tz: str = "America/Chicago") -> Utilit
     return UtilityResult.ok(
         display=display,
         speech=speech,
+        _command="time_now",
         time=now.isoformat(),
         timezone=user_tz,
     )
@@ -64,6 +65,7 @@ def handle_date(query: UtilityQuery, user_tz: str = "America/Chicago") -> Utilit
     return UtilityResult.ok(
         display=display,
         speech=speech,
+        _command="date_today",
         date=now.date().isoformat(),
         day_of_week=day_of_week,
         timezone=user_tz,

@@ -44,6 +44,28 @@ from .reminders import (
     handle_remind_cancel,
     dispatch_reminder_command,
 )
+from .media import (
+    handle_media_play,
+    handle_media_pause,
+    handle_media_resume,
+    handle_media_stop,
+    handle_media_status,
+    handle_volume_up,
+    handle_volume_down,
+    handle_volume_mute,
+    handle_volume_set,
+    dispatch_media_command,
+)
+from .weather import (
+    handle_weather_now,
+    handle_weather_forecast,
+    dispatch_weather_command,
+)
+from .news import (
+    handle_news_headlines,
+    handle_news_topic,
+    dispatch_news_command,
+)
 
 __all__ = [
     # Time/Date
@@ -86,4 +108,23 @@ __all__ = [
     "handle_remind_list",
     "handle_remind_cancel",
     "dispatch_reminder_command",
+    # Media
+    "handle_media_play",
+    "handle_media_pause",
+    "handle_media_resume",
+    "handle_media_stop",
+    "handle_media_status",
+    "handle_volume_up",
+    "handle_volume_down",
+    "handle_volume_mute",
+    "handle_volume_set",
+    "dispatch_media_command",
+    # Weather
+    "handle_weather_now",
+    "handle_weather_forecast",
+    "dispatch_weather_command",
+    # News
+    "handle_news_headlines",
+    "handle_news_topic",
+    "dispatch_news_command",
 ]

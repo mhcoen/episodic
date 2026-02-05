@@ -327,6 +327,7 @@ def handle_remind_set(
     return UtilityResult.ok(
         display=f"Reminder set: {text} ({time_display})",
         speech=f"I'll remind you {time_display.lower()}",
+        _command="reminder_set",
         reminder_id=reminder_id,
         text=text,
         due_at=due_at.isoformat(),

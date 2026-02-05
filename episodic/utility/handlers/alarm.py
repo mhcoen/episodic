@@ -74,28 +74,41 @@ def _parse_alarm_time(
         return alarm_time
 
     if time_str:
-        # Parse time string (simplified - real implementation would handle more formats)
+        # Parse time string
         time_str = time_str.lower().strip()
 
-        # Handle "X:XX" format
-        if ":" in time_str:
-            parts = time_str.replace("am", "").replace("pm", "").strip().split(":")
-            try:
+        try:
+            # Handle "X:XX" format (7:00am, 19:00)
+            if ":" in time_str:
+                parts = time_str.replace("am", "").replace("pm", "").strip().split(":")
                 h = int(parts[0])
                 m = int(parts[1]) if len(parts) > 1 else 0
+            else:
+                # Handle "Xam/pm" format (7am, 7pm)
+                import re
+                match = re.match(r'^(\d{1,2})\s*(am|pm)?$', time_str)
+                if match:
+                    h = int(match.group(1))
+                    m = 0
+                    # If no am/pm and hour > 12, assume 24-hour format
+                else:
+                    return None
 
-                # Handle AM/PM
-                if "pm" in time_str.lower() and h < 12:
-                    h += 12
-                elif "am" in time_str.lower() and h == 12:
-                    h = 0
+            # Handle AM/PM
+            if "pm" in time_str and h < 12:
+                h += 12
+            elif "am" in time_str and h == 12:
+                h = 0
 
-                alarm_time = now.replace(hour=h, minute=m, second=0, microsecond=0)
-                if alarm_time <= now:
-                    alarm_time += timedelta(days=1)
-                return alarm_time
-            except (ValueError, IndexError):
+            if h > 23 or m > 59:
                 return None
+
+            alarm_time = now.replace(hour=h, minute=m, second=0, microsecond=0)
+            if alarm_time <= now:
+                alarm_time += timedelta(days=1)
+            return alarm_time
+        except (ValueError, IndexError):
+            return None
 
     return None
 
@@ -331,6 +344,7 @@ def handle_alarm_set(
     return UtilityResult.ok(
         display=display,
         speech=speech,
+        _command="alarm_set",
         alarm_id=alarm_id,
         task_id=task.id,
         time=alarm_time.isoformat(),

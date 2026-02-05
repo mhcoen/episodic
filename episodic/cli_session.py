@@ -145,8 +145,17 @@ def execute_script(filename: str):
                     typer.secho("Script requested exit, stopping execution.", fg=get_warning_color())
                     break
             else:
-                # It's a chat message
-                handle_chat_message(line)
+                # Try voice grammar for utility commands first
+                from episodic.utility.cli_integration import (
+                    handle_voice_utterance,
+                    display_utility_result,
+                )
+                utility_result = handle_voice_utterance(line)
+                if utility_result is not None:
+                    display_utility_result(utility_result)
+                else:
+                    # Fall through to chat message handler
+                    handle_chat_message(line)
             
             # Add a small delay between commands to avoid overwhelming the system
             if config.get("script_delay", 0.1) > 0:

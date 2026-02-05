@@ -72,6 +72,18 @@ def handle_command(command_str: str) -> bool:
         return False
     
     try:
+        # Check if this is a utility command first
+        from episodic.utility.cli_integration import (
+            is_utility_command, handle_utility_command, display_utility_result
+        )
+
+        if is_utility_command(cmd_without_slash):
+            args_str = " ".join(args) if args else ""
+            result = handle_utility_command(cmd_without_slash, args_str)
+            if result is not None:
+                display_utility_result(result)
+                return False
+
         # Route to appropriate handler
         if cmd == "/init":
             _handle_init(args)

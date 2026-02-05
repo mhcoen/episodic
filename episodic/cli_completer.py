@@ -43,7 +43,27 @@ class EpisodicCompleter(Completer):
             else:
                 # This entry is an alias pointing to the command
                 self.command_aliases[cmd_name] = cmd_info.name
-        
+
+        # Add utility commands (handled separately via handle_utility_command)
+        self.utility_commands = {
+            'time': 'Show current time',
+            'timer': 'Set a timer or show active timers',
+            'alarm': 'Set an alarm or list alarms',
+            'remind': 'Set a reminder',
+            'weather': 'Get current weather',
+            'forecast': 'Get weather forecast',
+            'news': 'Get news headlines',
+            'calc': 'Calculate expression',
+            'note': 'Add or list notes',
+            'play': 'Play radio station',
+            'cancel': 'Cancel timer or alarm',
+            'undo': 'Undo last utility action',
+            'dnd': 'Do not disturb mode',
+            'status': 'Show system status',
+            'stop': 'Stop current action',
+        }
+        self.commands.update(self.utility_commands.keys())
+
         # Cache commonly used completions
         self._model_cache = None
         self._model_cache_time = 0
@@ -144,9 +164,26 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_dev_command(parts, word_before_cursor)
             elif full_cmd == 'migrate':
                 yield from self._complete_migrate_command(parts, word_before_cursor)
+            # Utility command completions
+            elif full_cmd == 'cancel':
+                yield from self._complete_cancel_command(parts, word_before_cursor)
+            elif full_cmd == 'dnd':
+                yield from self._complete_dnd_command(parts, word_before_cursor)
+            elif full_cmd == 'news':
+                yield from self._complete_news_command(parts, word_before_cursor)
+            elif full_cmd == 'play':
+                yield from self._complete_play_command(parts, word_before_cursor)
+            elif full_cmd == 'timer':
+                yield from self._complete_timer_command(parts, word_before_cursor)
+            elif full_cmd == 'alarm':
+                yield from self._complete_alarm_command(parts, word_before_cursor)
     
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""
+        # Check utility commands first
+        if cmd in self.utility_commands:
+            return self.utility_commands[cmd]
+
         # Check regular registry
         if cmd in command_registry._commands:
             return command_registry._commands[cmd].description
@@ -992,9 +1029,29 @@ class EpisodicCompleter(Completer):
                     yield Completion(opt, start_position=-len(word), display_meta=desc)
 
     def _complete_help_command(self, parts: List[str], word: str) -> List[Completion]:
-        """Complete /help with command names."""
+        """Complete /help with categories and command names."""
         if len(parts) == 2:
-            # Suggest command names for help lookups
+            # Suggest help categories first
+            help_categories = {
+                'chat': 'Mode switching and conversation',
+                'voice': 'Voice mode, STT/TTS providers',
+                'assistant': 'Timers, alarms, weather, news',
+                'settings': 'Configuration and system',
+                'search': 'Knowledge base and muse',
+                'history': 'Navigation and history',
+                'topics': 'Topic detection and management',
+                'markdown': 'Markdown file operations',
+                'all': 'Show all available commands',
+            }
+            for category, desc in help_categories.items():
+                if category.startswith(word.lower()):
+                    yield Completion(
+                        category,
+                        start_position=-len(word),
+                        display_meta=desc
+                    )
+
+            # Then suggest command names for help lookups
             for cmd in sorted(command_registry._commands.keys()):
                 if cmd.startswith(word.lower()):
                     info = command_registry._commands[cmd]
@@ -1099,3 +1156,105 @@ class EpisodicCompleter(Completer):
                         start_position=-len(word),
                         display_meta=descriptions.get(action, '')
                     )
+
+    # =========================================================================
+    # Utility Command Completions
+    # =========================================================================
+
+    def _complete_cancel_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /cancel command arguments."""
+        if len(parts) == 2:
+            options = {
+                'timer': 'Cancel active timer',
+                'alarm': 'Cancel active alarm',
+            }
+            for opt, desc in options.items():
+                if opt.startswith(word.lower()):
+                    yield Completion(opt, start_position=-len(word), display_meta=desc)
+
+    def _complete_dnd_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /dnd command arguments."""
+        if len(parts) == 2:
+            options = {
+                'on': 'Enable do not disturb',
+                'off': 'Disable do not disturb',
+                '30m': 'DND for 30 minutes',
+                '1h': 'DND for 1 hour',
+                '2h': 'DND for 2 hours',
+            }
+            for opt, desc in options.items():
+                if opt.startswith(word.lower()):
+                    yield Completion(opt, start_position=-len(word), display_meta=desc)
+
+    def _complete_news_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /news command arguments."""
+        if len(parts) == 2:
+            categories = {
+                'general': 'General news',
+                'technology': 'Tech news',
+                'business': 'Business news',
+                'sports': 'Sports news',
+                'entertainment': 'Entertainment news',
+                'health': 'Health news',
+                'science': 'Science news',
+            }
+            for cat, desc in categories.items():
+                if cat.startswith(word.lower()):
+                    yield Completion(cat, start_position=-len(word), display_meta=desc)
+
+    def _complete_play_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /play command with radio station options."""
+        if len(parts) == 2:
+            stations = {
+                'npr': 'NPR News',
+                'bbc': 'BBC World Service',
+                'wnyc': 'WNYC New York',
+                'wbez': 'WBEZ Chicago',
+                'kexp': 'KEXP Seattle',
+                'kusc': 'KUSC Classical',
+                'wfmt': 'WFMT Classical Chicago',
+                'wbgo': 'WBGO Jazz',
+                'jazz': 'Jazz music',
+                'classical': 'Classical music',
+            }
+            for station, desc in stations.items():
+                if station.startswith(word.lower()):
+                    yield Completion(station, start_position=-len(word), display_meta=desc)
+
+    def _complete_timer_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /timer command with common durations."""
+        if len(parts) == 2:
+            durations = {
+                '1m': '1 minute',
+                '2m': '2 minutes',
+                '3m': '3 minutes',
+                '5m': '5 minutes',
+                '10m': '10 minutes',
+                '15m': '15 minutes',
+                '20m': '20 minutes',
+                '30m': '30 minutes',
+                '45m': '45 minutes',
+                '1h': '1 hour',
+            }
+            for dur, desc in durations.items():
+                if dur.startswith(word.lower()):
+                    yield Completion(dur, start_position=-len(word), display_meta=desc)
+
+    def _complete_alarm_command(self, parts: List[str], word: str) -> List[Completion]:
+        """Complete /alarm command with common time formats."""
+        if len(parts) == 2:
+            times = {
+                '6am': '6:00 AM',
+                '6:30am': '6:30 AM',
+                '7am': '7:00 AM',
+                '7:30am': '7:30 AM',
+                '8am': '8:00 AM',
+                '8:30am': '8:30 AM',
+                '9am': '9:00 AM',
+                '12pm': '12:00 PM (noon)',
+                '1pm': '1:00 PM',
+                '6pm': '6:00 PM',
+            }
+            for time, desc in times.items():
+                if time.startswith(word.lower()):
+                    yield Completion(time, start_position=-len(word), display_meta=desc)

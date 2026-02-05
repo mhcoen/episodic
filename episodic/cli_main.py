@@ -749,8 +749,17 @@ async def _async_talk_loop() -> None:
                         typer.secho("\nGoodbye! 👋", fg=get_system_color())
                         break
                 else:
-                    # It's a chat message
-                    handle_chat_message(user_input)
+                    # Try voice grammar for utility commands first
+                    from episodic.utility.cli_integration import (
+                        handle_voice_utterance,
+                        display_utility_result,
+                    )
+                    utility_result = handle_voice_utterance(user_input)
+                    if utility_result is not None:
+                        display_utility_result(utility_result)
+                    else:
+                        # Fall through to chat message handler
+                        handle_chat_message(user_input)
             finally:
                 # Resume idle timer after processing
                 if config.get("voice_mode", False):
@@ -893,7 +902,11 @@ def main(
     
     # Display welcome
     display_welcome()
-    
+
+    # Start the data refresh scheduler for background provider updates
+    from episodic.utility.cli_integration import start_data_refresh_scheduler
+    start_data_refresh_scheduler()
+
     # Start the main talk loop
     talk_loop()
     
@@ -906,6 +919,10 @@ def main(
         from episodic.commands import cost as show_cost
         show_cost()
     
+    # Shutdown utility services (scheduler, adapters)
+    from episodic.utility.cli_integration import shutdown_utility_services
+    shutdown_utility_services()
+
     # Clean up database connections on exit
     from episodic.db_connection import close_pool
     close_pool()
@@ -916,5 +933,7 @@ if __name__ == "__main__":
         app()
     finally:
         # Ensure cleanup happens even on unexpected exit
+        from episodic.utility.cli_integration import shutdown_utility_services
+        shutdown_utility_services()
         from episodic.db_connection import close_pool
         close_pool()

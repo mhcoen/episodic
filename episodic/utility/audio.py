@@ -143,7 +143,7 @@ class AudioPlayerImpl:
         self._current_label = label
 
         path = self._config.sound_dir / filename
-        loop = sound_type == SoundType.ALARM
+        loop = sound_type in (SoundType.ALARM, SoundType.TIMER)
         self.play_file(path, loop=loop)
 
     def play_file(self, path: Path, loop: bool = False) -> None:
@@ -363,9 +363,9 @@ class NullAudioPlayer:
 
 def get_default_sound_dir() -> Path:
     """Get the default sound directory."""
-    # Check for user sounds first
+    # Check for user sounds first (must contain actual WAV files)
     user_sounds = Path.home() / ".episodic" / "sounds"
-    if user_sounds.exists():
+    if user_sounds.exists() and any(user_sounds.glob("*.wav")):
         return user_sounds
 
     # Fall back to bundled sounds

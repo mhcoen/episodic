@@ -4,6 +4,7 @@ setup(
     name="episodic",
     version="0.5.0",
     packages=find_packages(),
+    package_data={"episodic": ["sounds/*.wav"]},
     install_requires=[
         "typer>=0.9.0",
         "rich>=13.0.0",

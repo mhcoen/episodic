@@ -16,12 +16,14 @@ from .dispatcher import dispatch_utility, create_utility_query
 from .scheduler import Scheduler
 from .adapters.base import AdapterRegistry
 from .adapters.radio import RadioAdapter, NullRadioAdapter
+from .audio import AudioPlayerImpl, create_audio_player
 from .data_refresh import DataRefreshScheduler, get_data_refresh_scheduler
 
 
 # Global instances (initialized on first use)
 _scheduler: Optional[Scheduler] = None
 _adapter_registry: Optional[AdapterRegistry] = None
+_audio_player: Optional[AudioPlayerImpl] = None
 _data_refresh_scheduler: Optional[DataRefreshScheduler] = None
 _last_result: Optional[UtilityResult] = None
 _schema_initialized: bool = False
@@ -63,6 +65,14 @@ def get_scheduler() -> Scheduler:
         _scheduler = Scheduler(conn=conn, user_tz=user_tz)
         _scheduler.start()
     return _scheduler
+
+
+def get_audio_player() -> AudioPlayerImpl:
+    """Get or create the global audio player."""
+    global _audio_player
+    if _audio_player is None:
+        _audio_player = create_audio_player()
+    return _audio_player
 
 
 def get_adapter_registry() -> AdapterRegistry:
@@ -428,10 +438,12 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
     # Initialize only the services needed for this command category
     scheduler = None
     adapter_registry = None
+    audio_player = None
 
     # Categories that need scheduler
     if query.category in ("timer", "alarm", "reminder"):
         scheduler = get_scheduler()
+        audio_player = get_audio_player()
 
     # Categories that need adapter registry
     if query.category == "media":
@@ -441,9 +453,11 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
     if query.category == "system":
         if query.command in ("stop",):
             adapter_registry = get_adapter_registry()
+            audio_player = get_audio_player()
         elif query.command in ("cancel", "status"):
             scheduler = get_scheduler()
             adapter_registry = get_adapter_registry()
+            audio_player = get_audio_player()
 
     # Ensure utility schema exists (for event logging)
     _ensure_utility_schema()
@@ -458,6 +472,7 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
             conn=conn,
             user_tz=user_tz,
             scheduler=scheduler,
+            audio_player=audio_player,
             adapter_registry=adapter_registry,
             last_result=_last_result,
         )
@@ -571,10 +586,12 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
     # Initialize only the services needed for this command category
     scheduler = None
     adapter_registry = None
+    audio_player = None
 
     # Categories that need scheduler
     if query.category in ("timer", "alarm", "reminder"):
         scheduler = get_scheduler()
+        audio_player = get_audio_player()
 
     # Categories that need adapter registry
     if query.category == "media":
@@ -584,9 +601,11 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
     if query.category == "system":
         if query.command in ("stop", "stop_tts"):
             adapter_registry = get_adapter_registry()
+            audio_player = get_audio_player()
         elif query.command in ("cancel", "status"):
             scheduler = get_scheduler()
             adapter_registry = get_adapter_registry()
+            audio_player = get_audio_player()
 
     # Ensure utility schema exists
     _ensure_utility_schema()
@@ -601,6 +620,7 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
             conn=conn,
             user_tz=user_tz,
             scheduler=scheduler,
+            audio_player=audio_player,
             adapter_registry=adapter_registry,
             last_result=_last_result,
         )
@@ -612,8 +632,8 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
 
 
 def shutdown_utility_services() -> None:
-    """Shutdown utility services (scheduler, adapters, data refresh)."""
-    global _scheduler, _adapter_registry, _data_refresh_scheduler
+    """Shutdown utility services (scheduler, adapters, audio, data refresh)."""
+    global _scheduler, _adapter_registry, _audio_player, _data_refresh_scheduler
 
     if _data_refresh_scheduler is not None:
         _data_refresh_scheduler.stop()
@@ -628,6 +648,13 @@ def shutdown_utility_services() -> None:
                 pass
         _scheduler.stop()
         _scheduler = None
+
+    if _audio_player is not None:
+        try:
+            _audio_player.stop()
+        except Exception:
+            pass
+        _audio_player = None
 
     if _adapter_registry is not None:
         # Stop any playing adapters

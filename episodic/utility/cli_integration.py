@@ -16,11 +16,13 @@ from .dispatcher import dispatch_utility, create_utility_query
 from .scheduler import Scheduler
 from .adapters.base import AdapterRegistry
 from .adapters.radio import RadioAdapter, NullRadioAdapter
+from .data_refresh import DataRefreshScheduler, get_data_refresh_scheduler
 
 
 # Global instances (initialized on first use)
 _scheduler: Optional[Scheduler] = None
 _adapter_registry: Optional[AdapterRegistry] = None
+_data_refresh_scheduler: Optional[DataRefreshScheduler] = None
 _last_result: Optional[UtilityResult] = None
 _schema_initialized: bool = False
 
@@ -76,6 +78,43 @@ def get_adapter_registry() -> AdapterRegistry:
             # Fall back to null adapter for testing
             _adapter_registry.register(NullRadioAdapter())
     return _adapter_registry
+
+
+def start_data_refresh_scheduler() -> DataRefreshScheduler:
+    """
+    Start the data refresh scheduler for background provider updates.
+
+    Registers news and weather providers for pre-fetching.
+    """
+    global _data_refresh_scheduler
+
+    if _data_refresh_scheduler is not None and _data_refresh_scheduler.is_running():
+        return _data_refresh_scheduler
+
+    _data_refresh_scheduler = get_data_refresh_scheduler()
+
+    # Register news provider for background refresh (25 min interval)
+    from .handlers.news import get_news_provider
+    news_provider = get_news_provider()
+    _data_refresh_scheduler.register(
+        "news_general",
+        news_provider,
+        refresh_interval_s=1500,  # 25 minutes
+        args={"category": "general"},
+    )
+
+    # Register weather provider for background refresh (10 min interval)
+    from .handlers.weather import get_weather_provider
+    weather_provider = get_weather_provider()
+    _data_refresh_scheduler.register(
+        "weather_default",
+        weather_provider,
+        refresh_interval_s=600,  # 10 minutes
+        args={},
+    )
+
+    _data_refresh_scheduler.start()
+    return _data_refresh_scheduler
 
 
 def _parse_duration(duration_str: str) -> Optional[int]:
@@ -573,8 +612,12 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
 
 
 def shutdown_utility_services() -> None:
-    """Shutdown utility services (scheduler, adapters)."""
-    global _scheduler, _adapter_registry
+    """Shutdown utility services (scheduler, adapters, data refresh)."""
+    global _scheduler, _adapter_registry, _data_refresh_scheduler
+
+    if _data_refresh_scheduler is not None:
+        _data_refresh_scheduler.stop()
+        _data_refresh_scheduler = None
 
     if _scheduler is not None:
         # Close the scheduler's dedicated connection

@@ -902,7 +902,11 @@ def main(
     
     # Display welcome
     display_welcome()
-    
+
+    # Start the data refresh scheduler for background provider updates
+    from episodic.utility.cli_integration import start_data_refresh_scheduler
+    start_data_refresh_scheduler()
+
     # Start the main talk loop
     talk_loop()
     

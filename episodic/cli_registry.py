@@ -219,6 +219,7 @@ def show_help_with_categories():
     categories = [
         ("/help chat", "Mode switching and conversation management"),
         ("/help voice", "Voice mode, STT/TTS providers"),
+        ("/help assistant", "Timers, alarms, weather, news, and utilities"),
         ("/help settings", "Configuration and system management"),
         ("/help search", "Knowledge base and muse configuration"),
         ("/help history", "Navigation and conversation history"),
@@ -281,9 +282,11 @@ def show_category_help(category: str):
         show_markdown_help()
     elif category == "voice":
         show_voice_help()
+    elif category == "assistant":
+        show_assistant_help()
     else:
         typer.secho(f"Unknown help category: {category}", fg="red")
-        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice", fg=get_text_color())
+        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice, assistant", fg=get_text_color())
 
 
 def show_chat_help():
@@ -639,6 +642,65 @@ def show_voice_help():
 
     typer.secho("Voice Commands (while in voice mode):", fg=get_text_color())
     typer.secho('  Say "exit voice" or "voice off" to disable voice mode', fg=get_system_color())
+
+
+def show_assistant_help():
+    """Show assistant utility commands (timers, alarms, weather, etc.)."""
+
+    # Commands
+    commands = [
+        ("/time", "Show current time"),
+        ("/timer <duration> [label]", "Set a timer (e.g., /timer 5m coffee)"),
+        ("/timer", "Show active timers"),
+        ("/alarm <time> [label]", "Set an alarm (e.g., /alarm 7am wake up)"),
+        ("/alarm", "List active alarms"),
+        ("/remind <text> in/at <time>", "Set a reminder (e.g., /remind call mom in 1h)"),
+        ("/remind", "List active reminders"),
+        ("/weather [location]", "Get current weather"),
+        ("/forecast [location]", "Get weather forecast"),
+        ("/news [category]", "Get news headlines (general, tech, business, sports)"),
+        ("/calc <expression>", "Calculate expression (e.g., /calc 15% of 85)"),
+        ("/note <text>", "Add a note"),
+        ("/note", "List all notes"),
+        ("/play <station>", "Play radio station (e.g., /play npr)"),
+        ("/pause", "Pause media playback"),
+        ("/stop", "Stop current TTS or media"),
+        ("/cancel [timer|alarm]", "Cancel timer or alarm"),
+        ("/undo", "Undo last utility action"),
+        ("/dnd [on|off|duration]", "Do not disturb mode"),
+        ("/status", "Show system status (active timers, alarms, media)"),
+    ]
+
+    # Examples
+    examples = [
+        ("/timer 5m tea", "Set a 5-minute tea timer"),
+        ("/alarm 7:30am", "Set alarm for 7:30 AM"),
+        ("/remind buy milk in 2h", "Reminder in 2 hours"),
+        ("/weather", "Weather for current location"),
+        ("/news tech", "Technology news headlines"),
+        ("/calc 20% of 150", "Calculate 20% of 150"),
+    ]
+
+    # Find the longest command for alignment
+    all_commands = commands + examples
+    max_width = max(len(cmd) for cmd, _ in all_commands)
+
+    # Display header
+    typer.secho("🤖 Assistant Utilities", fg=get_heading_color(), bold=True)
+    typer.secho("Timers, alarms, reminders, weather, news, and more.", fg=get_text_color())
+    typer.echo()
+
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
+    typer.echo()
+
+    typer.secho("Voice Mode:", fg=get_text_color())
+    typer.secho("  These commands also work via voice in /voice mode", fg=get_system_color())
+    typer.secho("  Example: \"Set a timer for five minutes\"", fg=get_system_color())
 
 
 def show_advanced_help():

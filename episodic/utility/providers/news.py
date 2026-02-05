@@ -1,13 +1,14 @@
 """
 News Provider.
 
-Fetches news headlines from NewsAPI with caching.
+Fetches news headlines from NPR RSS feeds with caching.
 """
 
-import os
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+from email.utils import parsedate_to_datetime
 
 from .base import (
     DataProvider,
@@ -18,50 +19,64 @@ from .base import (
 
 logger = logging.getLogger(__name__)
 
+# NPR RSS feed URLs by category
+NPR_FEEDS = {
+    "general": "https://feeds.npr.org/1001/rss.xml",
+    "technology": "https://feeds.npr.org/1019/rss.xml",
+    "tech": "https://feeds.npr.org/1019/rss.xml",  # alias
+    "politics": "https://feeds.npr.org/1014/rss.xml",
+    "business": "https://feeds.npr.org/1006/rss.xml",
+    "science": "https://feeds.npr.org/1007/rss.xml",
+    "health": "https://feeds.npr.org/1128/rss.xml",
+    "world": "https://feeds.npr.org/1004/rss.xml",
+}
+
 # Category aliases
 CATEGORY_ALIASES = {
     "tech": "technology",
     "sci": "science",
     "biz": "business",
-    "sports": "sports",
-    "health": "health",
-    "entertainment": "entertainment",
-    "ent": "entertainment",
 }
 
 
 class NewsProvider(DataProvider):
     """
-    News provider using NewsAPI.
+    News provider using NPR RSS feeds.
 
-    Supports headlines and topic-based queries.
+    Supports headlines by category with background refresh for general news.
     """
 
     name = "news"
-    refresh_interval_s = 3600  # 1 hour
-    queries = ["news_headlines", "news_topic"]
+    refresh_interval_s = 1800  # 30 minutes cache TTL
+    queries = ["news_headlines", "news_detail"]
 
     def __init__(self):
-        self._api_key: Optional[str] = None
-        self._country: str = "us"
         self._default_count: int = 5
+        self._voice_count: int = 3  # Headlines to read aloud
         self._cache: Dict[str, CacheEntry] = {}
         self._last_refresh: Optional[datetime] = None
         self._error_count: int = 0
 
     def configure(self, config: Dict[str, Any]) -> None:
         """Apply configuration."""
-        self._api_key = config.get("api_key") or os.environ.get("NEWSAPI_KEY")
-        self._country = config.get("country", "us")
         self._default_count = config.get("default_count", 5)
+        self._voice_count = config.get("voice_count", 3)
 
     def get(self, command: str, args: Dict[str, Any]) -> ProviderResult:
         """Get news data from cache or fetch fresh."""
-        category = args.get("category", "general")
+        category = args.get("category", "general").lower()
         count = args.get("count", self._default_count)
 
         # Resolve category aliases
-        category = CATEGORY_ALIASES.get(category.lower(), category.lower())
+        category = CATEGORY_ALIASES.get(category, category)
+
+        # Check if category is supported
+        if category not in NPR_FEEDS:
+            return ProviderResult.error(
+                f"Unknown news category: {category}. "
+                f"Available: {', '.join(sorted(set(NPR_FEEDS.keys()) - {'tech'}))}",
+                self.name,
+            )
 
         cache_key = f"news:{command}:{category}"
 
@@ -75,11 +90,12 @@ class NewsProvider(DataProvider):
                 payload = entry.payload.copy()
                 if "headlines" in payload:
                     payload["headlines"] = payload["headlines"][:count]
+                    payload["count"] = len(payload["headlines"])
 
                 return ProviderResult.ok(
                     payload=payload,
                     speech_text=self._build_speech(payload["headlines"]),
-                    display_text=self._build_display(payload["headlines"]),
+                    display_text=self._build_display(payload["headlines"], category),
                     source=self.name,
                     cache_key=cache_key,
                     fetched_at=entry.fetched_at,
@@ -90,11 +106,12 @@ class NewsProvider(DataProvider):
                 payload = entry.payload.copy()
                 if "headlines" in payload:
                     payload["headlines"] = payload["headlines"][:count]
+                    payload["count"] = len(payload["headlines"])
 
                 return ProviderResult.stale(
                     payload=payload,
                     speech_text=self._build_speech(payload["headlines"]),
-                    display_text=self._build_display(payload["headlines"]),
+                    display_text=self._build_display(payload["headlines"], category),
                     source=self.name,
                     cache_key=cache_key,
                     fetched_at=entry.fetched_at,
@@ -104,7 +121,7 @@ class NewsProvider(DataProvider):
         return self._fetch_news(category, count, cache_key)
 
     def refresh(self, args: Dict[str, Any]) -> RefreshResult:
-        """Refresh news data."""
+        """Refresh news data (for background scheduler)."""
         category = args.get("category", "general")
         cache_key = f"news:news_headlines:{category}"
 
@@ -127,7 +144,7 @@ class NewsProvider(DataProvider):
                 success=False,
                 cache_key=cache_key,
                 payload=None,
-                error=result.payload.get("error", "Unknown error"),
+                error=result.payload.get("error", "Unknown error") if result.payload else "Unknown error",
                 next_refresh_s=backoff,
             )
 
@@ -135,88 +152,90 @@ class NewsProvider(DataProvider):
         """Return provider status."""
         return {
             "name": self.name,
-            "configured": self._api_key is not None,
+            "configured": True,  # No API key needed for RSS
             "last_refresh": self._last_refresh.isoformat() if self._last_refresh else None,
             "cache_entries": len(self._cache),
             "error_count": self._error_count,
-            "country": self._country,
+            "categories": list(set(NPR_FEEDS.keys()) - {"tech"}),
         }
 
     def _fetch_news(
         self, category: str, count: int, cache_key: str
     ) -> ProviderResult:
-        """Fetch news from NewsAPI."""
-        if not self._api_key:
+        """Fetch news from NPR RSS feed."""
+        feed_url = NPR_FEEDS.get(category)
+        if not feed_url:
             return ProviderResult.error(
-                "News requires NEWSAPI_KEY environment variable",
+                f"No feed URL for category: {category}",
                 self.name,
+                cache_key,
             )
 
         try:
             import urllib.request
-            import urllib.parse
-            import json
 
-            # Build API URL
-            params = urllib.parse.urlencode({
-                "country": self._country,
-                "category": category,
-                "pageSize": min(count * 2, 20),  # Fetch extra for filtering
-                "apiKey": self._api_key,
-            })
-
-            url = f"https://newsapi.org/v2/top-headlines?{params}"
-
-            # Make request
-            req = urllib.request.Request(url)
+            # Fetch RSS feed
+            req = urllib.request.Request(feed_url)
             req.add_header("User-Agent", "Episodic/1.0")
 
             with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode())
+                xml_data = response.read().decode("utf-8")
 
-            if data.get("status") != "ok":
-                error_msg = data.get("message", "Unknown API error")
-                return ProviderResult.error(error_msg, self.name, cache_key)
-
-            return self._parse_headlines(data, category, count, cache_key)
+            return self._parse_rss(xml_data, category, count, cache_key)
 
         except urllib.error.HTTPError as e:
-            if e.code == 401:
-                return ProviderResult.error("Invalid API key", self.name, cache_key)
-            elif e.code == 429:
-                return ProviderResult.error("Rate limit exceeded", self.name, cache_key)
-            else:
-                return ProviderResult.error(f"API error: {e.code}", self.name, cache_key)
+            return ProviderResult.error(f"HTTP error: {e.code}", self.name, cache_key)
         except urllib.error.URLError as e:
             return ProviderResult.error(f"Network error: {e.reason}", self.name, cache_key)
         except Exception as e:
             logger.exception("News fetch error")
             return ProviderResult.error(str(e), self.name, cache_key)
 
-    def _parse_headlines(
-        self, data: Dict[str, Any], category: str, count: int, cache_key: str
+    def _parse_rss(
+        self, xml_data: str, category: str, count: int, cache_key: str
     ) -> ProviderResult:
-        """Parse headlines response."""
+        """Parse RSS feed XML."""
         try:
-            articles = data.get("articles", [])
+            root = ET.fromstring(xml_data)
+
+            # Find all items in the feed
+            items = root.findall(".//item")
 
             headlines = []
-            for article in articles[:count]:
-                source = article.get("source", {}).get("name", "Unknown")
-                title = article.get("title", "")
-                description = article.get("description", "")
-                url = article.get("url", "")
+            for item in items[:count * 2]:  # Fetch extra for filtering
+                title = self._get_text(item, "title")
+                description = self._get_text(item, "description")
+                link = self._get_text(item, "link")
+                pub_date = self._get_text(item, "pubDate")
 
-                # Skip articles with no title or "[Removed]" content
-                if not title or title == "[Removed]":
+                # Author is in dc:creator namespace
+                author = self._get_text(item, "{http://purl.org/dc/elements/1.1/}creator")
+
+                if not title:
                     continue
 
+                # Clean up description (remove HTML tags if any)
+                if description:
+                    description = self._strip_html(description)
+
+                # Parse publication date
+                published_at = None
+                if pub_date:
+                    try:
+                        published_at = parsedate_to_datetime(pub_date).isoformat()
+                    except Exception:
+                        pass
+
                 headlines.append({
-                    "title": title,
-                    "source": source,
-                    "description": description or "",
-                    "url": url,
+                    "title": title.strip(),
+                    "description": description.strip() if description else "",
+                    "author": author.strip() if author else "",
+                    "url": link.strip() if link else "",
+                    "published_at": published_at,
                 })
+
+                if len(headlines) >= count:
+                    break
 
             if not headlines:
                 return ProviderResult.error(
@@ -232,12 +251,11 @@ class NewsProvider(DataProvider):
             }
 
             speech_text = self._build_speech(headlines)
-            display_text = self._build_display(headlines)
+            display_text = self._build_display(headlines, category)
 
-            # Cache the result (cache more than requested for future queries)
+            # Cache the result
             now = datetime.now()
             cache_payload = payload.copy()
-            cache_payload["headlines"] = headlines  # Full list
 
             self._cache[cache_key] = CacheEntry(
                 key=cache_key,
@@ -257,9 +275,33 @@ class NewsProvider(DataProvider):
                 ttl_seconds=self.refresh_interval_s,
             )
 
+        except ET.ParseError as e:
+            logger.exception("RSS parse error")
+            return ProviderResult.error(f"RSS parse error: {e}", self.name, cache_key)
         except Exception as e:
             logger.exception("Error parsing news data")
             return ProviderResult.error(f"Parse error: {e}", self.name, cache_key)
+
+    def _get_text(self, element: ET.Element, tag: str) -> Optional[str]:
+        """Get text content of a child element."""
+        child = element.find(tag)
+        return child.text if child is not None and child.text else None
+
+    def _strip_html(self, text: str) -> str:
+        """Remove HTML tags from text."""
+        import re
+        # Remove HTML tags
+        clean = re.sub(r"<[^>]+>", "", text)
+        # Decode common entities
+        clean = clean.replace("&amp;", "&")
+        clean = clean.replace("&lt;", "<")
+        clean = clean.replace("&gt;", ">")
+        clean = clean.replace("&quot;", '"')
+        clean = clean.replace("&#39;", "'")
+        clean = clean.replace("&nbsp;", " ")
+        # Normalize whitespace
+        clean = " ".join(clean.split())
+        return clean
 
     def _build_speech(self, headlines: List[Dict[str, Any]]) -> str:
         """Build speech text from headlines."""
@@ -270,44 +312,41 @@ class NewsProvider(DataProvider):
 
         ordinals = ["First", "Second", "Third", "Fourth", "Fifth"]
 
-        for i, h in enumerate(headlines[:5]):
+        # Use voice_count for speech (default 3)
+        for i, h in enumerate(headlines[:self._voice_count]):
             ordinal = ordinals[i] if i < len(ordinals) else f"Number {i + 1}"
-            source = h.get("source", "")
             title = h.get("title", "")
             desc = h.get("description", "")
 
-            if source:
-                parts.append(f"{ordinal}, from {source}: {title}.")
+            # Combine title and description for richer speech
+            if desc:
+                parts.append(f"{ordinal}: {title}. {desc}")
             else:
                 parts.append(f"{ordinal}: {title}.")
 
-            # Add description for first 2 headlines only (brevity)
-            if i < 2 and desc:
-                parts.append(desc)
+        parts.append("Say a number for more details.")
 
         return " ".join(parts)
 
-    def _build_display(self, headlines: List[Dict[str, Any]]) -> str:
+    def _build_display(self, headlines: List[Dict[str, Any]], category: str = "general") -> str:
         """Build display text from headlines."""
         if not headlines:
             return "📰 No headlines available."
 
-        lines = ["📰 Top Headlines"]
+        category_title = category.title() if category != "general" else ""
+        header = f"📰 {category_title} Headlines" if category_title else "📰 Headlines"
+        lines = [header, ""]
 
         for i, h in enumerate(headlines, 1):
-            source = h.get("source", "")
             title = h.get("title", "")
-            desc = h.get("description", "")
+            author = h.get("author", "")
 
-            if source:
-                lines.append(f"{i}. {title} — {source}")
+            if author:
+                lines.append(f"{i}. {title} ({author})")
             else:
                 lines.append(f"{i}. {title}")
 
-            if desc:
-                # Truncate long descriptions
-                if len(desc) > 100:
-                    desc = desc[:97] + "..."
-                lines.append(f"   {desc}")
+        lines.append("")
+        lines.append("Say a number for more details.")
 
         return "\n".join(lines)

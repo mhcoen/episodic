@@ -1,97 +1,124 @@
 """
-Integration test specific fixtures and configuration.
+Fixtures for integration tests.
 
-Integration tests may:
-- Use real database connections
-- Take longer to run
-- Test component interactions
-- Require setup/teardown of resources
+Provides TestSession and related testing infrastructure.
 """
 
-import pytest
 import os
+import fnmatch
+import pytest
 import tempfile
-import shutil
+
+from episodic.harness import (
+    RuntimeState,
+    FakeClock,
+    StubLLMClient,
+    EphemeralEventStore,
+    process_input,
+)
 
 
-@pytest.fixture(scope="session")
-def integration_db_dir():
+class HarnessSession:
     """
-    Provide a session-scoped temporary directory for integration test databases.
+    Programmatic interface for testing.
 
-    This directory persists across all integration tests in a session,
-    allowing tests to share database state when appropriate.
+    Calls same process_input as CLI would, with injected dependencies.
     """
-    temp_dir = tempfile.mkdtemp(prefix="episodic_integration_")
-    yield temp_dir
-    # Cleanup after all integration tests complete
-    shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def __init__(
+        self,
+        db: str = ":memory:",
+        clock=None,
+        llm=None,
+        providers=None,
+        rng_seed: int = 42,
+        debug_channels=None,
+    ):
+        self._validate_not_prod(db)
+
+        import sqlite3
+        import random
+
+        self.runtime = RuntimeState(
+            db=sqlite3.connect(db) if db != ":memory:" else sqlite3.connect(":memory:"),
+            clock=clock or FakeClock(start=0),
+            llm=llm or StubLLMClient([]),
+            event_store=EphemeralEventStore(),
+            rng=random.Random(rng_seed),
+            providers=providers or {},
+            debug_channels=debug_channels or {"router", "grammar", "context"},
+        )
+
+    def send(self, text: str):
+        """Process input through same pipeline as CLI."""
+        return process_input(text, self.runtime)
+
+    def advance_time(self, seconds: float):
+        """Advance fake clock."""
+        if hasattr(self.runtime.clock, "advance"):
+            self.runtime.clock.advance(seconds)
+
+    def reset(self):
+        """Clear state for next test."""
+        if hasattr(self.runtime.event_store, "clear"):
+            self.runtime.event_store.clear()
+
+    @staticmethod
+    def _validate_not_prod(path: str):
+        """Fail fast if test would touch production."""
+        if path == ":memory:":
+            return
+
+        forbidden_patterns = [
+            "~/.episodic",
+            "~/.episodic/*",
+            "*/.episodic/episodic.db",
+            "*/episodic.db",
+        ]
+
+        resolved = os.path.realpath(os.path.expanduser(path))
+
+        for pattern in forbidden_patterns:
+            expanded = os.path.expanduser(pattern)
+            if fnmatch.fnmatch(resolved, expanded):
+                raise RuntimeError(f"Test cannot use production path: {path}")
+
+        # Also check explicit home directory
+        home_episodic = os.path.expanduser("~/.episodic")
+        if resolved.startswith(home_episodic):
+            raise RuntimeError(f"Test cannot use production path: {path}")
 
 
 @pytest.fixture
-def integration_db(integration_db_dir):
-    """
-    Provide a fresh database for each integration test.
+def test_session():
+    """Standard test session with stubs."""
+    session = HarnessSession(
+        debug_channels={"router", "grammar", "context", "providers"}
+    )
+    yield session
 
-    Each test gets its own database file to avoid interference.
-    """
-    import sqlite3
 
-    # Use the session-scoped test DB path; path is resolved once at startup.
-    db_path = os.environ['EPISODIC_DB_PATH']
+@pytest.fixture
+def session_with_llm():
+    """Test session with LLM responses configured."""
+    session = HarnessSession(
+        llm=StubLLMClient([
+            "This is a test response.",
+            "Here is another response.",
+            "And a third one.",
+        ]),
+        debug_channels={"router", "grammar", "context", "llm"},
+    )
+    yield session
 
+
+@pytest.fixture
+def temp_db_path():
+    """Temporary database file for persistence tests."""
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        path = f.name
+    yield path
     try:
-        # Ensure a clean database for each test.
-        if os.path.exists(db_path):
-            os.remove(db_path)
-        from episodic.db import initialize_db
-        initialize_db()
-
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        yield db_path, conn
-        conn.close()
-    finally:
-        try:
-            if os.path.exists(db_path):
-                os.remove(db_path)
-        except Exception:
-            pass
-
-
-@pytest.fixture
-def integration_config(isolated_config):
-    """
-    Provide configuration suitable for integration testing.
-
-    Extends isolated_config with integration-specific defaults.
-    """
-    isolated_config.set('model', 'gpt-3.5-turbo')
-    isolated_config.set('automatic_topic_detection', True)
-    return isolated_config
-
-
-@pytest.fixture
-def real_llm_available():
-    """
-    Check if real LLM API is available for integration tests.
-
-    Skip tests that require real LLM if no API key is configured.
-    """
-    api_key = os.environ.get('OPENAI_API_KEY') or os.environ.get('ANTHROPIC_API_KEY')
-    if not api_key:
-        pytest.skip("No LLM API key available for integration test")
-    return True
-
-
-@pytest.fixture
-def rag_integration_dir(integration_db_dir, request):
-    """
-    Provide a directory for RAG integration test data.
-
-    Each test gets its own RAG directory.
-    """
-    test_name = request.node.name.replace("/", "_").replace(":", "_")
-    rag_dir = os.path.join(integration_db_dir, f"rag_{test_name}")
-    os.makedirs(rag_dir, exist_ok=True)
-    return rag_dir
+        os.unlink(path)
+    except OSError:
+        pass

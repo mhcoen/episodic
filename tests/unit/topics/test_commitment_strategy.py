@@ -281,13 +281,6 @@ class TestEvidenceAccumulation:
         assert wrapped._state.accumulated_evidence < prev_evidence
 
 
-class TestCommitmentThreshold:
-    """Test commitment threshold enforcement."""
-
-    def test_commitment_threshold_removed(self):
-        pytest.skip("Commitment threshold removed; policy now uses min_evidence and persistence")
-
-
 class TestStateManagement:
     """Test state management across decisions."""
 

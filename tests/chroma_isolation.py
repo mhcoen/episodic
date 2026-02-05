@@ -34,6 +34,8 @@ class DummyEmbeddingFunction:
 
     Returns fixed-dimension vectors that vary by input hash,
     ensuring consistent results without loading ML models.
+
+    Note: ChromaDB expects __call__ to have parameter named 'input', not 'input_texts'.
     """
 
     EMBEDDING_DIM = 384  # Matches all-MiniLM-L6-v2
@@ -41,10 +43,14 @@ class DummyEmbeddingFunction:
     def __init__(self, *args, **kwargs):
         pass
 
-    def __call__(self, input_texts: List[str]) -> List[List[float]]:
-        """Generate deterministic embeddings from text hashes."""
+    def __call__(self, input: List[str]) -> List[List[float]]:
+        """Generate deterministic embeddings from text hashes.
+
+        Args:
+            input: List of text strings to embed (ChromaDB expected parameter name)
+        """
         results = []
-        for text in input_texts:
+        for text in input:
             # Create deterministic vector from text hash
             text_hash = hash(text) & 0xFFFFFFFF
             vec = []
@@ -55,13 +61,35 @@ class DummyEmbeddingFunction:
             results.append(vec)
         return results
 
-    def embed_query(self, text: str) -> List[float]:
-        """Embed a single query."""
-        return self.__call__([text])[0]
+    def embed_query(self, input = None, text = None) -> List[List[float]]:
+        """Embed a single query.
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """Embed multiple documents."""
-        return self.__call__(texts)
+        Args:
+            input: Query text or list (ChromaDB 0.4.16+ parameter name)
+            text: Query text (legacy parameter name, for backwards compatibility)
+
+        Returns:
+            List containing a single embedding vector (ChromaDB expects [[...]])
+        """
+        query = input if input is not None else text
+        # Handle both single string and list input
+        if isinstance(query, list):
+            # Already a list, embed all items
+            return self.__call__(query)
+        # Single string, embed and return as list
+        return self.__call__([query])
+
+    def embed_documents(self, input = None, texts = None) -> List[List[float]]:
+        """Embed multiple documents.
+
+        Args:
+            input: List of texts (ChromaDB 0.4.16+ parameter name)
+            texts: List of texts (legacy parameter name, for backwards compatibility)
+        """
+        docs = input if input is not None else texts
+        if isinstance(docs, str):
+            docs = [docs]
+        return self.__call__(docs)
 
     def is_legacy(self) -> bool:
         """Return True to indicate legacy embedding function."""

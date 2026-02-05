@@ -1,13 +1,13 @@
 """
-Tests for News Provider.
+Tests for News Provider (NPR RSS implementation).
 """
 
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
-import json
+import xml.etree.ElementTree as ET
 
-from episodic.utility.providers.news import NewsProvider, CATEGORY_ALIASES
+from episodic.utility.providers.news import NewsProvider, CATEGORY_ALIASES, NPR_FEEDS
 from episodic.utility.providers.base import ProviderResult
 
 
@@ -23,8 +23,9 @@ class TestCategoryAliases:
     def test_biz_alias(self):
         assert CATEGORY_ALIASES["biz"] == "business"
 
-    def test_ent_alias(self):
-        assert CATEGORY_ALIASES["ent"] == "entertainment"
+    def test_no_ent_alias(self):
+        """RSS implementation doesn't have entertainment alias."""
+        assert "ent" not in CATEGORY_ALIASES
 
 
 class TestNewsProvider:
@@ -34,50 +35,54 @@ class TestNewsProvider:
     def provider(self):
         """Create a configured provider."""
         p = NewsProvider()
-        p.configure({"api_key": "test_api_key"})
+        p.configure({})  # No API key needed for RSS
         return p
 
     def test_configure(self, provider):
         """Test configuration."""
-        assert provider._api_key == "test_api_key"
-        assert provider._country == "us"
+        # RSS doesn't use API key
         assert provider._default_count == 5
+        assert provider._voice_count == 3
 
     def test_status(self, provider):
         """Test status method."""
         status = provider.status()
         assert status["name"] == "news"
         assert status["configured"] is True
-        assert status["country"] == "us"
+        # RSS implementation doesn't have "country" in status
+        assert "categories" in status
+        assert "general" in status["categories"]
 
-    def test_no_api_key(self):
-        """Test error when no API key configured."""
-        provider = NewsProvider()
-        result = provider.get("news_headlines", {})
+    def test_unknown_category(self, provider):
+        """Test error for unknown category."""
+        result = provider.get("news_headlines", {"category": "nonexistent"})
         assert result.status == "error"
-        assert "NEWSAPI_KEY" in result.speech_text
+        assert "Unknown news category" in result.payload.get("error", "")
 
     @patch("urllib.request.urlopen")
-    def test_fetch_headlines(self, mock_urlopen, provider):
-        """Test fetching headlines."""
+    def test_fetch_headlines_from_rss(self, mock_urlopen, provider):
+        """Test fetching headlines from RSS feed."""
+        # Create sample RSS XML
+        rss_xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Test Headline 1</title>
+                    <description>Test description 1</description>
+                    <link>https://example.com/1</link>
+                    <pubDate>Wed, 01 Jan 2025 12:00:00 GMT</pubDate>
+                </item>
+                <item>
+                    <title>Test Headline 2</title>
+                    <description>Test description 2</description>
+                    <link>https://example.com/2</link>
+                    <pubDate>Wed, 01 Jan 2025 11:00:00 GMT</pubDate>
+                </item>
+            </channel>
+        </rss>"""
+
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "ok",
-            "articles": [
-                {
-                    "source": {"name": "NPR"},
-                    "title": "Test Headline 1",
-                    "description": "Test description 1",
-                    "url": "https://example.com/1",
-                },
-                {
-                    "source": {"name": "BBC"},
-                    "title": "Test Headline 2",
-                    "description": "Test description 2",
-                    "url": "https://example.com/2",
-                },
-            ],
-        }).encode()
+        mock_response.read.return_value = rss_xml.encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
@@ -86,25 +91,24 @@ class TestNewsProvider:
 
         assert result.status == "ok"
         assert len(result.payload["headlines"]) == 2
-        assert result.payload["headlines"][0]["source"] == "NPR"
-        assert "📰" in result.display_text
-        assert "NPR" in result.speech_text
+        assert result.payload["headlines"][0]["title"] == "Test Headline 1"
 
     @patch("urllib.request.urlopen")
     def test_fetch_with_category_alias(self, mock_urlopen, provider):
         """Test fetching with category alias."""
+        rss_xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Tech News</title>
+                    <description>Tech description</description>
+                    <link>https://example.com/tech</link>
+                </item>
+            </channel>
+        </rss>"""
+
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "ok",
-            "articles": [
-                {
-                    "source": {"name": "TechCrunch"},
-                    "title": "Tech News",
-                    "description": "Tech description",
-                    "url": "https://example.com/tech",
-                },
-            ],
-        }).encode()
+        mock_response.read.return_value = rss_xml.encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
@@ -113,24 +117,24 @@ class TestNewsProvider:
         result = provider.get("news_headlines", {"category": "tech"})
 
         assert result.status == "ok"
-        # Verify the request was made (alias is resolved internally)
         assert mock_urlopen.called
 
     @patch("urllib.request.urlopen")
     def test_cache_hit(self, mock_urlopen, provider):
         """Test that cached results are returned."""
+        rss_xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Cached Headline</title>
+                    <description>Cached desc</description>
+                    <link>https://example.com</link>
+                </item>
+            </channel>
+        </rss>"""
+
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "ok",
-            "articles": [
-                {
-                    "source": {"name": "Test"},
-                    "title": "Cached Headline",
-                    "description": "Cached desc",
-                    "url": "https://example.com",
-                },
-            ],
-        }).encode()
+        mock_response.read.return_value = rss_xml.encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
@@ -147,14 +151,21 @@ class TestNewsProvider:
     @patch("urllib.request.urlopen")
     def test_count_limiting(self, mock_urlopen, provider):
         """Test that count parameter limits results."""
+        # Create RSS with 10 items
+        items = "\n".join([
+            f"""<item>
+                <title>Headline {i}</title>
+                <description>Description {i}</description>
+                <link>https://example.com/{i}</link>
+            </item>""" for i in range(10)
+        ])
+        rss_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>{items}</channel>
+        </rss>"""
+
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "ok",
-            "articles": [
-                {"source": {"name": f"Source{i}"}, "title": f"Headline {i}", "description": "", "url": ""}
-                for i in range(10)
-            ],
-        }).encode()
+        mock_response.read.return_value = rss_xml.encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
@@ -164,28 +175,6 @@ class TestNewsProvider:
         assert result.status == "ok"
         assert len(result.payload["headlines"]) == 3
 
-    @patch("urllib.request.urlopen")
-    def test_filters_removed_articles(self, mock_urlopen, provider):
-        """Test that [Removed] articles are filtered out."""
-        mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "ok",
-            "articles": [
-                {"source": {"name": "Good"}, "title": "Good Article", "description": "", "url": ""},
-                {"source": {"name": "Bad"}, "title": "[Removed]", "description": "", "url": ""},
-                {"source": {"name": "Also Good"}, "title": "Another Good Article", "description": "", "url": ""},
-            ],
-        }).encode()
-        mock_response.__enter__ = lambda s: s
-        mock_response.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_response
-
-        result = provider.get("news_headlines", {})
-
-        assert result.status == "ok"
-        assert len(result.payload["headlines"]) == 2
-        assert all(h["title"] != "[Removed]" for h in result.payload["headlines"])
-
 
 class TestNewsProviderErrors:
     """Test error handling."""
@@ -193,28 +182,8 @@ class TestNewsProviderErrors:
     @pytest.fixture
     def provider(self):
         p = NewsProvider()
-        p.configure({"api_key": "test_key"})
+        p.configure({})
         return p
-
-    @patch("urllib.request.urlopen")
-    def test_invalid_api_key(self, mock_urlopen, provider):
-        """Test handling of invalid API key."""
-        from urllib.error import HTTPError
-        mock_urlopen.side_effect = HTTPError(None, 401, "Unauthorized", {}, None)
-
-        result = provider.get("news_headlines", {})
-        assert result.status == "error"
-        assert "Invalid API key" in result.speech_text
-
-    @patch("urllib.request.urlopen")
-    def test_rate_limited(self, mock_urlopen, provider):
-        """Test handling of rate limit."""
-        from urllib.error import HTTPError
-        mock_urlopen.side_effect = HTTPError(None, 429, "Too Many Requests", {}, None)
-
-        result = provider.get("news_headlines", {})
-        assert result.status == "error"
-        assert "Rate limit" in result.speech_text
 
     @patch("urllib.request.urlopen")
     def test_network_error(self, mock_urlopen, provider):
@@ -224,39 +193,47 @@ class TestNewsProviderErrors:
 
         result = provider.get("news_headlines", {})
         assert result.status == "error"
-        assert "Network error" in result.speech_text
+        assert "Network error" in result.payload.get("error", "")
 
     @patch("urllib.request.urlopen")
-    def test_api_error_response(self, mock_urlopen, provider):
-        """Test handling of API error response."""
-        mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "error",
-            "message": "API key exhausted",
-        }).encode()
-        mock_response.__enter__ = lambda s: s
-        mock_response.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_response
+    def test_http_error(self, mock_urlopen, provider):
+        """Test handling of HTTP error."""
+        from urllib.error import HTTPError
+        mock_urlopen.side_effect = HTTPError(None, 500, "Server Error", {}, None)
 
         result = provider.get("news_headlines", {})
         assert result.status == "error"
-        assert "exhausted" in result.speech_text
+        assert "HTTP error" in result.payload.get("error", "")
 
     @patch("urllib.request.urlopen")
     def test_no_headlines_found(self, mock_urlopen, provider):
         """Test handling of empty results."""
+        rss_xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel></channel>
+        </rss>"""
+
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "status": "ok",
-            "articles": [],
-        }).encode()
+        mock_response.read.return_value = rss_xml.encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = provider.get("news_headlines", {"category": "obscure"})
+        result = provider.get("news_headlines", {"category": "general"})
         assert result.status == "error"
-        assert "No headlines" in result.speech_text
+        assert "No headlines" in result.payload.get("error", "")
+
+    @patch("urllib.request.urlopen")
+    def test_malformed_rss(self, mock_urlopen, provider):
+        """Test handling of malformed RSS."""
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"<not>valid<xml"
+        mock_response.__enter__ = lambda s: s
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        result = provider.get("news_headlines", {"category": "general"})
+        assert result.status == "error"
 
 
 class TestNewsSpeechAndDisplay:
@@ -265,42 +242,44 @@ class TestNewsSpeechAndDisplay:
     @pytest.fixture
     def provider(self):
         p = NewsProvider()
-        p.configure({"api_key": "test_key"})
+        p.configure({})
         return p
 
     def test_speech_text_format(self, provider):
-        """Test speech text formatting."""
+        """Test speech text formatting (no source prefix in NPR RSS version)."""
         headlines = [
-            {"title": "First Story", "source": "NPR", "description": "First desc"},
-            {"title": "Second Story", "source": "BBC", "description": "Second desc"},
+            {"title": "First Story", "description": "First desc"},
+            {"title": "Second Story", "description": "Second desc"},
         ]
         speech = provider._build_speech(headlines)
 
         assert "Here are today's headlines" in speech
-        assert "First, from NPR: First Story" in speech
-        assert "Second, from BBC: Second Story" in speech
+        # NPR RSS version uses ordinal + title format without "from NPR:"
+        assert "First:" in speech
+        assert "First Story" in speech
+        assert "Second:" in speech
+        assert "Second Story" in speech
 
     def test_display_text_format(self, provider):
-        """Test display text formatting."""
+        """Test display text formatting (no em-dash, no description line)."""
         headlines = [
-            {"title": "First Story", "source": "NPR", "description": "First desc"},
-            {"title": "Second Story", "source": "BBC", "description": "Second desc"},
+            {"title": "First Story", "author": "John Doe", "description": "First desc"},
+            {"title": "Second Story", "author": "", "description": "Second desc"},
         ]
         display = provider._build_display(headlines)
 
-        assert "📰 Top Headlines" in display
-        assert "1. First Story — NPR" in display
-        assert "2. Second Story — BBC" in display
-        assert "First desc" in display
+        assert "Headlines" in display
+        # NPR RSS format: "1. Title (author)" or "1. Title"
+        assert "1. First Story (John Doe)" in display
+        assert "2. Second Story" in display
+        # No separate description line in NPR RSS format
+        # No em-dash separator
 
-    def test_long_description_truncation(self, provider):
-        """Test that long descriptions are truncated."""
-        long_desc = "x" * 200
+    def test_display_text_with_category(self, provider):
+        """Test display text includes category in header."""
         headlines = [
-            {"title": "Story", "source": "Test", "description": long_desc},
+            {"title": "Tech Story", "author": "", "description": "Tech desc"},
         ]
-        display = provider._build_display(headlines)
+        display = provider._build_display(headlines, "technology")
 
-        # Should be truncated with ...
-        assert "..." in display
-        assert len(display.split("\n")[2]) < 150  # Line should be reasonable length
+        assert "Technology Headlines" in display

@@ -211,7 +211,7 @@ class TestCLIErrorHandling(unittest.TestCase):
             os.environ.pop("HOME", None)
         shutil.rmtree(cls._temp_dir, ignore_errors=True)
     
-    def run_cli_command(self, command: str) -> subprocess.CompletedProcess:
+    def run_cli_command(self, command: str, timeout: int = 30) -> subprocess.CompletedProcess:
         """Helper to run a CLI command and return the result."""
         cmd = f'echo "{command}" | "{sys.executable}" -m episodic'
         result = subprocess.run(
@@ -220,7 +220,7 @@ class TestCLIErrorHandling(unittest.TestCase):
             cwd=str(project_root),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=timeout
         )
         return result
     

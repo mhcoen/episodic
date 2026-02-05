@@ -115,6 +115,19 @@ def _process_utility_command(
     """Process a utility command (timer, weather, etc.)."""
     timestamp = runtime.clock.monotonic()
 
+    # Map commands to provider names
+    provider_map = {
+        "weather": "weather",
+        "forecast": "weather",
+        "news": "news",
+        "timer": "timer",
+        "alarm": "alarm",
+        "time": "time",
+    }
+
+    provider_name = provider_map.get(cmd)
+    provider = runtime.providers.get(provider_name) if provider_name else None
+
     # Emit provider call debug event
     runtime.emit_debug(
         kind=EventKind.PROVIDER_CALL.value,
@@ -124,24 +137,81 @@ def _process_utility_command(
             "method": "command",
             "args": args_str,
             "source": "slash_command",
+            "has_provider": provider is not None,
         },
         stream=stream,
     )
 
-    # For now, emit placeholder utility result
-    # Real implementation will call handle_utility_command
-    stream.add_user_event(Event.user(
-        kind=EventKind.UTILITY_RESULT.value,
-        fields={
-            "command": cmd,
-            "args": args_str,
-            "status": "ok",
-            "display": f"Utility command /{cmd} {args_str}",
-        },
-        timestamp=timestamp,
-    ))
+    # If we have a provider, use it
+    if provider and hasattr(provider, "get"):
+        # Parse args based on command type
+        args_dict = _parse_utility_args(cmd, args_str)
+
+        # Map command to provider method
+        method_map = {
+            "weather": "weather_now",
+            "forecast": "weather_forecast",
+            "news": "news_headlines",
+        }
+        method = method_map.get(cmd, cmd)
+
+        try:
+            result = provider.get(method, args_dict)
+
+            stream.add_user_event(Event.user(
+                kind=EventKind.UTILITY_RESULT.value,
+                fields={
+                    "command": cmd,
+                    "args": args_dict,
+                    "status": result.status,
+                    "display": result.display_text,
+                    "speech": result.speech_text,
+                    "payload": result.payload,
+                },
+                timestamp=timestamp,
+            ))
+        except Exception as e:
+            stream.add_user_event(Event.error(
+                message=f"Provider error: {str(e)}",
+                timestamp=timestamp,
+            ))
+    else:
+        # No provider - emit placeholder
+        stream.add_user_event(Event.user(
+            kind=EventKind.UTILITY_RESULT.value,
+            fields={
+                "command": cmd,
+                "args": args_str,
+                "status": "ok",
+                "display": f"Utility command /{cmd} {args_str}",
+            },
+            timestamp=timestamp,
+        ))
 
     return stream
+
+
+def _parse_utility_args(cmd: str, args_str: str) -> dict:
+    """Parse command arguments into a dictionary."""
+    args = {}
+
+    if cmd in ("weather", "forecast"):
+        args["place"] = args_str.strip() if args_str else "current"
+    elif cmd == "news":
+        args["category"] = args_str.strip().lower() if args_str else "general"
+        args["count"] = 5
+    elif cmd == "timer":
+        # Parse duration and optional label
+        parts = args_str.split(maxsplit=1) if args_str else []
+        if parts:
+            args["duration"] = parts[0]
+            if len(parts) > 1:
+                args["label"] = parts[1]
+    else:
+        if args_str:
+            args["args"] = args_str
+
+    return args
 
 
 def _process_utterance(text: str, runtime: RuntimeState, stream: EventStream) -> EventStream:

@@ -15,6 +15,10 @@ from episodic.harness import (
     StubLLMClient,
     EphemeralEventStore,
     process_input,
+    StubWeatherProvider,
+    StubNewsProvider,
+    WeatherResult,
+    create_default_stub_providers,
 )
 
 
@@ -93,6 +97,25 @@ class HarnessSession:
 def test_session():
     """Standard test session with stubs."""
     session = HarnessSession(
+        providers=create_default_stub_providers(),
+        debug_channels={"router", "grammar", "context", "providers"}
+    )
+    yield session
+
+
+@pytest.fixture
+def session_with_providers():
+    """Test session with custom stub providers for provider testing."""
+    providers = {
+        "weather": StubWeatherProvider({
+            "current": WeatherResult(temp=72, condition="Sunny", location="Test City"),
+            "Madison, WI": WeatherResult(temp=33, condition="Cloudy", location="Madison", high=36, low=28),
+            "New York": WeatherResult(temp=55, condition="Rainy", location="New York", emoji="🌧️"),
+        }),
+        "news": StubNewsProvider(),
+    }
+    session = HarnessSession(
+        providers=providers,
         debug_channels={"router", "grammar", "context", "providers"}
     )
     yield session

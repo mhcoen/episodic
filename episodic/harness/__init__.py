@@ -13,6 +13,14 @@ from .events import Event, EventStream, EventKind, EventLevel
 from .clock import Clock, SystemClock, FakeClock
 from .runtime import RuntimeState, LLMClient, LLMRequest, LLMResponse, StubLLMClient, EventStore, EphemeralEventStore
 from .processor import process_input
+from .providers import (
+    StubWeatherProvider,
+    StubNewsProvider,
+    StubTimerProvider,
+    WeatherResult,
+    NewsItem,
+    create_default_stub_providers,
+)
 
 __all__ = [
     "Event",
@@ -30,4 +38,10 @@ __all__ = [
     "EventStore",
     "EphemeralEventStore",
     "process_input",
+    "StubWeatherProvider",
+    "StubNewsProvider",
+    "StubTimerProvider",
+    "WeatherResult",
+    "NewsItem",
+    "create_default_stub_providers",
 ]

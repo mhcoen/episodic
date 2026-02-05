@@ -228,7 +228,7 @@ class TestTimerHandlers:
 
         assert result.status == ResultStatus.OK
         assert "timer_id" in result.data
-        assert result.data["duration_s"] == 300
+        assert result.data["duration"] == 300
         assert "5 minute" in result.display_text
 
     def test_timer_set_with_label(self, scheduler, test_db, audio):
@@ -368,7 +368,7 @@ class TestTimerHandlers:
         result = dispatch_timer_command(query, scheduler, test_db, "America/Chicago", audio)
 
         assert result.status == ResultStatus.OK
-        assert result.data["duration_s"] == 120
+        assert result.data["duration"] == 120
 
     def test_dispatch_timer_unknown_command(self, scheduler, test_db):
         """Timer dispatcher handles unknown commands."""

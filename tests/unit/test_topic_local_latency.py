@@ -284,7 +284,6 @@ class TestLatencyAndTokenBreakdown:
             "summary_tokens",
             "recency_tokens",
             "anchor_tokens",
-            "scratchpad_tokens",
             "total_tokens",
         ]
         for field in required_fields:

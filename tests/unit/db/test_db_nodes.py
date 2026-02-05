@@ -1,371 +1,308 @@
 """
-Unit tests for database node operations.
+Unit tests for the db_nodes module.
 
-Tests the db_nodes module including node creation, retrieval,
-ancestry, and deletion operations.
+Tests node CRUD operations, ancestry traversal, and reference resolution.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from episodic import db_nodes
 
 
-class TestNodeOperations:
-    """Test basic node operations."""
+class TestInsertNode:
+    """Test node insertion."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        # Import after database is initialized
-        from episodic import db_nodes
-        self.db_nodes = db_nodes
-
-    def test_insert_node_basic(self):
-        """Test inserting a basic node."""
-        node_id, short_id = self.db_nodes.insert_node(
-            content="Test message",
-            role="user"
-        )
+    def test_insert_node_returns_ids(self, temp_database):
+        """insert_node returns (node_id, short_id) tuple."""
+        node_id, short_id = db_nodes.insert_node("Hello world")
 
         assert node_id is not None
         assert short_id is not None
-        assert len(short_id) >= 2  # Short ID has variable length
+        assert len(node_id) == 36  # UUID format
+        assert len(short_id) == 2  # Short ID format
 
-    def test_insert_node_with_parent(self):
-        """Test inserting a node with a parent."""
-        # Create parent
-        parent_id, _ = self.db_nodes.insert_node(
-            content="Parent message",
-            role="user"
+    def test_insert_node_with_parent(self, temp_database):
+        """Nodes can be inserted with a parent reference."""
+        parent_id, _ = db_nodes.insert_node("Parent message")
+        child_id, _ = db_nodes.insert_node("Child message", parent_id=parent_id)
+
+        child = db_nodes.get_node(child_id)
+        assert child["parent_id"] == parent_id
+
+    def test_insert_node_with_role(self, temp_database):
+        """Nodes store role information."""
+        node_id, _ = db_nodes.insert_node("User message", role="user")
+
+        node = db_nodes.get_node(node_id)
+        assert node["role"] == "user"
+
+    def test_insert_node_with_provider_model(self, temp_database):
+        """Nodes store provider and model information."""
+        node_id, _ = db_nodes.insert_node(
+            "Response", role="assistant", provider="openai", model="gpt-4"
         )
 
-        # Create child
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child message",
-            parent_id=parent_id,
-            role="assistant"
-        )
+        node = db_nodes.get_node(node_id)
+        assert node["provider"] == "openai"
+        assert node["model"] == "gpt-4"
 
-        # Verify relationship
-        child = self.db_nodes.get_node(child_id)
-        assert child['parent_id'] == parent_id
+    def test_insert_node_updates_head(self, temp_database):
+        """Inserting a node updates the head pointer."""
+        node_id, _ = db_nodes.insert_node("First message")
+        assert db_nodes.get_head() == node_id
 
-    def test_insert_node_with_provider_model(self):
-        """Test inserting node with provider and model info."""
-        node_id, _ = self.db_nodes.insert_node(
-            content="Test message",
-            role="assistant",
-            provider="openai",
-            model="gpt-4"
-        )
+        second_id, _ = db_nodes.insert_node("Second message", parent_id=node_id)
+        assert db_nodes.get_head() == second_id
 
-        node = self.db_nodes.get_node(node_id)
-        assert node['provider'] == "openai"
-        assert node['model'] == "gpt-4"
+    def test_insert_meta_query_node(self, temp_database):
+        """Meta-query nodes are marked appropriately."""
+        node_id, _ = db_nodes.insert_node("Meta query", is_meta_query=True)
 
-    def test_get_node_by_id(self):
-        """Test retrieving a node by its full ID."""
-        node_id, _ = self.db_nodes.insert_node(
-            content="Test content",
-            role="user"
-        )
+        node = db_nodes.get_node(node_id)
+        assert node["is_meta_query"] == 1
 
-        node = self.db_nodes.get_node(node_id)
+
+class TestGetNode:
+    """Test node retrieval."""
+
+    def test_get_node_by_id(self, temp_database):
+        """Nodes can be retrieved by full ID."""
+        node_id, _ = db_nodes.insert_node("Test content")
+
+        node = db_nodes.get_node(node_id)
         assert node is not None
-        assert node['content'] == "Test content"
-        assert node['role'] == "user"
+        assert node["content"] == "Test content"
 
-    def test_get_node_by_short_id(self):
-        """Test retrieving a node by its short ID."""
-        node_id, short_id = self.db_nodes.insert_node(
-            content="Test content",
-            role="user"
-        )
+    def test_get_node_by_short_id(self, temp_database):
+        """Nodes can be retrieved by short ID."""
+        node_id, short_id = db_nodes.insert_node("Test content")
 
-        node = self.db_nodes.get_node(short_id)
+        node = db_nodes.get_node(short_id)
         assert node is not None
-        assert node['id'] == node_id
+        assert node["id"] == node_id
 
-    def test_get_nonexistent_node(self):
-        """Test retrieving a node that doesn't exist."""
-        node = self.db_nodes.get_node("nonexistent-id")
+    def test_get_nonexistent_node(self, temp_database):
+        """Getting a nonexistent node returns None."""
+        node = db_nodes.get_node("nonexistent-id")
         assert node is None
 
 
 class TestAncestry:
-    """Test ancestry-related operations."""
+    """Test ancestry chain traversal."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_nodes
-        self.db_nodes = db_nodes
+    def test_get_ancestry_single_node(self, temp_database):
+        """Ancestry of a single node is just itself."""
+        node_id, _ = db_nodes.insert_node("Root")
 
-    def test_get_ancestry_simple(self):
-        """Test getting ancestry for a simple chain."""
-        # Create a chain: root -> child -> grandchild
-        root_id, _ = self.db_nodes.insert_node(content="Root", role="user")
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child", parent_id=root_id, role="assistant"
-        )
-        grandchild_id, _ = self.db_nodes.insert_node(
-            content="Grandchild", parent_id=child_id, role="user"
-        )
+        ancestry = db_nodes.get_ancestry(node_id)
+        assert len(ancestry) == 1
+        assert ancestry[0]["id"] == node_id
 
-        ancestry = self.db_nodes.get_ancestry(grandchild_id)
+    def test_get_ancestry_chain(self, temp_database):
+        """Ancestry returns nodes from root to current."""
+        root_id, _ = db_nodes.insert_node("Root")
+        child_id, _ = db_nodes.insert_node("Child", parent_id=root_id)
+        grandchild_id, _ = db_nodes.insert_node("Grandchild", parent_id=child_id)
+
+        ancestry = db_nodes.get_ancestry(grandchild_id)
 
         assert len(ancestry) == 3
-        assert ancestry[0]['id'] == root_id  # Oldest first
-        assert ancestry[1]['id'] == child_id
-        assert ancestry[2]['id'] == grandchild_id  # Newest last
+        assert ancestry[0]["id"] == root_id
+        assert ancestry[1]["id"] == child_id
+        assert ancestry[2]["id"] == grandchild_id
 
-    def test_get_ancestry_single_node(self):
-        """Test ancestry for a node with no parent."""
-        node_id, _ = self.db_nodes.insert_node(content="Single", role="user")
+    def test_get_ancestry_by_short_id(self, temp_database):
+        """Ancestry can be retrieved using short ID."""
+        root_id, _ = db_nodes.insert_node("Root")
+        child_id, child_short = db_nodes.insert_node("Child", parent_id=root_id)
 
-        ancestry = self.db_nodes.get_ancestry(node_id)
-
-        assert len(ancestry) == 1
-        assert ancestry[0]['id'] == node_id
-
-    def test_get_descendants(self):
-        """Test getting all descendants of a node."""
-        root_id, _ = self.db_nodes.insert_node(content="Root", role="user")
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child", parent_id=root_id, role="assistant"
-        )
-        grandchild_id, _ = self.db_nodes.insert_node(
-            content="Grandchild", parent_id=child_id, role="user"
-        )
-
-        descendants = self.db_nodes.get_descendants(root_id)
-
-        assert len(descendants) == 2
-        descendant_ids = [d['id'] for d in descendants]
-        assert child_id in descendant_ids
-        assert grandchild_id in descendant_ids
-
-    def test_get_children(self):
-        """Test getting direct children of a node."""
-        parent_id, _ = self.db_nodes.insert_node(content="Parent", role="user")
-        child1_id, _ = self.db_nodes.insert_node(
-            content="Child 1", parent_id=parent_id, role="assistant"
-        )
-        child2_id, _ = self.db_nodes.insert_node(
-            content="Child 2", parent_id=parent_id, role="assistant"
-        )
-
-        children = self.db_nodes.get_children(parent_id)
-
-        assert len(children) == 2
-        child_ids = [c['id'] for c in children]
-        assert child1_id in child_ids
-        assert child2_id in child_ids
+        ancestry = db_nodes.get_ancestry(child_short)
+        assert len(ancestry) == 2
 
 
-class TestHeadOperations:
-    """Test head pointer operations."""
+class TestHeadManagement:
+    """Test head pointer management."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_nodes
-        self.db_nodes = db_nodes
+    def test_get_head_empty_db(self, temp_database):
+        """Head is None when no nodes exist."""
+        head = db_nodes.get_head()
+        assert head is None
 
-    def test_insert_updates_head(self):
-        """Test that inserting a node updates the head pointer."""
-        node_id, _ = self.db_nodes.insert_node(content="Test", role="user")
+    def test_set_head(self, temp_database):
+        """Head can be set explicitly."""
+        first_id, _ = db_nodes.insert_node("First")
+        second_id, _ = db_nodes.insert_node("Second", parent_id=first_id)
 
-        head = self.db_nodes.get_head()
-        assert head == node_id
+        db_nodes.set_head(first_id)
+        assert db_nodes.get_head() == first_id
 
-    def test_set_head(self):
-        """Test manually setting the head pointer."""
-        node1_id, _ = self.db_nodes.insert_node(content="First", role="user")
-        node2_id, _ = self.db_nodes.insert_node(
-            content="Second", parent_id=node1_id, role="assistant"
-        )
 
-        # Head should be at node2
-        assert self.db_nodes.get_head() == node2_id
+class TestRecentNodes:
+    """Test recent nodes retrieval."""
 
-        # Set head back to node1
-        self.db_nodes.set_head(node1_id)
-        assert self.db_nodes.get_head() == node1_id
+    def test_get_recent_nodes_empty(self, temp_database):
+        """Returns empty list when no nodes exist."""
+        recent = db_nodes.get_recent_nodes()
+        assert recent == []
 
-    def test_get_recent_nodes(self):
-        """Test getting recent nodes from head."""
-        ids = []
-        prev_id = None
-        for i in range(5):
-            node_id, _ = self.db_nodes.insert_node(
-                content=f"Message {i}",
-                parent_id=prev_id,
-                role="user" if i % 2 == 0 else "assistant"
-            )
-            ids.append(node_id)
-            prev_id = node_id
+    def test_get_recent_nodes_respects_limit(self, temp_database):
+        """Returns at most limit nodes."""
+        parent_id = None
+        for i in range(10):
+            node_id, _ = db_nodes.insert_node(f"Message {i}", parent_id=parent_id)
+            parent_id = node_id
 
-        recent = self.db_nodes.get_recent_nodes(limit=3)
-
+        recent = db_nodes.get_recent_nodes(limit=3)
         assert len(recent) == 3
-        # Should be newest first
-        assert recent[0]['id'] == ids[4]
-        assert recent[1]['id'] == ids[3]
-        assert recent[2]['id'] == ids[2]
 
+    def test_get_recent_nodes_newest_first(self, temp_database):
+        """Returns nodes in newest-first order."""
+        first_id, _ = db_nodes.insert_node("First")
+        second_id, _ = db_nodes.insert_node("Second", parent_id=first_id)
+        third_id, _ = db_nodes.insert_node("Third", parent_id=second_id)
 
-class TestNodeDeletion:
-    """Test node deletion operations."""
-
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_nodes
-        self.db_nodes = db_nodes
-
-    def test_delete_leaf_node(self):
-        """Test deleting a leaf node (no children)."""
-        root_id, _ = self.db_nodes.insert_node(content="Root", role="user")
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child", parent_id=root_id, role="assistant"
-        )
-
-        # Delete the child (leaf)
-        deleted = self.db_nodes.delete_node(child_id)
-
-        assert deleted == 1
-        assert self.db_nodes.get_node(child_id) is None
-        assert self.db_nodes.get_node(root_id) is not None
-
-    def test_delete_node_with_children_raises(self):
-        """Test that deleting a node with children raises an error."""
-        root_id, _ = self.db_nodes.insert_node(content="Root", role="user")
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child", parent_id=root_id, role="assistant"
-        )
-
-        with pytest.raises(ValueError, match="has.*children"):
-            self.db_nodes.delete_node(root_id)
-
-    def test_delete_head_updates_pointer(self):
-        """Test that deleting the head node updates the head pointer."""
-        root_id, _ = self.db_nodes.insert_node(content="Root", role="user")
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child", parent_id=root_id, role="assistant"
-        )
-
-        # Head should be at child
-        assert self.db_nodes.get_head() == child_id
-
-        # Delete child (head)
-        self.db_nodes.delete_node(child_id)
-
-        # Head should now be at root
-        assert self.db_nodes.get_head() == root_id
-
-
-class TestNodeReferenceResolution:
-    """Test node reference resolution."""
-
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_nodes
-        self.db_nodes = db_nodes
-
-    def test_resolve_head_reference(self):
-        """Test resolving HEAD reference."""
-        node_id, _ = self.db_nodes.insert_node(content="Test", role="user")
-
-        resolved = self.db_nodes.resolve_node_ref("HEAD")
-        assert resolved == node_id
-
-    def test_resolve_root_reference(self):
-        """Test resolving ROOT reference."""
-        root_id, _ = self.db_nodes.insert_node(content="Root", role="user")
-        child_id, _ = self.db_nodes.insert_node(
-            content="Child", parent_id=root_id, role="assistant"
-        )
-
-        resolved = self.db_nodes.resolve_node_ref("ROOT")
-        assert resolved == root_id
-
-    def test_resolve_relative_reference(self):
-        """Test resolving relative reference like HEAD~2."""
-        node1_id, _ = self.db_nodes.insert_node(content="First", role="user")
-        node2_id, _ = self.db_nodes.insert_node(
-            content="Second", parent_id=node1_id, role="assistant"
-        )
-        node3_id, _ = self.db_nodes.insert_node(
-            content="Third", parent_id=node2_id, role="user"
-        )
-
-        # HEAD~2 should resolve to first node
-        resolved = self.db_nodes.resolve_node_ref("HEAD~2")
-        assert resolved == node1_id
-
-        # HEAD~1 should resolve to second node
-        resolved = self.db_nodes.resolve_node_ref("HEAD~1")
-        assert resolved == node2_id
-
-    def test_resolve_direct_id(self):
-        """Test resolving a direct node ID."""
-        node_id, short_id = self.db_nodes.insert_node(content="Test", role="user")
-
-        resolved = self.db_nodes.resolve_node_ref(node_id)
-        assert resolved == node_id
-
-        resolved = self.db_nodes.resolve_node_ref(short_id)
-        assert resolved == node_id
-
-    def test_resolve_nonexistent_reference(self):
-        """Test resolving a reference that doesn't exist."""
-        resolved = self.db_nodes.resolve_node_ref("nonexistent")
-        assert resolved is None
-
-    def test_resolve_none_reference(self):
-        """Test resolving a None reference."""
-        resolved = self.db_nodes.resolve_node_ref(None)
-        assert resolved is None
+        recent = db_nodes.get_recent_nodes(limit=3)
+        assert recent[0]["id"] == third_id
+        assert recent[2]["id"] == first_id
 
 
 class TestGetAllNodes:
-    """Test getting all nodes."""
+    """Test retrieving all nodes."""
 
-    @pytest.fixture(autouse=True)
-    def setup_db(self, temp_database):
-        """Set up database for each test."""
-        self.db_path = temp_database
-        from episodic import db_nodes
-        self.db_nodes = db_nodes
-
-    def test_get_all_nodes_empty(self):
-        """Test getting all nodes from empty database."""
-        nodes = self.db_nodes.get_all_nodes()
+    def test_get_all_nodes_empty(self, temp_database):
+        """Returns empty list when no nodes exist."""
+        nodes = db_nodes.get_all_nodes()
         assert nodes == []
 
-    def test_get_all_nodes_with_data(self):
-        """Test getting all nodes with data."""
-        ids = []
-        prev_id = None
-        for i in range(3):
-            node_id, _ = self.db_nodes.insert_node(
-                content=f"Message {i}",
-                parent_id=prev_id,
-                role="user"
-            )
-            ids.append(node_id)
-            prev_id = node_id
+    def test_get_all_nodes_returns_all(self, temp_database):
+        """Returns all nodes in creation order."""
+        db_nodes.insert_node("First")
+        db_nodes.insert_node("Second")
+        db_nodes.insert_node("Third")
 
-        nodes = self.db_nodes.get_all_nodes()
-
+        nodes = db_nodes.get_all_nodes()
         assert len(nodes) == 3
-        # Should be in creation order (oldest first by ROWID)
-        assert nodes[0]['id'] == ids[0]
-        assert nodes[1]['id'] == ids[1]
-        assert nodes[2]['id'] == ids[2]
+        assert nodes[0]["content"] == "First"
+        assert nodes[2]["content"] == "Third"
+
+
+class TestChildrenAndDescendants:
+    """Test child and descendant retrieval."""
+
+    def test_get_children(self, temp_database):
+        """Get direct children of a node."""
+        parent_id, _ = db_nodes.insert_node("Parent")
+        child1_id, _ = db_nodes.insert_node("Child 1", parent_id=parent_id)
+        child2_id, _ = db_nodes.insert_node("Child 2", parent_id=parent_id)
+
+        children = db_nodes.get_children(parent_id)
+        child_ids = {c["id"] for c in children}
+
+        assert len(children) == 2
+        assert child1_id in child_ids
+        assert child2_id in child_ids
+
+    def test_get_children_empty(self, temp_database):
+        """Node with no children returns empty list."""
+        node_id, _ = db_nodes.insert_node("Leaf")
+
+        children = db_nodes.get_children(node_id)
+        assert children == []
+
+    def test_get_descendants(self, temp_database):
+        """Get all descendants of a node."""
+        root_id, _ = db_nodes.insert_node("Root")
+        child_id, _ = db_nodes.insert_node("Child", parent_id=root_id)
+        grandchild_id, _ = db_nodes.insert_node("Grandchild", parent_id=child_id)
+
+        descendants = db_nodes.get_descendants(root_id)
+        descendant_ids = {d["id"] for d in descendants}
+
+        assert child_id in descendant_ids
+        assert grandchild_id in descendant_ids
+        assert root_id not in descendant_ids
+
+
+class TestDeleteNode:
+    """Test node deletion."""
+
+    def test_delete_leaf_node(self, temp_database):
+        """Leaf nodes can be deleted."""
+        parent_id, _ = db_nodes.insert_node("Parent")
+        child_id, _ = db_nodes.insert_node("Child", parent_id=parent_id)
+
+        deleted = db_nodes.delete_node(child_id)
+        assert deleted == 1
+        assert db_nodes.get_node(child_id) is None
+
+    def test_delete_node_with_children_fails(self, temp_database):
+        """Cannot delete nodes that have children."""
+        parent_id, _ = db_nodes.insert_node("Parent")
+        db_nodes.insert_node("Child", parent_id=parent_id)
+
+        with pytest.raises(ValueError, match="has.*children"):
+            db_nodes.delete_node(parent_id)
+
+    def test_delete_head_updates_to_parent(self, temp_database):
+        """Deleting head node updates head to parent."""
+        parent_id, _ = db_nodes.insert_node("Parent")
+        child_id, _ = db_nodes.insert_node("Child", parent_id=parent_id)
+
+        assert db_nodes.get_head() == child_id
+        db_nodes.delete_node(child_id)
+        assert db_nodes.get_head() == parent_id
+
+    def test_delete_nonexistent_node(self, temp_database):
+        """Deleting nonexistent node returns 0."""
+        deleted = db_nodes.delete_node("nonexistent-id")
+        assert deleted == 0
+
+
+class TestResolveNodeRef:
+    """Test node reference resolution."""
+
+    def test_resolve_head(self, temp_database):
+        """HEAD resolves to current head node."""
+        node_id, _ = db_nodes.insert_node("Current head")
+
+        resolved = db_nodes.resolve_node_ref("HEAD")
+        assert resolved == node_id
+
+    def test_resolve_head_case_insensitive(self, temp_database):
+        """HEAD resolution is case-insensitive."""
+        node_id, _ = db_nodes.insert_node("Current head")
+
+        assert db_nodes.resolve_node_ref("head") == node_id
+        assert db_nodes.resolve_node_ref("Head") == node_id
+
+    def test_resolve_root(self, temp_database):
+        """ROOT resolves to root node."""
+        root_id, _ = db_nodes.insert_node("Root")
+        db_nodes.insert_node("Child", parent_id=root_id)
+
+        resolved = db_nodes.resolve_node_ref("ROOT")
+        assert resolved == root_id
+
+    def test_resolve_relative_ref(self, temp_database):
+        """HEAD~N resolves to N steps back."""
+        root_id, _ = db_nodes.insert_node("Root")
+        child_id, _ = db_nodes.insert_node("Child", parent_id=root_id)
+        grandchild_id, _ = db_nodes.insert_node("Grandchild", parent_id=child_id)
+
+        assert db_nodes.resolve_node_ref("HEAD~1") == child_id
+        assert db_nodes.resolve_node_ref("HEAD~2") == root_id
+
+    def test_resolve_short_id(self, temp_database):
+        """Short IDs resolve to full node ID."""
+        node_id, short_id = db_nodes.insert_node("Test")
+
+        resolved = db_nodes.resolve_node_ref(short_id)
+        assert resolved == node_id
+
+    def test_resolve_none_returns_none(self, temp_database):
+        """None/empty ref returns None."""
+        assert db_nodes.resolve_node_ref(None) is None
+        assert db_nodes.resolve_node_ref("") is None
+
+    def test_resolve_nonexistent_returns_none(self, temp_database):
+        """Nonexistent ref returns None."""
+        assert db_nodes.resolve_node_ref("xyz123") is None

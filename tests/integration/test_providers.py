@@ -181,3 +181,204 @@ class TestProviderPayload:
 
         assert "72 degrees" in speech
         assert "Test City" in speech
+
+
+class TestWeatherLocationVariants:
+    """Tests for weather with various location formats."""
+
+    @pytest.mark.parametrize("location", [
+        "Madison, WI",
+        "New York",
+        "current",
+    ])
+    def test_weather_locations(self, session_with_providers, location):
+        """Weather should work with various location formats."""
+        result = session_with_providers.send(f"/weather {location}")
+
+        utility_results = [
+            e for e in result.user_events
+            if e.kind == EventKind.UTILITY_RESULT.value
+        ]
+        assert len(utility_results) == 1
+        assert utility_results[0].fields["status"] == "ok"
+
+    def test_weather_default_location(self, session_with_providers):
+        """Weather without location should use default."""
+        result = session_with_providers.send("/weather")
+
+        weather_provider = session_with_providers.runtime.providers["weather"]
+        _, args = weather_provider.calls[0]
+        assert args["place"] == "current"
+
+
+class TestNewsCategories:
+    """Tests for news with various categories."""
+
+    @pytest.mark.parametrize("category", [
+        "general",
+        "tech",
+        "politics",
+        "business",
+        "science",
+    ])
+    def test_news_categories(self, session_with_providers, category):
+        """News should work with various categories."""
+        result = session_with_providers.send(f"/news {category}")
+
+        news_provider = session_with_providers.runtime.providers["news"]
+        _, args = news_provider.calls[-1]
+        assert args["category"] == category
+
+    def test_news_default_category(self, session_with_providers):
+        """News without category should use general."""
+        result = session_with_providers.send("/news")
+
+        news_provider = session_with_providers.runtime.providers["news"]
+        _, args = news_provider.calls[0]
+        assert args["category"] == "general"
+
+    def test_news_headline_count(self, session_with_providers):
+        """News should return requested headline count."""
+        result = session_with_providers.send("/news")
+
+        utility_results = [
+            e for e in result.user_events
+            if e.kind == EventKind.UTILITY_RESULT.value
+        ]
+        headlines = utility_results[0].fields["payload"]["headlines"]
+        assert len(headlines) >= 1
+        assert len(headlines) <= 5
+
+
+class TestProviderStatus:
+    """Tests for provider status reporting."""
+
+    def test_weather_provider_status(self, session_with_providers):
+        """Weather provider should report status."""
+        weather_provider = session_with_providers.runtime.providers["weather"]
+        status = weather_provider.status()
+
+        assert "name" in status
+        assert status["name"] == "weather"
+        assert "call_count" in status
+
+    def test_news_provider_status(self, session_with_providers):
+        """News provider should report status."""
+        news_provider = session_with_providers.runtime.providers["news"]
+        status = news_provider.status()
+
+        assert "name" in status
+        assert status["name"] == "news"
+
+    def test_provider_call_count_in_status(self, session_with_providers):
+        """Provider status should reflect call count."""
+        weather_provider = session_with_providers.runtime.providers["weather"]
+
+        status1 = weather_provider.status()
+        assert status1["call_count"] == 0
+
+        session_with_providers.send("/weather")
+        session_with_providers.send("/weather")
+
+        status2 = weather_provider.status()
+        assert status2["call_count"] == 2
+
+
+class TestProviderRefresh:
+    """Tests for provider refresh behavior."""
+
+    def test_weather_provider_refresh(self, session_with_providers):
+        """Weather provider should support refresh."""
+        weather_provider = session_with_providers.runtime.providers["weather"]
+
+        result = weather_provider.refresh({})
+
+        assert result.success is True
+        assert result.next_refresh_s > 0
+
+    def test_news_provider_refresh(self, session_with_providers):
+        """News provider should support refresh."""
+        news_provider = session_with_providers.runtime.providers["news"]
+
+        result = news_provider.refresh({})
+
+        assert result.success is True
+        assert result.next_refresh_s > 0
+
+
+class TestTimerProvider:
+    """Tests for timer provider integration."""
+
+    def test_timer_set(self, session_with_providers):
+        """Timer provider should track set timers."""
+        timer_provider = session_with_providers.runtime.providers.get("timer")
+        if timer_provider is None:
+            pytest.skip("Timer provider not configured")
+
+        timer = timer_provider.set_timer(300, label="test")
+
+        assert timer["id"] is not None
+        assert timer["duration_s"] == 300
+        assert timer["label"] == "test"
+        assert timer["status"] == "running"
+
+    def test_timer_cancel(self, session_with_providers):
+        """Timer provider should allow canceling timers."""
+        timer_provider = session_with_providers.runtime.providers.get("timer")
+        if timer_provider is None:
+            pytest.skip("Timer provider not configured")
+
+        timer_provider.set_timer(300)
+        result = timer_provider.cancel_timer()
+
+        assert result is True
+
+    def test_timer_list(self, session_with_providers):
+        """Timer provider should list active timers."""
+        timer_provider = session_with_providers.runtime.providers.get("timer")
+        if timer_provider is None:
+            pytest.skip("Timer provider not configured")
+
+        timer_provider.set_timer(300, label="timer1")
+        timer_provider.set_timer(600, label="timer2")
+
+        active = timer_provider.list_timers()
+        assert len(active) == 2
+
+
+class TestProviderIsolation:
+    """Tests for provider isolation between sessions."""
+
+    def test_providers_isolated_between_sessions(self):
+        """Each session should have its own providers."""
+        from tests.integration.conftest import HarnessSession
+        from episodic.harness import create_default_stub_providers
+
+        providers1 = create_default_stub_providers()
+        providers2 = create_default_stub_providers()
+
+        session1 = HarnessSession(providers=providers1)
+        session2 = HarnessSession(providers=providers2)
+
+        session1.send("/weather")
+
+        assert len(providers1["weather"].calls) == 1
+        assert len(providers2["weather"].calls) == 0
+
+    def test_provider_state_not_shared(self):
+        """Provider state should not be shared."""
+        from tests.integration.conftest import HarnessSession
+        from episodic.harness import create_default_stub_providers
+
+        providers1 = create_default_stub_providers()
+        session1 = HarnessSession(providers=providers1)
+
+        session1.send("/weather Madison, WI")
+        session1.send("/weather New York")
+
+        # New session with new providers
+        providers2 = create_default_stub_providers()
+        session2 = HarnessSession(providers=providers2)
+
+        # Should start fresh
+        assert len(providers2["weather"].calls) == 0

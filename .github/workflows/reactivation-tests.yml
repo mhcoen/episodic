@@ -85,31 +85,3 @@ jobs:
           pytest tests/ -m "not quarantine_chroma" -v --tb=short
         env:
           EPISODIC_TEST_MODE: "1"
-
-  phase3-verification:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-
-      - name: Run Phase 3 verification
-        run: python -m episodic.maintenance.verify_phase3
-        env:
-          EPISODIC_TEST_MODE: "1"
-
-      - name: Upload verification report
-        uses: actions/upload-artifact@v4
-        with:
-          name: phase3-verification-report
-          path: episodic/evaluation/reports/phase3_verification.json

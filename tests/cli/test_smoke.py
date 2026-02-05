@@ -73,6 +73,10 @@ class TestScriptExecution:
         # Time output should have AM or PM
         assert "AM" in stdout or "PM" in stdout or ":" in stdout
 
+    @pytest.mark.skipif(
+        not os.environ.get('OPENWEATHERMAP_API_KEY'),
+        reason="OPENWEATHERMAP_API_KEY not set"
+    )
     def test_script_weather_command(self):
         """/weather command should return weather data."""
         stdout, stderr, code = run_script("/weather\n/exit\n")
@@ -129,6 +133,10 @@ class TestVoiceGrammarScript:
 class TestMixedFlow:
     """Test mixed utility and conversation flows."""
 
+    @pytest.mark.skipif(
+        not os.environ.get('OPENWEATHERMAP_API_KEY'),
+        reason="OPENWEATHERMAP_API_KEY not set"
+    )
     def test_utility_then_utility(self):
         """Multiple utility commands should work in sequence."""
         stdout, stderr, code = run_script("/time\n/weather\n/exit\n")
@@ -137,6 +145,10 @@ class TestMixedFlow:
         assert "AM" in stdout or "PM" in stdout or ":" in stdout
         assert "degrees" in stdout.lower() or "°" in stdout
 
+    @pytest.mark.skipif(
+        not os.environ.get('OPENWEATHERMAP_API_KEY'),
+        reason="OPENWEATHERMAP_API_KEY not set"
+    )
     def test_voice_then_slash(self):
         """Voice grammar then slash command should both work."""
         stdout, stderr, code = run_script("what time is it\n/weather\n/exit\n")

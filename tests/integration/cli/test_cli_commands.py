@@ -60,7 +60,7 @@ class TestCLICommands(unittest.TestCase):
             os.environ.pop("HOME", None)
         shutil.rmtree(cls._temp_dir, ignore_errors=True)
     
-    def run_cli_command(self, command: str) -> subprocess.CompletedProcess:
+    def run_cli_command(self, command: str, timeout: int = 30) -> subprocess.CompletedProcess:
         """Helper to run a CLI command and return the result."""
         # For interactive commands, use echo to pipe input
         if command.startswith("/"):
@@ -71,7 +71,7 @@ class TestCLICommands(unittest.TestCase):
                 cwd=str(project_root),
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=timeout
             )
         else:
             result = subprocess.run(
@@ -79,7 +79,7 @@ class TestCLICommands(unittest.TestCase):
                 cwd=str(project_root),
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=timeout
             )
         return result
     

@@ -86,43 +86,44 @@ class TestDocumentCounting:
         """Test counting documents by source type."""
         mock_client = Mock()
         mock_client.get_collection.return_value = mock_old_collection
-        
+
         mock_embedding_func = Mock()
-        
+
         from episodic.rag_migration import count_documents_by_source
         with patch('chromadb.PersistentClient', return_value=mock_client):
-            with patch('chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction', 
+            with patch('episodic.rag_migration.SilentSentenceTransformerEmbeddingFunction',
                       return_value=mock_embedding_func):
                 counts = count_documents_by_source()
-        
+
         assert counts['conversation'] == 3
         assert counts['file'] == 1
         assert counts['web'] == 1
-    
+
     def test_count_documents_empty_collection(self, monkeypatch):
         """Test counting when collection is empty."""
         mock_collection = Mock()
         mock_collection.get.return_value = {'metadatas': []}
-        
+
         mock_client = Mock()
         mock_client.get_collection.return_value = mock_collection
-        
+
         from episodic.rag_migration import count_documents_by_source
         with patch('chromadb.PersistentClient', return_value=mock_client):
-            with patch('chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction', return_value=Mock()):
+            with patch('episodic.rag_migration.SilentSentenceTransformerEmbeddingFunction', return_value=Mock()):
                 counts = count_documents_by_source()
-        
+
         assert counts == {}
-    
+
     def test_count_documents_error_handling(self, monkeypatch, capsys):
         """Test error handling in document counting."""
         mock_client = Mock()
         mock_client.get_collection.side_effect = Exception("Collection error")
-        
+
         from episodic.rag_migration import count_documents_by_source
         with patch('chromadb.PersistentClient', return_value=mock_client):
-            counts = count_documents_by_source()
-        
+            with patch('episodic.rag_migration.SilentSentenceTransformerEmbeddingFunction', return_value=Mock()):
+                counts = count_documents_by_source()
+
         assert counts == {}
 
 
@@ -209,28 +210,28 @@ class TestMigrationProcess:
         """Test migration with some errors."""
         from episodic.rag_migration import migrate_to_multi_collection
         from episodic.rag_collections import CollectionType
-        
+
         monkeypatch.setattr('typer.confirm', lambda x: True)
-        
+
         # Make one add fail
         mock_migration_setup['conv_collection'].add.side_effect = [None, Exception("Add failed")]
-        
+
         with patch('chromadb.PersistentClient', return_value=mock_migration_setup['old_client']):
-            with patch('episodic.rag_collections.get_multi_collection_rag', 
+            with patch('episodic.rag_collections.get_multi_collection_rag',
                       return_value=mock_migration_setup['multi_rag']):
                 mock_config = Mock()
                 monkeypatch.setattr('episodic.config.config', mock_config)
-                
+
                 # Mock other required functions
                 monkeypatch.setattr('episodic.rag_migration.check_migration_needed', lambda: True)
-                monkeypatch.setattr('episodic.rag_migration.count_documents_by_source', 
+                monkeypatch.setattr('episodic.rag_migration.count_documents_by_source',
                                   lambda: {'conversation': 2, 'file': 1})
-                
-                with patch('chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction', return_value=Mock()):
+
+                with patch('episodic.rag_migration.SilentSentenceTransformerEmbeddingFunction', return_value=Mock()):
                     result = migrate_to_multi_collection(dry_run=False, verbose=True)
-        
+
         assert result is True  # Migration still succeeds with some errors
-        
+
         captured = capsys.readouterr()
         assert "Migration completed" in captured.out
 

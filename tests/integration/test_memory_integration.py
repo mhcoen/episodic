@@ -59,9 +59,17 @@ def hermetic_episodic_env(tmp_path, monkeypatch):
     db_path = os.path.join(test_dir, 'test_episodic.db')
     os.environ['EPISODIC_DB_PATH'] = db_path
 
-    # Patch embedding function
+    # Patch embedding function in all modules that import it at module level
     monkeypatch.setattr(
         'episodic.rag_utils.SilentSentenceTransformerEmbeddingFunction',
+        DummyEmbeddingFunction
+    )
+    monkeypatch.setattr(
+        'episodic.rag_collections.SilentSentenceTransformerEmbeddingFunction',
+        DummyEmbeddingFunction
+    )
+    monkeypatch.setattr(
+        'episodic.rag_migration.SilentSentenceTransformerEmbeddingFunction',
         DummyEmbeddingFunction
     )
 
@@ -183,9 +191,11 @@ class TestMemoryIntegration:
         assert "This is the second test document" in output
         
         # Test searching memories
+        # Note: Dummy embeddings produce negative relevance scores (based on distance),
+        # so we need a very negative threshold to find results
         capsys.readouterr()
         original_threshold = config.get('memory_relevance_threshold', 0.3)
-        config.set('memory_relevance_threshold', 0.0)
+        config.set('memory_relevance_threshold', -1000)  # Very low to accept all results
         memory_command("search", "Python")
         output = capsys.readouterr().out
         config.set('memory_relevance_threshold', original_threshold)

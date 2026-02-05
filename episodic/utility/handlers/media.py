@@ -220,12 +220,14 @@ def handle_media_stop(
         return UtilityResult.ok(
             display=f"Stopped: {', '.join(stopped)}",
             speech="Stopped",
+            _command="media_stop",
             stopped=stopped,
         )
 
     return UtilityResult.ok(
         display="Media stopped",
         speech="Stopped",
+        _command="media_stop",
     )
 
 

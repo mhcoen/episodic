@@ -144,7 +144,13 @@ class GrammarParser:
                 command="weather_now",
                 patterns=[
                     ["QUERY", "KW_WEATHER"],                 # "what weather" / "how is the weather"
-                    ["KW_WEATHER"],                          # "weather"
+                    ["QUERY", "KW_WEATHER_HIGH"],            # "what's the high"
+                    ["QUERY", "KW_WEATHER_LOW"],             # "what's the low"
+                    ["KW_WEATHER_HIGH", "PREP_FOR"],         # "high for today"
+                    ["KW_WEATHER_LOW", "PREP_FOR"],          # "low for today"
+                    ["RELATIVE_DAY", "KW_WEATHER_HIGH"],     # "today's high"
+                    ["RELATIVE_DAY", "KW_WEATHER_LOW"],      # "today's low"
+                    ["KW_WEATHER"],                          # "weather" / "temp"
                 ],
                 required_args=[],
                 optional_args=["place"],
@@ -540,6 +546,7 @@ class GrammarParser:
         """Check if tokens contain a domain keyword."""
         domain_keywords = {
             "KW_TIMER", "KW_ALARM", "KW_REMIND", "KW_WEATHER",
+            "KW_WEATHER_HIGH", "KW_WEATHER_LOW",
             "KW_NEWS", "KW_NOTE", "KW_TIME", "KW_DATE",
             "KW_RADIO", "KW_MUSIC", "KW_DND",
         }

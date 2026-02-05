@@ -385,6 +385,7 @@ def handle_status(
     return UtilityResult.ok(
         display=display,
         speech=speech,
+        _command="status",
         **data,
     )
 

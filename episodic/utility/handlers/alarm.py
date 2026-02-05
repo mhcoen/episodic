@@ -344,6 +344,7 @@ def handle_alarm_set(
     return UtilityResult.ok(
         display=display,
         speech=speech,
+        _command="alarm_set",
         alarm_id=alarm_id,
         task_id=task.id,
         time=alarm_time.isoformat(),

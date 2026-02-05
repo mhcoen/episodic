@@ -266,9 +266,10 @@ def handle_timer_set(
     return UtilityResult.ok(
         display=display,
         speech=speech,
+        _command="timer_set",
         timer_id=timer_id,
         task_id=task.id,
-        duration_s=duration_s,
+        duration=duration_s,
         label=label,
         expires_at=task.next_run_wall.isoformat(),
     )

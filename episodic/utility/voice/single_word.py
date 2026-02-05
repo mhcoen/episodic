@@ -15,6 +15,8 @@ SINGLE_WORD_ROUTING: Dict[str, Optional[Tuple[str, str, float]]] = {
     "time": ("time", "time_now", 0.90),
     "date": ("time", "date_today", 0.90),
     "weather": ("weather", "weather_now", 0.85),
+    "temp": ("weather", "weather_now", 0.85),
+    "temperature": ("weather", "weather_now", 0.85),
     "forecast": ("weather", "weather_forecast", 0.85),
     "news": ("news", "news_headlines", 0.85),
     "timers": ("timer", "timer_list", 0.85),

@@ -67,6 +67,7 @@ class Lexer:
         "alarm": "KW_ALARM", "alarms": "KW_ALARM",
         "reminder": "KW_REMIND", "reminders": "KW_REMIND",
         "weather": "KW_WEATHER", "forecast": "KW_WEATHER", "temperature": "KW_WEATHER",
+        "temp": "KW_WEATHER", "high": "KW_WEATHER_HIGH", "low": "KW_WEATHER_LOW",
         "news": "KW_NEWS", "headlines": "KW_NEWS",
         "note": "KW_NOTE", "notes": "KW_NOTE",
         "time": "KW_TIME", "clock": "KW_TIME",

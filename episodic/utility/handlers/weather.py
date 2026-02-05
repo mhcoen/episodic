@@ -94,9 +94,17 @@ def handle_weather_now(
             result.speech_text,
         )
 
+    # Extract emoji from display text (first character if it's an emoji)
+    emoji = ""
+    if result.display_text and result.display_text[0] not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ":
+        # First char is likely an emoji - extract it
+        emoji = result.display_text.split()[0] if result.display_text else ""
+
     return UtilityResult.ok(
         display=result.display_text,
         speech=result.speech_text,
+        _command="weather_now",
+        emoji=emoji,
         **result.payload,
     )
 
@@ -133,6 +141,7 @@ def handle_weather_forecast(
     return UtilityResult.ok(
         display=result.display_text,
         speech=result.speech_text,
+        _command="weather_forecast",
         **result.payload,
     )
 

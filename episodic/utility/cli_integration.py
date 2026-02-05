@@ -435,9 +435,27 @@ def display_utility_result(result: UtilityResult) -> None:
     from ..configuration import get_system_color
 
     if result.status == ResultStatus.OK:
-        # Display success message
-        text = result.display_text or "Done"
-        unified_stream_text(text, color=get_system_color(), enable_tts=False)
+        # Generate varied speech from result data
+        from .speech import SpeechGenerator
+
+        generator = SpeechGenerator.get_instance()
+        command = result.data.get("_command", "")
+
+        if command and result.data:
+            display_text, speech_text = generator.generate(command, result.data)
+        else:
+            display_text = result.display_text or "Done"
+            speech_text = result.speech_text or display_text
+
+        unified_stream_text(display_text, color=get_system_color(), enable_tts=False)
+
+        # TTS if voice mode enabled
+        if config.get("voice_mode") and config.get("voice_tts_enabled", True):
+            from ..voice import get_voice_manager
+
+            voice_manager = get_voice_manager()
+            if voice_manager.is_active:
+                voice_manager.speak(speech_text)
     elif result.status == ResultStatus.ERROR:
         # Display error
         error_msg = result.error_message or "An error occurred"

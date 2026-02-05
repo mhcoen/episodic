@@ -70,6 +70,16 @@ class TestRAGHelpIntegration(unittest.TestCase):
             DummyEmbeddingFunction
         )
         cls._embedding_patcher.start()
+        cls._embedding_patcher2 = patch(
+            'episodic.rag_collections.SilentSentenceTransformerEmbeddingFunction',
+            DummyEmbeddingFunction
+        )
+        cls._embedding_patcher2.start()
+        cls._embedding_patcher3 = patch(
+            'episodic.rag_migration.SilentSentenceTransformerEmbeddingFunction',
+            DummyEmbeddingFunction
+        )
+        cls._embedding_patcher3.start()
         cls._llm_patcher = patch(
             'episodic.llm.query_llm',
             return_value=("Muse enables a Perplexity-like web search mode.", {})
@@ -108,7 +118,17 @@ class TestRAGHelpIntegration(unittest.TestCase):
         cls._llm_patcher.stop()
         cls._local_llm_patcher.stop()
         cls._embedding_patcher.stop()
-        
+        cls._embedding_patcher2.stop()
+        cls._embedding_patcher3.stop()
+
+        # Reset RAG singletons to avoid state leaking to other tests
+        import episodic.rag as rag_module
+        import episodic.rag_collections as rag_collections_module
+        import episodic.commands.help as help_module
+        rag_module._rag_system = None
+        rag_collections_module._multi_collection_rag = None
+        help_module._help_rag = None
+
         # Clean up database
         if os.path.exists(cls._db_path):
             os.unlink(cls._db_path)

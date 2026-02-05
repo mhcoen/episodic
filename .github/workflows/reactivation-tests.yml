@@ -2,7 +2,7 @@ name: Reactivation CI Gate
 
 on:
   push:
-    branches: [main, enhance/topic]
+    branches: [main, dev]
   pull_request:
     branches: [main]
 

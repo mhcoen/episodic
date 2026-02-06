@@ -39,6 +39,7 @@ setup(
         "deepgram-sdk>=3.0.0",
     ],
     extras_require={
+        "mcp": ["mcp>=1.26.0,<2.0.0"],
         "web": ["beautifulsoup4>=4.0.0", "httpx>=0.24.0"],
         "ml": ["scikit-learn>=1.0.0", "nltk>=3.8.0"],
         "dev": [

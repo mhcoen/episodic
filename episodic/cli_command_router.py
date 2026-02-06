@@ -211,6 +211,8 @@ def handle_command(command_str: str) -> bool:
             _handle_test(args)
         elif cmd == "/doctor":
             _handle_doctor(args)
+        elif cmd == "/mcp":
+            _handle_mcp(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -1040,3 +1042,12 @@ def _handle_doctor(args: List[str]):
     from episodic.commands.doctor import doctor
     verbose = args[0] if args else None
     doctor(verbose)
+
+
+def _handle_mcp(args: List[str]):
+    """Handle /mcp command - manage MCP server."""
+    from episodic.commands.mcp_cmd import mcp_command
+    if not args:
+        mcp_command()
+    else:
+        mcp_command(args[0], *args[1:])

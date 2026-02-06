@@ -333,6 +333,13 @@ def register_all_commands():
 
     command_registry.register("doctor", lazy_doctor_command, "Run installation health checks", "Utility")
 
+    # MCP server command (lazy loading)
+    def lazy_mcp_command(*args, **kwargs):
+        from episodic.commands.mcp_cmd import mcp_command
+        return mcp_command(*args, **kwargs)
+
+    command_registry.register("mcp", lazy_mcp_command, "Manage MCP server (start/stop/status)", "Configuration")
+
 
 # Don't initialize on import - will be called when needed
 # register_all_commands()

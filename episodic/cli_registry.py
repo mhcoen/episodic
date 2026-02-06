@@ -344,7 +344,8 @@ def show_settings_help():
         ("/model detection <name>", "Set the topic detection model"),
         ("/mset", "Show model parameters"),
         ("/mset chat.temperature 0.7", "Set model-specific parameters"),
-        ("/script <file>", "Execute commands from a script file")
+        ("/script <file>", "Execute commands from a script file"),
+        ("/mcp [start|stop|status]", "Manage MCP server for external tool access"),
     ]
     
     # Common settings

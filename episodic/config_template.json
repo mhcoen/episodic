@@ -476,6 +476,14 @@
   "_comment_azure_speech_region": "Azure Speech region (e.g., eastus, westeurope)",
   "azure_speech_region": "",
 
+  "_comment_mcp": "// === MCP SERVER SETTINGS ===",
+  "_comment_mcp_port": "Port for the MCP server (default: 51983)",
+  "mcp_port": 51983,
+  "_comment_mcp_host": "Host to bind the MCP server to (default: 127.0.0.1)",
+  "mcp_host": "127.0.0.1",
+  "_comment_mcp_log_level": "Log level for the MCP server (debug/info/warning/error)",
+  "mcp_log_level": "info",
+
   "_comment_mode": "// === MODE SWITCHING ===",
   "_comment_mode_setting": "Current mode: local (free, private) or cloud (paid, quality)",
   "mode": "cloud",

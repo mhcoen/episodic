@@ -12,6 +12,7 @@ Tests cover:
 Run with: pytest test_topic_reactivation.py -v
 """
 
+import hashlib
 import pytest
 import numpy as np
 from datetime import datetime, timedelta
@@ -76,8 +77,10 @@ def mock_embedding_provider():
     provider = Mock()
 
     def embed(text: str) -> np.ndarray:
-        # Generate deterministic embedding based on text hash
-        np.random.seed(hash(text) % 2**32)
+        # Generate deterministic embedding based on text content
+        # Use hashlib (not hash()) because Python randomizes hash() per-run
+        seed = int(hashlib.sha256(text.encode()).hexdigest(), 16) % 2**32
+        np.random.seed(seed)
         emb = np.random.randn(384)
         return emb / np.linalg.norm(emb)  # L2 normalize
 

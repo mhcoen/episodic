@@ -269,11 +269,10 @@ class TestNewsSpeechAndDisplay:
         display = provider._build_display(headlines)
 
         assert "Headlines" in display
-        # NPR RSS format: "1. Title (author)" or "1. Title"
-        assert "1. First Story (John Doe)" in display
+        assert "1. First Story" in display
         assert "2. Second Story" in display
-        # No separate description line in NPR RSS format
-        # No em-dash separator
+        # Authors not shown in display
+        assert "(John Doe)" not in display
 
     def test_display_text_with_category(self, provider):
         """Test display text includes category in header."""

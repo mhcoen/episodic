@@ -114,8 +114,15 @@ def start_data_refresh_scheduler() -> DataRefreshScheduler:
     )
 
     # Register weather provider for background refresh (10 min interval)
-    from .handlers.weather import get_weather_provider
+    from .handlers.weather import get_weather_provider, _configure_provider
     weather_provider = get_weather_provider()
+
+    # Configure provider so it has API key and location preferences
+    _ensure_utility_schema()
+    from ..db_connection import get_connection
+    with get_connection() as conn:
+        _configure_provider(weather_provider, conn)
+
     _data_refresh_scheduler.register(
         "weather_default",
         weather_provider,

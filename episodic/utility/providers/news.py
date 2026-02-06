@@ -331,22 +331,15 @@ class NewsProvider(DataProvider):
     def _build_display(self, headlines: List[Dict[str, Any]], category: str = "general") -> str:
         """Build display text from headlines."""
         if not headlines:
-            return "📰 No headlines available."
+            return "📰  No headlines available."
 
         category_title = category.title() if category != "general" else ""
-        header = f"📰 {category_title} Headlines" if category_title else "📰 Headlines"
+        header = f"📰  {category_title} Headlines" if category_title else "📰  Headlines"
         lines = [header, ""]
 
         for i, h in enumerate(headlines, 1):
             title = h.get("title", "")
-            author = h.get("author", "")
+            lines.append(f"{i}. {title}")
+            lines.append("")
 
-            if author:
-                lines.append(f"{i}. {title} ({author})")
-            else:
-                lines.append(f"{i}. {title}")
-
-        lines.append("")
-        lines.append("Say a number for more details.")
-
-        return "\n".join(lines)
+        return "\n".join(lines).rstrip()

@@ -103,7 +103,7 @@ class SpeechGenerator:
 
         # Combine emoji and display text
         if emoji:
-            display_text = f"{emoji} {display_text}"
+            display_text = f"{emoji}  {display_text}"
 
         return (display_text, speech_text)
 

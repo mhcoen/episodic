@@ -10,6 +10,7 @@ voice grammar despite the harness tests passing.
 
 import os
 import subprocess
+import sys
 import tempfile
 import pytest
 
@@ -22,7 +23,7 @@ TIMEOUT = 30  # seconds
 
 def run_cli(*args, input_text=None, timeout=TIMEOUT):
     """Run the CLI with given arguments and return (stdout, stderr, returncode)."""
-    cmd = ["python", "-m", "episodic"] + list(args)
+    cmd = [sys.executable, "-m", "episodic"] + list(args)
     result = subprocess.run(
         cmd,
         input=input_text,

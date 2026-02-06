@@ -1,4 +1,4 @@
-"""Tests for episodic.mcp.tools module — 7 MCP tools."""
+"""Tests for episodic.mcp.tools module — 9 MCP tools."""
 
 import sqlite3
 from unittest.mock import MagicMock, patch
@@ -15,6 +15,8 @@ from episodic.mcp.tools import (
     search_knowledge,
     search_memory,
     tool_ask_llm_stateful,
+    tool_ask_llm_stateless,
+    tool_index_document,
 )
 
 
@@ -472,11 +474,80 @@ class TestAskLlmStatefulTool:
 
 
 # ===================================================================
+# Tool 8: index_document
+# ===================================================================
+
+class TestIndexDocumentTool:
+    def test_empty_content_returns_error(self):
+        result = tool_index_document(content="", source_name="test.txt")
+        assert result["error"] == "invalid_request"
+
+    def test_whitespace_content_returns_error(self):
+        result = tool_index_document(content="   ", source_name="test.txt")
+        assert result["error"] == "invalid_request"
+
+    def test_empty_source_name_returns_error(self):
+        result = tool_index_document(content="hello", source_name="")
+        assert result["error"] == "invalid_request"
+
+    @patch("episodic.rag.get_rag_system")
+    def test_successful_index(self, mock_get_rag):
+        mock_rag = MagicMock()
+        mock_rag.add_document.return_value = ("doc-abc", 5)
+        mock_get_rag.return_value = mock_rag
+
+        result = tool_index_document(
+            content="Document text here",
+            source_name="notes.md",
+            content_type="markdown",
+        )
+        assert result["document_id"] == "doc-abc"
+        assert result["chunks_indexed"] == 5
+        assert result["source_name"] == "notes.md"
+
+    @patch("episodic.rag.get_rag_system", return_value=None)
+    def test_rag_disabled_returns_unavailable(self, _mock):
+        result = tool_index_document(content="text", source_name="test.txt")
+        assert result["error"] == "unavailable"
+
+
+# ===================================================================
+# Tool 9: ask_llm_stateless
+# ===================================================================
+
+class TestAskLlmStatelessTool:
+    def test_empty_message_returns_error(self):
+        result = tool_ask_llm_stateless(message="")
+        assert result["error"] == "invalid_request"
+
+    def test_whitespace_message_returns_error(self):
+        result = tool_ask_llm_stateless(message="   ")
+        assert result["error"] == "invalid_request"
+
+    @patch("episodic.llm._execute_llm_query")
+    @patch("episodic.llm_config.get_current_provider", return_value="openai")
+    @patch("episodic.config.config")
+    def test_successful_query(self, mock_config, mock_provider, mock_llm):
+        mock_config.get = MagicMock(return_value="gpt-4o-mini")
+        mock_llm.return_value = ("Answer", {"input_tokens": 10, "output_tokens": 5})
+
+        result = tool_ask_llm_stateless(message="Hello")
+        assert result["response"] == "Answer"
+        assert result["model"] == "gpt-4o-mini"
+
+    def test_llm_error_returns_unavailable(self):
+        with patch("episodic.mcp.stateless.ask_llm_stateless",
+                    side_effect=Exception("LLM down")):
+            result = tool_ask_llm_stateless(message="Hello")
+            assert result["error"] == "unavailable"
+
+
+# ===================================================================
 # register_tools
 # ===================================================================
 
 class TestRegisterTools:
-    def test_registers_seven_tools(self):
+    def test_registers_nine_tools(self):
         mock_server = MagicMock()
         registered = []
 
@@ -488,7 +559,7 @@ class TestRegisterTools:
 
         mock_server.tool = mock_tool
         register_tools(mock_server)
-        assert len(registered) == 7
+        assert len(registered) == 9
         assert "mcp_get_model_info" in registered
         assert "mcp_get_runtime_state" in registered
         assert "mcp_get_topics" in registered
@@ -496,6 +567,8 @@ class TestRegisterTools:
         assert "mcp_search_memory" in registered
         assert "mcp_create_thread" in registered
         assert "mcp_ask_llm_stateful" in registered
+        assert "mcp_index_document" in registered
+        assert "mcp_ask_llm_stateless" in registered
 
     def test_tool_wrappers_are_callable(self):
         mock_server = MagicMock()

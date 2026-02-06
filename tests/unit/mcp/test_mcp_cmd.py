@@ -10,6 +10,10 @@ from episodic.commands.mcp_cmd import (
     _check_mcp_available,
     mcp_command,
     mcp_token,
+    mcp_servers,
+    mcp_connect,
+    mcp_disconnect,
+    mcp_tools,
 )
 
 
@@ -162,3 +166,176 @@ class TestMcpTokenCreateIntegration:
     def test_rotate_nonexistent(self, mock_db, capsys):
         from episodic.commands.mcp_cmd import mcp_token_rotate
         mcp_token_rotate(["nonexistent"])
+
+
+# ---------------------------------------------------------------------------
+# Routing for new client-mode commands
+# ---------------------------------------------------------------------------
+
+class TestMcpCommandRoutingExtended:
+    """Test routing for /mcp servers|connect|disconnect|tools."""
+
+    @patch("episodic.commands.mcp_cmd.mcp_servers")
+    def test_servers_action(self, mock_servers):
+        mcp_command("servers")
+        mock_servers.assert_called_once()
+
+    @patch("episodic.commands.mcp_cmd.mcp_connect")
+    def test_connect_action(self, mock_connect):
+        mcp_command("connect", "filesystem")
+        mock_connect.assert_called_once_with(["filesystem"])
+
+    @patch("episodic.commands.mcp_cmd.mcp_disconnect")
+    def test_disconnect_action(self, mock_disconnect):
+        mcp_command("disconnect", "filesystem")
+        mock_disconnect.assert_called_once_with(["filesystem"])
+
+    @patch("episodic.commands.mcp_cmd.mcp_tools")
+    def test_tools_action(self, mock_tools):
+        mcp_command("tools")
+        mock_tools.assert_called_once_with([])
+
+    @patch("episodic.commands.mcp_cmd.mcp_tools")
+    def test_tools_action_with_filter(self, mock_tools):
+        mcp_command("tools", "filesystem")
+        mock_tools.assert_called_once_with(["filesystem"])
+
+
+# ---------------------------------------------------------------------------
+# /mcp servers
+# ---------------------------------------------------------------------------
+
+class TestMcpServers:
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_no_servers_configured(self, mock_mgr):
+        mgr = MagicMock()
+        mgr.server_ids = []
+        mock_mgr.return_value = mgr
+        mcp_servers()  # Should print "No external MCP servers configured."
+
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_shows_configured_servers(self, mock_mgr):
+        import asyncio
+
+        mgr = MagicMock()
+        mgr.server_ids = ["filesystem", "calendar"]
+
+        async def fake_health():
+            return {
+                "filesystem": {
+                    "connected": True,
+                    "tool_count": 3,
+                    "command": "npx",
+                    "lifecycle": "on-demand",
+                    "uptime_seconds": 120,
+                },
+                "calendar": {
+                    "connected": False,
+                    "command": "python",
+                    "lifecycle": "on-demand",
+                },
+            }
+
+        mgr.health_check_all = fake_health
+        mock_mgr.return_value = mgr
+
+        mcp_servers()  # Should not crash
+
+
+# ---------------------------------------------------------------------------
+# /mcp connect
+# ---------------------------------------------------------------------------
+
+class TestMcpConnect:
+    def test_no_args_shows_usage(self):
+        mcp_connect([])  # Should print usage, not crash
+
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_unknown_server(self, mock_mgr):
+        mgr = MagicMock()
+        mgr.server_ids = ["filesystem"]
+        mock_mgr.return_value = mgr
+
+        mcp_connect(["unknown"])  # Should print error
+
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_successful_connect(self, mock_mgr):
+        import asyncio
+
+        mgr = MagicMock()
+        mgr.server_ids = ["filesystem"]
+
+        async def fake_connect(sid):
+            return True
+
+        mgr.connect = fake_connect
+        mock_client = MagicMock()
+        mock_client.tools = {"a": {}, "b": {}}
+        mgr.get_client.return_value = mock_client
+        mock_mgr.return_value = mgr
+
+        mcp_connect(["filesystem"])  # Should succeed
+
+
+# ---------------------------------------------------------------------------
+# /mcp disconnect
+# ---------------------------------------------------------------------------
+
+class TestMcpDisconnect:
+    def test_no_args_shows_usage(self):
+        mcp_disconnect([])  # Should print usage
+
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_disconnect(self, mock_mgr):
+        import asyncio
+
+        mgr = MagicMock()
+
+        async def fake_disconnect(sid):
+            pass
+
+        mgr.disconnect = fake_disconnect
+        mock_mgr.return_value = mgr
+
+        mcp_disconnect(["filesystem"])  # Should succeed
+
+
+# ---------------------------------------------------------------------------
+# /mcp tools
+# ---------------------------------------------------------------------------
+
+class TestMcpTools:
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_no_tools_no_connections(self, mock_mgr):
+        mgr = MagicMock()
+        mgr.get_all_tools.return_value = []
+        mgr.connected_servers = []
+        mock_mgr.return_value = mgr
+
+        mcp_tools([])  # Should show "no servers connected"
+
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_shows_tools(self, mock_mgr):
+        mgr = MagicMock()
+        mgr.get_all_tools.return_value = [
+            {
+                "namespaced_name": "filesystem.read_file",
+                "server_id": "filesystem",
+                "name": "read_file",
+                "description": "Read contents of a file",
+            },
+        ]
+        mock_mgr.return_value = mgr
+
+        mcp_tools([])  # Should list the tool
+
+    @patch("episodic.commands.mcp_cmd._get_client_manager")
+    def test_filter_by_server(self, mock_mgr):
+        mgr = MagicMock()
+        mgr.get_all_tools.return_value = [
+            {"namespaced_name": "fs.read", "server_id": "fs", "description": ""},
+            {"namespaced_name": "cal.events", "server_id": "cal", "description": ""},
+        ]
+        mock_mgr.return_value = mgr
+
+        mcp_tools(["cal"])  # Should filter to only cal tools

@@ -60,9 +60,20 @@ def mcp_command(action: str = None, *args: str) -> None:
         mcp_token(list(args))
     elif action == "traces":
         mcp_traces(list(args))
+    elif action == "servers":
+        mcp_servers()
+    elif action == "connect":
+        mcp_connect(list(args))
+    elif action == "disconnect":
+        mcp_disconnect(list(args))
+    elif action == "tools":
+        mcp_tools(list(args))
     else:
         typer.secho(f"Unknown MCP action: {action}", fg=get_error_color())
-        typer.secho("Usage: /mcp [start|stop|status|token|traces]", fg=get_text_color())
+        typer.secho(
+            "Usage: /mcp [start|stop|status|token|traces|servers|connect|disconnect|tools]",
+            fg=get_text_color(),
+        )
 
 
 def mcp_status() -> None:
@@ -391,3 +402,176 @@ def mcp_traces(args: List[str]) -> None:
                 f"    error: {t['error_code']}: {t.get('message_safe', '')}",
                 fg=get_error_color(), dim=True,
             )
+
+
+# ---------------------------------------------------------------------------
+# External server management (client mode)
+# ---------------------------------------------------------------------------
+
+def _run_async(coro):
+    """Run an async coroutine from sync code."""
+    import asyncio
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+def _get_client_manager():
+    """Get or create the global MCPClientManager instance."""
+    from episodic.mcp.client_manager import MCPClientManager
+    # Use a module-level cache for the manager instance
+    if not hasattr(_get_client_manager, "_instance"):
+        _get_client_manager._instance = MCPClientManager()
+    return _get_client_manager._instance
+
+
+def mcp_servers() -> None:
+    """List configured external MCP servers and their status."""
+    manager = _get_client_manager()
+    server_ids = manager.server_ids
+
+    if not server_ids:
+        typer.secho("No external MCP servers configured.", fg=get_text_color())
+        typer.secho(
+            'Add servers to config: /set mcp_servers {"name": {"command": "...", "args": [...]}}',
+            fg=get_text_color(), dim=True,
+        )
+        return
+
+    statuses = _run_async(manager.health_check_all())
+
+    typer.secho(
+        f"External MCP Servers ({len(server_ids)}):",
+        fg=get_heading_color(), bold=True,
+    )
+    for sid, info in statuses.items():
+        if info["connected"]:
+            health_color = get_success_color()
+            status_text = f"CONNECTED ({info['tool_count']} tools)"
+            if info.get("uptime_seconds"):
+                status_text += f" up {_format_uptime(info['uptime_seconds'])}"
+        else:
+            health_color = get_text_color()
+            status_text = "disconnected"
+
+        typer.secho(
+            f"  {sid:<20} {status_text}",
+            fg=health_color,
+        )
+        typer.secho(
+            f"    cmd: {info['command']}  lifecycle: {info['lifecycle']}",
+            fg=get_text_color(), dim=True,
+        )
+        if info.get("last_error"):
+            typer.secho(
+                f"    error: {info['last_error']}",
+                fg=get_error_color(), dim=True,
+            )
+
+
+def mcp_connect(args: List[str]) -> None:
+    """Connect to an external MCP server."""
+    if not args:
+        typer.secho(
+            "Usage: /mcp connect <server_id>",
+            fg=get_error_color(),
+        )
+        return
+
+    server_id = args[0]
+    manager = _get_client_manager()
+
+    if server_id not in manager.server_ids:
+        typer.secho(
+            f"Unknown server: {server_id}", fg=get_error_color(),
+        )
+        typer.secho(
+            f"Available: {', '.join(manager.server_ids) or '(none)'}",
+            fg=get_text_color(), dim=True,
+        )
+        return
+
+    typer.secho(f"Connecting to {server_id}...", fg=get_text_color())
+    success = _run_async(manager.connect(server_id))
+
+    if success:
+        client = manager.get_client(server_id)
+        tool_count = len(client.tools) if client else 0
+        typer.secho(
+            f"Connected to {server_id} ({tool_count} tools discovered).",
+            fg=get_success_color(),
+        )
+    else:
+        client = manager.get_client(server_id)
+        err = client._last_error if client else "unknown error"
+        typer.secho(
+            f"Failed to connect to {server_id}: {err}",
+            fg=get_error_color(),
+        )
+
+
+def mcp_disconnect(args: List[str]) -> None:
+    """Disconnect from an external MCP server."""
+    if not args:
+        typer.secho(
+            "Usage: /mcp disconnect <server_id>",
+            fg=get_error_color(),
+        )
+        return
+
+    server_id = args[0]
+    manager = _get_client_manager()
+    _run_async(manager.disconnect(server_id))
+
+    typer.secho(f"Disconnected from {server_id}.", fg=get_success_color())
+
+
+def mcp_tools(args: List[str]) -> None:
+    """List discovered tools from connected external servers."""
+    manager = _get_client_manager()
+
+    # Optional filter by server_id
+    filter_server = args[0] if args else None
+
+    all_tools = manager.get_all_tools()
+
+    if filter_server:
+        all_tools = [t for t in all_tools if t["server_id"] == filter_server]
+
+    if not all_tools:
+        if filter_server:
+            typer.secho(
+                f"No tools found for server '{filter_server}' (is it connected?).",
+                fg=get_text_color(),
+            )
+        else:
+            connected = manager.connected_servers
+            if connected:
+                typer.secho(
+                    "No tools discovered from connected servers.",
+                    fg=get_text_color(),
+                )
+            else:
+                typer.secho(
+                    "No servers connected. Use /mcp connect <server_id> first.",
+                    fg=get_text_color(),
+                )
+        return
+
+    typer.secho(
+        f"External MCP Tools ({len(all_tools)}):",
+        fg=get_heading_color(), bold=True,
+    )
+    for tool in all_tools:
+        typer.secho(
+            f"  {tool['namespaced_name']:<40}",
+            fg=get_text_color(), bold=True,
+        )
+        desc = tool.get("description", "")
+        if desc:
+            # Truncate long descriptions
+            if len(desc) > 80:
+                desc = desc[:77] + "..."
+            typer.secho(f"    {desc}", fg=get_text_color(), dim=True)

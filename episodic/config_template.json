@@ -483,6 +483,8 @@
   "mcp_host": "127.0.0.1",
   "_comment_mcp_log_level": "Log level for the MCP server (debug/info/warning/error)",
   "mcp_log_level": "info",
+  "_comment_mcp_servers": "External MCP servers to connect to as a client (server_id -> {command, args, env, lifecycle})",
+  "mcp_servers": {},
 
   "_comment_mode": "// === MODE SWITCHING ===",
   "_comment_mode_setting": "Current mode: local (free, private) or cloud (paid, quality)",

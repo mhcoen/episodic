@@ -23,7 +23,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **📎 File References (@file)** - Attach local files directly in chat messages
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
-- **🔌 MCP Server** - Expose conversation memory to external AI clients via Model Context Protocol, with token auth, traces, cost limits, and hash-only credential storage
+- **🔌 MCP Server** - Hardened Model Context Protocol server exposing conversation memory to external AI clients, with token auth, traces, cost limits, and hash-only credential storage
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
  If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation* ([arXiv:2512.17083](https://arxiv.org/abs/2512.17083)), see the [`paper/`](paper/) directory.

@@ -1,4 +1,4 @@
-"""Tests for episodic.mcp.tools module — 5 read-only MCP tools."""
+"""Tests for episodic.mcp.tools module — 6 MCP tools."""
 
 import sqlite3
 from unittest.mock import MagicMock, patch
@@ -7,6 +7,7 @@ import pytest
 
 from episodic.mcp.tools import (
     _RUNTIME_STATE_KEYS,
+    create_thread,
     get_model_info,
     get_runtime_state,
     get_topics,
@@ -354,11 +355,69 @@ class TestSearchMemory:
 
 
 # ===================================================================
+# Tool 6: create_thread
+# ===================================================================
+
+class TestCreateThreadTool:
+    @pytest.fixture
+    def mock_db_path(self, tmp_path):
+        """Create a temp DB with conversations table and mock _get_db_path."""
+        db_path = str(tmp_path / "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("""
+            CREATE TABLE conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversation_id TEXT UNIQUE NOT NULL,
+                root_node_id TEXT,
+                current_head_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                metadata JSON
+            )
+        """)
+        conn.commit()
+        conn.close()
+        with patch("episodic.mcp.tools._get_db_path", return_value=db_path):
+            yield db_path
+
+    def test_creates_thread(self, mock_db_path):
+        result = create_thread(client_id="test-client")
+        assert "thread_id" in result
+        assert "thread_handle" in result
+        assert "handle_id" in result
+        assert "permissions" in result
+
+    def test_handle_starts_with_prefix(self, mock_db_path):
+        result = create_thread(client_id="test-client")
+        assert result["thread_handle"].startswith("eth_v1_")
+
+    def test_default_permissions(self, mock_db_path):
+        result = create_thread(client_id="test-client")
+        assert result["permissions"] == ["read", "write"]
+
+    def test_background_influences_topics(self, mock_db_path):
+        result = create_thread(
+            background_influences_topics=True, client_id="test"
+        )
+        assert "thread_id" in result
+
+    def test_anonymous_client(self, mock_db_path):
+        result = create_thread()
+        assert "thread_id" in result
+
+    def test_error_returns_error_dict(self):
+        with patch("episodic.mcp.tools._get_db_connection",
+                    side_effect=Exception("DB error")):
+            result = create_thread(client_id="test")
+            assert "error" in result
+
+
+# ===================================================================
 # register_tools
 # ===================================================================
 
 class TestRegisterTools:
-    def test_registers_five_tools(self):
+    def test_registers_six_tools(self):
         mock_server = MagicMock()
         registered = []
 
@@ -370,12 +429,13 @@ class TestRegisterTools:
 
         mock_server.tool = mock_tool
         register_tools(mock_server)
-        assert len(registered) == 5
+        assert len(registered) == 6
         assert "mcp_get_model_info" in registered
         assert "mcp_get_runtime_state" in registered
         assert "mcp_get_topics" in registered
         assert "mcp_search_knowledge" in registered
         assert "mcp_search_memory" in registered
+        assert "mcp_create_thread" in registered
 
     def test_tool_wrappers_are_callable(self):
         mock_server = MagicMock()

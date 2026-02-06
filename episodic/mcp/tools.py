@@ -1,12 +1,13 @@
 """
-Read-only MCP tools for Episodic.
+MCP tools for Episodic.
 
-Five tools that expose conversation memory and configuration to MCP clients:
+Six tools that expose conversation memory and configuration to MCP clients:
   - get_model_info: current model and provider
   - get_runtime_state: curated config subset (no secrets)
   - get_topics: topic list with metadata
   - search_knowledge: RAG document search
   - search_memory: conversation memory search
+  - create_thread: create a new conversation thread with handle
 """
 
 import logging
@@ -269,11 +270,53 @@ def search_memory(query: str, limit: int = 5) -> Dict[str, Any]:
 
 
 # ===================================================================
+# Tool 6: create_thread
+# ===================================================================
+
+def create_thread(
+    background_influences_topics: bool = False,
+    client_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a new conversation thread and return a handle.
+
+    Args:
+        background_influences_topics: Whether this thread's traffic
+            affects topic segmentation.
+        client_id: ID of the creating client (from auth middleware).
+
+    Returns dict with keys: thread_id, thread_handle, handle_id, permissions.
+    """
+    params = {"background_influences_topics": background_influences_topics}
+
+    def _impl():
+        try:
+            from episodic.mcp.threads import create_thread as _create
+        except ImportError:
+            return {"error": "Thread module not available"}
+
+        try:
+            conn = _get_db_connection()
+            try:
+                result = _create(
+                    conn,
+                    client_id=client_id or "anonymous",
+                    background_influences_topics=background_influences_topics,
+                )
+                return result
+            finally:
+                conn.close()
+        except Exception as e:
+            return {"error": str(e)}
+
+    return _trace_call("create_thread", client_id, params, _impl)
+
+
+# ===================================================================
 # Registration helper — called by server.py
 # ===================================================================
 
 def register_tools(server) -> None:
-    """Register all read-only tools with a FastMCP server instance."""
+    """Register all tools with a FastMCP server instance."""
 
     @server.tool()
     def mcp_get_model_info() -> Dict[str, Any]:
@@ -313,3 +356,21 @@ def register_tools(server) -> None:
             limit: Maximum results to return (default 5).
         """
         return search_memory(query=query, limit=limit)
+
+    @server.tool()
+    def mcp_create_thread(
+        background_influences_topics: bool = False,
+    ) -> Dict[str, Any]:
+        """Create a new conversation thread with a handle.
+
+        Returns a thread handle that can be used for stateful conversation
+        via ask_llm_stateful. The handle is shown once and cannot be
+        retrieved again.
+
+        Args:
+            background_influences_topics: Whether this thread's traffic
+                affects topic segmentation (default False).
+        """
+        return create_thread(
+            background_influences_topics=background_influences_topics,
+        )

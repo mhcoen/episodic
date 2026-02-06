@@ -13,6 +13,7 @@ from episodic.migrations.m014_add_indexing_status import migration as m014
 from episodic.migrations.m020_indexing_status_skipped import migration as m020
 from episodic.migrations.m021_mcp_auth_tables import migration as m021
 from episodic.migrations.m022_mcp_traces import migration as m022
+from episodic.migrations.m023_thread_handles import migration as m023
 
 # List of all migrations in order
 ALL_MIGRATIONS = [
@@ -22,6 +23,7 @@ ALL_MIGRATIONS = [
     m020,
     m021,
     m022,
+    m023,
 ]
 
 

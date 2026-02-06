@@ -330,6 +330,42 @@ When RAG doesn't find relevant results, it automatically searches the web (if en
 # Now queries check your docs first, then web if needed
 ```
 
+## 7. MCP Server (Model Context Protocol)
+
+Expose Episodic's conversation memory, knowledge base, and LLM capabilities to external AI clients (e.g., Claude Desktop, custom agents) via the Model Context Protocol.
+
+### What It Does
+
+- **9 tools** for reading topics, searching knowledge/memory, querying the LLM, indexing documents, and managing stateful conversation threads
+- **Token authentication** — bearer tokens with optional scope restrictions and daily cost limits
+- **Traces** — full audit log of every tool call with timing, status, and redacted parameters
+- **Stateful threads** — external clients can hold multi-turn conversations stored in the DAG
+
+### Quick Start
+
+```bash
+/mcp start                      # Start server on port 51983
+/mcp token create my-agent      # Create auth token (shown once)
+/mcp status                     # Verify server is running
+```
+
+### Tools Overview
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| Read-only | `get_model_info`, `get_runtime_state`, `get_topics` | Inspect instance state |
+| Search | `search_knowledge`, `search_memory` | Query RAG and conversation memory |
+| LLM | `ask_llm_stateless`, `ask_llm_stateful` | One-shot and threaded LLM queries |
+| Write | `index_document`, `create_thread` | Add documents, create conversation threads |
+
+### Security
+
+- Tokens use SHA-256 hashing — plaintext is never stored
+- Thread handles are also hash-only, shown once on creation
+- Daily per-client cost limits (default $10/day)
+- Trace logging redacts sensitive parameters (keys, tokens, secrets)
+- Server binds to localhost by default (`127.0.0.1`)
+
 ## Quick Configuration Reference
 
 ### Essential Commands

@@ -224,7 +224,8 @@ def show_help_with_categories():
         ("/help search", "Knowledge base and muse configuration"),
         ("/help history", "Navigation and conversation history"),
         ("/help topics", "Topic detection and management"),
-        ("/help markdown", "Markdown file operations")
+        ("/help markdown", "Markdown file operations"),
+        ("/help mcp", "MCP server, tokens, and external tool access")
     ]
     
     # Other options
@@ -284,9 +285,11 @@ def show_category_help(category: str):
         show_voice_help()
     elif category == "assistant":
         show_assistant_help()
+    elif category == "mcp":
+        show_mcp_help()
     else:
         typer.secho(f"Unknown help category: {category}", fg="red")
-        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice, assistant", fg=get_text_color())
+        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice, assistant, mcp", fg=get_text_color())
 
 
 def show_chat_help():
@@ -345,7 +348,6 @@ def show_settings_help():
         ("/mset", "Show model parameters"),
         ("/mset chat.temperature 0.7", "Set model-specific parameters"),
         ("/script <file>", "Execute commands from a script file"),
-        ("/mcp [start|stop|status]", "Manage MCP server for external tool access"),
     ]
     
     # Common settings
@@ -704,6 +706,69 @@ def show_assistant_help():
     typer.secho("  Example: \"Set a timer for five minutes\"", fg=get_system_color())
 
 
+def show_mcp_help():
+    """Show MCP server commands."""
+
+    # Commands
+    commands = [
+        ("/mcp", "Show MCP server status (default action)"),
+        ("/mcp start", "Start server in background (port 51983)"),
+        ("/mcp start --port <port>", "Start on a custom port"),
+        ("/mcp start --foreground", "Start in foreground (blocks CLI)"),
+        ("/mcp stop", "Stop the MCP server"),
+        ("/mcp status", "Show status, PID, port, and uptime"),
+        ("/mcp token create <id>", "Create auth token (shown once, save it!)"),
+        ("/mcp token list", "List active tokens"),
+        ("/mcp token revoke <id>", "Revoke a token by ID"),
+        ("/mcp token rotate <id>", "Rotate: create new token, revoke old"),
+        ("/mcp traces", "Show recent tool call audit log"),
+        ("/mcp traces --tool <name>", "Filter traces by tool name"),
+    ]
+
+    # Tools
+    tools = [
+        ("get_model_info", "Current models and providers"),
+        ("get_runtime_state", "Safe runtime config (no secrets)"),
+        ("get_topics", "Conversation topics with metadata"),
+        ("search_knowledge", "Search RAG knowledge base"),
+        ("search_memory", "Search conversation memory"),
+        ("ask_llm_stateless", "One-shot LLM query (optional RAG/memory)"),
+        ("create_thread", "Create stateful conversation thread"),
+        ("ask_llm_stateful", "Send message in a conversation thread"),
+        ("index_document", "Add document to RAG knowledge base"),
+    ]
+
+    # Examples
+    examples = [
+        ("/mcp start", "Start the server on default port"),
+        ("/mcp token create my-agent", "Create a token for 'my-agent'"),
+        ("/mcp traces --tool search_knowledge", "View search_knowledge traces"),
+    ]
+
+    # Find the longest item for alignment
+    all_items = commands + [(f"  {t}", d) for t, d in tools] + examples
+    max_width = max(len(item) for item, _ in all_items)
+
+    # Display header
+    typer.secho("🔌 MCP Server (Model Context Protocol)", fg=get_heading_color(), bold=True)
+    typer.secho("Expose conversation memory to external AI clients.", fg=get_text_color())
+    typer.echo()
+
+    typer.secho("Commands:", fg=get_text_color())
+    _display_aligned_commands(commands, max_width)
+    typer.echo()
+
+    typer.secho("Available Tools (9):", fg=get_text_color())
+    for tool, desc in tools:
+        padding = ' ' * max(1, max_width - len(tool) - 2)
+        typer.secho(f"  {tool}{padding}", fg=get_system_color(), nl=False)
+        typer.secho(desc, fg=get_text_color())
+    typer.echo()
+
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
+
+
 def show_advanced_help():
     """Show all available commands organized by categories."""
     _ensure_registry_initialized()
@@ -874,6 +939,7 @@ def get_category_icon(category: str) -> str:
         "Configuration": "⚙️",
         "Knowledge Base": "📚",
         "Compression": "📦",
-        "Utility": "🛠️"
+        "Utility": "🛠️",
+        "MCP": "🔌"
     }
     return icons.get(category, "📌")

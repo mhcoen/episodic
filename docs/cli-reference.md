@@ -698,6 +698,74 @@ Database migration utilities
 /migrate backup             # Backup before migration
 ```
 
+## MCP Server
+
+Manage the Model Context Protocol server for exposing Episodic tools to external AI clients.
+
+### Server Management
+
+```bash
+/mcp                            # Show server status (default)
+/mcp start                      # Start server in background (port 51983)
+/mcp start --port 8080          # Start on custom port
+/mcp start --foreground         # Start in foreground (blocks CLI)
+/mcp stop                       # Stop the server
+/mcp status                     # Show status, PID, port, uptime
+```
+
+### Token Management
+
+```bash
+/mcp token                      # List active tokens
+/mcp token list                 # List active tokens
+/mcp token create <client_id>   # Create token (shown once, save it!)
+/mcp token create agent --scopes search_knowledge,get_topics
+                                # Create token with restricted scopes
+/mcp token revoke <token_id>    # Revoke a token
+/mcp token rotate <token_id>    # Rotate: create new, revoke old
+/mcp token rotate <token_id> --grace 300
+                                # Rotate with 5-minute grace period
+```
+
+### Traces
+
+```bash
+/mcp traces                     # Show last 20 tool call traces
+/mcp traces --limit 50          # Show last 50 traces
+/mcp traces --tool search_knowledge  # Filter by tool name
+```
+
+### Available Tools
+
+| Tool | Description | Auth |
+|------|-------------|------|
+| `get_model_info` | Current models and providers | Token |
+| `get_runtime_state` | Safe runtime config (no secrets) | Token |
+| `get_topics` | Conversation topics with metadata | Token |
+| `search_knowledge` | Search RAG knowledge base | Token |
+| `search_memory` | Search conversation memory | Token |
+| `ask_llm_stateless` | One-shot LLM query (optional RAG/memory) | Token |
+| `create_thread` | Create stateful conversation thread | Token |
+| `ask_llm_stateful` | Send message in a thread | Token + Handle |
+| `index_document` | Add document to RAG knowledge base | Token |
+
+### Client Connection Example
+
+Configure an MCP client (e.g., Claude Desktop) to connect:
+
+```json
+{
+  "mcpServers": {
+    "episodic": {
+      "url": "http://127.0.0.1:51983/sse",
+      "headers": {
+        "Authorization": "Bearer epk_v1_..."
+      }
+    }
+  }
+}
+```
+
 ## Utility Commands
 
 ### /benchmark

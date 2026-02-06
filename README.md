@@ -23,6 +23,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **📎 File References (@file)** - Attach local files directly in chat messages
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
+- **🔌 MCP Server** - Expose conversation memory to external AI clients via Model Context Protocol
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
  If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation* ([arXiv:2512.17083](https://arxiv.org/abs/2512.17083)), see the [`paper/`](paper/) directory.
@@ -151,6 +152,13 @@ Episodic automatically configures itself based on available providers:
 /model           # Show current AI models
 /config          # Manage configuration settings
 /migrate         # Migrate database to latest version
+
+# MCP Server (external AI tool access)
+/mcp start           # Start MCP server (background, port 51983)
+/mcp stop            # Stop MCP server
+/mcp status          # Show server status
+/mcp token create <id>  # Create auth token for a client
+/mcp traces          # View recent tool call audit log
 
 # Help
 /help            # See all commands
@@ -566,6 +574,7 @@ Episodic uses a modular architecture:
 - **Context Recovery**: Topic-isolated context assembly with configurable modes (ancestry/topic_local/hybrid)
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Brave, Searx)
+- **MCP Server**: Model Context Protocol server with token auth, 9 tools, traces, and stateful threads
 
 ## 🧪 Testing
 

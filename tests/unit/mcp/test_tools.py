@@ -1,4 +1,4 @@
-"""Tests for episodic.mcp.tools module — 6 MCP tools."""
+"""Tests for episodic.mcp.tools module — 7 MCP tools."""
 
 import sqlite3
 from unittest.mock import MagicMock, patch
@@ -14,6 +14,7 @@ from episodic.mcp.tools import (
     register_tools,
     search_knowledge,
     search_memory,
+    tool_ask_llm_stateful,
 )
 
 
@@ -413,11 +414,69 @@ class TestCreateThreadTool:
 
 
 # ===================================================================
+# Tool 7: ask_llm_stateful
+# ===================================================================
+
+class TestAskLlmStatefulTool:
+    def test_empty_message_returns_error(self):
+        result = tool_ask_llm_stateful(
+            thread_handle="eth_v1_test", message=""
+        )
+        assert result["error"] == "invalid_request"
+
+    def test_whitespace_message_returns_error(self):
+        result = tool_ask_llm_stateful(
+            thread_handle="eth_v1_test", message="   "
+        )
+        assert result["error"] == "invalid_request"
+
+    @patch("episodic.mcp.tools._get_db_connection")
+    def test_invalid_handle_returns_forbidden(self, mock_conn_fn, tmp_path):
+        db_path = str(tmp_path / "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("""
+            CREATE TABLE conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversation_id TEXT UNIQUE NOT NULL,
+                root_node_id TEXT, current_head_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                metadata JSON
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE mcp_thread_handles (
+                handle_id TEXT PRIMARY KEY, handle_hash TEXT NOT NULL UNIQUE,
+                thread_id INTEGER NOT NULL, client_id TEXT NOT NULL,
+                permissions TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                revoked_at TEXT
+            )
+        """)
+        conn.commit()
+
+        mock_conn_fn.return_value = conn
+        result = tool_ask_llm_stateful(
+            thread_handle="eth_v1_invalid", message="Hello"
+        )
+        assert result["error"] == "forbidden"
+        conn.close()
+
+    def test_db_error_returns_unavailable(self):
+        with patch("episodic.mcp.tools._get_db_connection",
+                    side_effect=Exception("DB error")):
+            result = tool_ask_llm_stateful(
+                thread_handle="eth_v1_test", message="Hello"
+            )
+            assert "error" in result
+
+
+# ===================================================================
 # register_tools
 # ===================================================================
 
 class TestRegisterTools:
-    def test_registers_six_tools(self):
+    def test_registers_seven_tools(self):
         mock_server = MagicMock()
         registered = []
 
@@ -429,13 +488,14 @@ class TestRegisterTools:
 
         mock_server.tool = mock_tool
         register_tools(mock_server)
-        assert len(registered) == 6
+        assert len(registered) == 7
         assert "mcp_get_model_info" in registered
         assert "mcp_get_runtime_state" in registered
         assert "mcp_get_topics" in registered
         assert "mcp_search_knowledge" in registered
         assert "mcp_search_memory" in registered
         assert "mcp_create_thread" in registered
+        assert "mcp_ask_llm_stateful" in registered
 
     def test_tool_wrappers_are_callable(self):
         mock_server = MagicMock()

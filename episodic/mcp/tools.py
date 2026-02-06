@@ -1,13 +1,14 @@
 """
 MCP tools for Episodic.
 
-Six tools that expose conversation memory and configuration to MCP clients:
+Seven tools that expose conversation memory and configuration to MCP clients:
   - get_model_info: current model and provider
   - get_runtime_state: curated config subset (no secrets)
   - get_topics: topic list with metadata
   - search_knowledge: RAG document search
   - search_memory: conversation memory search
   - create_thread: create a new conversation thread with handle
+  - ask_llm_stateful: stateful LLM conversation via thread handle
 """
 
 import logging
@@ -312,6 +313,72 @@ def create_thread(
 
 
 # ===================================================================
+# Tool 7: ask_llm_stateful
+# ===================================================================
+
+def tool_ask_llm_stateful(
+    thread_handle: str,
+    message: str,
+    purpose: str = "interactive",
+    client_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Stateful LLM conversation turn via thread handle.
+
+    Validates the handle, assembles context from thread history,
+    calls the LLM, and appends user+assistant nodes to the thread's DAG.
+
+    Args:
+        thread_handle: Plaintext thread handle for authentication.
+        message: User message text.
+        purpose: 'interactive' or 'background'.
+        client_id: MCP client ID (for tracing).
+
+    Returns dict with response, node_id, thread_id, tokens_in,
+    tokens_out, model, provider. Or error dict on failure.
+    """
+    params = {"message": message, "purpose": purpose}
+
+    if not message or not message.strip():
+        return {"error": "invalid_request", "message": "Empty message"}
+
+    def _impl():
+        try:
+            from episodic.mcp.threads import validate_thread_handle
+            from episodic.mcp.stateful import ask_llm_stateful as _ask
+        except ImportError:
+            return {"error": "unavailable", "message": "Stateful module not available"}
+
+        try:
+            conn = _get_db_connection()
+            try:
+                # Validate handle (requires write permission)
+                handle_info = validate_thread_handle(
+                    conn, thread_handle, required_permission="write"
+                )
+                if handle_info is None:
+                    return {
+                        "error": "forbidden",
+                        "message": "Invalid, revoked, or insufficient permissions",
+                    }
+
+                result = _ask(
+                    conn,
+                    thread_id=handle_info["thread_id"],
+                    client_id=handle_info["client_id"],
+                    message=message,
+                    purpose=purpose,
+                )
+                return result
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("ask_llm_stateful failed: %s", e)
+            return {"error": "unavailable", "message": str(e)}
+
+    return _trace_call("ask_llm_stateful", client_id, params, _impl)
+
+
+# ===================================================================
 # Registration helper — called by server.py
 # ===================================================================
 
@@ -373,4 +440,27 @@ def register_tools(server) -> None:
         """
         return create_thread(
             background_influences_topics=background_influences_topics,
+        )
+
+    @server.tool()
+    def mcp_ask_llm_stateful(
+        thread_handle: str,
+        message: str,
+        purpose: str = "interactive",
+    ) -> Dict[str, Any]:
+        """Send a message in a stateful conversation thread.
+
+        Validates the thread handle, assembles context from the thread's
+        conversation history, calls the LLM, and appends user+assistant
+        nodes to the thread's DAG.
+
+        Args:
+            thread_handle: Thread handle from create_thread.
+            message: User message text.
+            purpose: 'interactive' or 'background' (default 'interactive').
+        """
+        return tool_ask_llm_stateful(
+            thread_handle=thread_handle,
+            message=message,
+            purpose=purpose,
         )

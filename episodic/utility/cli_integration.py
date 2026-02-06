@@ -70,7 +70,7 @@ def get_scheduler() -> Scheduler:
 
 def _handle_task_fire(task, result) -> None:
     """Handle a timer/alarm/reminder firing — display output and play sound."""
-    from ..unified_streaming import unified_stream_text
+    from ..color_utils import secho_color
     from ..configuration import get_system_color
     from .speech import SpeechGenerator
 
@@ -95,8 +95,8 @@ def _handle_task_fire(task, result) -> None:
 
     display_text, speech_text = generator.generate(command, values)
 
-    # Print to terminal
-    unified_stream_text(display_text, color=get_system_color(), enable_tts=False)
+    # Print to terminal directly (not through word tokenizer)
+    secho_color(display_text, fg=get_system_color())
 
     # TTS if voice mode enabled
     if config.get("voice_mode") and config.get("voice_tts_enabled", True):
@@ -533,8 +533,8 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
 
 
 def display_utility_result(result: UtilityResult) -> None:
-    """Display utility result using Episodic's standard output mechanism."""
-    from ..unified_streaming import unified_stream_text
+    """Display utility result directly (no word tokenizer)."""
+    from ..color_utils import secho_color
     from ..configuration import get_system_color
 
     if result.status == ResultStatus.OK:
@@ -555,7 +555,10 @@ def display_utility_result(result: UtilityResult) -> None:
             display_text = result.display_text or "Done"
             speech_text = result.speech_text or display_text
 
-        unified_stream_text(display_text, color=get_system_color(), enable_tts=False)
+        # Print directly — utility text is pre-formatted and short,
+        # the streaming word tokenizer destroys emoji spacing
+        color = get_system_color()
+        secho_color(display_text, fg=color)
 
         # TTS if voice mode enabled
         if config.get("voice_mode") and config.get("voice_tts_enabled", True):
@@ -565,16 +568,13 @@ def display_utility_result(result: UtilityResult) -> None:
             if voice_manager.is_active:
                 voice_manager.speak(speech_text)
     elif result.status == ResultStatus.ERROR:
-        # Display error
         error_msg = result.error_message or "An error occurred"
-        unified_stream_text(f"Error: {error_msg}", color="red", enable_tts=False)
+        secho_color(f"Error: {error_msg}", fg="red")
     elif result.status == ResultStatus.CONFIRM:
-        # Display confirmation prompt
         text = result.display_text or "Confirm?"
-        unified_stream_text(text, color="yellow", enable_tts=False)
+        secho_color(text, fg="yellow")
     elif result.status == ResultStatus.FALLBACK:
-        # Fall back to LLM (shouldn't happen for CLI commands)
-        unified_stream_text("Command not understood", color="yellow", enable_tts=False)
+        secho_color("Command not understood", fg="yellow")
 
 
 def is_utility_command(cmd: str) -> bool:

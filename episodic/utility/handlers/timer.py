@@ -224,13 +224,18 @@ def handle_timer_set(
 
     # Create callback for when timer fires
     def timer_callback() -> TaskResult:
-        # Update timer status
-        if conn:
-            _update_timer_status(conn, timer_id, "expired")
-
-        # Play sound
+        # Play sound first (before DB which may fail)
         if audio_player:
             audio_player.play_timer(label)
+
+        # Update timer status with a fresh connection
+        # (the original conn is closed by the time the timer fires)
+        try:
+            from ...db_connection import get_connection
+            with get_connection() as fresh_conn:
+                _update_timer_status(fresh_conn, timer_id, "expired")
+        except Exception:
+            pass
 
         return TaskResult(
             status=TaskStatus.COMPLETED,
@@ -386,16 +391,10 @@ def handle_timer_status(
         tasks = scheduler.list_pending(TaskType.TIMER)
         timers = [{"task_id": t.id, "label": t.label} for t in tasks]
 
-    if not timers:
-        return UtilityResult.ok(
-            display="No active timers",
-            speech="No active timers",
-            timers=[],
-        )
-
-    # Build response
+    # Build response, filtering out expired timers
     lines = []
     timer_data = []
+    expired_ids = []
 
     for timer in timers:
         task_id = timer.get("task_id")
@@ -409,12 +408,16 @@ def handle_timer_status(
         status = timer.get("status", "active")
         timer_label = timer.get("label")
 
+        # Skip expired timers and clean them up
+        if status != "paused" and (remaining is None or remaining <= 0):
+            if conn and timer.get("id"):
+                expired_ids.append(timer["id"])
+            continue
+
         if status == "paused":
             time_str = f"paused ({_format_time_remaining(remaining or 0)} remaining)"
-        elif remaining is not None and remaining > 0:
-            time_str = _format_time_remaining(remaining)
         else:
-            time_str = "done"
+            time_str = f"{_format_time_remaining(remaining)} remaining"
 
         if timer_label:
             lines.append(f"  {timer_label}: {time_str}")
@@ -428,25 +431,34 @@ def handle_timer_status(
             "status": status,
         })
 
-    if len(timers) == 1:
-        timer = timers[0]
-        remaining = timer_data[0]["remaining_s"]
-        timer_label = timer.get("label")
+    # Clean up expired timers in DB
+    for timer_id in expired_ids:
+        _update_timer_status(conn, timer_id, "expired")
 
-        if timer_data[0]["status"] == "paused":
+    if not timer_data:
+        return UtilityResult.ok(
+            display="No active timers",
+            speech="No active timers",
+            timers=[],
+        )
+
+    if len(timer_data) == 1:
+        entry = timer_data[0]
+        remaining = entry["remaining_s"]
+        timer_label = entry["label"]
+
+        if entry["status"] == "paused":
             if timer_label:
                 speech = f"{timer_label} timer paused with {_format_time_remaining(remaining or 0)} remaining"
             else:
                 speech = f"Timer paused with {_format_time_remaining(remaining or 0)} remaining"
-        elif remaining and remaining > 0:
+        else:
             if timer_label:
                 speech = f"{timer_label} timer has {_format_time_remaining(remaining)} remaining"
             else:
                 speech = f"{_format_time_remaining(remaining)} remaining"
-        else:
-            speech = "Timer done"
     else:
-        speech = f"You have {len(timers)} active timer{'s' if len(timers) != 1 else ''}"
+        speech = f"You have {len(timer_data)} active timer{'s' if len(timer_data) != 1 else ''}"
 
     display = "Timers:\n" + "\n".join(lines)
 

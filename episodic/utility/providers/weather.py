@@ -349,7 +349,7 @@ class WeatherProvider(DataProvider):
 
             speech_text = f"{temp} degrees and {condition} in {city}. High of {high}, low of {low}."
             display_text = (
-                f"{emoji}  {city}: {temp}{unit_symbol} {condition.title()}\n"
+                f"{emoji}\u00a0\u00a0{city}: {temp}{unit_symbol} {condition.title()}\n"
                 f"   High: {high}° Low: {low}° Humidity: {humidity}%"
             )
 
@@ -431,14 +431,14 @@ class WeatherProvider(DataProvider):
 
             # Build speech and display text
             speech_parts = [f"Forecast for {city}."]
-            display_lines = [f"📅  {city} Forecast"]
+            display_lines = [f"📅\u00a0\u00a0{city} Forecast"]
 
             for f in forecast_list[:3]:  # Speak first 3 days
                 speech_parts.append(f"{f['date']}: {f['condition']}, high of {f['high']}, low of {f['low']}.")
 
             for f in forecast_list:
                 display_lines.append(
-                    f"   {f['emoji']}  {f['date']}: {f['high']}{unit_symbol}/{f['low']}{unit_symbol} {f['condition'].title()}"
+                    f"   {f['emoji']}\u00a0\u00a0{f['date']}: {f['high']}{unit_symbol}/{f['low']}{unit_symbol} {f['condition'].title()}"
                 )
 
             speech_text = " ".join(speech_parts)

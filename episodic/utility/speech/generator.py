@@ -68,6 +68,11 @@ class SpeechGenerator:
             # No templates - fall back to existing speech_text or display_text
             fallback_display = values.get("display_text", "Done")
             fallback_speech = values.get("speech_text", fallback_display)
+            # Still apply emoji if available
+            result_emoji = values.get("emoji")
+            emoji = get_emoji(command, result_emoji)
+            if emoji:
+                fallback_display = f"{emoji}\u00a0\u00a0{fallback_display}"
             return (fallback_display, fallback_speech)
 
         # Select template avoiding recent ones
@@ -101,9 +106,10 @@ class SpeechGenerator:
         result_emoji = values.get("emoji")
         emoji = get_emoji(command, result_emoji)
 
-        # Combine emoji and display text
+        # Combine emoji and display text using non-breaking spaces so
+        # the streaming formatter doesn't collapse them
         if emoji:
-            display_text = f"{emoji}  {display_text}"
+            display_text = f"{emoji}\u00a0\u00a0{display_text}"
 
         return (display_text, speech_text)
 

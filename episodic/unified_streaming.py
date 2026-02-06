@@ -240,9 +240,12 @@ def unified_stream_response(
                 complete_text = accumulated_text[:last_break + 1]
                 remaining_text = accumulated_text[last_break + 1:]
                 
-                # Split complete text into words, preserving structure
+                # Split complete text into words, preserving structure.
+                # Use [ \t\n\r] instead of \s so that non-breaking spaces
+                # (\xa0) stay embedded in word tokens and survive to the
+                # terminal — e.g. "⏱️\xa0\xa0Timer" prints as one unit.
                 import re
-                words = re.split(r'(\s+)', complete_text)
+                words = re.split(r'([ \t\n\r]+)', complete_text)
                 
                 for word in words:
                     if word:  # Skip empty strings from split
@@ -323,7 +326,7 @@ def unified_stream_response(
     if accumulated_text.strip():
         # Split remaining text into words and process with wrapping
         import re
-        remaining_words = re.split(r'(\s+)', accumulated_text)
+        remaining_words = re.split(r'([ \t\n\r]+)', accumulated_text)
         for word in remaining_words:
             if word and not word.isspace():  # Skip empty strings and whitespace
                 current_position, line_start, in_bold, in_numbered_list, in_list_item, in_header = \

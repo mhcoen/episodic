@@ -299,6 +299,22 @@ def handle_repeat(
     )
 
 
+def _format_ago(dt: datetime) -> str:
+    """Format a datetime as a human-readable 'ago' string."""
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    delta = now - dt
+    seconds = int(delta.total_seconds())
+    if seconds < 60:
+        return "just now"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours}h ago"
+    return f"{hours // 24}d ago"
+
+
 def handle_status(
     query: UtilityQuery,
     scheduler=None,
@@ -309,23 +325,24 @@ def handle_status(
     """
     Handle status command.
 
-    Shows what's playing first, then active timers, alarms.
+    Shows active timers/alarms, media, and data provider status.
     """
     from ..scheduler import TaskType
 
-    status_parts = []
+    sections = []
     data = {}
+
+    # --- Active items ---
 
     # Media adapters (show what's playing first)
     if media_adapters:
         for name, adapter in media_adapters.items():
             try:
                 if hasattr(adapter, "is_playing") and adapter.is_playing():
-                    # Try to get what's playing (e.g., station name for radio)
                     playing_info = name
                     if hasattr(adapter, "_current_station") and adapter._current_station:
                         playing_info = adapter._current_station.get("name", name)
-                    status_parts.append(f"Playing: {playing_info}")
+                    sections.append(f"Playing: {playing_info}")
                     data[f"{name}_playing"] = True
                     data[f"{name}_info"] = playing_info
             except Exception:
@@ -333,51 +350,61 @@ def handle_status(
 
     # Audio playing
     if audio_player and audio_player.is_playing():
-        status_parts.append("Audio: playing")
+        sections.append("Audio: playing")
         data["audio_playing"] = True
 
     # Active timers
     if scheduler:
         timers = scheduler.list_pending(TaskType.TIMER)
         if timers:
-            timer_strs = []
             for t in timers:
                 remaining = scheduler.get_timer_remaining(t.id)
                 if remaining is not None:
-                    if t.label:
-                        timer_strs.append(f"{t.label}: {_format_remaining(remaining)}")
-                    else:
-                        timer_strs.append(_format_remaining(remaining))
-            if timer_strs:
-                status_parts.append(f"Timers: {', '.join(timer_strs)}")
-                data["timers"] = len(timers)
+                    label = f"{t.label}: " if t.label else ""
+                    sections.append(f"Timer: {label}{_format_remaining(remaining)} remaining")
+            data["timers"] = len(timers)
 
     # Active alarms
     if scheduler:
         alarms = scheduler.list_pending(TaskType.ALARM)
         if alarms:
-            alarm_strs = []
             for a in alarms:
                 time_str = a.next_run_wall.strftime("%I:%M %p").lstrip("0")
-                if a.label:
-                    alarm_strs.append(f"{a.label} at {time_str}")
-                else:
-                    alarm_strs.append(time_str)
-            if alarm_strs:
-                status_parts.append(f"Alarms: {', '.join(alarm_strs)}")
-                data["alarms"] = len(alarms)
+                label = f"{a.label} at " if a.label else ""
+                sections.append(f"Alarm: {label}{time_str}")
+            data["alarms"] = len(alarms)
 
     # DND status
     if scheduler and scheduler.is_dnd_active():
-        status_parts.append("DND: active")
+        sections.append("Do Not Disturb: on")
         data["dnd_active"] = True
 
-    if status_parts:
-        display = "\n".join(status_parts)
-        if len(status_parts) == 1:
-            speech = status_parts[0]
-        else:
-            speech = f"You have {len(status_parts)} active items"
+    # --- Data providers ---
+    try:
+        from ..data_refresh import get_data_refresh_scheduler
+        refresh_scheduler = get_data_refresh_scheduler()
+        refresh_status = refresh_scheduler.status()
+
+        if refresh_status.get("running"):
+            for key, job in refresh_status.get("jobs", {}).items():
+                last = job.get("last_refresh")
+                errors = job.get("error_count", 0)
+                provider_name = job.get("provider", key)
+
+                if last:
+                    dt = datetime.fromisoformat(last)
+                    sections.append(f"{provider_name.title()}: updated {_format_ago(dt)}")
+                elif errors > 0:
+                    sections.append(f"{provider_name.title()}: unavailable")
+                else:
+                    sections.append(f"{provider_name.title()}: pending")
+    except Exception:
+        pass
+
+    # --- Build output ---
+    if sections:
+        display = "\n".join(sections)
+        speech = f"You have {len(sections)} status items" if len(sections) > 1 else sections[0]
     else:
         display = "Nothing active"
         speech = "Nothing active"

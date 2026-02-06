@@ -288,9 +288,14 @@ def handle_remind_set(
 
     # Create callback for when reminder fires
     def reminder_callback() -> TaskResult:
-        # Update reminder status
-        if conn:
-            _disable_reminder(conn, reminder_id)
+        # Update reminder status with a fresh connection
+        # (the original conn is closed by the time the reminder fires)
+        try:
+            from ...db_connection import get_connection
+            with get_connection() as fresh_conn:
+                _disable_reminder(fresh_conn, reminder_id)
+        except Exception:
+            pass
 
         # Speak reminder
         if tts_engine:

@@ -130,10 +130,7 @@ TEMPLATES: Dict[str, List[tuple]] = {
         ("I've saved that.", "Note saved."),
     ],
 
-    "status": [
-        ("Here's what's active.", "Status check."),
-        ("Current status:", "Here's what's happening."),
-    ],
+    # Status: no templates — handler builds display with actual timer/alarm data
 
     # Weather templates - emoji comes from result data
     # Note: {condition} should be capitalized by generator

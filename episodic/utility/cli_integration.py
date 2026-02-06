@@ -63,8 +63,50 @@ def get_scheduler() -> Scheduler:
         conn.row_factory = sqlite3.Row
 
         _scheduler = Scheduler(conn=conn, user_tz=user_tz)
+        _scheduler._on_task_fire = _handle_task_fire
         _scheduler.start()
     return _scheduler
+
+
+def _handle_task_fire(task, result) -> None:
+    """Handle a timer/alarm/reminder firing — display output and play sound."""
+    from ..unified_streaming import unified_stream_text
+    from ..configuration import get_system_color
+    from .speech import SpeechGenerator
+
+    generator = SpeechGenerator.get_instance()
+
+    # Determine command name for speech templates
+    task_type_str = task.task_type.value  # "timer", "alarm", "reminder"
+    has_label = bool(task.label)
+
+    if task_type_str == "timer":
+        command = "timer_fired"
+    elif task_type_str == "alarm":
+        command = "alarm_fired"
+    elif task_type_str == "reminder":
+        command = "reminder_fired"
+    else:
+        command = f"{task_type_str}_fired"
+
+    values = {"_command": command, "label": task.label or ""}
+    if task_type_str == "reminder" and task.label:
+        values["text"] = task.label
+
+    display_text, speech_text = generator.generate(command, values)
+
+    # Print to terminal
+    unified_stream_text(display_text, color=get_system_color(), enable_tts=False)
+
+    # TTS if voice mode enabled
+    if config.get("voice_mode") and config.get("voice_tts_enabled", True):
+        try:
+            from ..voice import get_voice_manager
+            voice_manager = get_voice_manager()
+            if voice_manager.is_active:
+                voice_manager.speak(speech_text)
+        except Exception:
+            pass
 
 
 def get_audio_player() -> AudioPlayerImpl:
@@ -503,7 +545,12 @@ def display_utility_result(result: UtilityResult) -> None:
         command = result.data.get("_command", "")
 
         if command and result.data:
-            display_text, speech_text = generator.generate(command, result.data)
+            # Include display/speech text so the generator fallback
+            # path can use them for commands without templates
+            values = dict(result.data)
+            values.setdefault("display_text", result.display_text)
+            values.setdefault("speech_text", result.speech_text)
+            display_text, speech_text = generator.generate(command, values)
         else:
             display_text = result.display_text or "Done"
             speech_text = result.speech_text or display_text

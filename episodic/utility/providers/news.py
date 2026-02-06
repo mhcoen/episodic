@@ -331,10 +331,10 @@ class NewsProvider(DataProvider):
     def _build_display(self, headlines: List[Dict[str, Any]], category: str = "general") -> str:
         """Build display text from headlines."""
         if not headlines:
-            return "📰  No headlines available."
+            return "📰\u00a0\u00a0No headlines available."
 
         category_title = category.title() if category != "general" else ""
-        header = f"📰  {category_title} Headlines" if category_title else "📰  Headlines"
+        header = f"📰\u00a0\u00a0{category_title} Headlines" if category_title else "📰\u00a0\u00a0Headlines"
         lines = [header, ""]
 
         for i, h in enumerate(headlines, 1):

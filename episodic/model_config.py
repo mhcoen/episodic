@@ -66,9 +66,34 @@ class ModelConfig:
         return self._models_data.get("providers", {}).get(provider, {})
     
     def get_provider_models(self, provider: str) -> List[Dict[str, Any]]:
-        """Get list of models for a provider."""
+        """Get list of models for a provider, merged with template.
+
+        Uses template ordering as canonical. For each template model,
+        the user's version is preferred (in case they customized it).
+        User models not in the template are appended at the end.
+        """
         provider_config = self.get_provider_config(provider)
-        return provider_config.get("models", [])
+        user_models = provider_config.get("models", [])
+        user_by_name = {m.get("name"): m for m in user_models}
+
+        template_models = self._get_template_provider_models(provider)
+        if not template_models:
+            return user_models
+
+        # Template order first, preferring user's version if it exists
+        template_names = set()
+        merged = []
+        for tm in template_models:
+            name = tm.get("name")
+            template_names.add(name)
+            merged.append(user_by_name.get(name, tm))
+
+        # Append any user models not in the template
+        for um in user_models:
+            if um.get("name") not in template_names:
+                merged.append(um)
+
+        return merged
     
     def get_all_providers(self) -> Dict[str, Any]:
         """Get all provider configurations."""
@@ -119,6 +144,23 @@ class ModelConfig:
         except Exception:
             return None
     
+    def _get_template_provider_models(self, provider: str) -> List[Dict[str, Any]]:
+        """Get all models for a provider from the template file."""
+        try:
+            package_dir = Path(__file__).parent
+            template_path = package_dir / "models_template.json"
+
+            if not template_path.exists():
+                return []
+
+            with open(template_path, 'r') as f:
+                template_data = json.load(f)
+
+            provider_config = template_data.get("providers", {}).get(provider, {})
+            return provider_config.get("models", [])
+        except Exception:
+            return []
+
     def detect_model_type(self, model_name: str) -> str:
         """Detect model type using patterns and known models."""
         model_lower = model_name.lower()

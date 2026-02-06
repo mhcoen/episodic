@@ -145,6 +145,44 @@
           "recommended_for": ["chat", "detection", "synthesis"]
         },
         {
+          "name": "gpt-5.3-codex",
+          "display_name": "GPT-5.3 Codex",
+          "type": "chat",
+          "parameters": null,
+          "context_window": 400000,
+          "pricing": {
+            "input": 1.75,
+            "output": 14.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-02-05",
+            "_note": "Estimated from GPT-5.2-Codex pricing; official API pricing not yet published"
+          },
+          "creator": "OpenAI",
+          "released": "February 2026",
+          "description": "OpenAI's most capable coding model. 25% faster than GPT-5.2-Codex. 77.3% Terminal-Bench 2.0, 64.7% OSWorld, 81.4% SWE-Lancer IC Diamond. First OpenAI model rated 'High capability' for cybersecurity. Agentic multi-file coding with interactive steering, terminal interactions, and self-directed testing. API access coming soon.",
+          "strengths": [
+            "77.3% Terminal-Bench 2.0",
+            "81.4% SWE-Lancer IC Diamond",
+            "25% faster than GPT-5.2-Codex",
+            "400K context, 128K output"
+          ],
+          "weaknesses": [
+            "Coding-specialized (not general-purpose)",
+            "API access not yet available",
+            "Pricing estimated"
+          ],
+          "recommended_for": ["synthesis"],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "reasoning_effort": {
+                "options": ["low", "medium", "high", "xhigh"],
+                "default": "medium"
+              }
+            }
+          }
+        },
+        {
           "name": "gpt-5.2",
           "display_name": "GPT-5.2",
           "type": "chat",
@@ -190,6 +228,43 @@
       "display_name": "Anthropic",
       "models": [
         {
+          "name": "claude-opus-4-6",
+          "display_name": "Claude Opus 4.6",
+          "type": "both",
+          "parameters": null,
+          "context_window": 200000,
+          "pricing": {
+            "input": 5.0,
+            "output": 25.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-02-05"
+          },
+          "creator": "Anthropic",
+          "released": "February 2026",
+          "description": "Anthropic's most capable model. 128K max output (doubled from 4.5). Adaptive thinking replaces extended thinking with effort levels (low/medium/high/max). 68.8% ARC-AGI-2 (up from 37.6%), 65.4% Terminal-Bench 2.0, 72.7% OSWorld. 1M context available in beta. Compaction API for effectively infinite conversations.",
+          "strengths": [
+            "68.8% ARC-AGI-2 (up from 37.6%)",
+            "128K max output tokens",
+            "Adaptive thinking with effort control",
+            "1M context (beta), compaction API"
+          ],
+          "weaknesses": [
+            "Higher cost than Sonnet",
+            "Prefilling removed (breaking change)"
+          ],
+          "recommended_for": ["chat", "detection", "synthesis"],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "thinking": {
+                "type": "adaptive",
+                "effort_options": ["low", "medium", "high", "max"],
+                "default_effort": "high"
+              }
+            }
+          }
+        },
+        {
           "name": "claude-opus-4-5-20251101",
           "display_name": "Claude Opus 4.5",
           "type": "both",
@@ -203,7 +278,7 @@
           },
           "creator": "Anthropic",
           "released": "November 2025",
-          "description": "Anthropic's most intelligent model. Only Claude with 'effort' parameter - control reasoning depth (high/medium/low) to trade thoroughness for speed. Step-change improvements in reasoning, coding, and complex problem-solving. Priced at 1/3 of Opus 4.1 while delivering better performance.",
+          "description": "Previous Opus generation with effort parameter for reasoning depth control. Step-change improvements over Opus 4.1 in reasoning, coding, and problem-solving. Priced at 1/3 of Opus 4.1. Superseded by Opus 4.6 which doubles max output to 128K and adds adaptive thinking.",
           "strengths": [
             "Effort parameter (control reasoning depth)",
             "1/3 the price of Opus 4.1",
@@ -211,8 +286,8 @@
             "200K context window"
           ],
           "weaknesses": [
-            "Higher cost than Sonnet",
-            "May be overkill for routine tasks"
+            "Superseded by Opus 4.6",
+            "64K max output (vs 128K in 4.6)"
           ],
           "recommended_for": ["chat", "detection", "synthesis"]
         },

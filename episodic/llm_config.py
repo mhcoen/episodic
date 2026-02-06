@@ -77,10 +77,13 @@ def get_available_providers() -> Dict[str, Any]:
     return PROVIDER_CONFIG.copy()
 
 def get_provider_models(provider: str) -> list:
-    """Get available models for a specific provider."""
-    if provider not in PROVIDER_CONFIG:
-        return []
-    return PROVIDER_CONFIG[provider].get("models", [])
+    """Get available models for a specific provider.
+
+    Delegates to ModelConfig which merges user config with the
+    bundled template so new models appear for existing users.
+    """
+    model_config = get_model_config()
+    return model_config.get_provider_models(provider)
 
 def get_provider_config(provider: str) -> Dict[str, Any]:
     """Get configuration for a specific provider."""

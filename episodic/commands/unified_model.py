@@ -569,24 +569,21 @@ def show_model_info(model_number: int):
 
 def get_pricing_for_model(model_name: str, provider_name: str, hf_index: Optional[int] = None) -> str:
     """Get pricing information for a model."""
-    # First check if we have custom pricing in models.json
-    from episodic.model_utils import get_models_config
-    models_data = get_models_config()
-    
-    # Search for the model in models.json
-    for provider_key, provider_data in models_data.get('providers', {}).items():
-        for model in provider_data.get('models', []):
-            if model.get('name') == model_name:
-                pricing = model.get('pricing')
-                if pricing:
-                    input_cost = pricing.get('input', 0)
-                    output_cost = pricing.get('output', 0)
-                    if input_cost > 0 or output_cost > 0:
-                        unit = pricing.get('unit', 'per_1k_tokens')
-                        if unit == 'per_1m_tokens':
-                            return f"${input_cost:.2f}/1M in, ${output_cost:.2f}/1M out"
-                        else:  # per_1k_tokens
-                            return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
+    # First check if we have pricing in models config (user + template fallback)
+    from episodic.model_config import get_model_config
+    mc = get_model_config()
+    model_info = mc.get_model_info(provider_name, model_name)
+    if model_info:
+        pricing = model_info.get('pricing')
+        if pricing:
+            input_cost = pricing.get('input', 0)
+            output_cost = pricing.get('output', 0)
+            if input_cost > 0 or output_cost > 0:
+                unit = pricing.get('unit', 'per_1k_tokens')
+                if unit == 'per_1m_tokens':
+                    return f"${input_cost:.2f}/1M in, ${output_cost:.2f}/1M out"
+                else:  # per_1k_tokens
+                    return f"${input_cost*1000:.2f}/1M in, ${output_cost*1000:.2f}/1M out"
     
     # Check if this is an OpenRouter model
     if model_name.startswith("openrouter/"):

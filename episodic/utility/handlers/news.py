@@ -80,7 +80,7 @@ def handle_news_topic(
     if not category:
         return UtilityResult.error(
             "missing_category",
-            "Which news category? Try: tech, business, science, health, sports, entertainment"
+            "Which news category? Try: general, tech, business, science, health, politics, world"
         )
 
     count = query.args.get("count", 5)

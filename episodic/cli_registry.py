@@ -661,7 +661,7 @@ def show_assistant_help():
         ("/remind", "List active reminders"),
         ("/weather [location]", "Get current weather"),
         ("/forecast [location]", "Get weather forecast"),
-        ("/news [category]", "Get news headlines (general, tech, business, sports)"),
+        ("/news [category]", "Get news headlines (general, tech, business, science, health, politics, world)"),
         ("/calc <expression>", "Calculate expression (e.g., /calc 15% of 85)"),
         ("/note <text>", "Add a note"),
         ("/note", "List all notes"),

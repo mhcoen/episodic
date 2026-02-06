@@ -1193,10 +1193,10 @@ class EpisodicCompleter(Completer):
                 'general': 'General news',
                 'technology': 'Tech news',
                 'business': 'Business news',
-                'sports': 'Sports news',
-                'entertainment': 'Entertainment news',
                 'health': 'Health news',
                 'science': 'Science news',
+                'politics': 'Political news',
+                'world': 'World news',
             }
             for cat, desc in categories.items():
                 if cat.startswith(word.lower()):

@@ -58,9 +58,11 @@ def mcp_command(action: str = None, *args: str) -> None:
         mcp_stop()
     elif action == "token":
         mcp_token(list(args))
+    elif action == "traces":
+        mcp_traces(list(args))
     else:
         typer.secho(f"Unknown MCP action: {action}", fg=get_error_color())
-        typer.secho("Usage: /mcp [start|stop|status|token]", fg=get_text_color())
+        typer.secho("Usage: /mcp [start|stop|status|token|traces]", fg=get_text_color())
 
 
 def mcp_status() -> None:
@@ -334,3 +336,58 @@ def mcp_token_list() -> None:
             f"scopes={scopes}  created={tok['created_at']}",
             fg=get_text_color(),
         )
+
+
+# ---------------------------------------------------------------------------
+# Trace viewing
+# ---------------------------------------------------------------------------
+
+def mcp_traces(args: List[str]) -> None:
+    """Show recent MCP traces."""
+    from episodic.mcp.trace import get_traces
+
+    limit = 20
+    tool_filter = None
+
+    # Parse args
+    i = 0
+    while i < len(args):
+        if args[i] == "--limit" and i + 1 < len(args):
+            i += 1
+            try:
+                limit = int(args[i])
+            except ValueError:
+                typer.secho(f"Invalid limit: {args[i]}", fg=get_error_color())
+                return
+        elif args[i] == "--tool" and i + 1 < len(args):
+            i += 1
+            tool_filter = args[i]
+        i += 1
+
+    conn = _get_db_connection()
+    try:
+        traces = get_traces(conn, limit=limit, tool_name=tool_filter)
+    finally:
+        conn.close()
+
+    if not traces:
+        typer.secho("No MCP traces recorded.", fg=get_text_color())
+        return
+
+    typer.secho(f"Recent MCP Traces ({len(traces)}):", fg=get_heading_color(), bold=True)
+    for t in traces:
+        status_color = get_success_color() if t["status"] == "ok" else get_error_color()
+        dur = t.get("duration_ms", 0)
+        ts = t.get("timestamp_start", "?")
+        if len(ts) > 19:
+            ts = ts[:19]  # Trim to datetime without tz for display
+        typer.secho(
+            f"  {ts}  {t['tool_name']:<25}  "
+            f"{t['status']:<5}  {dur}ms",
+            fg=status_color,
+        )
+        if t.get("error_code"):
+            typer.secho(
+                f"    error: {t['error_code']}: {t.get('message_safe', '')}",
+                fg=get_error_color(), dim=True,
+            )

@@ -1,10 +1,11 @@
-"""Tests for MCP auth migration m021."""
+"""Tests for MCP migrations m021 and m022."""
 
 import sqlite3
 
 import pytest
 
 from episodic.migrations.m021_mcp_auth_tables import migration
+from episodic.migrations.m022_mcp_traces import migration as m022_migration
 
 
 class TestMcpAuthMigration:
@@ -69,3 +70,72 @@ class TestMcpAuthMigration:
                 "INSERT INTO mcp_cost_accounting (client_id, date, total_cost) "
                 "VALUES ('c1', '2025-01-01', 2.0)"
             )
+
+
+class TestMcpTracesMigration:
+    """Tests for m022_mcp_traces migration."""
+
+    @pytest.fixture
+    def db(self):
+        conn = sqlite3.connect(":memory:")
+        yield conn
+        conn.close()
+
+    def test_migration_version(self):
+        assert m022_migration.version == 22
+
+    def test_up_creates_mcp_traces(self, db):
+        m022_migration.up(db)
+        cursor = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_traces'"
+        )
+        assert cursor.fetchone() is not None
+
+    def test_up_creates_indices(self, db):
+        m022_migration.up(db)
+        indices = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='mcp_traces'"
+        ).fetchall()
+        index_names = [i[0] for i in indices]
+        assert "idx_traces_timestamp" in index_names
+        assert "idx_traces_tool" in index_names
+        assert "idx_traces_client" in index_names
+
+    def test_up_is_idempotent(self, db):
+        m022_migration.up(db)
+        m022_migration.up(db)  # Should not raise
+
+    def test_down_removes_table(self, db):
+        m022_migration.up(db)
+        m022_migration.down(db)
+        cursor = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='mcp_traces'"
+        )
+        assert cursor.fetchone() is None
+
+    def test_traces_table_schema(self, db):
+        m022_migration.up(db)
+        cursor = db.execute("PRAGMA table_info(mcp_traces)")
+        columns = {row[1] for row in cursor.fetchall()}
+        required = {
+            "trace_id", "schema_version", "timestamp_start", "timestamp_end",
+            "duration_ms", "direction", "tool_name", "status",
+            "input_hash", "input_size_bytes", "output_hash", "output_size_bytes",
+            "origin", "purpose", "request_id",
+        }
+        assert required.issubset(columns)
+
+    def test_insert_trace_row(self, db):
+        m022_migration.up(db)
+        db.execute(
+            "INSERT INTO mcp_traces "
+            "(trace_id, timestamp_start, timestamp_end, duration_ms, direction, "
+            "tool_name, origin, purpose, request_id, input_hash, input_size_bytes, "
+            "status, output_hash, output_size_bytes) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ("t1", "2024-01-01T00:00:00", "2024-01-01T00:00:01", 1000,
+             "server_tool_call", "get_topics", "mcp_server", "interactive",
+             "req-1", "abc", 100, "ok", "def", 200),
+        )
+        row = db.execute("SELECT * FROM mcp_traces WHERE trace_id='t1'").fetchone()
+        assert row is not None

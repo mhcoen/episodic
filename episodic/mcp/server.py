@@ -84,6 +84,10 @@ def create_server(name: str = "episodic"):
 
     server = FastMCP(name)
 
+    # Register read-only tools
+    from episodic.mcp.tools import register_tools
+    register_tools(server)
+
     # Register health endpoint on the underlying Starlette app
     from starlette.responses import JSONResponse
     from starlette.routing import Route

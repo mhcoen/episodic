@@ -260,12 +260,89 @@ All non-public endpoints require a valid bearer token. The middleware checks:
 
 Failed checks return 401 (missing header), 403 (invalid/revoked/expired), or 429 (cost limit).
 
+## Client Mode (Consuming External MCP Servers)
+
+Episodic can also act as an MCP *client*, connecting to external MCP servers to use their tools. This enables integration with filesystem servers, calendar servers, or any other MCP-compatible tool provider.
+
+### Configuring External Servers
+
+Add external servers to your configuration:
+
+```bash
+/set mcp_servers {"filesystem": {"command": "npx", "args": ["-y", "@anthropic/mcp-server-filesystem", "/path/to/allowed"], "env": {}, "lifecycle": "on-demand"}, "calendar": {"command": "python", "args": ["-m", "mcp_server_calendar"], "env": {"CALENDAR_TOKEN": "..."}, "lifecycle": "on-demand"}}
+```
+
+Or edit `~/.episodic/config.json` directly:
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-filesystem", "/path/to/allowed"],
+      "env": {},
+      "lifecycle": "on-demand"
+    },
+    "calendar": {
+      "command": "python",
+      "args": ["-m", "mcp_server_calendar"],
+      "env": {"CALENDAR_TOKEN": "..."},
+      "lifecycle": "on-demand"
+    }
+  }
+}
+```
+
+Each server entry has:
+
+| Key | Description |
+|-----|-------------|
+| `command` | Executable to run (e.g., `npx`, `python`, `node`) |
+| `args` | Command-line arguments |
+| `env` | Extra environment variables (merged with current environment) |
+| `lifecycle` | `on-demand` (connect when needed) or `persistent` (manual connect/disconnect) |
+
+### Managing External Servers
+
+```bash
+/mcp servers                    # List configured servers and their status
+/mcp connect <server_id>        # Connect to a server
+/mcp disconnect <server_id>     # Disconnect from a server
+/mcp tools                      # List all discovered tools from connected servers
+/mcp tools <server_id>          # List tools from a specific server
+```
+
+### Tool Namespacing
+
+Tools from external servers are namespaced as `server_id.tool_name` to prevent collisions:
+
+```
+filesystem.read_file
+filesystem.write_file
+filesystem.list_directory
+calendar.list_events
+calendar.create_event
+```
+
+### On-Demand Connections
+
+Servers configured with `"lifecycle": "on-demand"` are automatically connected when their tools are needed. You don't need to manually connect before calling a tool.
+
+### Tracing
+
+External tool calls are recorded in the trace log with `direction: client_tool_call` (as opposed to `server_tool_call` for incoming requests). View them with:
+
+```bash
+/mcp traces                     # Shows both server and client traces
+```
+
 ## Configuration Reference
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `mcp_port` | `51983` | Server port |
 | `mcp_host` | `127.0.0.1` | Server bind address |
+| `mcp_servers` | `{}` | External MCP servers to connect to (see Client Mode above) |
 | `EPISODIC_MCP_PORT` | `51983` | Environment variable override for port |
 | `EPISODIC_MCP_HOST` | `127.0.0.1` | Environment variable override for host |
 
@@ -301,6 +378,13 @@ Tables are auto-created on first use. No manual migration is needed.
 - **RAG not available**: Enable RAG with `/rag on` before using `search_knowledge` or `index_document`
 - **Memory not available**: The memory system initializes automatically but may not be ready immediately after startup
 - **Thread handle invalid**: Handles are single-use credentials — verify you saved the handle from `create_thread`
+
+### External server won't connect
+
+- **Server not found**: Verify the server is listed in `mcp_servers` config — check with `/mcp servers`
+- **Command not found**: Ensure the command (`npx`, `python`, etc.) is in your PATH
+- **Connection timeout**: The external server may not be starting properly — check the command and args
+- **MCP package missing**: The `mcp` package is required for client mode — install with `pip install "mcp>=1.26.0,<2.0.0"`
 
 ### Checking server health
 

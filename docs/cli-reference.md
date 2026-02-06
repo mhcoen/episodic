@@ -735,6 +735,20 @@ Manage the Model Context Protocol server for exposing Episodic tools to external
 /mcp traces --tool search_knowledge  # Filter by tool name
 ```
 
+### External Servers (Client Mode)
+
+Connect to external MCP servers to use their tools:
+
+```bash
+/mcp servers                    # List configured external servers and status
+/mcp connect <server_id>        # Connect to an external server
+/mcp disconnect <server_id>     # Disconnect from an external server
+/mcp tools                      # List all tools from connected servers
+/mcp tools <server_id>          # List tools from a specific server
+```
+
+Configure external servers in `~/.episodic/config.json` under the `mcp_servers` key. See the [MCP Server Guide](mcp-guide.md) for details.
+
 ### Available Tools
 
 | Tool | Description | Auth |

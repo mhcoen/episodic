@@ -23,7 +23,7 @@ I originally wrote this to fill a gap I couldn’t find addressed elsewhere. It 
 - **📎 File References (@file)** - Attach local files directly in chat messages
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
-- **🔌 MCP Server** - Hardened Model Context Protocol server exposing conversation memory to external AI clients, with token auth, traces, cost limits, and hash-only credential storage
+- **🔌 MCP Server & Client** - Hardened Model Context Protocol server exposing conversation memory to external AI clients, with token auth, traces, cost limits, and hash-only credential storage. Also acts as an MCP client to consume tools from external MCP servers
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
  If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation* ([arXiv:2512.17083](https://arxiv.org/abs/2512.17083)), see the [`paper/`](paper/) directory.
@@ -160,6 +160,13 @@ Episodic automatically configures itself based on available providers:
 /mcp token create <id>  # Create auth token for a client
 /mcp traces          # View recent tool call audit log
 
+# MCP Client (consume external MCP servers)
+/mcp servers         # List configured external servers and status
+/mcp connect <id>    # Connect to an external MCP server
+/mcp disconnect <id> # Disconnect from an external MCP server
+/mcp tools           # List all tools from connected servers
+/mcp tools <id>      # List tools from a specific server
+
 # Help
 /help            # See all commands
 /help <query>    # Search documentation (e.g., /help How do I use muse mode?)
@@ -177,7 +184,7 @@ Episodic automatically configures itself based on available providers:
 - **[Features](docs/features.md)** - Detailed feature documentation
 - **[CLI Reference](docs/cli-reference.md)** - All commands
 - **[Configuration](docs/configuration.md)** - Settings and options
-- **[MCP Server Guide](docs/mcp-guide.md)** - Setup, configuration, and usage of the MCP server
+- **[MCP Guide](docs/mcp-guide.md)** - MCP server setup, client mode for external servers, token auth, and tool access
 
 ## 🎯 Use Cases
 
@@ -575,7 +582,7 @@ Episodic uses a modular architecture:
 - **Context Recovery**: Topic-isolated context assembly with configurable modes (ancestry/topic_local/hybrid)
 - **RAG System**: Vector database using ChromaDB for document similarity search
 - **Web Search**: Pluggable provider system (DuckDuckGo, Google, Bing, Brave, Searx)
-- **MCP Server**: Model Context Protocol server with token auth, 9 tools, traces, and stateful threads
+- **MCP Server & Client**: Model Context Protocol server with token auth, 9 tools, traces, and stateful threads; MCP client for consuming external server tools
 
 ## 🧪 Testing
 

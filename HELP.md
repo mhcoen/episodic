@@ -214,6 +214,36 @@ The system prevents creating databases in the project directory:
 - `debug_print()` from `episodic/debug_utils.py` - Consolidated debug output
 - Respects the `debug` flag automatically
 
+## MCP Debugging
+
+### MCP Server Issues
+```bash
+/mcp status          # Check if server is running
+/mcp traces          # View recent tool call audit log
+```
+
+If the server won't start:
+- **Port in use**: Try `/mcp start --port 8080`
+- **MCP package missing**: Install with `pip install "mcp>=1.26.0,<2.0.0"`
+- **Stale pidfile**: `/mcp status` will detect and clean up stale pidfiles
+
+### MCP Client Issues (External Servers)
+```bash
+/mcp servers         # Check configured servers and connection status
+/mcp tools           # List discovered tools from connected servers
+```
+
+If an external server won't connect:
+- **Server not configured**: Verify it's listed in `mcp_servers` config — check with `/mcp servers`
+- **Command not found**: Ensure the command (`npx`, `python`, etc.) is in your PATH
+- **Connection timeout**: The external server may not be starting — check command and args
+- **MCP package missing**: Client mode requires `pip install "mcp>=1.26.0,<2.0.0"`
+
+### MCP Token Issues
+- Tokens are shown once on creation — if lost, create a new one with `/mcp token create <id>`
+- Check `/mcp token list` to verify the token hasn't been revoked
+- Ensure the `Authorization: Bearer <token>` header has no extra whitespace
+
 ## Troubleshooting Checklist
 
 1. **Commands not working**: Check `/help all` and verify command syntax
@@ -221,6 +251,8 @@ The system prevents creating databases in the project directory:
 3. **Model errors**: Verify API keys are set in environment
 4. **Web search failing**: Check provider configuration and API keys
 5. **Formatting issues**: Try `/set text-wrap off` temporarily
+6. **MCP server issues**: Check `/mcp status` and review `/mcp traces`
+7. **MCP client issues**: Check `/mcp servers` for connection status
 
 ## Adding New Debug Flags
 

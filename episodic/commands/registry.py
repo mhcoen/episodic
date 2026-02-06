@@ -338,7 +338,7 @@ def register_all_commands():
         from episodic.commands.mcp_cmd import mcp_command
         return mcp_command(*args, **kwargs)
 
-    command_registry.register("mcp", lazy_mcp_command, "Manage MCP server (start/stop/status)", "Configuration")
+    command_registry.register("mcp", lazy_mcp_command, "Manage MCP server and external MCP clients", "Configuration")
 
 
 # Don't initialize on import - will be called when needed

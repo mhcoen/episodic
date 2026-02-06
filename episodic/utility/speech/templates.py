@@ -21,7 +21,6 @@ EMOJI_MAP: Dict[str, str] = {
     "media_play": "\u25b6\ufe0f", # Play button
     "media_stop": "\u23f9\ufe0f", # Stop button
     "note_add": "\U0001f4dd",    # Memo
-    "status": "\U0001f4ca",      # Chart
 }
 
 

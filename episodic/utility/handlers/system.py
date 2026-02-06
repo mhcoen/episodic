@@ -62,7 +62,14 @@ def handle_stop(
         except Exception:
             pass
     else:
-        # No alarm/timer sounding - stop TTS and media
+        # No alarm/timer detected — try stopping audio anyway (catch-all)
+        if audio_player is not None:
+            try:
+                if audio_player.is_playing():
+                    audio_player.stop()
+                    stopped.append("audio")
+            except Exception:
+                pass
 
         # Stop TTS
         if tts_engine is not None:
@@ -76,12 +83,10 @@ def handle_stop(
         if media_adapters:
             for name, adapter in media_adapters.items():
                 try:
-                    # Check if adapter was playing
                     was_playing = False
                     playing_info = name
                     if hasattr(adapter, "is_playing"):
                         was_playing = adapter.is_playing()
-                    # Also check _current_station for radio adapter
                     if hasattr(adapter, "_current_station") and adapter._current_station:
                         was_playing = True
                         playing_info = adapter._current_station.get("name", name)
@@ -326,15 +331,29 @@ def handle_status(
     Handle status command.
 
     Shows active timers/alarms, media, and data provider status.
+    Output uses colon-aligned labels with no emoji prefix.
     """
     from ..scheduler import TaskType
 
-    sections = []
+    # Collect (label, value) pairs for colon-aligned display
+    items: List[tuple] = []
     data = {}
 
-    # --- Active items ---
+    # --- What's currently sounding? ---
+    if audio_player and audio_player.is_playing():
+        sound_info = None
+        if hasattr(audio_player, "get_current_sound_info"):
+            sound_info = audio_player.get_current_sound_info()
+        if sound_info:
+            sound_type, label = sound_info
+            kind = sound_type.value if sound_type else "sound"
+            desc = f"{label} {kind}" if label else kind
+            items.append(("Alert", f"{desc} (sounding)"))
+        else:
+            items.append(("Audio", "playing"))
+        data["audio_playing"] = True
 
-    # Media adapters (show what's playing first)
+    # Media adapters
     if media_adapters:
         for name, adapter in media_adapters.items():
             try:
@@ -342,41 +361,35 @@ def handle_status(
                     playing_info = name
                     if hasattr(adapter, "_current_station") and adapter._current_station:
                         playing_info = adapter._current_station.get("name", name)
-                    sections.append(f"Playing: {playing_info}")
+                    items.append(("Playing", playing_info))
                     data[f"{name}_playing"] = True
-                    data[f"{name}_info"] = playing_info
             except Exception:
                 pass
-
-    # Audio playing
-    if audio_player and audio_player.is_playing():
-        sections.append("Audio: playing")
-        data["audio_playing"] = True
 
     # Active timers
     if scheduler:
         timers = scheduler.list_pending(TaskType.TIMER)
+        for i, t in enumerate(timers, 1):
+            remaining = scheduler.get_timer_remaining(t.id)
+            if remaining is not None:
+                label = t.label or f"#{i}"
+                items.append(("Timer", f"{label} ({_format_remaining(remaining)} remaining)"))
         if timers:
-            for t in timers:
-                remaining = scheduler.get_timer_remaining(t.id)
-                if remaining is not None:
-                    label = f"{t.label}: " if t.label else ""
-                    sections.append(f"Timer: {label}{_format_remaining(remaining)} remaining")
             data["timers"] = len(timers)
 
     # Active alarms
     if scheduler:
         alarms = scheduler.list_pending(TaskType.ALARM)
+        for a in alarms:
+            time_str = a.next_run_wall.strftime("%I:%M %p").lstrip("0")
+            label = f"{a.label} at {time_str}" if a.label else time_str
+            items.append(("Alarm", label))
         if alarms:
-            for a in alarms:
-                time_str = a.next_run_wall.strftime("%I:%M %p").lstrip("0")
-                label = f"{a.label} at " if a.label else ""
-                sections.append(f"Alarm: {label}{time_str}")
             data["alarms"] = len(alarms)
 
     # DND status
     if scheduler and scheduler.is_dnd_active():
-        sections.append("Do Not Disturb: on")
+        items.append(("DND", "on"))
         data["dnd_active"] = True
 
     # --- Data providers ---
@@ -393,18 +406,22 @@ def handle_status(
 
                 if last:
                     dt = datetime.fromisoformat(last)
-                    sections.append(f"{provider_name.title()}: updated {_format_ago(dt)}")
+                    items.append((provider_name.title(), f"updated {_format_ago(dt)}"))
                 elif errors > 0:
-                    sections.append(f"{provider_name.title()}: unavailable")
+                    items.append((provider_name.title(), "unavailable"))
                 else:
-                    sections.append(f"{provider_name.title()}: pending")
+                    items.append((provider_name.title(), "pending"))
     except Exception:
         pass
 
-    # --- Build output ---
-    if sections:
-        display = "\n".join(sections)
-        speech = f"You have {len(sections)} status items" if len(sections) > 1 else sections[0]
+    # --- Build colon-aligned output ---
+    if items:
+        max_label = max(len(label) for label, _ in items)
+        lines = []
+        for label, value in items:
+            lines.append(f"{label:>{max_label}}: {value}")
+        display = "\n".join(lines)
+        speech = f"You have {len(items)} status items" if len(items) > 1 else f"{items[0][0]}: {items[0][1]}"
     else:
         display = "Nothing active"
         speech = "Nothing active"

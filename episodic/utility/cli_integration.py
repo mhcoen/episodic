@@ -77,8 +77,7 @@ def _handle_task_fire(task, result) -> None:
     generator = SpeechGenerator.get_instance()
 
     # Determine command name for speech templates
-    task_type_str = task.task_type.value  # "timer", "alarm", "reminder"
-    has_label = bool(task.label)
+    task_type_str = task.task_type.name.lower()  # "timer", "alarm", "reminder"
 
     if task_type_str == "timer":
         command = "timer_fired"

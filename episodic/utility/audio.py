@@ -138,13 +138,14 @@ class AudioPlayerImpl:
             if label_file.exists():
                 filename = label_file.name
 
-        # Track what's playing
-        self._current_sound_type = sound_type
-        self._current_label = label
-
         path = self._config.sound_dir / filename
         loop = sound_type in (SoundType.ALARM, SoundType.TIMER)
         self.play_file(path, loop=loop)
+
+        # Set metadata AFTER play_file (which internally calls stop()
+        # and clears metadata before starting the new playback)
+        self._current_sound_type = sound_type
+        self._current_label = label
 
     def play_file(self, path: Path, loop: bool = False) -> None:
         """Play audio file."""

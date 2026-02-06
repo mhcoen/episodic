@@ -11,6 +11,7 @@ from episodic.migrations.m004_schema_cleanup import migration as m004
 from episodic.migrations.m013_fix_rag_retrievals_retrieved_at import migration as m013
 from episodic.migrations.m014_add_indexing_status import migration as m014
 from episodic.migrations.m020_indexing_status_skipped import migration as m020
+from episodic.migrations.m021_mcp_auth_tables import migration as m021
 
 # List of all migrations in order
 ALL_MIGRATIONS = [
@@ -18,6 +19,7 @@ ALL_MIGRATIONS = [
     m013,
     m014,
     m020,
+    m021,
 ]
 
 

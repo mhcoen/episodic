@@ -206,6 +206,43 @@ def _parse_duration(duration_str: str) -> Optional[int]:
     return total_seconds if total_seconds > 0 else None
 
 
+_DURATION_UNITS = {
+    's', 'sec', 'secs', 'second', 'seconds',
+    'm', 'min', 'mins', 'minute', 'minutes',
+    'h', 'hr', 'hour', 'hours',
+}
+
+
+def _parse_timer_args(args: list) -> tuple:
+    """
+    Split timer args into (duration_s, label).
+
+    Greedily consumes tokens that are numbers or duration unit words,
+    then treats the rest as label.
+
+    "30 seconds"       → (30, None)
+    "30 seconds pasta" → (30, "pasta")
+    "5m eggs"          → (300, "eggs")
+    "1h30m"            → (5400, None)
+    "30"               → (30, None)
+    """
+    i = 0
+    while i < len(args):
+        token = args[i].lower()
+        if re.match(r'^\d+', token):
+            i += 1
+            continue
+        if token in _DURATION_UNITS and i > 0:
+            i += 1
+            continue
+        break
+
+    duration_str = " ".join(args[:i])
+    duration_s = _parse_duration(duration_str) if duration_str else None
+    label = " ".join(args[i:]) if i < len(args) else None
+    return (duration_s, label)
+
+
 def _parse_time(time_str: str, user_tz: str = "America/Chicago") -> Optional[datetime]:
     """
     Parse time string to datetime.
@@ -316,11 +353,10 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
             # Show timer status
             query = create_utility_query("timer", "timer_status", source="cli")
         else:
-            duration_s = _parse_duration(args[0])
+            duration_s, label = _parse_timer_args(args)
             if duration_s is None:
-                return UtilityResult.error("invalid_duration", f"Could not parse duration: {args[0]}")
+                return UtilityResult.error("invalid_duration", f"Could not parse duration: {args_str}")
 
-            label = " ".join(args[1:]) if len(args) > 1 else None
             query = create_utility_query(
                 "timer", "timer_set",
                 args={"duration_s": duration_s, "label": label},

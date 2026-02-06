@@ -492,46 +492,6 @@
       "api_base": "http://localhost:11434",
       "models": [
         {
-          "name": "llama3.1",
-          "display_name": "Llama 3.1",
-          "type": "both",
-          "detect_params": true,
-          "creator": "Meta",
-          "released": "July 2024",
-          "description": "Meta's Llama 3.1 via Ollama. Available in 8B, 70B, and 405B variants. Strong multilingual support (8 languages). 128K context window. Apache 2.0 license allows commercial use. Superseded by 3.2/3.3 but still widely deployed.",
-          "strengths": [
-            "128K context window",
-            "8 language support",
-            "Apache 2.0 license",
-            "Well-tested, stable"
-          ],
-          "weaknesses": [
-            "Superseded by 3.2/3.3",
-            "Requires local hardware"
-          ],
-          "recommended_for": ["chat"]
-        },
-        {
-          "name": "llama3.2",
-          "display_name": "Llama 3.2",
-          "type": "both",
-          "detect_params": true,
-          "creator": "Meta",
-          "released": "September 2024",
-          "description": "Meta's Llama 3.2 via Ollama. First Llama with vision capabilities (11B and 90B variants). Lightweight 1B and 3B text models run on edge devices. 128K context. Better instruction following and tool use than 3.1.",
-          "strengths": [
-            "Vision capabilities (11B/90B)",
-            "Edge-friendly (1B/3B)",
-            "Improved tool use",
-            "128K context"
-          ],
-          "weaknesses": [
-            "Superseded by 3.3 for text",
-            "Vision variants need more RAM"
-          ],
-          "recommended_for": ["chat"]
-        },
-        {
           "name": "llama3.3",
           "display_name": "Llama 3.3",
           "type": "both",
@@ -548,6 +508,28 @@
           "weaknesses": [
             "Superseded by Llama 4",
             "70B needs good hardware"
+          ],
+          "recommended_for": ["chat", "detection"]
+        },
+        {
+          "name": "llama4-scout",
+          "display_name": "Llama 4 Scout",
+          "type": "both",
+          "parameters": "109B (17B active)",
+          "context_window": 10000000,
+          "detect_params": true,
+          "creator": "Meta",
+          "released": "April 2025",
+          "description": "Meta's efficient Llama 4 with 10M token context - industry leading. 17B active params via 16-expert MoE architecture. Fits single H100 GPU. Natively multimodal (text + images). Beats Gemma 3, Gemini 2.0 Flash-Lite on most benchmarks. Trained on 40T tokens across 200 languages.",
+          "strengths": [
+            "10M token context (!)",
+            "17B active (single H100)",
+            "Native multimodal",
+            "200 language support"
+          ],
+          "weaknesses": [
+            "Less capable than Maverick",
+            "Newer model, less battle-tested"
           ],
           "recommended_for": ["chat", "detection"]
         },
@@ -635,28 +617,6 @@
             "Less general knowledge"
           ],
           "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
-          "name": "llama4-scout",
-          "display_name": "Llama 4 Scout",
-          "type": "both",
-          "parameters": "109B (17B active)",
-          "context_window": 10000000,
-          "detect_params": true,
-          "creator": "Meta",
-          "released": "April 2025",
-          "description": "Meta's efficient Llama 4 with 10M token context - industry leading. 17B active params via 16-expert MoE architecture. Fits single H100 GPU. Natively multimodal (text + images). Beats Gemma 3, Gemini 2.0 Flash-Lite on most benchmarks. Trained on 40T tokens across 200 languages.",
-          "strengths": [
-            "10M token context (!)",
-            "17B active (single H100)",
-            "Native multimodal",
-            "200 language support"
-          ],
-          "weaknesses": [
-            "Less capable than Maverick",
-            "Newer model, less battle-tested"
-          ],
-          "recommended_for": ["chat", "detection"]
         },
         {
           "name": "deepseek-r1",

@@ -98,10 +98,11 @@ class TestPortCheck:
 
     def test_unavailable_port(self):
         import socket
-        # Bind a port first, then check
+        # Bind and listen so SO_REUSEADDR won't allow rebinding on Linux
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind(("127.0.0.1", 0))
+            s.listen(1)
             port = s.getsockname()[1]
             # Port is in use
             assert check_port_available("127.0.0.1", port) is False

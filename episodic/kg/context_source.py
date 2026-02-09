@@ -27,6 +27,7 @@ class EdgeFact:
     source_node_id: int
     rank_score: float
     tags: list[str] = field(default_factory=list)
+    assertion_id: int | None = None
 
 
 @dataclass
@@ -314,6 +315,7 @@ def retrieve_neighborhood(
             source_node_id=row['source_node_id'],
             rank_score=rank_score,
             tags=tags,
+            assertion_id=row['assertion_id'],
         ))
 
     facts.sort(key=lambda f: f.rank_score, reverse=True)

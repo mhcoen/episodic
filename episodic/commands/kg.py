@@ -315,20 +315,11 @@ def kg_update(args: List[str]) -> None:
         )
 
         def progress(node_id, index, total):
-            typer.secho(
-                f"  Processing node {node_id} ({index}/{total})...",
-                fg=get_system_color(),
-            )
+            typer.secho(f"  Processing node {node_id} ({index}/{total})...",
+                         fg=get_system_color())
 
-        result = run_batch(
-            lookback=opts.lookback,
-            max_nodes=opts.max_nodes,
-            conn=conn,
-            progress_callback=progress,
-            dry_run=opts.dry_run,
-        )
-
-        r = result
+        r = run_batch(lookback=opts.lookback, max_nodes=opts.max_nodes,
+                      conn=conn, progress_callback=progress, dry_run=opts.dry_run)
         typer.secho("\nExtraction complete:", fg=get_heading_color(), bold=True)
         typer.secho(f"  Nodes processed: {r['nodes_processed']}", fg=get_text_color())
         typer.secho(f"  Patches applied: {r['patches_applied']}",
@@ -337,16 +328,12 @@ def kg_update(args: List[str]) -> None:
                      fg=get_warning_color() if r['patches_rejected'] else get_text_color())
         typer.secho(f"  HWM: {r['hwm_before']} -> {r['hwm_after']}", fg=get_text_color())
 
-        if result['errors']:
+        if r['errors']:
             typer.secho("\nRejection reasons:", fg=get_warning_color())
-            for err in result['errors'][:10]:
-                reason = err['reason']
-                if len(reason) > 80:
-                    reason = reason[:77] + '...'
-                typer.secho(
-                    f"  node {err['node_id']}: {reason}",
-                    fg=get_text_color(), dim=True,
-                )
+            for err in r['errors'][:10]:
+                reason = err['reason'][:77] + '...' if len(err['reason']) > 80 else err['reason']
+                typer.secho(f"  node {err['node_id']}: {reason}",
+                             fg=get_text_color(), dim=True)
 
 
 def kg_rebuild(args: List[str]) -> None:
@@ -376,23 +363,13 @@ def kg_rebuild(args: List[str]) -> None:
             fg=get_system_color(),
         )
 
-    result = run_rebuild(progress_callback=progress)
-
-    typer.secho(
-        f"\nRebuild complete:", fg=get_heading_color(), bold=True,
-    )
-    typer.secho(
-        f"  Nodes processed: {result['nodes_processed']}",
-        fg=get_text_color(),
-    )
-    typer.secho(
-        f"  Patches applied: {result['patches_applied']}",
-        fg=get_success_color() if result['patches_applied'] else get_text_color(),
-    )
-    typer.secho(
-        f"  Patches rejected: {result['patches_rejected']}",
-        fg=get_warning_color() if result['patches_rejected'] else get_text_color(),
-    )
+    r = run_rebuild(progress_callback=progress)
+    typer.secho(f"\nRebuild complete:", fg=get_heading_color(), bold=True)
+    typer.secho(f"  Nodes processed: {r['nodes_processed']}", fg=get_text_color())
+    typer.secho(f"  Patches applied: {r['patches_applied']}",
+                 fg=get_success_color() if r['patches_applied'] else get_text_color())
+    typer.secho(f"  Patches rejected: {r['patches_rejected']}",
+                 fg=get_warning_color() if r['patches_rejected'] else get_text_color())
 
 
 def kg_skip(args: List[str]) -> None:
@@ -543,6 +520,24 @@ def kg_stats() -> None:
             typer.secho(f"  Skip list:       {rows[0][0]} nodes", fg=tc)
 
 
+def _fetch_assertion_spans(conn, edges) -> dict:
+    """Look up assertion span text for EdgeFacts. Returns {assertion_id: text}."""
+    aids = {ef.assertion_id for ef in edges if ef.assertion_id is not None}
+    if not aids:
+        return {}
+    cache = {}
+    for aid in aids:
+        try:
+            row = conn.execute(
+                "SELECT a.span_start, a.span_end, n.content "
+                "FROM kg_assertions a JOIN nodes n ON n.rowid = a.source_node_id "
+                "WHERE a.assertion_id = ?", (aid,)).fetchone()
+            cache[aid] = row[2][row[0]:row[1]] if row and row[2] else "[no span]"
+        except Exception:
+            cache[aid] = "[no span]"
+    return cache
+
+
 def kg_probe(args: List[str]) -> None:
     """Dry-run get_kg_context() against the live DB and print diagnostics."""
     if not args:
@@ -559,10 +554,13 @@ def kg_probe(args: List[str]) -> None:
     with _use_conn() as conn:
         result = get_kg_context(' '.join(args), conn)
 
-    if result is None:
-        typer.secho("No KG context produced (no entity mentions detected).",
-                     fg=get_text_color())
-        return
+        if result is None:
+            typer.secho("No KG context produced (no entity mentions detected).",
+                         fg=get_text_color())
+            return
+
+        # Pre-fetch assertion spans for edges
+        span_cache = _fetch_assertion_spans(conn, result.edges)
 
     hc, tc, sc = get_heading_color(), get_text_color(), get_system_color()
 
@@ -575,9 +573,11 @@ def kg_probe(args: List[str]) -> None:
         typer.secho(f"\nEdges ({len(result.edges)}):", fg=hc, bold=True)
         for ef in result.edges:
             tags = f" [{', '.join(ef.tags)}]" if ef.tags else ""
+            span = span_cache.get(ef.assertion_id, "[no span]")
             typer.secho(f"  {ef.subj_name} --{ef.predicate}--> {ef.obj_name}  "
                          f"rank={ef.rank_score:.3f}  node:{ef.source_node_id}"
                          f"{tags}", fg=tc)
+            typer.secho(f"    \"{span}\"", fg=tc, dim=True)
 
     if result.derived:
         typer.secho(f"\nDerived ({len(result.derived)}):", fg=hc, bold=True)

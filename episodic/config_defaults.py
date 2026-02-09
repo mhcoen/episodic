@@ -182,6 +182,7 @@ CONFIG_DOCS = {
     "kg_max_edges": "Maximum edges to retrieve per matched entity",
     "kg_max_derived": "Maximum derived (closure) edges total",
     "kg_include_past": "Include TIME_PAST tagged edges by default",
+    "kg_realtime": "Enable per-turn background KG extraction",
     "kg_escalate_model": "Fallback model for failed extractions",
     "extraction_model": "Model for KG extraction",
 

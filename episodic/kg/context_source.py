@@ -47,6 +47,8 @@ class KGContextResult:
     budget_used: int
     budget_total: int
     cache_status: str  # "hit" or "rebuilt"
+    edges: list['EdgeFact'] = field(default_factory=list)
+    derived: list['DerivedFact'] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -406,7 +408,16 @@ def apply_closure_rules(
                     source_node_ids=[ef.source_node_id, spec_edge['source_node_id']],
                 ))
 
-    return derived[:max_derived]
+    # Dedup derived facts by (subj, predicate, obj) — keep first occurrence
+    seen_triples: set[tuple[str, str, str]] = set()
+    deduped: list[DerivedFact] = []
+    for d in derived:
+        triple = (d.subj_name, d.predicate, d.obj_name)
+        if triple not in seen_triples:
+            seen_triples.add(triple)
+            deduped.append(d)
+
+    return deduped[:max_derived]
 
 
 def _entity_id_by_name(name: str, conn: sqlite3.Connection) -> Optional[int]:
@@ -594,4 +605,6 @@ def get_kg_context(
         budget_used=budget_used,
         budget_total=budget,
         cache_status=cache_status,
+        edges=all_facts,
+        derived=derived,
     )

@@ -516,6 +516,8 @@
   "kg_max_derived": 3,
   "_comment_kg_include_past": "Include TIME_PAST tagged edges by default (otherwise only with past-tense cues)",
   "kg_include_past": false,
+  "_comment_kg_realtime": "Enable per-turn background KG extraction (daemon thread per user message)",
+  "kg_realtime": false,
   "_comment_kg_escalate_model": "Fallback model for failed extractions (null = no escalation)",
   "kg_escalate_model": null,
 

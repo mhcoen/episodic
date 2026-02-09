@@ -605,6 +605,11 @@ class ConversationManager:
             with benchmark_resource("Database", "insert user node"):
                 user_node_id, user_short_id = insert_node(user_input, self.current_node_id, role="user")
 
+            # Real-time KG extraction (fire-and-forget, non-blocking)
+            if config.get("kg_realtime", False):
+                from episodic.kg.realtime import extract_node_async
+                extract_node_async(user_node_id, user_input)
+
             # Compute semantic drift BEFORE topic detection (for hybrid trigger)
             # This allows high embedding drift to fast-path into SUSPECT state
             semantic_drift = None

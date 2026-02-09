@@ -48,8 +48,7 @@ CREATE TABLE IF NOT EXISTS kg_edges (
     subj_entity_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
     predicate TEXT NOT NULL CHECK(predicate IN ('uses', 'wants', 'prefers', 'role', 'has', 'located_at', 'part_of', 'related_to', 'is_a', 'powered_by')),
     obj_entity_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
-    assertion_id INTEGER NOT NULL REFERENCES kg_assertions(assertion_id),
-    UNIQUE(subj_entity_id, predicate, obj_entity_id, assertion_id)
+    assertion_id INTEGER NOT NULL REFERENCES kg_assertions(assertion_id)
 );
 CREATE INDEX IF NOT EXISTS idx_kg_edges_subj ON kg_edges(subj_entity_id);
 CREATE INDEX IF NOT EXISTS idx_kg_edges_obj ON kg_edges(obj_entity_id);
@@ -131,7 +130,40 @@ def ensure_kg_schema(conn=None):
         c.executescript(KG_SCHEMA_SQL)
         c.execute(SEED_USER_SELF_SQL, (time.time(),))
         c.executescript(SEED_STATE_SQL)
+        _migrate_edge_dedup(c)
         c.commit()
+
+
+def _migrate_edge_dedup(conn):
+    """Migrate kg_edges from 4-column UNIQUE to 3-column UNIQUE.
+
+    Idempotent: checks if uq_kg_edges_triple exists. If not, dedup
+    existing rows (keep highest rowid per triple) and create the index.
+    """
+    # Check if the new unique index already exists
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='index' "
+        "AND name='uq_kg_edges_triple'"
+    ).fetchone()
+    if row:
+        return  # Already migrated
+
+    # Delete duplicates, keeping the row with the highest rowid (most recent)
+    conn.execute("""
+        DELETE FROM kg_edges WHERE rowid NOT IN (
+            SELECT MAX(rowid) FROM kg_edges
+            GROUP BY subj_entity_id, predicate, obj_entity_id
+        )
+    """)
+
+    # Drop old 4-column unique if it exists (SQLite can't ALTER INDEX,
+    # but CREATE UNIQUE INDEX IF NOT EXISTS on the new columns will work
+    # since we just deduped. The old UNIQUE constraint was inline in the
+    # CREATE TABLE, so it persists as a nameless index — harmless.)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_kg_edges_triple
+        ON kg_edges(subj_entity_id, predicate, obj_entity_id)
+    """)
 
 
 def migrate_kg_schema(conn=None):

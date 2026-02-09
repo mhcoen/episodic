@@ -130,6 +130,7 @@ SHORT_ALIASES = {
     'kg-max-edges': 'kg_max_edges',
     'kg-max-derived': 'kg_max_derived',
     'kg-include-past': 'kg_include_past',
+    'kg-realtime': 'kg_realtime',
     'kg-escalate-model': 'kg_escalate_model',
 
     # Compression

@@ -184,15 +184,17 @@ def apply_patch(
                     continue
                 try:
                     c.execute(
-                        "INSERT OR IGNORE INTO kg_edges "
+                        "INSERT INTO kg_edges "
                         "(subj_entity_id, predicate, obj_entity_id, "
                         "assertion_id) "
-                        "VALUES (?, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?) "
+                        "ON CONFLICT(subj_entity_id, predicate, obj_entity_id) "
+                        "DO UPDATE SET assertion_id = excluded.assertion_id",
                         (subj_id, edge['predicate'], obj_id, a_id)
                     )
                     counts['edges_created'] += 1
                 except sqlite3.IntegrityError:
-                    pass  # Duplicate edge
+                    pass  # Shouldn't happen with ON CONFLICT
 
             # Step 7: Advance high-water mark
             c.execute(

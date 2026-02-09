@@ -34,11 +34,13 @@ def kg_command(action: str = None, *args: str) -> None:
         kg_patch(list(args))
     elif action == 'stats':
         kg_stats()
+    elif action == 'probe':
+        kg_probe(list(args))
     else:
         typer.secho(f"Unknown KG action: {action}", fg=get_error_color())
         typer.secho(
             "Usage: /kg [status|visualize|entities|entity|edges|search|"
-            "update|rebuild|skip|patch|stats]",
+            "update|rebuild|skip|patch|stats|probe]",
             fg=get_text_color(),
         )
 
@@ -94,17 +96,13 @@ def kg_visualize(args: List[str]) -> None:
     from episodic.kg.visualize import visualize_kg
 
     if not kg_tables_exist():
-        typer.secho(
-            "Knowledge graph tables not found. Run /kg update first.",
-            fg=get_warning_color(),
-        )
+        typer.secho("Knowledge graph tables not found. Run /kg update first.",
+                     fg=get_warning_color())
         return
 
     entity_types = [opts.entity_type] if opts.entity_type else None
     predicates = [opts.relation] if opts.relation else None
     tags = [opts.tag] if opts.tag else None
-
-    # Default save path if --save given without a value
     save_path = opts.save
     if save_path == '':
         import time
@@ -330,25 +328,14 @@ def kg_update(args: List[str]) -> None:
             dry_run=opts.dry_run,
         )
 
-        typer.secho(
-            f"\nExtraction complete:", fg=get_heading_color(), bold=True,
-        )
-        typer.secho(
-            f"  Nodes processed: {result['nodes_processed']}",
-            fg=get_text_color(),
-        )
-        typer.secho(
-            f"  Patches applied: {result['patches_applied']}",
-            fg=get_success_color() if result['patches_applied'] else get_text_color(),
-        )
-        typer.secho(
-            f"  Patches rejected: {result['patches_rejected']}",
-            fg=get_warning_color() if result['patches_rejected'] else get_text_color(),
-        )
-        typer.secho(
-            f"  HWM: {result['hwm_before']} -> {result['hwm_after']}",
-            fg=get_text_color(),
-        )
+        r = result
+        typer.secho("\nExtraction complete:", fg=get_heading_color(), bold=True)
+        typer.secho(f"  Nodes processed: {r['nodes_processed']}", fg=get_text_color())
+        typer.secho(f"  Patches applied: {r['patches_applied']}",
+                     fg=get_success_color() if r['patches_applied'] else get_text_color())
+        typer.secho(f"  Patches rejected: {r['patches_rejected']}",
+                     fg=get_warning_color() if r['patches_rejected'] else get_text_color())
+        typer.secho(f"  HWM: {r['hwm_before']} -> {r['hwm_after']}", fg=get_text_color())
 
         if result['errors']:
             typer.secho("\nRejection reasons:", fg=get_warning_color())
@@ -464,25 +451,29 @@ def kg_patch(args: List[str]) -> None:
         return
 
     patch_json, applied, rejection, model_id, time_ms = row
-
-    typer.secho(
-        f"Patch for node {node_id}:", fg=get_heading_color(), bold=True,
-    )
-    typer.secho(f"  Applied:   {'yes' if applied else 'no'}", fg=get_text_color())
+    tc = get_text_color()
+    typer.secho(f"Patch for node {node_id}:", fg=get_heading_color(), bold=True)
+    typer.secho(f"  Applied:   {'yes' if applied else 'no'}", fg=tc)
     if rejection:
         typer.secho(f"  Rejected:  {rejection}", fg=get_warning_color())
     if model_id:
-        typer.secho(f"  Model:     {model_id}", fg=get_text_color())
+        typer.secho(f"  Model:     {model_id}", fg=tc)
     if time_ms:
-        typer.secho(f"  Time:      {time_ms}ms", fg=get_text_color())
-
+        typer.secho(f"  Time:      {time_ms}ms", fg=tc)
     if patch_json and patch_json.strip():
         try:
-            parsed = json.loads(patch_json)
-            pretty = json.dumps(parsed, indent=2, ensure_ascii=False)
-            typer.secho(f"\n{pretty}", fg=get_system_color())
+            pretty = json.dumps(json.loads(patch_json), indent=2, ensure_ascii=False)
         except json.JSONDecodeError:
-            typer.secho(f"\n{patch_json}", fg=get_system_color())
+            pretty = patch_json
+        typer.secho(f"\n{pretty}", fg=get_system_color())
+
+
+def _safe_query(conn, sql, default=None):
+    """Run a query, returning default on error."""
+    try:
+        return conn.execute(sql).fetchall()
+    except Exception:
+        return default if default is not None else []
 
 
 def kg_stats() -> None:
@@ -493,110 +484,108 @@ def kg_stats() -> None:
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
 
+    tc = get_text_color()
     with _use_conn() as conn:
-        # Entity counts by type
         typer.secho("KG Statistics", fg=get_heading_color(), bold=True)
 
-        try:
-            rows = conn.execute(
-                "SELECT entity_type, COUNT(*) FROM kg_entities "
-                "GROUP BY entity_type ORDER BY entity_type"
-            ).fetchall()
-            typer.secho("\n  Entities by type:", fg=get_text_color())
-            total_ent = 0
-            for row in rows:
-                typer.secho(f"    {row[0]}: {row[1]}", fg=get_text_color())
-                total_ent += row[1]
-            typer.secho(f"    total: {total_ent}", fg=get_text_color(), dim=True)
-        except Exception:
-            pass
+        rows = _safe_query(conn,
+            "SELECT entity_type, COUNT(*) FROM kg_entities "
+            "GROUP BY entity_type ORDER BY entity_type")
+        if rows:
+            typer.secho("\n  Entities by type:", fg=tc)
+            total = sum(r[1] for r in rows)
+            for r in rows:
+                typer.secho(f"    {r[0]}: {r[1]}", fg=tc)
+            typer.secho(f"    total: {total}", fg=tc, dim=True)
 
-        # Edge counts by predicate
-        try:
-            rows = conn.execute(
-                "SELECT predicate, COUNT(*) FROM kg_edges "
-                "GROUP BY predicate ORDER BY predicate"
-            ).fetchall()
-            typer.secho("\n  Edges by predicate:", fg=get_text_color())
-            total_edge = 0
-            for row in rows:
-                typer.secho(f"    {row[0]}: {row[1]}", fg=get_text_color())
-                total_edge += row[1]
-            typer.secho(
-                f"    total: {total_edge}", fg=get_text_color(), dim=True,
-            )
-        except Exception:
-            pass
+        rows = _safe_query(conn,
+            "SELECT predicate, COUNT(*) FROM kg_edges "
+            "GROUP BY predicate ORDER BY predicate")
+        if rows:
+            typer.secho("\n  Edges by predicate:", fg=tc)
+            total = sum(r[1] for r in rows)
+            for r in rows:
+                typer.secho(f"    {r[0]}: {r[1]}", fg=tc)
+            typer.secho(f"    total: {total}", fg=tc, dim=True)
 
-        # Assertions
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM kg_assertions"
-            ).fetchone()
-            typer.secho(
-                f"\n  Assertions: {row[0] if row else 0}", fg=get_text_color(),
-            )
-        except Exception:
-            pass
+        rows = _safe_query(conn, "SELECT COUNT(*) FROM kg_assertions")
+        if rows:
+            typer.secho(f"\n  Assertions: {rows[0][0]}", fg=tc)
 
-        # Patches
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*), SUM(CASE WHEN applied=1 THEN 1 ELSE 0 END), "
-                "SUM(CASE WHEN applied=0 THEN 1 ELSE 0 END) "
-                "FROM kg_patches"
-            ).fetchone()
-            if row:
-                typer.secho(
-                    f"  Patches: {row[0]} total "
-                    f"({row[1] or 0} applied, {row[2] or 0} rejected)",
-                    fg=get_text_color(),
-                )
-        except Exception:
-            pass
+        rows = _safe_query(conn,
+            "SELECT COUNT(*), SUM(CASE WHEN applied=1 THEN 1 ELSE 0 END), "
+            "SUM(CASE WHEN applied=0 THEN 1 ELSE 0 END) FROM kg_patches")
+        if rows and rows[0]:
+            r = rows[0]
+            typer.secho(f"  Patches: {r[0]} total "
+                         f"({r[1] or 0} applied, {r[2] or 0} rejected)", fg=tc)
 
-        # HWM vs max node_id
         try:
             hwm_row = conn.execute(
                 "SELECT value FROM kg_state WHERE key = 'high_water_mark'"
             ).fetchone()
             hwm = int(hwm_row[0]) if hwm_row else 0
-
             max_row = conn.execute(
                 "SELECT MAX(rowid) FROM nodes WHERE role = 'user'"
             ).fetchone()
             max_nid = max_row[0] if max_row and max_row[0] else 0
-
             staleness = max(0, max_nid - hwm)
-            typer.secho(
-                f"\n  High-water mark: {hwm}", fg=get_text_color(),
-            )
-            typer.secho(
-                f"  Max user node:   {max_nid}", fg=get_text_color(),
-            )
-            if staleness > 0:
-                typer.secho(
-                    f"  Staleness:       {staleness} nodes behind",
-                    fg=get_warning_color(),
-                )
-            else:
-                typer.secho(
-                    "  Staleness:       up to date",
-                    fg=get_success_color(),
-                )
+            typer.secho(f"\n  High-water mark: {hwm}", fg=tc)
+            typer.secho(f"  Max user node:   {max_nid}", fg=tc)
+            stale_fg = get_warning_color() if staleness else get_success_color()
+            stale_str = f"{staleness} nodes behind" if staleness else "up to date"
+            typer.secho(f"  Staleness:       {stale_str}", fg=stale_fg)
         except Exception:
             pass
 
-        # Skip list
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM kg_skiplist"
-            ).fetchone()
-            skip_count = row[0] if row else 0
-            if skip_count:
-                typer.secho(
-                    f"  Skip list:       {skip_count} nodes",
-                    fg=get_text_color(),
-                )
-        except Exception:
-            pass
+        rows = _safe_query(conn, "SELECT COUNT(*) FROM kg_skiplist")
+        if rows and rows[0][0]:
+            typer.secho(f"  Skip list:       {rows[0][0]} nodes", fg=tc)
+
+
+def kg_probe(args: List[str]) -> None:
+    """Dry-run get_kg_context() against the live DB and print diagnostics."""
+    if not args:
+        typer.secho("Usage: /kg probe <text>", fg=get_text_color())
+        return
+
+    from episodic.kg.db_kg import kg_tables_exist, _use_conn
+    from episodic.kg.context_source import get_kg_context
+
+    if not kg_tables_exist():
+        typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
+        return
+
+    with _use_conn() as conn:
+        result = get_kg_context(' '.join(args), conn)
+
+    if result is None:
+        typer.secho("No KG context produced (no entity mentions detected).",
+                     fg=get_text_color())
+        return
+
+    hc, tc, sc = get_heading_color(), get_text_color(), get_system_color()
+
+    typer.secho("Matched entities:", fg=hc, bold=True)
+    for m in result.matched_entities:
+        typer.secho(f"  e{m['entity_id']}: \"{m['surface_form']}\" "
+                     f"(w={m['weight']:.1f})", fg=tc)
+
+    if result.edges:
+        typer.secho(f"\nEdges ({len(result.edges)}):", fg=hc, bold=True)
+        for ef in result.edges:
+            tags = f" [{', '.join(ef.tags)}]" if ef.tags else ""
+            typer.secho(f"  {ef.subj_name} --{ef.predicate}--> {ef.obj_name}  "
+                         f"rank={ef.rank_score:.3f}  node:{ef.source_node_id}"
+                         f"{tags}", fg=tc)
+
+    if result.derived:
+        typer.secho(f"\nDerived ({len(result.derived)}):", fg=hc, bold=True)
+        for df in result.derived:
+            nodes = ", ".join(str(n) for n in df.source_node_ids)
+            typer.secho(f"  ({df.rule}) {df.subj_name} --{df.predicate}--> "
+                         f"{df.obj_name}  from nodes:[{nodes}]", fg=tc)
+
+    typer.secho(f"\nInjected block ({result.budget_used}/{result.budget_total} "
+                 f"tokens, cache: {result.cache_status}):", fg=hc, bold=True)
+    typer.secho(result.text, fg=sc)

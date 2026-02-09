@@ -44,7 +44,7 @@ def mset_command(
         return
     
     # Check if it's just a context name (e.g., "chat")
-    valid_contexts = ["chat", "detection", "compression", "synthesis", "intent", "embedding"]
+    valid_contexts = ["chat", "detection", "compression", "synthesis", "intent", "extraction", "embedding"]
     if param_spec.lower() in valid_contexts and not value:
         show_parameters_for_context(param_spec.lower())
         return
@@ -103,7 +103,8 @@ def show_all_parameters():
         ("Compression", "compression_model", "compression"),
         ("Synthesis", "synthesis_model", "synthesis"),
         ("Intent", "intent_model", "intent"),
-        ("Embedding", "drift_embedding_model", "embedding")
+        ("Extraction", "extraction_model", "extraction"),
+        ("Embedding", "drift_embedding_model", "embedding"),
     ]
 
     # Show each context as a row
@@ -398,6 +399,8 @@ def get_param_key_for_context(context: str) -> str:
         return "synthesis_params"
     elif context == "intent":
         return "intent_params"
+    elif context == "extraction":
+        return "extraction_params"
     else:
         return f"{context}_params"
 
@@ -414,6 +417,8 @@ def get_model_key_for_context(context: str) -> str:
         return "synthesis_model"
     elif context == "intent":
         return "intent_model"
+    elif context == "extraction":
+        return "extraction_model"
     else:
         return "model"
 

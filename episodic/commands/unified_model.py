@@ -63,6 +63,7 @@ def model_command(
         /model synthesis <number|full-name>  # Set synthesis model (instruct recommended)
         /model intent <number|full-name>    # Set intent classifier model
         /model critic <number|full-name>    # Set critic model (for /critique command)
+        /model extraction <number|full-name> # Set KG extraction model
 
     Examples:
         /model 5                            # Show info about model #5
@@ -88,7 +89,7 @@ def model_command(
         pass  # Not a number, continue with normal flow
     
     # Validate context
-    valid_contexts = ["chat", "detection", "compression", "synthesis", "intent", "critic"]
+    valid_contexts = ["chat", "detection", "compression", "synthesis", "intent", "critic", "extraction"]
     if context.lower() not in valid_contexts:
         # Check if user is trying to set a model directly (old syntax)
         if "/" in context or context in get_all_available_models():
@@ -99,6 +100,7 @@ def model_command(
             typer.secho("  /model synthesis <model_name>", fg=get_text_color())
             typer.secho("  /model intent <model_name>", fg=get_text_color())
             typer.secho("  /model critic <model_name>", fg=get_text_color())
+            typer.secho("  /model extraction <model_name>", fg=get_text_color())
             return
 
         typer.secho(f"Unknown context: {context}", fg="red")
@@ -123,9 +125,10 @@ def show_current_models():
         ("Compression", "compression_model", "compression"),
         ("Synthesis", "synthesis_model", "synthesis"),
         ("Intent", "intent_model", "intent"),
-        ("Critic", "critic_model", "critic")
+        ("Critic", "critic_model", "critic"),
+        ("Extraction", "extraction_model", "extraction"),
     ]
-    
+
     typer.secho("\nCurrent models:", fg=get_heading_color(), bold=True)
     seen_types = set()  # Track which model types we've seen
     
@@ -387,6 +390,7 @@ def show_available_models():
     typer.secho("  /model compression <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model synthesis <number|full-model-name>", fg=get_system_color())
     typer.secho("  /model critic <number|full-model-name>", fg=get_system_color())
+    typer.secho("  /model extraction <number|full-model-name>", fg=get_system_color())
     typer.secho("\nExamples:", fg=get_text_color(), dim=True)
     # Use model #9 for both examples so number and name correspond
     example_idx = 8  # 0-indexed, so model #9
@@ -671,7 +675,8 @@ def set_model_for_context(context: str, model_name: str):
         "compression": "compression_model",
         "synthesis": "synthesis_model",
         "intent": "intent_model",
-        "critic": "critic_model"
+        "critic": "critic_model",
+        "extraction": "extraction_model",
     }
 
     descriptions = {
@@ -680,7 +685,8 @@ def set_model_for_context(context: str, model_name: str):
         "compression": "compression",
         "synthesis": "web synthesis",
         "intent": "intent classification",
-        "critic": "critic"
+        "critic": "critic",
+        "extraction": "KG extraction",
     }
     
     # Check if model_name is a number
@@ -768,7 +774,8 @@ def get_default_for_context(context: str) -> str:
         "compression": "ollama/phi4",
         "synthesis": "ollama/phi4",
         "intent": "gpt-4o-mini",
-        "critic": "anthropic/claude-opus-4-5-20251101"
+        "critic": "anthropic/claude-opus-4-5-20251101",
+        "extraction": "gpt-4o-mini",
     }
     return defaults.get(context, "gpt-4o-mini")
 

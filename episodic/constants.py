@@ -41,6 +41,12 @@ PROMPT_ACTIONS = ['list', 'use', 'show']
 # Reset options
 RESET_ACTIONS = ['all']
 
+# KG (knowledge graph) subcommands
+KG_ACTIONS = [
+    'status', 'visualize', 'entities', 'entity', 'edges',
+    'search', 'update', 'rebuild', 'skip', 'patch', 'stats',
+]
+
 # Dev subcommands
 DEV_ACTIONS = ['reindex-help']
 

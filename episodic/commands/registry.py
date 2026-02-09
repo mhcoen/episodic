@@ -340,6 +340,20 @@ def register_all_commands():
 
     command_registry.register("mcp", lazy_mcp_command, "Manage MCP server and external MCP clients", "Configuration")
 
+    # KG command (lazy loading)
+    def lazy_kg_command(*args, **kwargs):
+        from episodic.commands.kg import kg_command
+        return kg_command(*args, **kwargs)
+
+    command_registry.register("kg", lazy_kg_command, "Knowledge graph visualization and queries", "Knowledge Base")
+
+    # Rollback command (lazy loading)
+    def lazy_rollback_command(*args, **kwargs):
+        from episodic.commands.rollback import rollback_command
+        return rollback_command(*args, **kwargs)
+
+    command_registry.register("rollback", lazy_rollback_command, "Roll back conversation to a specific node", "Navigation")
+
 
 # Don't initialize on import - will be called when needed
 # register_all_commands()

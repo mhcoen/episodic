@@ -41,7 +41,7 @@ def new_command(topic_name: Optional[str] = None):
             system_message = f"--- New conversation: {topic_name} ---"
             
         # Add a system node to mark the transition
-        system_node_id = insert_node(
+        system_node_id, _ = insert_node(
             content=system_message,
             parent_id=current_node_id,
             role='system',

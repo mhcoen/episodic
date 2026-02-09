@@ -172,7 +172,16 @@ CONFIG_DOCS = {
     "web_show_sources": "Show source URLs when displaying synthesized answers",
     "web_show_raw": "Show raw search results instead of synthesizing (overrides synthesis)",
     
-    # Muse mode synthesis configuration  
+    # Knowledge Graph
+    "kg_auto": "Enable timer-based KG extraction",
+    "kg_interval": "KG extraction interval in seconds",
+    "kg_lookback": "Number of preceding turns for extraction context",
+    "kg_budget": "Token budget for KG context in context assembly",
+    "kg_context": "Enable KG facts in context assembly",
+    "kg_escalate_model": "Fallback model for failed extractions",
+    "extraction_model": "Model for KG extraction",
+
+    # Muse mode synthesis configuration
     "muse_detail": "Detail level: minimal (facts only), moderate (with context), detailed (explanations), maximum (all nuances)",
     "muse_max_tokens": "Direct token limit for synthesis (overrides style setting if specified)",
     "muse_sources": "Source selection: first-only, top-three (default), all-relevant, selective",

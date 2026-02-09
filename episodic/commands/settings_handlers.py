@@ -478,7 +478,9 @@ PARAM_HANDLERS = {
     'web_search_enabled': lambda v: handle_boolean_param('web_search_enabled', v),
     'web_search_fallback_enabled': lambda v: handle_boolean_param('web_search_fallback_enabled', v),
     'muse_mode': lambda v: handle_boolean_param('muse_mode', v),
-    
+    'kg_auto': lambda v: handle_boolean_param('kg_auto', v),
+    'kg_context': lambda v: handle_boolean_param('kg_context', v),
+
     # Integer parameters
     'wrap_width': lambda v: handle_integer_param('wrap_width', v, 40, 200),
     'compression_length': lambda v: handle_integer_param('compression_length', v, 100, 10000),
@@ -491,6 +493,9 @@ PARAM_HANDLERS = {
     'rag_max_results': lambda v: handle_integer_param('rag_max_results', v, 1, 10),
     'web_search_max_results': lambda v: handle_integer_param('web_search_max_results', v, 1, 20),
     'web_search_fallback_cache_minutes': lambda v: handle_integer_param('web_search_fallback_cache_minutes', v, 0, 60),
+    'kg_interval': lambda v: handle_integer_param('kg_interval', v, 60, 86400),
+    'kg_lookback': lambda v: handle_integer_param('kg_lookback', v, 1, 20),
+    'kg_budget': lambda v: handle_integer_param('kg_budget', v, 100, 5000),
     
     # Float parameters
     'stream_rate': lambda v: handle_float_param('stream_rate', v, 1.0, 100.0),

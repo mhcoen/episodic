@@ -120,6 +120,14 @@ SHORT_ALIASES = {
     'window-size': 'sliding_window_size',
     'drift': 'drift_threshold',
     
+    # Knowledge Graph
+    'kg-auto': 'kg_auto',
+    'kg-interval': 'kg_interval',
+    'kg-lookback': 'kg_lookback',
+    'kg-budget': 'kg_budget',
+    'kg-context': 'kg_context',
+    'kg-escalate-model': 'kg_escalate_model',
+
     # Compression
     'comp-model': 'compression_model',
     'comp-min': 'compression_min_nodes',

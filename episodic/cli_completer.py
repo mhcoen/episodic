@@ -20,7 +20,7 @@ from episodic.constants import (
     WEB_SEARCH_PROVIDERS, RESPONSE_STYLES, RESPONSE_FORMATS, DETAIL_LEVELS,
     TOPIC_ACTIONS, COMPRESSION_ACTIONS, VOICE_ACTIONS, RAG_ACTIONS, SUMMARY_LENGTHS,
     COLOR_MODES, MODEL_CONTEXTS, DOCS_ACTIONS, PROMPT_ACTIONS, RESET_ACTIONS,
-    DEV_ACTIONS, MIGRATE_ACTIONS
+    DEV_ACTIONS, MIGRATE_ACTIONS, KG_ACTIONS
 )
 
 
@@ -124,7 +124,7 @@ class EpisodicCompleter(Completer):
                 yield from self._complete_web_command(parts, word_before_cursor)
             elif full_cmd in ['set', 'mset']:
                 yield from self._complete_set_command(parts, word_before_cursor)
-            elif full_cmd in ['topics', 'compression', 'voice', 'rag']:
+            elif full_cmd in ['topics', 'compression', 'voice', 'rag', 'kg']:
                 yield from self._complete_subcommand(full_cmd, parts, word_before_cursor)
             elif full_cmd == 'mode':
                 yield from self._complete_mode_command(parts, word_before_cursor)
@@ -543,6 +543,8 @@ class EpisodicCompleter(Completer):
                 subcommands = VOICE_ACTIONS
             elif cmd == 'rag':
                 subcommands = RAG_ACTIONS
+            elif cmd == 'kg':
+                subcommands = KG_ACTIONS
 
             for sub in subcommands:
                 if sub.startswith(word.lower()):

@@ -196,6 +196,15 @@
     "frequency_penalty": 0.0,
     "stop": []
   },
+  "_comment_extraction_params": "Parameters for KG extraction (deterministic JSON output)",
+  "extraction_params": {
+    "temperature": 0.0,
+    "max_tokens": 2000,
+    "top_p": 1.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0,
+    "stop": []
+  },
 
   "_comment_cache": "// === CACHING & PERFORMANCE ===",
   "_comment_use_context_cache": "Use context caching to reduce API costs (when supported by provider)",
@@ -220,6 +229,8 @@
   "topic_naming_model": null,
   "_comment_intent_model": "Model for memory query intent classification (fast model preferred)",
   "intent_model": "gpt-4o-mini",
+  "_comment_extraction_model": "Model for KG extraction (Haiku 4.5 for speed/cost/quality balance)",
+  "extraction_model": "claude-haiku-4-5-20251001",
   "_comment_model": "Current conversation model (set via /model command)",
   "model": "gpt-4o-mini",
   
@@ -485,6 +496,20 @@
   "mcp_log_level": "info",
   "_comment_mcp_servers": "External MCP servers to connect to as a client (server_id -> {command, args, env, lifecycle})",
   "mcp_servers": {},
+
+  "_comment_kg": "// === KNOWLEDGE GRAPH SETTINGS ===",
+  "_comment_kg_auto": "Enable timer-based KG extraction",
+  "kg_auto": false,
+  "_comment_kg_interval": "KG extraction interval in seconds (default: 1 hour)",
+  "kg_interval": 3600,
+  "_comment_kg_lookback": "Number of preceding turns for extraction context",
+  "kg_lookback": 3,
+  "_comment_kg_budget": "Token budget for KG context in context assembly",
+  "kg_budget": 500,
+  "_comment_kg_context": "Enable KG facts in context assembly (Phase 1)",
+  "kg_context": false,
+  "_comment_kg_escalate_model": "Fallback model for failed extractions (null = no escalation)",
+  "kg_escalate_model": null,
 
   "_comment_mode": "// === MODE SWITCHING ===",
   "_comment_mode_setting": "Current mode: local (free, private) or cloud (paid, quality)",

@@ -806,9 +806,9 @@ def talk_loop() -> None:
 
 @app.command()
 def main(
-    execute: Optional[str] = typer.Option(
+    script: Optional[str] = typer.Option(
         None,
-        "--execute", "-e",
+        "--script",
         help="Execute a script file and exit"
     ),
     init: bool = typer.Option(
@@ -860,8 +860,8 @@ def main(
         show_cost()
         return
     
-    # Handle execute flag
-    if execute:
+    # Handle --script flag
+    if script:
         # Initialize database if needed
         from episodic.db import database_exists
         if not database_exists():
@@ -878,7 +878,7 @@ def main(
         conversation_manager.initialize_conversation()
         
         # Execute the script
-        execute_script(execute)
+        execute_script(script)
         
         # Show costs if configured
         if config.get("show_costs_on_exit", True):

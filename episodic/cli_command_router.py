@@ -213,6 +213,10 @@ def handle_command(command_str: str) -> bool:
             _handle_doctor(args)
         elif cmd == "/mcp":
             _handle_mcp(args)
+        elif cmd == "/kg":
+            _handle_kg(args)
+        elif cmd == "/rollback":
+            _handle_rollback(args)
         else:
             # Check if it's a deprecated command
             _handle_deprecated_commands(cmd, args)
@@ -1051,3 +1055,18 @@ def _handle_mcp(args: List[str]):
         mcp_command()
     else:
         mcp_command(args[0], *args[1:])
+
+
+def _handle_kg(args: List[str]):
+    """Handle /kg command - knowledge graph visualization and queries."""
+    from episodic.commands.kg import kg_command
+    if not args:
+        kg_command()
+    else:
+        kg_command(args[0], *args[1:])
+
+
+def _handle_rollback(args: List[str]):
+    """Handle /rollback command."""
+    from episodic.commands.rollback import rollback_command
+    rollback_command(args[0] if args else None)

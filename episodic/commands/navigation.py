@@ -51,7 +51,7 @@ def format_role_display(role: Optional[str]) -> str:
     if role == "assistant":
         model_name = config.get("model", "gpt-3.5-turbo")
         model_str = model_name
-        
+
         # Special handling for Claude models
         if "claude" in model_name.lower():
             # Extract the meaningful part of the model name
@@ -59,8 +59,10 @@ def format_role_display(role: Optional[str]) -> str:
             if len(parts) >= 3:
                 # e.g., "claude-3-opus-20240229" -> "Claude 3 Opus"
                 model_str = f"Claude {parts[1].title()} {parts[2].title()}"
-        
+
         return f"🤖 {model_str}"
+    elif role == "system":
+        return "⚙️  System"
     else:
         return "👤 You"
 
@@ -85,7 +87,12 @@ def _display_node_details(node: Dict) -> None:
     # Content
     typer.secho("\nContent:", fg=get_heading_color(), bold=True)
     role_display = format_role_display(node.get('role', 'user'))
-    color = get_llm_color() if node.get('role') == 'assistant' else get_text_color()
+    if node.get('role') == 'assistant':
+        color = get_llm_color()
+    elif node.get('role') == 'system':
+        color = get_system_color()
+    else:
+        color = get_text_color()
     typer.secho(f"\n{role_display}:", fg=color, bold=True)
     wrapped_text_print_with_indent(node['content'], 2, fg=color)
     
@@ -263,7 +270,12 @@ def list(count: int = DEFAULT_LIST_COUNT):
         # Content preview based on role
         if node['content']:
             role_display = format_role_display(node.get('role', 'user'))
-            color = get_llm_color() if node.get('role') == 'assistant' else get_text_color()
+            if node.get('role') == 'assistant':
+                color = get_llm_color()
+            elif node.get('role') == 'system':
+                color = get_system_color()
+            else:
+                color = get_text_color()
             typer.secho(f"  {role_display}: ", fg=color, bold=True, nl=False)
             
             # Truncate long content

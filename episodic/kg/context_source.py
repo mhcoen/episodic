@@ -364,10 +364,6 @@ def apply_closure_rules(
     if user_self_id is None:
         return []
 
-    # Build edge index from already-retrieved edges
-    # Also need to query for 2-hop edges not in the initial set
-    edge_index = _build_edge_index(edges)
-
     # KINSHIP_LOCATION: user:self --related_to--> P (in matched), P --located_at--> O
     for ef in edges:
         if len(derived) >= max_derived:
@@ -411,17 +407,6 @@ def apply_closure_rules(
                 ))
 
     return derived[:max_derived]
-
-
-def _build_edge_index(
-    edges: list[EdgeFact],
-) -> dict[tuple[str, str], list[EdgeFact]]:
-    """Index edges by (subj_name, predicate)."""
-    idx: dict[tuple[str, str], list[EdgeFact]] = {}
-    for ef in edges:
-        key = (ef.subj_name, ef.predicate)
-        idx.setdefault(key, []).append(ef)
-    return idx
 
 
 def _entity_id_by_name(name: str, conn: sqlite3.Connection) -> Optional[int]:

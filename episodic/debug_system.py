@@ -25,6 +25,7 @@ class DebugSystem:
         'cache': 'Caching operations',
         'cost': 'Token usage and costs',
         'perf': 'Performance benchmarking',
+        'kg': 'Knowledge graph context and extraction',
     }
     
     # Map old debug areas to new categories

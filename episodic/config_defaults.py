@@ -178,6 +178,10 @@ CONFIG_DOCS = {
     "kg_lookback": "Number of preceding turns for extraction context",
     "kg_budget": "Token budget for KG context in context assembly",
     "kg_context": "Enable KG facts in context assembly",
+    "kg_max_entities": "Maximum entities to match per user message",
+    "kg_max_edges": "Maximum edges to retrieve per matched entity",
+    "kg_max_derived": "Maximum derived (closure) edges total",
+    "kg_include_past": "Include TIME_PAST tagged edges by default",
     "kg_escalate_model": "Fallback model for failed extractions",
     "extraction_model": "Model for KG extraction",
 

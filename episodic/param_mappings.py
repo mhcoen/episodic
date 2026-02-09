@@ -126,6 +126,10 @@ SHORT_ALIASES = {
     'kg-lookback': 'kg_lookback',
     'kg-budget': 'kg_budget',
     'kg-context': 'kg_context',
+    'kg-max-entities': 'kg_max_entities',
+    'kg-max-edges': 'kg_max_edges',
+    'kg-max-derived': 'kg_max_derived',
+    'kg-include-past': 'kg_include_past',
     'kg-escalate-model': 'kg_escalate_model',
 
     # Compression

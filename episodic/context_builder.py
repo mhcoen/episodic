@@ -24,6 +24,7 @@ class ContextBuilder:
         self.rag_context = None
         self.web_context = None
         self.topic_context = None
+        self.kg_context = None
         self.last_assembly_debug = None  # Instrumentation from last assembly
         
     def build_conversation_context(
@@ -51,18 +52,22 @@ class ContextBuilder:
         topic_context = self._add_topic_context(user_input, messages)
         self.topic_context = topic_context
 
+        # Add KG context if enabled (after topic, before RAG)
+        kg_context = self._add_kg_context(user_input, messages)
+        self.kg_context = kg_context
+
         # Add RAG context if enabled
         rag_context = None
         if not skip_rag:
             rag_context = self._add_rag_context(user_input, messages, model)
             self.rag_context = rag_context
-        
+
         # Add web search context if in muse mode
         web_context = None
         if config.get("muse_mode"):
             web_context = self._add_web_context(user_input, model)
             self.web_context = web_context
-        
+
         return messages, raw_messages, rag_context, web_context
 
     def build_with_strategy(
@@ -209,6 +214,10 @@ class ContextBuilder:
         # Add topic-aware context retrieval (before RAG)
         topic_context = self._add_topic_context(user_input, messages)
         self.topic_context = topic_context
+
+        # Add KG context if enabled (after topic, before RAG)
+        kg_context = self._add_kg_context(user_input, messages)
+        self.kg_context = kg_context
 
         # Add RAG context if enabled
         rag_context = None
@@ -365,6 +374,56 @@ class ContextBuilder:
         except Exception as e:
             debug_print(f"  -> Topic context error: {e}", category="memory")
             return {'error': str(e)}
+
+    def _add_kg_context(
+        self,
+        user_input: str,
+        messages: List[Dict[str, Any]],
+    ) -> Optional[Any]:
+        """Add knowledge graph context if enabled.
+
+        Detects entity mentions, retrieves edges, applies closure rules,
+        and inserts formatted facts as a system message. No LLM calls.
+        """
+        if not config.get('kg_context', False):
+            return None
+
+        try:
+            from episodic.kg.context_source import get_kg_context
+            from episodic.db_connection import get_connection
+
+            with get_connection() as conn:
+                result = get_kg_context(user_input, conn)
+
+            if result is None:
+                return None
+
+            # Insert after existing system messages, before conversation
+            insert_pos = 0
+            for i, msg in enumerate(messages):
+                if msg.get("role") != "system":
+                    insert_pos = i
+                    break
+
+            kg_message = {
+                "role": "system",
+                "content": result.text,
+            }
+            messages.insert(insert_pos, kg_message)
+
+            debug_print(
+                f"KG context: {result.edge_count} edges, "
+                f"{result.derived_count} derived, "
+                f"{result.budget_used}/{result.budget_total} tokens, "
+                f"cache={result.cache_status}",
+                category='kg',
+            )
+
+            return result
+
+        except Exception as e:
+            debug_print(f"KG context error: {e}", category='kg')
+            return None
 
     def _add_rag_context(
         self,
@@ -659,6 +718,15 @@ class ContextBuilder:
                 'messages': self.topic_context.get('total_messages', 0),
                 'tokens': self.topic_context.get('total_tokens', 0),
                 'threads': len(self.topic_context.get('links', []))
+            }
+        if self.kg_context:
+            info['kg_context'] = {
+                'entities': len(self.kg_context.matched_entities),
+                'edges': self.kg_context.edge_count,
+                'derived': self.kg_context.derived_count,
+                'budget_used': self.kg_context.budget_used,
+                'budget_total': self.kg_context.budget_total,
+                'cache': self.kg_context.cache_status,
             }
         return info
 

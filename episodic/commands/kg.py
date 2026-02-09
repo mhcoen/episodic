@@ -36,11 +36,15 @@ def kg_command(action: str = None, *args: str) -> None:
         kg_stats()
     elif action == 'probe':
         kg_probe(list(args))
+    elif action == 'merge':
+        kg_merge(list(args))
+    elif action == 'dupes':
+        kg_dupes()
     else:
         typer.secho(f"Unknown KG action: {action}", fg=get_error_color())
         typer.secho(
             "Usage: /kg [status|visualize|entities|entity|edges|search|"
-            "update|rebuild|skip|patch|stats|probe]",
+            "update|rebuild|skip|patch|stats|probe|merge|dupes]",
             fg=get_text_color(),
         )
 
@@ -76,80 +80,53 @@ def kg_status() -> None:
 def kg_visualize(args: List[str]) -> None:
     """Launch KG visualization with optional flags."""
     import argparse
-
     parser = argparse.ArgumentParser(prog='/kg visualize', add_help=False)
     parser.add_argument('--save', type=str, default=None)
-    parser.add_argument(
-        '--layout', type=str, default='cose',
-        choices=['cose', 'concentric', 'grid'],
-    )
+    parser.add_argument('--layout', type=str, default='cose',
+                        choices=['cose', 'concentric', 'grid'])
     parser.add_argument('--type', type=str, default=None, dest='entity_type')
     parser.add_argument('--relation', type=str, default=None)
     parser.add_argument('--tag', type=str, default=None)
-
     try:
         opts = parser.parse_args(args)
     except SystemExit:
-        return  # argparse prints usage on error
-
+        return
     from episodic.kg.db_kg import kg_tables_exist
     from episodic.kg.visualize import visualize_kg
-
     if not kg_tables_exist():
-        typer.secho("Knowledge graph tables not found. Run /kg update first.",
-                     fg=get_warning_color())
+        typer.secho("KG tables not found. Run /kg update first.", fg=get_warning_color())
         return
-
-    entity_types = [opts.entity_type] if opts.entity_type else None
-    predicates = [opts.relation] if opts.relation else None
+    etypes = [opts.entity_type] if opts.entity_type else None
+    preds = [opts.relation] if opts.relation else None
     tags = [opts.tag] if opts.tag else None
     save_path = opts.save
     if save_path == '':
         import time
         save_dir = os.path.expanduser('~/.episodic/exports')
         os.makedirs(save_dir, exist_ok=True)
-        ts = time.strftime('%Y%m%d-%H%M%S')
-        save_path = os.path.join(save_dir, f'kg-{ts}.html')
-
-    path = visualize_kg(
-        save_path=save_path,
-        layout=opts.layout,
-        entity_types=entity_types,
-        predicates=predicates,
-        tags=tags,
-    )
-
-    if save_path:
-        typer.secho(f"Saved to: {path}", fg=get_success_color())
-    else:
-        typer.secho(f"Visualization opened ({path})", fg=get_system_color())
+        save_path = os.path.join(save_dir, f'kg-{time.strftime("%Y%m%d-%H%M%S")}.html')
+    path = visualize_kg(save_path=save_path, layout=opts.layout,
+                        entity_types=etypes, predicates=preds, tags=tags)
+    typer.secho(f"Saved to: {path}" if save_path else f"Visualization opened ({path})",
+                 fg=get_success_color() if save_path else get_system_color())
 
 
 def kg_entities() -> None:
     """List all entities in the KG."""
     from episodic.kg.db_kg import kg_tables_exist, get_all_entities
-
     if not kg_tables_exist():
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
-
     entities = get_all_entities()
     if not entities:
         typer.secho("No entities in knowledge graph.", fg=get_text_color())
         return
-
-    typer.secho(
-        f"KG Entities ({len(entities)}):", fg=get_heading_color(), bold=True,
-    )
+    typer.secho(f"KG Entities ({len(entities)}):", fg=get_heading_color(), bold=True)
     for ent in entities:
-        etype = ent['entity_type']
-        name = ent['canonical_name']
-        eid = ent['entity_id']
         key = ent.get('canonical_key') or ''
         key_str = f" [{key}]" if key else ''
-        typer.secho(
-            f"  e{eid}: {name} ({etype}){key_str}", fg=get_text_color(),
-        )
+        typer.secho(f"  e{ent['entity_id']}: {ent['canonical_name']} "
+                     f"({ent['entity_type']}){key_str}", fg=get_text_color())
 
 
 def kg_entity(args: List[str]) -> None:
@@ -157,79 +134,57 @@ def kg_entity(args: List[str]) -> None:
     if not args:
         typer.secho("Usage: /kg entity <id>", fg=get_text_color())
         return
-
     from episodic.kg.db_kg import (
         kg_tables_exist, get_all_entities, get_entity_aliases, get_entity_degree,
     )
-
     if not kg_tables_exist():
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
-
     try:
         entity_id = int(args[0].lstrip('e'))
     except ValueError:
         typer.secho(f"Invalid entity ID: {args[0]}", fg=get_error_color())
         return
-
     entities = get_all_entities()
     ent = next((e for e in entities if e['entity_id'] == entity_id), None)
     if not ent:
         typer.secho(f"Entity {entity_id} not found.", fg=get_error_color())
         return
-
     aliases = get_entity_aliases(entity_id)
     degree = get_entity_degree(entity_id)
-
-    typer.secho(
-        f"Entity e{entity_id}: {ent['canonical_name']}",
-        fg=get_heading_color(), bold=True,
-    )
-    typer.secho(f"  Type:    {ent['entity_type']}", fg=get_text_color())
+    tc = get_text_color()
+    typer.secho(f"Entity e{entity_id}: {ent['canonical_name']}",
+                 fg=get_heading_color(), bold=True)
+    typer.secho(f"  Type:    {ent['entity_type']}", fg=tc)
     if ent.get('canonical_key'):
-        typer.secho(f"  Key:     {ent['canonical_key']}", fg=get_text_color())
-    typer.secho(
-        f"  Aliases: {', '.join(aliases) if aliases else 'none'}",
-        fg=get_text_color(),
-    )
-    typer.secho(f"  Degree:  {degree}", fg=get_text_color())
+        typer.secho(f"  Key:     {ent['canonical_key']}", fg=tc)
+    typer.secho(f"  Aliases: {', '.join(aliases) if aliases else 'none'}", fg=tc)
+    typer.secho(f"  Degree:  {degree}", fg=tc)
 
 
 def kg_edges(args: List[str]) -> None:
     """List edges, optionally filtered by entity ID."""
     from episodic.kg.db_kg import kg_tables_exist, get_all_edges
-
     if not kg_tables_exist():
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
-
     edges = get_all_edges()
     if not edges:
         typer.secho("No edges in knowledge graph.", fg=get_text_color())
         return
-
-    # Optional entity filter
     entity_id = None
     if args:
         try:
             entity_id = int(args[0].lstrip('e'))
         except ValueError:
             pass
-
     if entity_id is not None:
-        edges = [
-            e for e in edges
-            if e['subj_entity_id'] == entity_id or e['obj_entity_id'] == entity_id
-        ]
-
+        edges = [e for e in edges
+                 if e['subj_entity_id'] == entity_id or e['obj_entity_id'] == entity_id]
     typer.secho(f"KG Edges ({len(edges)}):", fg=get_heading_color(), bold=True)
     for edge in edges:
-        src = edge['subj_entity_id']
-        pred = edge['predicate']
-        obj = edge['obj_entity_id']
-        typer.secho(
-            f"  e{src} --{pred}--> e{obj}", fg=get_text_color(),
-        )
+        typer.secho(f"  e{edge['subj_entity_id']} --{edge['predicate']}--> "
+                     f"e{edge['obj_entity_id']}", fg=get_text_color())
 
 
 def kg_search(args: List[str]) -> None:
@@ -237,39 +192,25 @@ def kg_search(args: List[str]) -> None:
     if not args:
         typer.secho("Usage: /kg search <query>", fg=get_text_color())
         return
-
     from episodic.kg.db_kg import kg_tables_exist, get_all_entities, get_entity_aliases
-
     if not kg_tables_exist():
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
-
     query = ' '.join(args).lower()
-    entities = get_all_entities()
     matches = []
-
-    for ent in entities:
+    for ent in get_all_entities():
         name = (ent.get('canonical_name') or '').lower()
         key = (ent.get('canonical_key') or '').lower()
         aliases = [a.lower() for a in get_entity_aliases(ent['entity_id'])]
-
-        if (query in name or query in key
-                or any(query in a for a in aliases)):
+        if query in name or query in key or any(query in a for a in aliases):
             matches.append(ent)
-
     if not matches:
         typer.secho(f"No entities matching '{query}'.", fg=get_text_color())
         return
-
-    typer.secho(
-        f"Search results ({len(matches)}):",
-        fg=get_heading_color(), bold=True,
-    )
+    typer.secho(f"Search results ({len(matches)}):", fg=get_heading_color(), bold=True)
     for ent in matches:
-        etype = ent['entity_type']
-        name = ent['canonical_name']
-        eid = ent['entity_id']
-        typer.secho(f"  e{eid}: {name} ({etype})", fg=get_text_color())
+        typer.secho(f"  e{ent['entity_id']}: {ent['canonical_name']} "
+                     f"({ent['entity_type']})", fg=get_text_color())
 
 
 def kg_update(args: List[str]) -> None:
@@ -338,38 +279,28 @@ def kg_update(args: List[str]) -> None:
 
 def kg_rebuild(args: List[str]) -> None:
     """Full rebuild: drop all KG data and reprocess from scratch."""
-    typer.secho(
-        "This will delete all KG data and reprocess from scratch.",
-        fg=get_warning_color(), bold=True,
-    )
-
+    typer.secho("This will delete all KG data and reprocess from scratch.",
+                 fg=get_warning_color(), bold=True)
     try:
         confirm = input("Continue? [y/N] ")
     except (EOFError, KeyboardInterrupt):
         typer.secho("\nCancelled.", fg=get_text_color())
         return
-
     if confirm.lower() != 'y':
         typer.secho("Cancelled.", fg=get_text_color())
         return
-
     from episodic.kg.batch import run_rebuild
-
     typer.secho("Rebuilding KG...", fg=get_heading_color())
-
-    def progress(node_id, index, total):
-        typer.secho(
-            f"  Processing node {node_id} ({index}/{total})...",
-            fg=get_system_color(),
-        )
-
+    def progress(nid, idx, tot):
+        typer.secho(f"  Processing node {nid} ({idx}/{tot})...", fg=get_system_color())
     r = run_rebuild(progress_callback=progress)
+    tc = get_text_color()
     typer.secho(f"\nRebuild complete:", fg=get_heading_color(), bold=True)
-    typer.secho(f"  Nodes processed: {r['nodes_processed']}", fg=get_text_color())
+    typer.secho(f"  Nodes processed: {r['nodes_processed']}", fg=tc)
     typer.secho(f"  Patches applied: {r['patches_applied']}",
-                 fg=get_success_color() if r['patches_applied'] else get_text_color())
+                 fg=get_success_color() if r['patches_applied'] else tc)
     typer.secho(f"  Patches rejected: {r['patches_rejected']}",
-                 fg=get_warning_color() if r['patches_rejected'] else get_text_color())
+                 fg=get_warning_color() if r['patches_rejected'] else tc)
 
 
 def kg_skip(args: List[str]) -> None:
@@ -377,17 +308,12 @@ def kg_skip(args: List[str]) -> None:
     if not args:
         typer.secho("Usage: /kg skip <node_id> [--reason ...]", fg=get_text_color())
         return
-
     try:
         node_id = int(args[0])
     except ValueError:
         typer.secho(f"Invalid node ID: {args[0]}", fg=get_error_color())
         return
-
-    reason = ''
-    if '--reason' in args:
-        idx = args.index('--reason')
-        reason = ' '.join(args[idx + 1:])
+    reason = ' '.join(args[args.index('--reason') + 1:]) if '--reason' in args else ''
 
     from episodic.kg.batch import add_to_skiplist
 
@@ -402,16 +328,13 @@ def kg_patch(args: List[str]) -> None:
     if not args:
         typer.secho("Usage: /kg patch <node_id>", fg=get_text_color())
         return
-
     try:
         node_id = int(args[0])
     except ValueError:
         typer.secho(f"Invalid node ID: {args[0]}", fg=get_error_color())
         return
-
     import json
     from episodic.kg.db_kg import kg_tables_exist, _use_conn
-
     if not kg_tables_exist():
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
@@ -589,3 +512,86 @@ def kg_probe(args: List[str]) -> None:
     typer.secho(f"\nInjected block ({result.budget_used}/{result.budget_total} "
                  f"tokens, cache: {result.cache_status}):", fg=hc, bold=True)
     typer.secho(result.text, fg=sc)
+
+
+def kg_merge(args: List[str]) -> None:
+    """Merge two entities. Lower ID becomes survivor by default."""
+    if len(args) < 2:
+        typer.secho("Usage: /kg merge <id1> <id2> [--survivor=<id>]",
+                     fg=get_text_color())
+        return
+    from episodic.kg.db_kg import kg_tables_exist, _use_conn
+    from episodic.kg.merge import merge_entities
+    if not kg_tables_exist():
+        typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
+        return
+    try:
+        id1, id2 = int(args[0].lstrip('e')), int(args[1].lstrip('e'))
+    except ValueError:
+        typer.secho("Invalid entity IDs.", fg=get_error_color())
+        return
+    # Default: lower ID survives (older = canonical)
+    survivor, merged = (id1, id2) if id1 < id2 else (id2, id1)
+    for a in args[2:]:
+        if a.startswith('--survivor='):
+            try:
+                s = int(a.split('=')[1].lstrip('e'))
+                if s == id1:
+                    survivor, merged = id1, id2
+                elif s == id2:
+                    survivor, merged = id2, id1
+            except ValueError:
+                pass
+    tc = get_text_color()
+    with _use_conn() as conn:
+        # Show what we're merging
+        for eid, label in [(survivor, "Survivor"), (merged, "Merged")]:
+            row = conn.execute(
+                "SELECT canonical_name, entity_type FROM kg_entities "
+                "WHERE entity_id = ?", (eid,)).fetchone()
+            if not row:
+                typer.secho(f"Entity {eid} not found.", fg=get_error_color())
+                return
+            typer.secho(f"  {label}: e{eid} {row[0]} ({row[1]})", fg=tc)
+        try:
+            confirm = input("Merge? [y/N] ")
+        except (EOFError, KeyboardInterrupt):
+            typer.secho("\nCancelled.", fg=tc)
+            return
+        if confirm.lower() != 'y':
+            typer.secho("Cancelled.", fg=tc)
+            return
+        try:
+            result = merge_entities(survivor, merged, "manual_merge", conn)
+        except ValueError as e:
+            typer.secho(f"Error: {e}", fg=get_error_color())
+            return
+    typer.secho("Merge complete:", fg=get_heading_color(), bold=True)
+    for k in ('moved_edges', 'dropped_edges', 'moved_aliases',
+              'dropped_aliases', 'moved_mentions'):
+        typer.secho(f"  {k}: {result[k]}", fg=tc)
+
+
+def kg_dupes() -> None:
+    """Find duplicate entities (same canonical_name + type)."""
+    from episodic.kg.db_kg import kg_tables_exist, _use_conn
+    if not kg_tables_exist():
+        typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
+        return
+    with _use_conn() as conn:
+        rows = conn.execute(
+            "SELECT e1.entity_id, e2.entity_id, e1.canonical_name, e1.entity_type "
+            "FROM kg_entities e1 "
+            "JOIN kg_entities e2 ON e1.entity_id < e2.entity_id "
+            "  AND LOWER(e1.canonical_name) = LOWER(e2.canonical_name) "
+            "  AND e1.entity_type = e2.entity_type "
+            "WHERE e1.merged_into_entity_id IS NULL "
+            "  AND e2.merged_into_entity_id IS NULL "
+            "ORDER BY e1.canonical_name"
+        ).fetchall()
+    if not rows:
+        typer.secho("No duplicate entities found.", fg=get_success_color())
+        return
+    typer.secho(f"Duplicate entities ({len(rows)}):", fg=get_heading_color(), bold=True)
+    for r in rows:
+        typer.secho(f"  e{r[0]} + e{r[1]}: {r[2]} ({r[3]})", fg=get_text_color())

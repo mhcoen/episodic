@@ -104,9 +104,14 @@ class MentionDictionary:
                 "SELECT value FROM kg_state WHERE key = 'high_water_mark'"
             ).fetchone()
             current_hwm = row[0] if row else "0"
+            row2 = conn.execute(
+                "SELECT value FROM kg_state WHERE key = 'merge_epoch'"
+            ).fetchone()
+            current_me = row2[0] if row2 else "0"
         except sqlite3.OperationalError:
             return False
-        return current_hwm != self._hwm
+        cache_key = f"{current_hwm}:{current_me}"
+        return cache_key != self._hwm
 
     def rebuild(self, conn: sqlite3.Connection) -> str:
         """Rebuild the dictionary from the database. Returns cache status."""
@@ -115,10 +120,11 @@ class MentionDictionary:
 
         new_dict: dict[str, list[tuple[int, float, str]]] = {}
 
-        # Load canonical names
+        # Load canonical names (exclude tombstoned entities)
         try:
             cursor = conn.execute(
-                "SELECT entity_id, canonical_name FROM kg_entities"
+                "SELECT entity_id, canonical_name FROM kg_entities "
+                "WHERE merged_into_entity_id IS NULL"
             )
             for entity_id, canonical_name in cursor.fetchall():
                 key = _normalize_surface(canonical_name)
@@ -167,14 +173,19 @@ class MentionDictionary:
         except sqlite3.OperationalError:
             pass
 
-        # Update HWM
+        # Update cache key (HWM + merge_epoch)
         try:
             row = conn.execute(
                 "SELECT value FROM kg_state WHERE key = 'high_water_mark'"
             ).fetchone()
-            self._hwm = row[0] if row else "0"
+            hwm = row[0] if row else "0"
+            row2 = conn.execute(
+                "SELECT value FROM kg_state WHERE key = 'merge_epoch'"
+            ).fetchone()
+            me = row2[0] if row2 else "0"
+            self._hwm = f"{hwm}:{me}"
         except sqlite3.OperationalError:
-            self._hwm = "0"
+            self._hwm = "0:0"
 
         self._dict = new_dict
         return "rebuilt"
@@ -272,6 +283,8 @@ def retrieve_neighborhood(
             JOIN kg_entities o ON e.obj_entity_id = o.entity_id
             WHERE (e.subj_entity_id = ? OR e.obj_entity_id = ?)
               AND a.status = 'active'
+              AND s.merged_into_entity_id IS NULL
+              AND o.merged_into_entity_id IS NULL
             ORDER BY a.source_node_id DESC
             """,
             (entity_id, entity_id),

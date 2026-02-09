@@ -67,6 +67,7 @@ Predicate set and triggers
 - HAS(Entity, X) — have, has, had, own, owns, owned, got, my, I've got, I have, we have
 - LOCATED_AT(Entity, PlaceOrOrg) — at, in, from, based in, located, studies at, works at, enrolled at, lives in
 - PART_OF(Entity, Entity) — part of, member of, belongs to, in, on, within, works for, employed by
+  CRITICAL: "from ORG" does NOT mean part_of. "A desk from Uplift" means manufactured by Uplift, not that the desk is a component of Uplift. Do not use part_of for provenance/manufacturer relationships.
 - RELATED_TO(Person, Person) — wife, husband, partner, daughter, son, brother, sister, friend, colleague, mother, father, parent, child, married to
 - IS_A(Entity, Entity) — is a, is an, type of, kind of, which is, it's a
 - POWERED_BY(Entity, Entity) — runs on, powered by, fueled by, running on
@@ -90,6 +91,18 @@ These rules take precedence over general trigger matching. Apply them first.
 
 3. "building X" / "working on X" / "developing X" where X is an artifact or project
    → MUST emit works_on(Person, X). NEVER emit uses(Person, X) or has(Person, X).
+
+4. "X from ORG" where X is an artifact (product, device, furniture)
+   → Do NOT emit part_of(X, ORG). Instead:
+   - If the sentence means "X is made by ORG" or "X is an ORG product": emit affiliated_with(X, ORG) if X is typed as org, otherwise skip the edge (part_of requires artifact|org subjects, affiliated_with requires person|org subjects — if X is artifact, neither fits cleanly; prefer has(X, ORG_frame) or is_a(X, ORG_product) if the text supports it).
+   - If the sentence means "X physically came from ORG location": emit located_at(X, ORG).
+   - When in doubt, do NOT emit part_of for "from" relationships. Emit mentions only.
+
+Example:
+  "I have a standing desk from Uplift"
+  Emit: user:self has standing desk
+  Do NOT emit: standing desk part_of Uplift
+  Rationale: "from Uplift" means manufactured by, not component membership. part_of means X is a component or member of Y.
 
 Mandatory domain and range constraints
 You MUST enforce these. If a candidate edge would violate them, do not emit that edge. Emit mentions only.

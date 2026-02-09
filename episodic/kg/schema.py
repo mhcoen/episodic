@@ -132,6 +132,7 @@ def ensure_kg_schema(conn=None):
         c.executescript(SEED_STATE_SQL)
         _migrate_edge_dedup(c)
         _migrate_predicate_check(c)
+        _migrate_entity_merge(c)
         c.commit()
 
 
@@ -195,6 +196,53 @@ def _migrate_predicate_check(conn):
         CREATE INDEX IF NOT EXISTS idx_kg_edges_pred ON kg_edges(predicate);
         CREATE UNIQUE INDEX IF NOT EXISTS uq_kg_edges_triple
             ON kg_edges(subj_entity_id, predicate, obj_entity_id);
+    """)
+
+
+def _migrate_entity_merge(conn):
+    """Add merge tombstone columns to kg_entities and create kg_merges table.
+
+    Idempotent: checks if merged_into_entity_id column already exists.
+    """
+    # Check if column already exists
+    try:
+        conn.execute("SELECT merged_into_entity_id FROM kg_entities LIMIT 0")
+        has_col = True
+    except sqlite3.OperationalError:
+        has_col = False
+
+    if not has_col:
+        conn.execute(
+            "ALTER TABLE kg_entities ADD COLUMN "
+            "merged_into_entity_id INTEGER NULL REFERENCES kg_entities(entity_id)"
+        )
+        conn.execute(
+            "ALTER TABLE kg_entities ADD COLUMN merged_at REAL NULL"
+        )
+        conn.execute(
+            "ALTER TABLE kg_entities ADD COLUMN merged_reason TEXT NULL"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_kg_entities_merged "
+            "ON kg_entities(merged_into_entity_id) "
+            "WHERE merged_into_entity_id IS NOT NULL"
+        )
+
+    # Create kg_merges table (append-only log)
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS kg_merges (
+            merge_id INTEGER PRIMARY KEY,
+            survivor_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
+            merged_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
+            created_at REAL NOT NULL,
+            created_by_node_id INTEGER NULL,
+            reason TEXT,
+            counts TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_kg_merges_survivor
+            ON kg_merges(survivor_id);
+        CREATE INDEX IF NOT EXISTS idx_kg_merges_merged
+            ON kg_merges(merged_id);
     """)
 
 

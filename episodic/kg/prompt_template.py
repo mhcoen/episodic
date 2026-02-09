@@ -58,6 +58,10 @@ When the text describes relationships or properties of other entities, those non
 Predicate set and triggers
 - USES(Person, X) — use, using, used, run, running, rely on, work with, daily, regularly
 - WANTS(Person, X) — want, need, looking for, hoping, wish, interested in, would like, plan to
+  CRITICAL constraint on WANTS: Only emit wants(user, X) when the user explicitly asserts a personal goal, desire, plan, or need.
+  Positive triggers (emit wants): "I want to", "I need to", "I'm looking for", "my goal is", "I plan to", "I'm hoping to", "I'd like to learn/build/buy".
+  Negative triggers (do NOT emit wants): questions ("?"), requests for explanation ("tell me about", "what is", "how does", "can you explain", "explain", "thoughts on", "how do I", "can you").
+  If the user is asking a question about topic X, they are seeking information, not expressing a desire for X. Emit mentions only, no wants edge.
 - PREFERS(Person, X) — prefer, rather, instead of, better than, favorite, go-to
 - ROLE(Person, X) — I'm a, I am a, my role, I work as, my job
 - HAS(Entity, X) — have, has, had, own, owns, owned, got, my, I've got, I have, we have

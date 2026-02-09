@@ -777,7 +777,7 @@ def validate_patch(
                     break
 
             # 9k-5: wants edges in question/info-seeking context
-            if pred == 'wants':
+            if pred == 'wants' and subj == 'user:self':
                 has_negative = any(
                     cue in span_lower for cue in WANTS_NEGATIVE_CUES
                 )

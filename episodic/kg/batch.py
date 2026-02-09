@@ -1,5 +1,6 @@
 """Batch processor for KG extraction pipeline."""
 
+import hashlib
 import json
 import sqlite3
 import time
@@ -13,7 +14,7 @@ from .extractor import extract_patch
 from .validator import validate_patch, repair_patch, VALIDATOR_VERSION
 from .applicator import apply_patch, record_rejected_patch
 
-EXTRACTION_CONCURRENCY = 5
+EXTRACTION_CONCURRENCY = 15
 
 
 # --- Node intent classification for question filtering ---
@@ -231,6 +232,7 @@ def run_batch(
             'hwm_before': hwm_before,
             'hwm_after': hwm_before,
             'node_classifications': {'question': 0, 'assertion': 0},
+            'nodes_qa_filtered': 0,
             'edges_stripped_question_filter': 0,
         }
 
@@ -239,12 +241,43 @@ def run_batch(
 
         total = len(pending)
 
-        # Phase 1: Parallel extraction (each thread opens its own conn)
+        # Phase 1: Classify nodes, skip LLM for QA nodes
         extraction_results = {}  # node_id -> result dict
+        nodes_to_extract = []
+        for node in pending:
+            node_id = node['node_id']
+            if classify_node_intent(node['content']) == 'question':
+                qa_json = json.dumps({
+                    'schema_version': 'kg_patch_v1',
+                    'node_id': node_id,
+                    'assertions': [],
+                    'entities': [],
+                    'aliases': [],
+                    'mentions': [],
+                    'edges': [],
+                    'notes': 'qa_node_skipped',
+                }, separators=(',', ':'))
+                extraction_results[node_id] = {
+                    'node_id': node_id,
+                    'patch_json': qa_json,
+                    'patch_hash': hashlib.sha256(
+                        qa_json.encode()
+                    ).hexdigest(),
+                    'applied': 0,
+                    'rejection_reason': None,
+                    'model_id': 'skipped_qa',
+                    'extraction_time_ms': 0,
+                    'raw_output': '',
+                }
+                summary['nodes_qa_filtered'] += 1
+            else:
+                nodes_to_extract.append(node)
+
+        # Phase 1b: Parallel extraction (each thread opens its own conn)
         with ThreadPoolExecutor(max_workers=EXTRACTION_CONCURRENCY) as pool:
             future_to_node = {
                 pool.submit(extract_patch, node['node_id'], lookback, conn=None): node
-                for node in pending
+                for node in nodes_to_extract
             }
             for future in as_completed(future_to_node):
                 node = future_to_node[future]
@@ -407,12 +440,6 @@ def run_batch(
                 )
                 c.commit()
                 continue
-
-            # Question-like nodes: keep entities/mentions, strip edges
-            if node_class == 'question':
-                edges_stripped = len(patch.get('edges', []))
-                patch['edges'] = []
-                summary['edges_stripped_question_filter'] += edges_stripped
 
             if dry_run:
                 summary['patches_applied'] += 1

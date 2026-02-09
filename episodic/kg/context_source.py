@@ -579,8 +579,10 @@ def get_kg_context(
             deduped.append(f)
     all_facts = deduped
 
-    # Apply closure rules
+    # Apply closure rules, then filter out derived triples already in neighborhood
     derived = apply_closure_rules(matched_ids, all_facts, conn, max_derived=max_derived)
+    derived = [d for d in derived
+               if (d.subj_name, d.predicate, d.obj_name) not in seen_triples]
 
     debug_print(
         f"Retrieved {len(all_facts)} edges, {len(derived)} derived facts",

@@ -13,8 +13,10 @@ import pytest
 from episodic.kg.schema import ensure_kg_schema, _migrate_edge_dedup
 from episodic.kg.context_source import (
     apply_closure_rules,
+    get_kg_context,
     DerivedFact,
     EdgeFact,
+    _mention_dict,
 )
 
 
@@ -267,6 +269,59 @@ def test_closure_dedup():
                      if d.subj_name == 'Emma' and d.predicate == 'located_at']
     assert len(located_facts) == 1, (
         f"Expected 1 derived located_at fact, got {len(located_facts)}: {located_facts}"
+    )
+
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# T4: test_closure_skips_existing_edge
+# ---------------------------------------------------------------------------
+
+def test_closure_skips_existing_edge():
+    """Derived triple already in neighborhood edges → not duplicated in output."""
+    conn = sqlite3.connect(':memory:')
+    eids = _seed_entities(conn)
+
+    # user:self --related_to--> Emma
+    a1 = _insert_assertion(conn, 1, 0, 10)
+    conn.execute(
+        "INSERT INTO kg_edges (subj_entity_id, predicate, obj_entity_id, assertion_id) "
+        "VALUES (?, 'related_to', ?, ?)",
+        (eids['<user>'], eids['Emma'], a1),
+    )
+
+    # Emma --located_at--> MIT (direct edge — already in neighborhood)
+    a2 = _insert_assertion(conn, 1, 15, 25)
+    conn.execute(
+        "INSERT INTO kg_edges (subj_entity_id, predicate, obj_entity_id, assertion_id) "
+        "VALUES (?, 'located_at', ?, ?)",
+        (eids['Emma'], eids['MIT'], a2),
+    )
+
+    # Advance HWM so mention dict rebuilds
+    conn.execute(
+        "UPDATE kg_state SET value = '3' WHERE key = 'high_water_mark'"
+    )
+    conn.commit()
+
+    # Force mention dict rebuild
+    _mention_dict._hwm = ""
+
+    result = get_kg_context("Tell me about Emma", conn)
+    assert result is not None
+
+    # The direct edge Emma→located_at→MIT should be in edges
+    direct = [e for e in result.edges
+              if e.subj_name == 'Emma' and e.predicate == 'located_at']
+    assert len(direct) >= 1, "Direct located_at edge should be present"
+
+    # Derived should NOT contain Emma→located_at→MIT (already in neighborhood)
+    dup_derived = [d for d in result.derived
+                   if d.subj_name == 'Emma' and d.predicate == 'located_at'
+                   and d.obj_name == 'MIT']
+    assert len(dup_derived) == 0, (
+        f"Derived should not duplicate direct edge, got: {dup_derived}"
     )
 
     conn.close()

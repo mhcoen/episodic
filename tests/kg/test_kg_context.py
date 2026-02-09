@@ -290,23 +290,28 @@ def test_budget_drop_lowest_rank(kg_db, monkeypatch):
 
 def test_closure_kinship_location(kg_db, monkeypatch):
     """Input: 'How is Emma doing at school?'
-    Assert: derived fact 'Emma located_at MIT' with KINSHIP_LOCATION rule.
+    Assert: Emma located_at MIT appears in output (via direct edge).
+    Closure derives the same triple but it's suppressed since the direct
+    edge already covers it — no wasted budget tokens on duplicates.
     """
     conn, entity_ids, assertion_ids = kg_db
     monkeypatch.setattr('episodic.kg.context_source.config', _MockConfig())
 
     result = get_kg_context("How is Emma doing at school?", conn)
     assert result is not None
-    assert result.derived_count >= 1
 
-    # Check for KINSHIP_LOCATION in the text
-    assert 'KINSHIP_LOCATION' in result.text
+    # The fact is present via direct edge (not derived, since direct takes priority)
     assert 'Emma' in result.text
     assert 'located_at' in result.text
     assert 'MIT' in result.text
 
-    # Check provenance: source_node_ids from both related_to (node 1) and located_at (node 2)
-    assert 'node:1' in result.text or 'node:2' in result.text
+    # Derived count is 0 because the closure triple duplicates the direct edge
+    assert result.derived_count == 0
+
+    # But the direct edge IS present
+    direct = [e for e in result.edges
+              if e.subj_name == 'Emma' and e.predicate == 'located_at']
+    assert len(direct) >= 1, "Direct located_at edge should be present"
 
 
 # ---------------------------------------------------------------------------
@@ -315,19 +320,28 @@ def test_closure_kinship_location(kg_db, monkeypatch):
 
 def test_closure_device_spec(kg_db, monkeypatch):
     """Input: 'Can my MacBook handle it?'
-    Assert: derived fact includes 'MacBook ... has 64 gigs of RAM' with DEVICE_SPEC.
+    Assert: MacBook has 64GB RAM appears in output (via direct edge).
+    Closure derives the same triple but it's suppressed since the direct
+    edge already covers it — no wasted budget tokens on duplicates.
     """
     conn, entity_ids, _ = kg_db
     monkeypatch.setattr('episodic.kg.context_source.config', _MockConfig())
 
     result = get_kg_context("Can my MacBook handle it?", conn)
     assert result is not None
-    assert result.derived_count >= 1
 
-    # Check for DEVICE_SPEC in the text
-    assert 'DEVICE_SPEC' in result.text
+    # The fact is present via direct edge
     assert '64 gigs of RAM' in result.text
     assert 'MacBook Pro M3 Max' in result.text
+
+    # Derived count is 0 because the closure triple duplicates the direct edge
+    assert result.derived_count == 0
+
+    # But the direct edge IS present
+    direct = [e for e in result.edges
+              if e.subj_name == 'MacBook Pro M3 Max' and e.predicate == 'has'
+              and e.obj_name == '64 gigs of RAM']
+    assert len(direct) >= 1, "Direct has edge should be present"
 
 
 # ---------------------------------------------------------------------------

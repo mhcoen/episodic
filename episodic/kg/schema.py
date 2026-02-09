@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_kg_assertions_node ON kg_assertions(source_node_i
 CREATE TABLE IF NOT EXISTS kg_edges (
     edge_id INTEGER PRIMARY KEY,
     subj_entity_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
-    predicate TEXT NOT NULL CHECK(predicate IN ('uses', 'wants', 'prefers', 'role', 'has', 'located_at', 'part_of', 'related_to', 'is_a', 'powered_by')),
+    predicate TEXT NOT NULL,
     obj_entity_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
     assertion_id INTEGER NOT NULL REFERENCES kg_assertions(assertion_id)
 );
@@ -131,6 +131,7 @@ def ensure_kg_schema(conn=None):
         c.execute(SEED_USER_SELF_SQL, (time.time(),))
         c.executescript(SEED_STATE_SQL)
         _migrate_edge_dedup(c)
+        _migrate_predicate_check(c)
         c.commit()
 
 
@@ -163,6 +164,37 @@ def _migrate_edge_dedup(conn):
     conn.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS uq_kg_edges_triple
         ON kg_edges(subj_entity_id, predicate, obj_entity_id)
+    """)
+
+
+def _migrate_predicate_check(conn):
+    """Remove hardcoded CHECK constraint on kg_edges.predicate.
+
+    Idempotent: checks if the old CHECK exists in the table DDL. If so,
+    recreates the table without it (validator enforces predicate validity).
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='kg_edges'"
+    ).fetchone()
+    if not row or 'CHECK(predicate IN' not in (row[0] or ''):
+        return  # Already clean or table doesn't exist
+
+    conn.executescript("""
+        CREATE TABLE kg_edges_new (
+            edge_id INTEGER PRIMARY KEY,
+            subj_entity_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
+            predicate TEXT NOT NULL,
+            obj_entity_id INTEGER NOT NULL REFERENCES kg_entities(entity_id),
+            assertion_id INTEGER NOT NULL REFERENCES kg_assertions(assertion_id)
+        );
+        INSERT INTO kg_edges_new SELECT * FROM kg_edges;
+        DROP TABLE kg_edges;
+        ALTER TABLE kg_edges_new RENAME TO kg_edges;
+        CREATE INDEX IF NOT EXISTS idx_kg_edges_subj ON kg_edges(subj_entity_id);
+        CREATE INDEX IF NOT EXISTS idx_kg_edges_obj ON kg_edges(obj_entity_id);
+        CREATE INDEX IF NOT EXISTS idx_kg_edges_pred ON kg_edges(predicate);
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_kg_edges_triple
+            ON kg_edges(subj_entity_id, predicate, obj_entity_id);
     """)
 
 

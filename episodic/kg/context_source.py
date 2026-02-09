@@ -60,13 +60,16 @@ PREDICATE_PRIORITY = {
     'has': 0,
     'is_a': 1,
     'located_at': 2,
-    'part_of': 3,
-    'related_to': 4,
-    'powered_by': 5,
-    'role': 6,
-    'uses': 7,
-    'prefers': 8,
-    'wants': 9,
+    'affiliated_with': 3,   # Phase 1.2 — institutional context
+    'part_of': 4,
+    'related_to': 5,
+    'powered_by': 6,
+    'role': 7,
+    'studies': 8,            # Phase 1.2 — academic relation
+    'works_on': 9,           # Phase 1.2 — active development
+    'uses': 10,
+    'prefers': 11,
+    'wants': 12,
 }
 
 PAST_TENSE_CUES = re.compile(

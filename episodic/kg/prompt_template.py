@@ -70,6 +70,26 @@ Predicate set and triggers
 - RELATED_TO(Person, Person) — wife, husband, partner, daughter, son, brother, sister, friend, colleague, mother, father, parent, child, married to
 - IS_A(Entity, Entity) — is a, is an, type of, kind of, which is, it's a
 - POWERED_BY(Entity, Entity) — runs on, powered by, fueled by, running on
+- AFFILIATED_WITH(Person|Org, Org) — from, affiliated with, associated with, connected to, represents, co-founder of
+  Use when a person or org has an institutional association with an org. Do NOT use located_at for "from X" when it means affiliation rather than physical presence.
+- STUDIES(Person, Topic) — studying, studies, majoring in, enrolled in, taking classes in, X major, X student
+  CRITICAL projection rule: "studying X" and "studies X" MUST emit studies, NEVER uses. "Studies at MIT" remains located_at (object is org, not topic).
+- WORKS_ON(Person, Artifact|Topic) — building, working on, developing, creating, contributing to, maintaining, hacking on
+  Use when a person is actively building or developing something. Do NOT use uses or has for active development relationships.
+
+Projection rules (MANDATORY — override general triggers)
+These rules take precedence over general trigger matching. Apply them first.
+
+1. "studying X" / "studies X" / "majoring in X" / "enrolled in X" where X is a topic
+   → MUST emit studies(Person, X). NEVER emit uses(Person, X).
+   Exception: "studies at ORG" → located_at(Person, ORG) because object is org.
+
+2. "from ORG" / "affiliated with ORG" where context indicates institutional association
+   → MUST emit affiliated_with(Person, ORG). NEVER emit part_of(Person, ORG).
+   Note: "from Paris" (a place, not an org) → skip or located_at if org-like.
+
+3. "building X" / "working on X" / "developing X" where X is an artifact or project
+   → MUST emit works_on(Person, X). NEVER emit uses(Person, X) or has(Person, X).
 
 Mandatory domain and range constraints
 You MUST enforce these. If a candidate edge would violate them, do not emit that edge. Emit mentions only.
@@ -85,6 +105,9 @@ Allowed subject and object types per predicate:
 - part_of: subject may be artifact or org. object may be artifact or org.
 - powered_by: subject must be artifact. object must be artifact or topic.
 - has: subject may be user:self, person, artifact, or org. object may be person, artifact, topic, or org.
+- studies: subject must be a person. object must be topic.
+- affiliated_with: subject must be person or org. object must be org.
+- works_on: subject must be a person. object must be artifact or topic.
 
 Explicit anti-star policy (CRITICAL)
 Before emitting any edge with subj_ref = user:self, answer this question for the specific clause:
@@ -104,7 +127,7 @@ Examples you must follow:
 - My daughter Emma studies computer science at MIT
   Emit: user:self related_to Emma
   Emit: Emma located_at MIT
-  Emit: Emma uses computer science
+  Emit: Emma studies computer science
   Do not emit: user:self located_at MIT
   Do not swap Jake and Emma. The subject of studies at is the named person in the same clause.
 
@@ -243,6 +266,19 @@ For each edge:
 - The source_assertion span MUST contain the subject mention surface and the object mention surface used for that edge, in the same clause span.
 - If a sentence has multiple people and multiple orgs, choose spans that bind the correct pair (Emma ... at MIT). Do not attach MIT to Jake unless Jake and MIT co-occur in the same clause span.
 
+is_a span discipline (MANDATORY)
+For is_a(X, Y) edges, the assertion span MUST contain surface mentions of BOTH X and Y.
+If X is mentioned in one clause and Y in another clause of the same sentence, create two
+separate assertions and only emit the is_a edge from the assertion that contains both.
+
+Example:
+  "Biscuit loves the park. She's a golden retriever."
+  Assertion a1: "Biscuit loves the park." — mention Biscuit only
+  Assertion a2: "She's a golden retriever." — mention Biscuit (via "She"), golden retriever
+  Edge: is_a(Biscuit, golden retriever) with source_assertion = a2 (contains both endpoints)
+
+Do NOT emit is_a from a1 which only contains "Biscuit".
+
 Confidence discipline
 - Use high confidence (0.9 to 0.99) only when the clause unambiguously asserts the relation and subject/object are explicit.
 - Use lower confidence (0.6 to 0.8) when there is mild ambiguity (weak coreference, borderline entity admission) but still explicitly asserted.
@@ -323,7 +359,7 @@ Aliases enable read-side entity resolution. Do not invent aliases not present in
 
 - edges: array of objects with keys:
   - subj_ref: "user:self" or "eN" or "db:<entity_id>"
-  - predicate: one of "uses", "wants", "prefers", "role", "has", "located_at", "part_of", "related_to", "is_a", "powered_by"
+  - predicate: one of "uses", "wants", "prefers", "role", "has", "located_at", "part_of", "related_to", "is_a", "powered_by", "studies", "affiliated_with", "works_on"
   - obj_ref: "user:self" or "eN" or "db:<entity_id>"
   - source_assertion: assertion_key
   - confidence: number 0.0 to 1.0
@@ -353,7 +389,7 @@ Input user message JSON:
 {"node_id": 100, "source_text": "My daughter Emma studies computer science at MIT. She loves it there.", "recent_context": [], "entity_dictionary": [], "kg_neighborhood": []}
 
 Output JSON:
-{"schema_version": "kg_patch_v1", "node_id": 100, "assertions": [{"assertion_key": "a1", "span_start": 0, "span_end": 48, "asserted_by": "user", "polarity": "affirm", "certainty": "explicit", "status": "active", "tags": []}], "entities": [{"entity_key": "e1", "entity_type": "person", "canonical_name": "Emma", "canonical_key": "person:emma", "created_by_assertion": "a1", "resolution_hint": null}, {"entity_key": "e2", "entity_type": "topic", "canonical_name": "computer science", "canonical_key": "topic:computer_science", "created_by_assertion": "a1", "resolution_hint": null}, {"entity_key": "e3", "entity_type": "org", "canonical_name": "MIT", "canonical_key": "org:mit", "created_by_assertion": "a1", "resolution_hint": null}], "aliases": [], "mentions": [{"mention_key": "m1", "span_start": 14, "span_end": 18, "surface_text": "Emma", "entity_ref": "e1", "confidence": 0.95, "source_assertion": "a1"}, {"mention_key": "m2", "span_start": 27, "span_end": 43, "surface_text": "computer science", "entity_ref": "e2", "confidence": 0.95, "source_assertion": "a1"}, {"mention_key": "m3", "span_start": 47, "span_end": 50, "surface_text": "MIT", "entity_ref": "e3", "confidence": 0.95, "source_assertion": "a1"}], "edges": [{"subj_ref": "user:self", "predicate": "related_to", "obj_ref": "e1", "source_assertion": "a1", "confidence": 0.95}, {"subj_ref": "e1", "predicate": "located_at", "obj_ref": "e3", "source_assertion": "a1", "confidence": 0.95}, {"subj_ref": "e1", "predicate": "uses", "obj_ref": "e2", "source_assertion": "a1", "confidence": 0.9}], "notes": null}\
+{"schema_version": "kg_patch_v1", "node_id": 100, "assertions": [{"assertion_key": "a1", "span_start": 0, "span_end": 48, "asserted_by": "user", "polarity": "affirm", "certainty": "explicit", "status": "active", "tags": []}], "entities": [{"entity_key": "e1", "entity_type": "person", "canonical_name": "Emma", "canonical_key": "person:emma", "created_by_assertion": "a1", "resolution_hint": null}, {"entity_key": "e2", "entity_type": "topic", "canonical_name": "computer science", "canonical_key": "topic:computer_science", "created_by_assertion": "a1", "resolution_hint": null}, {"entity_key": "e3", "entity_type": "org", "canonical_name": "MIT", "canonical_key": "org:mit", "created_by_assertion": "a1", "resolution_hint": null}], "aliases": [], "mentions": [{"mention_key": "m1", "span_start": 14, "span_end": 18, "surface_text": "Emma", "entity_ref": "e1", "confidence": 0.95, "source_assertion": "a1"}, {"mention_key": "m2", "span_start": 27, "span_end": 43, "surface_text": "computer science", "entity_ref": "e2", "confidence": 0.95, "source_assertion": "a1"}, {"mention_key": "m3", "span_start": 47, "span_end": 50, "surface_text": "MIT", "entity_ref": "e3", "confidence": 0.95, "source_assertion": "a1"}], "edges": [{"subj_ref": "user:self", "predicate": "related_to", "obj_ref": "e1", "source_assertion": "a1", "confidence": 0.95}, {"subj_ref": "e1", "predicate": "located_at", "obj_ref": "e3", "source_assertion": "a1", "confidence": 0.95}, {"subj_ref": "e1", "predicate": "studies", "obj_ref": "e2", "source_assertion": "a1", "confidence": 0.9}], "notes": null}\
 """
 
 RETRY_ADDENDUM = """\

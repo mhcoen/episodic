@@ -184,7 +184,11 @@ def _find_best_span(
     return (best, best + len(surface))
 
 ALLOWED_ENTITY_TYPES = {'person', 'artifact', 'topic', 'org'}
-ALLOWED_PREDICATES = {'uses', 'wants', 'prefers', 'role', 'has', 'located_at', 'part_of', 'related_to', 'is_a', 'powered_by'}
+ALLOWED_PREDICATES = {
+    'uses', 'wants', 'prefers', 'role', 'has', 'located_at',
+    'part_of', 'related_to', 'is_a', 'powered_by',
+    'studies', 'affiliated_with', 'works_on',  # Phase 1.2
+}
 ALLOWED_POLARITIES = {'affirm', 'negate'}
 ALLOWED_CERTAINTIES = {'explicit', 'hedged'}
 ALLOWED_STATUSES = {'active'}
@@ -212,6 +216,9 @@ DOMAIN_RANGE: dict[str, tuple[set[str], set[str]]] = {
     'is_a':       ({'person', 'artifact', 'org'},  {'topic'}),
     'powered_by': ({'artifact'},                   {'artifact', 'topic'}),
     'has':        ({'person', 'artifact', 'org'},  {'person', 'artifact', 'topic', 'org'}),
+    'studies':        ({'person'},                     {'topic'}),                       # Phase 1.2
+    'affiliated_with':({'person', 'org'},              {'org'}),                         # Phase 1.2
+    'works_on':       ({'person'},                     {'artifact', 'topic'}),           # Phase 1.2
 }
 
 

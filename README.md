@@ -1,12 +1,12 @@
 # Episodic 🧠
 
-A conversational memory system that creates persistent, navigable conversations with Large Language Models (LLMs). Episodic automatically organizes conversations into topics, manages context windows, and provides tools for searching both local knowledge and the web.
+Episodic is a conversational memory system that makes talking to an LLM feel like talking to someone who remembers what you said and can make logical inferences about it. It does this through two mechanisms that run continuously during conversation. Neural topic segmentation organizes the conversation into a navigable graph, compresses inactive segments, and restores them when subjects recur. A knowledge graph extracts structured facts from every message in real time, performs multi-hop inference over them, and injects relevant results back into the context window with no additional LLM calls.
 
-- Episodic is unique in offering a straightforward *simple* mode, which lets users chat and intelligently search the web. This mode hides Episodic's complexity and configuration but lets users take advantage of its advanced capabilities. Simple mode handles all details of enabling chatting and searching the web. It automatically organizes conversations by topic, detects subject changes, and keeps conversational records and summaries. Conversations are easily accessible in common *markdown files*, which Episodic can both read and write.
+- **Simple mode** lets users chat and search the web without touching any configuration. It handles topic detection, subject-change boundaries, conversation records, and summaries automatically. Conversations are stored as plain markdown files that Episodic can both read and write.
 
-- Episodic has also has an *advanced* mode, which is well suited to developers, academics, researchers, and anyone interested in experimenting with LLM-based applications. This unlocks a comprehensive suite of commands for multi-model orchestration, RAG, semantic detection models, prompt engineering, performance benchmarking, cost analyses, and fine-grained system control.
+- **Advanced mode** exposes the full system: multi-model orchestration, RAG, semantic detection models, prompt engineering, performance benchmarking, cost analysis, and fine-grained control over every pipeline stage.
 
-Users can happily remain entirely within the *simple* mode, which makes use of free systems to provide advanced capabilities. Researchers can use *advanced* mode to quickly gain access to rich computational tools and models of conversation.
+Simple mode uses free services by default and is self-contained. Advanced mode is available whenever you want it.
 
 ## Motivation
 I originally wrote this to fill a gap I couldn't find addressed elsewhere. It has since become my preferred daily interface and framework for both routine LLM use and developing new capabilities based on them.
@@ -31,39 +31,37 @@ If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation
 
 ## 🎬 Example Session
 
-A single conversation demonstrating topic detection, knowledge graph context, web search, and save/resume:
+This example shows what Episodic does that a vanilla LLM cannot. The user mentions facts in separate turns, talks about other things long enough for the original topic to be compressed out of context, and then asks a question that requires connecting those earlier facts.
 
 ```text
-> My daughter Emma just got a MacBook Pro M3 Max with 64GB of RAM for MIT
-🤖 That's a great setup for computer science at MIT! The M3 Max with 64GB
-   will handle everything from compiling large projects to running local ML models.
+# Early in the conversation, two facts are stated separately:
+> My daughter Emma is starting at MIT this fall.
+🤖 That's exciting! MIT is a great choice...
 
-> What keyboard should she get?
-📌 Topic changed → peripherals-recommendation
-🤖 For a Mac-focused setup at MIT, I'd recommend...
+> I just bought a MacBook Pro M3 Max with 64GB of RAM.
+🤖 The M3 Max is a powerful machine...
 
-> Can she run local LLMs on it?
-🤖 Yes — with 64GB of unified memory, Emma's MacBook Pro can comfortably run
-   models up to ~30B parameters via Ollama or llama.cpp...
+# ... hours of conversation on other topics ...
+# The original messages have been compressed out of the context window.
+# A standard LLM has lost both facts entirely.
 
-# The model answered using KG facts: Emma → has → MacBook Pro M3 Max → has → 64GB RAM
-# No embedding search needed — entity mention detection + edge traversal
+> Can my daughter run local models on her laptop?
+🤖 Yes. With 64GB of unified memory, Emma's MacBook Pro M3 Max can run
+   models up to ~30B parameters using Ollama or llama.cpp.
 
-> /muse
-✨ Muse mode activated!
+# How did the model know?
+# "my daughter" matched the user entity, and closure inferred:
+#   user → related_to → Emma
+#   user → has → MacBook Pro M3 Max → has → 64GB RAM
+# These facts were injected from the knowledge graph, not from the
+# conversation history (which was compressed long ago).
 
-> What local models run well on Apple Silicon with 64GB?
-🔍 Searching web for: local LLM models Apple Silicon 64GB
-📚 Found 8 relevant sources
-✨ Based on current benchmarks, the best options for 64GB unified memory are...
-
-> /topics
-📚 Conversation Topics
-  [1] ✓ emmas-macbook-setup
-  [2] ○ peripherals-recommendation (ongoing)
-
-> /save
-✅ Saved to: exports/peripherals-recommendation-2026-02-09.md
+> /kg explain
+🔗 Injected 4 edges (83 tokens):
+   user:self → related_to → Emma (seed: user:self)
+   user:self → has → MacBook Pro M3 Max (seed: user:self)
+   MacBook Pro M3 Max → has → 64GB RAM (derived: DEVICE_SPEC)
+   Emma → located_at → MIT (derived: KINSHIP_LOCATION)
 ```
 
 ## 🚀 Quick Start

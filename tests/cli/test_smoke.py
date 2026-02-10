@@ -43,7 +43,7 @@ def run_script(content, timeout=TIMEOUT):
         script_path = f.name
 
     try:
-        return run_cli("-e", script_path, timeout=timeout)
+        return run_cli("--script", script_path, timeout=timeout)
     finally:
         os.unlink(script_path)
 

@@ -50,7 +50,7 @@ This example shows what Episodic does that a vanilla LLM cannot. The user mentio
    models up to ~30B parameters using Ollama or llama.cpp.
 
 # The original messages were compressed long ago.
-# Episodic reconstructed the answer from its knowledge graph:
+# Episodic injected these facts into the prompt from its knowledge graph:
 
 > /kg explain
 🔗 Injected 4 edges (83 tokens):

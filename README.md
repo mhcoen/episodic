@@ -100,7 +100,7 @@ python -m episodic
 The test suite covers the CLI, topic segmentation, knowledge graph (extraction, read-side, closure, ablation evaluation), RAG, persistence, determinism, and integration.
 
 ```bash
-pytest                        # full suite (~2700 tests)
+pytest                        # full suite (~3200 tests)
 pytest tests/kg/               # knowledge graph tests only
 pytest tests/unit/             # unit tests only
 pytest -x --tb=short          # stop on first failure

@@ -363,7 +363,7 @@ class TestParamOverrides:
 # Adaptive Commitment Strategy Tests
 # =============================================================================
 
-from episodic.topics.strategies.commitment_strategy import (
+from episodic.topics.strategies.adaptive_commitment import (
     AdaptiveCommitmentStrategy,
     AdaptivePolicy,
 )

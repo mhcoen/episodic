@@ -32,6 +32,8 @@ from episodic.topics.evaluation import (
 from episodic.topics.strategies.commitment_strategy import (
     CommitmentPolicyStrategy,
     CommitmentPolicy,
+)
+from episodic.topics.strategies.adaptive_commitment import (
     AdaptiveCommitmentStrategy,
     AdaptivePolicy,
 )

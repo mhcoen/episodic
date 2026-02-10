@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from episodic.topics.evaluation import Message
 from episodic.topics.strategies.neural_strategy import NeuralStrategy
-from episodic.topics.strategies.commitment_strategy import (
+from episodic.topics.strategies.adaptive_commitment import (
     AdaptiveCommitmentStrategy,
     AdaptivePolicy,
 )

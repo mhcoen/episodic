@@ -10,10 +10,15 @@ from episodic.topics.strategies.keyword_strategy import KeywordStrategy
 from episodic.topics.strategies.relative_embedding_strategy import RelativeEmbeddingStrategy
 from episodic.topics.strategies.neural_strategy import NeuralStrategy
 from episodic.topics.strategies.ensemble_strategy import EnsembleStrategy
+from episodic.topics.strategies.commitment_policy import (
+    CommitmentPolicy,
+    CommitState,
+    CommitmentState,
+)
 from episodic.topics.strategies.commitment_strategy import (
     CommitmentPolicyStrategy,
-    CommitmentPolicy,
-    CommitmentState,
+)
+from episodic.topics.strategies.adaptive_commitment import (
     AdaptiveCommitmentStrategy,
     AdaptivePolicy,
 )

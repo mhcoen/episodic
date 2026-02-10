@@ -99,9 +99,10 @@ def register_all_commands():
     )
     
     # Import new utility commands
-    from episodic.cli_command_router import (
-        _handle_about, _handle_welcome, _handle_config,
-        _handle_history, _handle_tree
+    from episodic.cli_command_handlers_nav import (
+        handle_about as _handle_about, handle_welcome as _handle_welcome,
+        handle_config as _handle_config, handle_history as _handle_history,
+        handle_tree as _handle_tree
     )
     
     # Import script commands

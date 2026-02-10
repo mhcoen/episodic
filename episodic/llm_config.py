@@ -5,7 +5,7 @@ This module provides information about available LLM providers and their models.
 It does NOT manage user preferences or selected models - that's handled by episodic.config.
 """
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from episodic.model_config import get_model_config
 

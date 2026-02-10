@@ -11,13 +11,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
-from urllib.parse import quote_plus
 
 import typer
 from episodic.config import config
 from episodic.configuration import (
     get_error_color, get_warning_color, get_success_color,
-    get_info_color, get_system_color
+    get_info_color
 )
 
 
@@ -60,7 +59,7 @@ class DuckDuckGoProvider(WebSearchProvider):
     def is_available(self) -> bool:
         """Check if DuckDuckGo library is installed."""
         try:
-            from ddgs import DDGS
+            from ddgs import DDGS  # noqa: F401
             return True
         except ImportError:
             return False
@@ -125,7 +124,7 @@ class SearxProvider(WebSearchProvider):
     def is_available(self) -> bool:
         """Check if Searx instance is configured and dependencies are installed."""
         try:
-            import aiohttp
+            import aiohttp  # noqa: F401
             return bool(self.instance_url)
         except ImportError:
             return False
@@ -200,7 +199,7 @@ class GoogleProvider(WebSearchProvider):
     def is_available(self) -> bool:
         """Check if Google Search is configured and dependencies are installed."""
         try:
-            import aiohttp
+            import aiohttp  # noqa: F401
             return bool(self.api_key and self.search_engine_id)
         except ImportError:
             return False
@@ -288,7 +287,7 @@ class BingProvider(WebSearchProvider):
     def is_available(self) -> bool:
         """Check if Bing Search is configured and dependencies are installed."""
         try:
-            import aiohttp
+            import aiohttp  # noqa: F401
             return bool(self.api_key)
         except ImportError:
             return False

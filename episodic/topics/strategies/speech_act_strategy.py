@@ -10,7 +10,7 @@ Certain speech acts strongly signal topic transitions:
 This can be combined with semantic features for multi-view detection.
 """
 
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import re
 import uuid

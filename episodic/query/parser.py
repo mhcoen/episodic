@@ -8,7 +8,7 @@ INVARIANT: Any LEX_ERROR forces FreeText - no partial parsing allowed.
 
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from .types import (
     AST,

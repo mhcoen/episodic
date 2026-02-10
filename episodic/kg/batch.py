@@ -11,7 +11,7 @@ from .db_kg import _use_conn
 from .schema import ensure_kg_schema
 from .prompt_template import normalize_text
 from .extractor import extract_patch
-from .validator import validate_patch, repair_patch, VALIDATOR_VERSION
+from .validator import validate_patch, repair_patch
 from .applicator import apply_patch, record_rejected_patch
 
 EXTRACTION_CONCURRENCY = 15

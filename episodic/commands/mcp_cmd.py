@@ -7,7 +7,7 @@ from typing import List
 
 from episodic.configuration import (
     get_text_color, get_heading_color, get_success_color,
-    get_error_color, get_warning_color, get_system_color,
+    get_error_color, get_warning_color,
 )
 
 

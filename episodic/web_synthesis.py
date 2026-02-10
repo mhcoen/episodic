@@ -350,7 +350,6 @@ def format_synthesized_answer(answer, sources: List[SearchResult]) -> None:
         sources: List of source search results
     """
     from episodic.configuration import get_text_color, get_system_color, get_llm_color
-    from episodic.text_formatter import format_and_display_text
     from episodic.llm import _execute_llm_query
     
     # Just add a blank line before the answer

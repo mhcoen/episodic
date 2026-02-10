@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 # Setup
 # =============================================================================
 
-from episodic.retrieval import migrate_fts5, retrieve, build_segment_filter
+from episodic.retrieval import migrate_fts5, retrieve
 from episodic.retrieval.modes import format_answer_response, format_browse_response, format_summarize_response
 from episodic.retrieval.display import get_exchange_for_display
 from episodic.retrieval.segment import get_cached_segment_nodes, get_all_topics

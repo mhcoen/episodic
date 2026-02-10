@@ -10,8 +10,8 @@ from collections import deque
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
-from .templates import TEMPLATES, get_templates, get_emoji, get_weather_extension
-from .formatters import format_duration_speech, format_time_speech
+from .templates import get_templates, get_emoji, get_weather_extension
+from .formatters import format_duration_speech
 
 
 class SpeechGenerator:

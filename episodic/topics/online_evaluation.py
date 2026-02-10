@@ -18,10 +18,9 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set, Tuple
 
-from episodic.topics.strategy import TopicStrategy, TopicDecision
+from episodic.topics.strategy import TopicStrategy
 from episodic.topics.evaluation import (
     TestCase,
-    Message,
     BoundaryAlignment,
     ALIGNMENT_PRESETS,
     normalize_strategy_output,

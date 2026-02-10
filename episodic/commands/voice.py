@@ -53,7 +53,7 @@ def voice_on():
         typer.secho("\nInstall with: pip install sounddevice webrtcvad numpy", fg=get_text_color())
         return
 
-    from episodic.voice import get_voice_manager, VoiceState
+    from episodic.voice import get_voice_manager
 
     manager = get_voice_manager()
 
@@ -215,7 +215,6 @@ def voice_info():
 
     try:
         import sounddevice as sd
-        import numpy as np
 
         devices = sd.query_devices()
         default_input = sd.default.device[0]
@@ -288,19 +287,19 @@ def _check_dependencies() -> list:
     missing = []
 
     try:
-        import sounddevice
+        import sounddevice  # noqa: F401
     except ImportError:
         missing.append("sounddevice")
 
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
-            import webrtcvad
+            import webrtcvad  # noqa: F401
     except ImportError:
         missing.append("webrtcvad")
 
     try:
-        import numpy
+        import numpy  # noqa: F401
     except ImportError:
         missing.append("numpy")
 

@@ -8,7 +8,7 @@ Also provides conversational hints for best-guess-then-correction flow.
 """
 
 from dataclasses import dataclass
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional
 
 from episodic.recall.reactivation import DisambiguationOption
 

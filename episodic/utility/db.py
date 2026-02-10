@@ -11,7 +11,6 @@ Creates and manages the SQLite tables for utility command persistence:
 """
 
 import sqlite3
-from pathlib import Path
 from typing import Optional
 
 SCHEMA_VERSION = "1.2"

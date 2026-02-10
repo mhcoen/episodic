@@ -24,7 +24,6 @@ _stderr_backup = sys.stderr
 try:
     sys.stderr = StringIO()
     import chromadb
-    from chromadb.utils import embedding_functions
 finally:
     sys.stderr = _stderr_backup
 

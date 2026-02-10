@@ -9,7 +9,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Set
+from typing import List, Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 

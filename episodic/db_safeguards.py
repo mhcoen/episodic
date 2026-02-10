@@ -2,7 +2,6 @@
 Database safeguards to prevent creating databases in the wrong location.
 """
 
-import os
 import sqlite3
 import functools
 from pathlib import Path

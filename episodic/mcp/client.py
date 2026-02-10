@@ -5,13 +5,11 @@ Manages a single MCP server connection via stdio transport.
 Supports tool discovery, tool calling, health tracking, and tracing.
 """
 
-import asyncio
-import json
 import logging
 import os
 import time
 from contextlib import AsyncExitStack
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

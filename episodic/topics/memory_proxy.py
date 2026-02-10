@@ -9,11 +9,10 @@ NO LLM EVALUATION - fact retention is determined by:
 2. Whether a committed boundary exists between fact and current position
 """
 
-import uuid
 import random
 import logging
-from dataclasses import dataclass, field
-from typing import List, Dict, Set, Tuple, Optional
+from dataclasses import dataclass
+from typing import List, Dict, Set, Tuple
 
 from episodic.topics.evaluation import TestCase, Message
 from episodic.topics.online_evaluation import DialogueTrace

@@ -6,7 +6,6 @@ blocking the event loop during HTTP requests.
 """
 
 import asyncio
-import time
 from typing import List, Optional
 from datetime import datetime
 

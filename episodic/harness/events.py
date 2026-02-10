@@ -7,7 +7,7 @@ EventStream collects events from a single input processing cycle.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Optional
 
 
 # Schema version - bump on breaking changes

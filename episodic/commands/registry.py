@@ -97,11 +97,9 @@ def register_all_commands():
         # Settings  
         set, verify, cost, model_params, config_docs, reset,
         # Topics
-        topics,
-        # Compression
         compress,
         # Other
-        prompts, summary, benchmark, help, handle_model
+        prompts, summary, benchmark, help
     )
     
     # Import new utility commands

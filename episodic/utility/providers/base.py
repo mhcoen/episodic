@@ -4,9 +4,9 @@ Base classes for Data Providers.
 Defines the DataProvider protocol and supporting types.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol, Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List
 from abc import ABC, abstractmethod
 
 

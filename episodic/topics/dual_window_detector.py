@@ -10,7 +10,6 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from episodic.ml.drift import ConversationalDrift
-from episodic.config import config
 from episodic.debug_utils import debug_print
 
 logger = logging.getLogger(__name__)

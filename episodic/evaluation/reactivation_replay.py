@@ -9,10 +9,8 @@ import json
 import logging
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 
 from episodic.db_connection import get_connection
 

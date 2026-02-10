@@ -5,7 +5,7 @@ from typing import Optional
 
 from .db_kg import (
     kg_tables_exist, get_all_entities, get_all_edges,
-    get_entity_aliases, get_assertion_span_text, get_node_id_range,
+    get_entity_aliases, get_assertion_span_text,
 )
 
 # Edge color mapping by predicate

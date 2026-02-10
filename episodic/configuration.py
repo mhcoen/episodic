@@ -411,7 +411,6 @@ def get_success_color():
 
 def get_info_color():
     """Get the color for informational messages."""
-    import typer
     # Use system color for info messages to match theme
     return get_system_color()
 

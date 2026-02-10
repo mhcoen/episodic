@@ -15,7 +15,7 @@ from episodic.configuration import (
 )
 from episodic.cli_helpers import _has_flag
 from episodic.benchmark import display_pending_benchmark
-from episodic.constants import TOPIC_ACTIONS, COMPRESSION_ACTIONS, SUMMARY_LENGTHS
+from episodic.constants import TOPIC_ACTIONS, COMPRESSION_ACTIONS
 
 
 def parse_command(command_str: str) -> Tuple[str, List[str]]:
@@ -805,7 +805,6 @@ def _handle_summary(args: List[str]):
 def _handle_list(args: List[str]):
     """Handle /list command."""
     from episodic.commands.navigation import list as list_command
-    from episodic.configuration import DEFAULT_LIST_COUNT
     
     if not args:
         list_command()
@@ -944,7 +943,7 @@ def _handle_clear():
 
 def _handle_debug(args: List[str]):
     """Handle /debug command."""
-    from episodic.commands.debug import debug_on, debug_off, debug_only, debug_status, debug_toggle, debug_main
+    from episodic.commands.debug import debug_on, debug_off, debug_only, debug_status, debug_toggle
     
     if not args:
         # No arguments, show status

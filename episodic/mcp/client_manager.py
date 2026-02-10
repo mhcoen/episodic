@@ -5,9 +5,8 @@ Provides namespaced tool access (server_id.tool_name), connection lifecycle
 management, and health checking across all configured servers.
 """
 
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

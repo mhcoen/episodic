@@ -10,7 +10,6 @@ import time
 from typing import Dict, Optional, Tuple
 import requests
 
-from episodic.config import config
 
 
 class OpenRouterPricing:

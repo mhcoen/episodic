@@ -6,7 +6,7 @@ with the detection model system.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any
 
 
 class DetectionModel(ABC):

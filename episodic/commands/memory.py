@@ -8,7 +8,7 @@ This module provides commands for interacting with the RAG-based memory system:
 """
 
 import typer
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 from episodic.config import config

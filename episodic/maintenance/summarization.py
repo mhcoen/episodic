@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Optional
 from episodic.config import config
 from episodic.db_connection import get_connection
 from episodic.db_topic_nodes import (
-    count_topic_nodes,
     get_topic_working_set,
     update_topic_summary,
 )
@@ -27,9 +26,7 @@ from episodic.db_topics import get_all_topics
 from .summary_spec import (
     SCHEMA_VERSION,
     SUMMARY_PROMPT,
-    Decision,
     LastState,
-    OpenLoop,
     StructuredSummary,
 )
 

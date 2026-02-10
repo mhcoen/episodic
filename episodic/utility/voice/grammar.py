@@ -5,7 +5,7 @@ Pattern matching engine that converts token streams into UtilityQuery candidates
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any, Tuple, Set
+from typing import List, Optional, Dict, Any, Tuple
 
 from .lexer import Token, Lexer
 from .label_extractor import LabelExtractor

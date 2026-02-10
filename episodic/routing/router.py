@@ -21,7 +21,6 @@ from episodic.utility.voice.memory_detector import MemoryQueryDetector
 from episodic.utility.voice.pipeline import parse_utterance_full
 from episodic.utility.voice.confidence import ConfidenceCalculator
 from episodic.query.pipeline import parse_query
-from episodic.query.types import FreeText
 
 
 # Confidence thresholds by command class

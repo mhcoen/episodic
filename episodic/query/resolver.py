@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 from .types import (

@@ -7,10 +7,9 @@ Handles disambiguation UI when queries are ambiguous.
 
 import sqlite3
 import typer
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional, Tuple
 
-from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.debug_system import debug_enabled, debug_print
 
@@ -38,7 +37,7 @@ def handle_recall_query(
         - context_string: Formatted context for LLM injection (or None if displayed directly)
     """
     from episodic.query import parse_to_ast, parse_query
-    from episodic.query.types import DiscussionQuery, MQLCommand, FreeText
+    from episodic.query.types import DiscussionQuery
     from episodic.recall import recall, get_budget_description
 
     # Parse to AST
@@ -210,7 +209,6 @@ def _display_no_results(target: Optional[str]):
 
 def _display_recall_results(result):
     """Display recall results to the terminal."""
-    from episodic.recall import RecallResult
     
     formatted = result.formatted
     budget = result.budget
@@ -237,7 +235,6 @@ def _display_recall_results(result):
 
 def _display_conversation_block(block, budget):
     """Display a conversation block."""
-    from episodic.recall import ConversationBlock
     
     # Header
     header_parts = [f"[{block.topic_name}"]
@@ -276,7 +273,6 @@ def _display_conversation_block(block, budget):
 
 def _display_statement_block(block):
     """Display a statement block (exchange pair)."""
-    from episodic.recall import StatementBlock
     
     # Header
     header_parts = ["[Statement"]

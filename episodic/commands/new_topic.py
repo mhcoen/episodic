@@ -6,7 +6,6 @@ This helps users clearly separate different conversations or work sessions.
 
 import typer
 from typing import Optional
-from datetime import datetime
 
 from episodic.config import config
 from episodic.configuration import get_system_color, get_text_color

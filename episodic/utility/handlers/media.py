@@ -11,7 +11,7 @@ Handles media playback utility commands:
 """
 
 import sqlite3
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from ..types import UtilityQuery, UtilityResult
 from ..adapters.base import AdapterRegistry, AdapterResult, AdapterStatus

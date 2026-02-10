@@ -16,16 +16,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple, Union
 
 from episodic.token_guard_events import (
-    SCHEMA_VERSION as EVENT_SCHEMA_VERSION,
-    TokenGuardEvent,
     EventLogger,
     EventVerifier,
     canonical_json,
 )
 from episodic.token_guard import (
     TokenBudget,
-    TokenCounter,
-    HeuristicTokenCounter,
     validate_assembly,
     token_counter_registry,
 )

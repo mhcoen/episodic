@@ -6,7 +6,7 @@ to build conversation context.
 """
 
 import sqlite3
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
 import logging
 
 from .strategy import ContextAssemblyResult, ContextRecoveryMode

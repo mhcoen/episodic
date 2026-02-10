@@ -5,19 +5,15 @@ Fetches weather data from OpenWeatherMap API with caching.
 """
 
 import os
-import time
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 
 from .base import (
     DataProvider,
     ProviderResult,
     RefreshResult,
     CacheEntry,
-    NotConfigured,
-    RateLimited,
-    SourceUnavailable,
 )
 
 logger = logging.getLogger(__name__)

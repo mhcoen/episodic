@@ -8,7 +8,7 @@ Run this once after adding topic_start_node_id to conversation indexing.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from episodic.db_connection import get_connection
 from episodic.db_topic_nodes import get_node_topic

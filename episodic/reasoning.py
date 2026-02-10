@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from episodic.config import config
-from episodic.debug_utils import debug_print
 
 
 @dataclass

@@ -5,7 +5,6 @@ Loads pricing information from voice_pricing.json for STT and TTS providers.
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Dict, Optional
 

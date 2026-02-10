@@ -11,7 +11,7 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from episodic.query.types import ResolvedQuery

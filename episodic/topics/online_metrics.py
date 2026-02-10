@@ -11,7 +11,7 @@ from evaluation.py.
 """
 
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 import statistics
 import logging
 

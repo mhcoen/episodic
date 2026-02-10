@@ -12,10 +12,8 @@ Note: The nodes table is NOT deleted - conversation history is preserved.
 """
 
 import logging
-import re
 from datetime import datetime
 from typing import List, Optional, Tuple
-from zoneinfo import ZoneInfo
 
 from .db_connection import get_connection
 

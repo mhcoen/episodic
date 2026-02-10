@@ -10,7 +10,7 @@ Phase 2 Implementation:
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List, Tuple, Set
+from typing import Dict, Any, Optional, List, Set
 from difflib import SequenceMatcher
 
 
@@ -482,7 +482,6 @@ def truncate_by_relevance(
     Returns:
         TruncationResult with truncated messages
     """
-    from episodic.token_guard import HeuristicTokenCounter
 
     # Count current tokens
     current_tokens = counter.count_messages(messages)

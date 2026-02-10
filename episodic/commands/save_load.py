@@ -6,7 +6,6 @@ as markdown files for the simple mode interface.
 """
 
 import os
-import re
 import typer
 from typing import Optional
 from datetime import datetime

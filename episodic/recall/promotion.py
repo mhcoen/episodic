@@ -8,7 +8,7 @@ Implements deterministic first-match-wins by topic id ASC.
 import logging
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 from episodic.retrieval.segment import get_cached_segment_nodes, get_all_topics
 

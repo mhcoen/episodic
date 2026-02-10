@@ -16,7 +16,6 @@ import os
 import sqlite3
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -130,7 +129,6 @@ def verify_summary_validity(
 
     from episodic.maintenance.validators import (
         validate_all_topics,
-        validate_working_set_completeness,
     )
     from episodic.db_connection import get_connection
 

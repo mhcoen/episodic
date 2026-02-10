@@ -4,7 +4,7 @@ Stub providers for testing.
 These implement the same interface as real providers but return scripted responses.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 

@@ -6,7 +6,7 @@ Ranks topics by hit quality, not length. Uses best hit + top-k mass + weak count
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from .promotion import PromotedHit, PromotionResult
 

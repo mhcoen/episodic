@@ -378,7 +378,7 @@ class TopicHandler:
     ) -> None:
         """Handle topic boundary detection and management."""
         # Import at function level to ensure availability throughout
-        from episodic.db import get_node, get_ancestry
+        from episodic.db import get_ancestry
         
         if topic_changed:
             # A topic change was detected - close any open topics

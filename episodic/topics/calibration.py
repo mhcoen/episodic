@@ -11,7 +11,6 @@ Different datasets may need different thresholds for optimal BOR.
 
 from dataclasses import dataclass
 from typing import List, Dict, Set, Optional, Tuple
-import json
 
 
 @dataclass

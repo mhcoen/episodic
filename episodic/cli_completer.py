@@ -4,8 +4,7 @@ Tab completion support for Episodic CLI.
 This module provides context-aware tab completion using prompt_toolkit.
 """
 
-from typing import List, Dict, Optional, Tuple
-from pathlib import Path
+from typing import List
 import os
 
 from prompt_toolkit.completion import Completer, Completion
@@ -19,8 +18,7 @@ from episodic.db_topics import get_recent_topics
 from episodic.constants import (
     WEB_SEARCH_PROVIDERS, RESPONSE_STYLES, RESPONSE_FORMATS, DETAIL_LEVELS,
     TOPIC_ACTIONS, COMPRESSION_ACTIONS, VOICE_ACTIONS, RAG_ACTIONS, SUMMARY_LENGTHS,
-    COLOR_MODES, MODEL_CONTEXTS, DOCS_ACTIONS, PROMPT_ACTIONS, RESET_ACTIONS,
-    DEV_ACTIONS, MIGRATE_ACTIONS, KG_ACTIONS
+    DOCS_ACTIONS, PROMPT_ACTIONS, DEV_ACTIONS, MIGRATE_ACTIONS, KG_ACTIONS
 )
 
 
@@ -883,7 +881,6 @@ class EpisodicCompleter(Completer):
         """Complete /script command with scripts from ~/.episodic/scripts/."""
         if len(parts) == 2:
             try:
-                import os
                 from pathlib import Path
                 from datetime import datetime
 

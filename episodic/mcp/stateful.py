@@ -9,7 +9,6 @@ Does NOT touch the global state.head_id — only the thread's
 conversations.current_head_id is updated.
 """
 
-import json
 import logging
 import sqlite3
 import uuid

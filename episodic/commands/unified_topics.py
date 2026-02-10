@@ -16,7 +16,6 @@ from episodic.db import get_recent_topics
 from .topics import topics as list_topics_impl, compress_current_topic as compress_topic_impl
 from .topic_rename import rename_ongoing_topics as rename_topics_impl
 from .index_topics import index_topics as index_topics_impl
-from .debug_topics import topic_scores as topic_scores_impl
 from .topic_delete import handle_topic_delete
 
 
@@ -110,7 +109,6 @@ def handle_topics_action(action: str = "list", **kwargs):
         # Import the actual function without Typer decorators
         from episodic.db import get_topic_detection_scores, get_node
         from episodic.configuration import get_text_color, get_system_color, get_heading_color
-        import json
         
         node_id = kwargs.get('node_id', None)
         limit = kwargs.get('limit', 20)
@@ -362,7 +360,6 @@ def show_topic_feedback(
     """
     from episodic.topics.feedback import (
         get_feedback_store,
-        FeedbackType,
         record_helpful,
         record_not_helpful,
         record_missing_context

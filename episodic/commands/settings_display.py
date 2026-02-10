@@ -4,15 +4,10 @@ Display functions for settings command.
 This module handles displaying various configuration settings.
 """
 
-import typer
 from typing import List, Tuple
 
 from episodic.config import config
-from episodic.configuration import (
-    DEFAULT_COLOR_MODE,
-    get_text_color, get_system_color, get_heading_color
-)
-from episodic.param_display import get_display_name, get_param_description
+from episodic.param_display import get_param_description
 
 
 def display_setting(setting: str, value: str, description: str):

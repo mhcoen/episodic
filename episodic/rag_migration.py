@@ -5,8 +5,7 @@ Migration utilities for moving from single collection to multi-collection RAG sy
 import os
 import warnings
 import logging
-from typing import Dict, List, Any
-from datetime import datetime
+from typing import Dict
 
 # Suppress ChromaDB warnings
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
@@ -19,7 +18,7 @@ import typer
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_success_color, get_error_color
 from episodic.debug_utils import debug_print
-from episodic.rag_utils import suppress_chromadb_telemetry, SilentSentenceTransformerEmbeddingFunction
+from episodic.rag_utils import SilentSentenceTransformerEmbeddingFunction
 
 
 def check_migration_needed() -> bool:

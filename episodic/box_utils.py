@@ -4,8 +4,6 @@ Utility functions for drawing boxes in the terminal.
 
 import shutil
 from typing import List, Optional
-import typer
-from episodic.configuration import get_text_color
 from episodic.config import config
 
 

@@ -96,7 +96,6 @@ def kg_blame(args: List[str]) -> None:
         return
 
     from episodic.kg.context_source import get_last_kg_result
-    from episodic.kg.db_kg import _use_conn
 
     result = get_last_kg_result()
     if result is None:

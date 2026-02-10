@@ -16,7 +16,6 @@ Selection Order (Patch D): Anchors first, then fill recency from non-anchor exch
 """
 
 import json
-import os
 import sqlite3
 import time
 from typing import List, Dict, Any, Optional, Set, Tuple
@@ -231,10 +230,6 @@ class TopicLocalStrategy:
         """
         import os
         from episodic.config import config
-        from episodic.db_topic_nodes import (
-            get_last_n_exchanges_in_topic,
-            get_topic_working_set,
-        )
         from episodic.db_connection import get_connection
 
         # Guard: force_no_recency is test-only

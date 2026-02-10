@@ -12,7 +12,7 @@ captures the common pattern of "returning after a break = new topic".
 """
 
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import uuid
 
 from episodic.topics.strategy import (

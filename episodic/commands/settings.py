@@ -10,8 +10,8 @@ from typing import Optional
 from episodic.config import config
 from episodic.configuration import get_text_color, get_system_color, get_heading_color
 from episodic.conversation import conversation_manager
-from episodic.param_mappings import normalize_param_name, get_display_name
-from episodic.param_display import get_canonical_name, get_display_name as get_short_name, get_param_description, resolve_param_name
+from episodic.param_mappings import get_display_name
+from episodic.param_display import get_display_name as get_short_name, get_param_description, resolve_param_name
 
 from .settings_display import display_all_settings
 from .settings_handlers import (

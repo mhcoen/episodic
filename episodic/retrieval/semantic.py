@@ -5,7 +5,7 @@ Implements v1.1 spec section 9.
 """
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Set
 
 logger = logging.getLogger(__name__)
 

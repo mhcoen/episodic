@@ -8,11 +8,11 @@ Handles both ongoing (no summary) and compressed (has summary) topics.
 import sqlite3
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from episodic.retrieval.segment import get_cached_segment_nodes
 
-from .ranking import RankedTopic, PromotedHit
+from .ranking import RankedTopic
 
 
 class Tier(Enum):

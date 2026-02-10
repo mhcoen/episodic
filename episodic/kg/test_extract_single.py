@@ -7,14 +7,11 @@ No database writes. No HWM. No batch.
 Text in -> LLM extraction -> validation -> human-readable summary.
 """
 
-import hashlib
 import json
-import sys
 import time
 
 from .prompt_template import (
     EXTRACTION_SYSTEM_PROMPT,
-    RETRY_ADDENDUM,
     format_extraction_input,
     normalize_text,
 )

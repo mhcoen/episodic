@@ -6,7 +6,7 @@ import typer
 from typing import Optional
 
 from episodic.config import config
-from episodic.configuration import get_system_color, get_heading_color
+from episodic.configuration import get_heading_color
 from episodic.color_utils import secho_color
 from episodic.db import get_head, get_node
 from episodic.llm import _execute_llm_query, get_model_string

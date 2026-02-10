@@ -7,7 +7,7 @@ agglomerative clustering with a contiguity constraint.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 import typer
@@ -15,7 +15,7 @@ import typer
 from episodic.config import config
 from episodic.ml.drift import ConversationalDrift
 from episodic.db import get_head, get_ancestry, get_node
-from episodic.db_topics import store_topic, get_all_topics
+from episodic.db_topics import store_topic
 from episodic.configuration import get_system_color, get_heading_color, get_text_color
 
 logger = logging.getLogger(__name__)

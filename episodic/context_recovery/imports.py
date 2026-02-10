@@ -9,7 +9,7 @@ import re
 import logging
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 

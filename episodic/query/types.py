@@ -6,11 +6,10 @@ All dataclasses for the lexer, parser, and resolver pipeline.
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 
 class TokenKind(Enum):

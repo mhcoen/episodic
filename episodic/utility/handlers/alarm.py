@@ -10,14 +10,13 @@ Handles alarm-related utility commands:
 
 import uuid
 import sqlite3
-from datetime import datetime, timedelta, time as dt_time
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from zoneinfo import ZoneInfo
 
 from ..types import UtilityQuery, UtilityResult
 from ..scheduler import (
     Scheduler,
-    ScheduledTask,
     TaskType,
     TaskStatus,
     TaskResult,

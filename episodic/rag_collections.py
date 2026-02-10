@@ -8,7 +8,7 @@ for different types of content (conversation memories, user documents, etc).
 import os
 import warnings
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, Optional, Any, Tuple
 from datetime import datetime
 
 # Suppress ChromaDB warnings
@@ -17,7 +17,6 @@ logging.getLogger('chromadb').setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message=".*telemetry.*")
 
 import chromadb
-from chromadb.utils import embedding_functions
 
 from episodic.config import config
 from episodic.debug_utils import debug_print

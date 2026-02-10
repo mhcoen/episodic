@@ -16,7 +16,7 @@ from typing import List
 import typer
 
 from episodic.config import config as app_config
-from episodic.configuration import get_text_color, get_system_color
+from episodic.configuration import get_text_color
 
 
 def recall_command(args: List[str]):

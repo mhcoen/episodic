@@ -11,7 +11,6 @@ Category D Implementation:
 
 import hashlib
 import json
-import os
 import threading
 import uuid
 from dataclasses import dataclass, field, asdict

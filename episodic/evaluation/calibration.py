@@ -10,12 +10,11 @@ import hashlib
 import itertools
 import json
 import logging
-import os
 import subprocess
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .resume_moments import ResumeMoment, load_resume_moments
 

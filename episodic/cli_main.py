@@ -132,7 +132,7 @@ def _handle_memory_query(user_input: str) -> bool:
     from datetime import datetime, timezone
 
     from episodic.query import parse_to_ast, parse_query
-    from episodic.query.types import DiscussionQuery, MQLCommand, FreeText
+    from episodic.query.types import DiscussionQuery, FreeText
     from episodic.db_connection import get_connection, get_db_path
     from episodic.retrieval import retrieve, migrate_fts5
     from episodic.retrieval.display import get_exchange_for_display

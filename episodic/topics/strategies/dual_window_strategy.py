@@ -18,7 +18,6 @@ from episodic.topics.strategy import (
     Confidence
 )
 from episodic.topics.dual_window_detector import DualWindowDetector
-from episodic.config import config
 from episodic.debug_utils import debug_print
 
 

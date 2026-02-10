@@ -8,7 +8,7 @@ Uses safe evaluation (no exec/eval of arbitrary code).
 import re
 import operator
 import math
-from typing import Optional, Union
+from typing import Union
 
 from ..types import UtilityQuery, UtilityResult
 

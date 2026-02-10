@@ -3,7 +3,6 @@ Entry point for the Episodic CLI.
 """
 
 import os
-import sys
 import logging
 import warnings
 

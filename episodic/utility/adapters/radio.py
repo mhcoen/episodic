@@ -5,10 +5,9 @@ Streams internet radio using VLC (python-vlc).
 Requires VLC to be installed on the system.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 from .base import (
-    ServiceAdapter,
     AdapterStatus,
     AdapterResult,
     CommandSchema,
@@ -312,7 +311,7 @@ class RadioAdapter:
     def _check_vlc(self) -> bool:
         """Check if VLC/python-vlc is available."""
         try:
-            import vlc
+            import vlc  # noqa: F401
             return True
         except ImportError:
             return False

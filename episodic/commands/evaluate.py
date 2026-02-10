@@ -2,8 +2,6 @@
 CLI commands for evaluation and calibration.
 """
 
-import click
-from typing import Optional
 
 
 def evaluate_command(args: str, conv_manager) -> tuple[str, bool]:

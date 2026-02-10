@@ -7,7 +7,6 @@ Storage: only SHA-256 hash is persisted; plaintext shown once on creation.
 
 import hashlib
 import json
-import os
 import secrets
 import sqlite3
 import uuid

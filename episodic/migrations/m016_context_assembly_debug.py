@@ -6,7 +6,6 @@ keyed by user_node_id for later auditing.
 """
 
 import sqlite3
-from typing import Optional
 
 
 def migrate(conn: sqlite3.Connection) -> None:

@@ -6,10 +6,10 @@ Sum-type router result for unified routing decisions.
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional, Union
+from typing import Optional
 
 from episodic.utility.types import UtilityQuery
-from episodic.query.types import AST, ResolvedQuery
+from episodic.query.types import ResolvedQuery
 
 
 class RouteTarget(Enum):

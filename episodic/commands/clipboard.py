@@ -10,7 +10,7 @@ import typer
 from typing import Optional
 
 from episodic.db import get_head, get_node, get_recent_nodes
-from episodic.configuration import get_success_color, get_error_color, get_text_color
+from episodic.configuration import get_success_color, get_error_color
 
 
 def copy_to_clipboard(text: str) -> bool:

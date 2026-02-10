@@ -6,10 +6,9 @@ The /doctor command verifies that Episodic is properly installed and configured.
 
 import sys
 import os
-from typing import Dict, List, Tuple, Optional
+from typing import List, Optional
 from dataclasses import dataclass
 
-import typer
 
 
 @dataclass
@@ -79,8 +78,8 @@ def _check_optional_features() -> List[CheckResult]:
 
     # RAG feature
     try:
-        import chromadb
-        import sentence_transformers
+        import chromadb  # noqa: F401
+        import sentence_transformers  # noqa: F401
         results.append(CheckResult(
             name="RAG (Knowledge Base)",
             passed=True,
@@ -95,8 +94,8 @@ def _check_optional_features() -> List[CheckResult]:
 
     # Web search feature
     try:
-        import beautifulsoup4
-        import httpx
+        import beautifulsoup4  # noqa: F401
+        import httpx  # noqa: F401
         results.append(CheckResult(
             name="Web Search",
             passed=True,
@@ -106,17 +105,17 @@ def _check_optional_features() -> List[CheckResult]:
         # Check individual components
         web_parts = []
         try:
-            import bs4
+            import bs4  # noqa: F401
             web_parts.append("bs4")
         except ImportError:
             pass
         try:
-            import httpx
+            import httpx  # noqa: F401
             web_parts.append("httpx")
         except ImportError:
             pass
         try:
-            import duckduckgo_search
+            import duckduckgo_search  # noqa: F401
             web_parts.append("duckduckgo")
         except ImportError:
             pass
@@ -136,7 +135,7 @@ def _check_optional_features() -> List[CheckResult]:
 
     # PDF feature
     try:
-        import pypdf
+        import pypdf  # noqa: F401
         results.append(CheckResult(
             name="PDF Support",
             passed=True,
@@ -152,17 +151,17 @@ def _check_optional_features() -> List[CheckResult]:
     # Voice feature
     voice_parts = []
     try:
-        import sounddevice
+        import sounddevice  # noqa: F401
         voice_parts.append("sounddevice")
     except ImportError:
         pass
     try:
-        import webrtcvad
+        import webrtcvad  # noqa: F401
         voice_parts.append("webrtcvad")
     except ImportError:
         pass
     try:
-        import pvporcupine
+        import pvporcupine  # noqa: F401
         voice_parts.append("porcupine")
     except ImportError:
         pass
@@ -188,7 +187,7 @@ def _check_optional_features() -> List[CheckResult]:
 
     # ML feature
     try:
-        import sklearn
+        import sklearn  # noqa: F401
         results.append(CheckResult(
             name="ML Features",
             passed=True,
@@ -345,7 +344,7 @@ def _check_chromadb() -> Optional[CheckResult]:
     """Check ChromaDB status if RAG is enabled."""
     try:
         from pathlib import Path
-        from episodic.config import config
+        from episodic.config import config  # noqa: F401
 
         # Default ChromaDB path
         chroma_path = Path.home() / ".episodic" / "rag" / "chroma"
@@ -442,8 +441,6 @@ def doctor_command(verbose: bool = False):
     Verifies that Episodic is properly installed and configured.
     """
     from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
 
     console = Console()
 

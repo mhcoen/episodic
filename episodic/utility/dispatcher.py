@@ -8,9 +8,9 @@ Implements safety gate (confidence checking) and event logging.
 import json
 import time
 import sqlite3
-from typing import Optional, Callable
+from typing import Optional
 
-from .types import UtilityQuery, UtilityResult, ResultStatus, MUTATING_COMMANDS
+from .types import UtilityQuery, UtilityResult
 from .handlers.time_date import dispatch_time_command
 from .handlers.calculator import dispatch_calc_command
 from .handlers.timer import dispatch_timer_command

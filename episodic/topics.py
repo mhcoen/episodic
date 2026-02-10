@@ -12,24 +12,6 @@ topics module structure. All functionality has been reorganized into:
 """
 
 # Import everything from the new module structure for backward compatibility
-from episodic.topics import (
-    # Main classes
-    TopicManager,
-    HybridTopicDetector,
-    SlidingWindowDetector,
-    TransitionDetector,
-    
-    # Functions
-    detect_topic_change_separately,
-    extract_topic_ollama,
-    should_create_first_topic,
-    analyze_topic_boundary,
-    find_transition_point_heuristic,
-    build_conversation_segment,
-    is_node_in_topic_range,
-    count_nodes_in_topic,
-    _display_topic_evolution,
-)
 
 # Create global instance for backward compatibility
 

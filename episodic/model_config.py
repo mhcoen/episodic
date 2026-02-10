@@ -6,10 +6,9 @@ access to model information including types, parameters, and capabilities.
 """
 import json
 import os
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 from pathlib import Path
 
-from episodic.config import config
 from episodic.debug_utils import debug_print
 
 

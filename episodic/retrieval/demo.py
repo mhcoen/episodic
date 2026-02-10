@@ -7,7 +7,6 @@ Usage:
     python -m episodic.retrieval.demo
 """
 import sqlite3
-import sys
 
 def main():
     from episodic.db_connection import get_db_path

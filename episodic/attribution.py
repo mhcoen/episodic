@@ -13,7 +13,7 @@ allowed sources (recent turns, recalled memory blocks, or explicitly labeled anc
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any, Optional, List, Tuple, Set
 from difflib import SequenceMatcher

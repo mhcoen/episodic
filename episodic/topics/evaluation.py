@@ -16,11 +16,10 @@ import time
 import re
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple, Set
 import logging
 
-from episodic.topics.strategy import TopicStrategy, TopicDecision, Confidence
+from episodic.topics.strategy import TopicStrategy, Confidence
 
 logger = logging.getLogger(__name__)
 

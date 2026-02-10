@@ -13,8 +13,7 @@ from episodic.llm_config import get_current_provider, get_provider_config
 from episodic.llm_manager import llm_manager
 from episodic.reasoning import (
     get_reasoning_controller_for_model,
-    get_session_reasoning_config,
-    ReasoningConfig
+    get_session_reasoning_config
 )
 
 # Set up logging

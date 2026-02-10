@@ -12,7 +12,7 @@ import shutil
 from typing import Optional, Tuple, List
 
 import typer
-from episodic.configuration import get_llm_color, get_system_color, get_text_color, get_heading_color
+from episodic.configuration import get_system_color, get_text_color, get_heading_color
 from episodic.color_utils import secho_color, force_color_output
 
 # Force color output if needed

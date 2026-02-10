@@ -6,12 +6,10 @@ and building training data for future improvements.
 """
 
 import json
-import os
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
-from dataclasses import asdict
 
 from episodic.topics.strategy import TopicDecision, Confidence
 from episodic.config import config

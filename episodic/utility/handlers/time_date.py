@@ -6,7 +6,6 @@ These respond immediately without LLM or external services.
 """
 
 from datetime import datetime, date, timedelta
-from typing import Optional
 from zoneinfo import ZoneInfo
 
 from ..types import UtilityQuery, UtilityResult

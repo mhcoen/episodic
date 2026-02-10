@@ -16,7 +16,6 @@ Usage:
 """
 
 import sqlite3
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple

@@ -6,17 +6,16 @@ and reflection on complex problems.
 """
 
 import typer
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 from episodic.config import config
 from episodic.configuration import (
     get_heading_color, get_text_color, get_system_color,
-    get_error_color, get_warning_color, get_success_color,
+    get_success_color,
     get_llm_color
 )
 from episodic.llm import query_llm
 from episodic.unified_streaming import unified_stream_response, unified_stream_text
 from episodic.debug_utils import debug_print
-import json
 
 
 def reflection_command(query: Optional[str] = None, steps: int = 3):

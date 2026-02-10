@@ -4,9 +4,7 @@ import os
 from datetime import datetime
 from typing import List, Tuple, Optional
 from pathlib import Path
-from episodic.db_nodes import get_node, get_ancestry
 from episodic.db_topics import get_recent_topics
-from episodic.topics import count_nodes_in_topic
 from episodic.config import config
 
 def export_topics_to_markdown(
@@ -172,7 +170,6 @@ def get_topics_by_spec(spec: str) -> List[dict]:
     """Get topics based on specification."""
     if spec == "current":
         # Get current topic from conversation manager
-        from episodic.conversation import conversation_manager
         
         # Get the most recent ongoing topic
         topics = get_recent_topics(limit=10)

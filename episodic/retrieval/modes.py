@@ -4,7 +4,7 @@ Mode-specific response formatting.
 Implements v1.1 spec section 12.
 """
 import sqlite3
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 from .display import get_exchange_for_display
 from .segment import get_all_topics, get_cached_segment_nodes

@@ -4,9 +4,9 @@ Input Processor - Single entry point for all input processing.
 Both CLI and TestSession call process_input().
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 
-from .events import Event, EventStream, EventKind, EventLevel
+from .events import Event, EventStream, EventKind
 from .runtime import RuntimeState
 
 

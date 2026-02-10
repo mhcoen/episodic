@@ -1,7 +1,6 @@
 """Save command for exporting conversations to markdown."""
 
 import typer
-from typing import Optional
 from episodic.markdown_export import export_topics_to_markdown
 from episodic.configuration import get_system_color
 

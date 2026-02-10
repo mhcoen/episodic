@@ -12,14 +12,12 @@ Handles timer-related utility commands:
 
 import uuid
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, Dict, Any
-from zoneinfo import ZoneInfo
 
 from ..types import UtilityQuery, UtilityResult
 from ..scheduler import (
     Scheduler,
-    ScheduledTask,
     TaskType,
     TaskStatus,
     TaskResult,

@@ -8,11 +8,10 @@ and selecting color themes.
 import sys
 import tty
 import termios
-import select
 import fcntl
 import os
 import typer
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List
 from episodic.config import config
 from episodic.configuration import (
     COLOR_SCHEMES, get_text_color, get_system_color, 

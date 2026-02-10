@@ -9,7 +9,7 @@ from typing import Optional
 import typer
 
 from episodic.config import config
-from episodic.configuration import get_text_color, get_llm_color
+from episodic.configuration import get_text_color
 
 
 # Detail level definitions

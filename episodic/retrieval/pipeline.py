@@ -5,11 +5,10 @@ Implements v1.1 spec section 10.
 """
 import sqlite3
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Dict, Optional, Tuple, Set
 
-from .segment_filter import SegmentFilter, FilterKind, build_segment_filter
-from .segment import get_cached_segment_nodes
+from .segment_filter import FilterKind, build_segment_filter
 from .lexical import execute_lexical_search, get_recent_exchanges, node_to_exchange_id
 from .semantic import execute_semantic_search, filter_semantic_by_segment, filter_semantic_by_temporal
 from .fusion import fuse_results

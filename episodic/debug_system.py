@@ -3,7 +3,7 @@ Named debugging system for Episodic.
 Allows enabling/disabling debug output for specific subsystems.
 """
 
-from typing import Dict, Set, Optional, List
+from typing import Dict, Set, List
 from episodic.config import config
 
 

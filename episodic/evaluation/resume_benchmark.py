@@ -11,13 +11,12 @@ import sqlite3
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
 from episodic.context_recovery import (
     ContextRecoveryMode,
-    ContextAssemblyResult,
     select_strategy,
 )
 from episodic.db_connection import get_connection

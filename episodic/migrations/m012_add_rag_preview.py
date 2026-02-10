@@ -1,7 +1,6 @@
 """Add preview field to rag_documents table."""
 
 import sqlite3
-from typing import Any
 
 
 def up(conn: sqlite3.Connection) -> None:

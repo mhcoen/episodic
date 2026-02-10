@@ -17,13 +17,13 @@ logger = logging.getLogger(__name__)
 
 # Check for transformers availability
 try:
-    import torch
+    import torch  # noqa: F401
     from transformers import (
         AutoTokenizer,
         AutoModelForSequenceClassification,
         AutoModelForCausalLM,
         AutoModelForSeq2SeqLM,
-        AutoConfig,
+        AutoConfig,  # noqa: F401
     )
     TRANSFORMERS_AVAILABLE = True
 except ImportError:

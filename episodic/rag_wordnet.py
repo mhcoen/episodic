@@ -5,9 +5,8 @@ This module provides query expansion using WordNet to understand
 that "physics" is a type of "science", enabling better search results.
 """
 
-import os
 import nltk
-from typing import List, Set, Dict, Optional
+from typing import List, Set
 from functools import lru_cache
 
 from episodic.debug_utils import debug_print

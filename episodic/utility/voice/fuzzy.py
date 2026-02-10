@@ -6,7 +6,6 @@ Pre-normalize letter sequences in Normalizer, then match single tokens.
 All matches are logged for debugging.
 """
 
-from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Set
 from datetime import datetime
 

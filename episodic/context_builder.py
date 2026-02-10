@@ -99,7 +99,6 @@ class ContextBuilder:
             Tuple of (messages, debug_info)
         """
         from episodic.context_recovery.strategy import (
-            ContextRecoveryMode,
             select_strategy,
             get_mode_from_config,
         )

@@ -20,7 +20,7 @@ from typing import List, Dict, Any, Optional, Set, Tuple
 
 from episodic.topics.strategy import TopicStrategy
 from episodic.topics.evaluation import (
-    TestCase,
+    EvalCase,
     BoundaryAlignment,
     ALIGNMENT_PRESETS,
     normalize_strategy_output,
@@ -146,14 +146,14 @@ class OnlineReplayHarness:
 
     def replay_dialogue(
         self,
-        test_case: TestCase,
+        test_case: EvalCase,
         strategy_alignment: BoundaryAlignment = None
     ) -> DialogueTrace:
         """
         Replay a dialogue turn-by-turn, producing a complete trace.
 
         Args:
-            test_case: TestCase with messages and gold boundaries
+            test_case: EvalCase with messages and gold boundaries
             strategy_alignment: How strategy reports boundaries (default: user_starts_topic)
 
         Returns:

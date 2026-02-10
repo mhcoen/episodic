@@ -132,7 +132,7 @@ def mock_topic_detection(should_detect: bool = True, confidence: float = 0.8):
     )
 
 
-class TestOutputStream:
+class StubOutputStream:
     """Capture output for testing."""
     
     def __init__(self):

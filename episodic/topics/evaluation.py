@@ -916,7 +916,7 @@ class Message:
 
 
 @dataclass
-class TestCase:
+class EvalCase:
     """
     A labeled test case for evaluating topic detection.
 
@@ -984,7 +984,7 @@ class TestCase:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TestCase':
+    def from_dict(cls, data: Dict[str, Any]) -> 'EvalCase':
         messages = [
             Message(
                 role=m['role'],
@@ -1141,7 +1141,7 @@ class EvaluationHarness:
     Runs strategies, collects metrics, and enables comparison.
     """
 
-    def __init__(self, test_cases: Optional[List[TestCase]] = None):
+    def __init__(self, test_cases: Optional[List[EvalCase]] = None):
         """
         Initialize the evaluation harness.
 
@@ -1151,7 +1151,7 @@ class EvaluationHarness:
         self.test_cases = test_cases or []
         self.results: List[EvaluationResult] = []
 
-    def add_test_case(self, test_case: TestCase) -> None:
+    def add_test_case(self, test_case: EvalCase) -> None:
         """Add a test case to the harness."""
         self.test_cases.append(test_case)
 
@@ -1161,7 +1161,7 @@ class EvaluationHarness:
             data = json.load(f)
 
         for case_data in data.get('test_cases', []):
-            self.test_cases.append(TestCase.from_dict(case_data))
+            self.test_cases.append(EvalCase.from_dict(case_data))
 
         logger.info(f"Loaded {len(self.test_cases)} test cases from {path}")
 
@@ -1177,7 +1177,7 @@ class EvaluationHarness:
     def evaluate_strategy(
         self,
         strategy: TopicStrategy,
-        test_case: TestCase,
+        test_case: EvalCase,
         verbose: bool = False,
         strategy_alignment: BoundaryAlignment = None
     ) -> EvaluationResult:
@@ -1440,7 +1440,7 @@ def create_simple_test_case(
     name: str,
     topics: List[Tuple[str, List[str]]],
     description: str = ""
-) -> TestCase:
+) -> EvalCase:
     """
     Helper to create a simple test case from topic segments.
 
@@ -1451,7 +1451,7 @@ def create_simple_test_case(
         description: Description of the test case
 
     Returns:
-        TestCase with messages and expected boundaries
+        EvalCase with messages and expected boundaries
     """
     messages = []
     boundaries = []
@@ -1473,7 +1473,7 @@ def create_simple_test_case(
             messages.append(Message(role='assistant', content=f"Response about {topic_name}."))
             msg_index += 1
 
-    return TestCase(
+    return EvalCase(
         id=id,
         name=name,
         description=description or f"Test case with {len(topics)} topics",

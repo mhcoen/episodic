@@ -20,7 +20,7 @@ from episodic.topics.evaluation import (
     from_canonical_boundaries,
     normalize_strategy_output,
     compute_windowed_metrics,
-    TestCase,
+    EvalCase,
     Message,
     EvaluationHarness,
     EvaluationResult,
@@ -358,11 +358,11 @@ class TestWF1Invariance:
         assert f1_a == f1_b == 1.0
 
 
-class TestTestCaseAlignment:
-    """Test TestCase integration with boundary alignment."""
+class TestEvalCaseAlignment:
+    """Test EvalCase integration with boundary alignment."""
 
     def test_testcase_stores_alignment(self):
-        """TestCase stores and uses boundary alignment."""
+        """EvalCase stores and uses boundary alignment."""
         messages = [
             Message(role='user', content='Hello'),
             Message(role='assistant', content='Hi'),
@@ -370,7 +370,7 @@ class TestTestCaseAlignment:
         ]
         alignment = ALIGNMENT_PRESETS['assistant_starts_topic']
 
-        tc = TestCase(
+        tc = EvalCase(
             id='test1',
             name='Test Case',
             description='Test',
@@ -383,13 +383,13 @@ class TestTestCaseAlignment:
         assert tc.get_canonical_boundaries() == {1}
 
     def test_testcase_default_alignment(self):
-        """TestCase defaults to segment_start alignment."""
+        """EvalCase defaults to segment_start alignment."""
         messages = [
             Message(role='user', content='Hello'),
             Message(role='assistant', content='Hi'),
         ]
 
-        tc = TestCase(
+        tc = EvalCase(
             id='test1',
             name='Test',
             description='Test',
@@ -402,7 +402,7 @@ class TestTestCaseAlignment:
         assert tc.boundary_alignment.anchor == 'before'
 
     def test_testcase_serialization_preserves_alignment(self):
-        """TestCase to_dict/from_dict preserves alignment."""
+        """EvalCase to_dict/from_dict preserves alignment."""
         messages = [
             Message(role='user', content='Hello'),
             Message(role='assistant', content='Hi'),
@@ -413,7 +413,7 @@ class TestTestCaseAlignment:
             speaker='assistant'
         )
 
-        original = TestCase(
+        original = EvalCase(
             id='test1',
             name='Test',
             description='Test',
@@ -424,7 +424,7 @@ class TestTestCaseAlignment:
 
         # Serialize and deserialize
         data = original.to_dict()
-        recovered = TestCase.from_dict(data)
+        recovered = EvalCase.from_dict(data)
 
         assert recovered.boundary_alignment.label_type == 'message'
         assert recovered.boundary_alignment.anchor == 'after'

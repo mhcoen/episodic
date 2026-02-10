@@ -385,7 +385,7 @@ def drop_by_importance(
     Returns:
         TruncationResult with modified messages and decisions
     """
-    from episodic.token_guard import HeuristicTokenCounter
+    from episodic.token_counting import HeuristicTokenCounter
 
     if anchor_indices is None:
         anchor_indices = set()

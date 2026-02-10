@@ -1,163 +1,32 @@
 """
 Token Guard: Centralized token validation and assembly cap enforcement.
 
-Gap B Implementation:
-- Full-assembly token assertion after context is built
-- Fail-closed policy when cap is exceeded
-- Bug event logging for overflow conditions
-
-Gap A Implementation:
-- TokenCounter protocol with is_exact() capability
-- Registry for provider/model-specific counters
-- Safety factor applied only when is_exact()==False
+Full-assembly token assertion with fail-closed drop policy and bug event logging.
+Token counting infrastructure lives in token_counting.py and is re-exported here
+for backward compatibility.
 """
 
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Dict, Any, Optional, Tuple, Protocol, runtime_checkable
+from typing import List, Dict, Any, Optional, Tuple
+
+# Re-export token counting infrastructure for backward compatibility.
+# Callers that do `from episodic.token_guard import TokenCounter` etc. still work.
+from episodic.token_counting import (  # noqa: F401
+    TokenCounter,
+    HeuristicTokenCounter,
+    _TokenCounterRegistry,
+    token_counter_registry,
+    get_token_counter,
+    TokenEstimate,
+    estimate_tokens_text,
+    estimate_tokens_message,
+    estimate_tokens_messages,
+)
 
 logger = logging.getLogger(__name__)
 
-
-# =============================================================================
-# Gap A: TokenCounter Protocol and Registry
-# =============================================================================
-
-@runtime_checkable
-class TokenCounter(Protocol):
-    """
-    Protocol for token counting backends.
-
-    Implementations must provide:
-    - count_text: Count tokens in a text string
-    - count_messages: Count tokens in a list of messages
-    - is_exact: Whether this counter uses exact tokenization
-    - backend_name: Identifier for logging/debugging
-    """
-
-    def count_text(self, text: str) -> int:
-        """Count tokens in a text string."""
-        ...
-
-    def count_messages(self, messages: List[Dict[str, Any]]) -> int:
-        """Count tokens in a list of messages (exact structure used by validate_assembly)."""
-        ...
-
-    def is_exact(self) -> bool:
-        """Return True if this counter uses exact tokenization, False if heuristic."""
-        ...
-
-    def backend_name(self) -> str:
-        """Return identifier for this counting backend."""
-        ...
-
-
-class HeuristicTokenCounter:
-    """
-    Heuristic token counter using chars/4 approximation.
-
-    This is the default counter when no exact tokenizer is available.
-    Safety factor should be applied externally when is_exact()==False.
-    """
-
-    # Overhead for message structure (role markers, delimiters)
-    MESSAGE_OVERHEAD = 4
-    # Rough token estimate for image content blocks
-    IMAGE_BLOCK_TOKENS = 85
-
-    def count_text(self, text: str) -> int:
-        """Count tokens using chars/4 heuristic."""
-        if not text:
-            return 0
-        return len(text) // 4
-
-    def count_message(self, message: Dict[str, Any]) -> int:
-        """Count tokens for a single message."""
-        content = message.get("content", "")
-
-        # Handle multimodal content (list of content blocks)
-        if isinstance(content, list):
-            text_tokens = 0
-            for block in content:
-                if isinstance(block, dict):
-                    if block.get("type") == "text":
-                        text_tokens += self.count_text(block.get("text", ""))
-                    elif block.get("type") in ("image_url", "image"):
-                        text_tokens += self.IMAGE_BLOCK_TOKENS
-                elif isinstance(block, str):
-                    text_tokens += self.count_text(block)
-            content_tokens = text_tokens
-        else:
-            content_tokens = self.count_text(content)
-
-        return content_tokens + self.MESSAGE_OVERHEAD
-
-    def count_messages(self, messages: List[Dict[str, Any]]) -> int:
-        """Count tokens in a list of messages."""
-        return sum(self.count_message(msg) for msg in messages)
-
-    def is_exact(self) -> bool:
-        """Heuristic counter is not exact."""
-        return False
-
-    def backend_name(self) -> str:
-        """Return backend identifier."""
-        return "heuristic_chars_div_4"
-
-
-class _TokenCounterRegistry:
-    """
-    Registry for token counting backends.
-
-    Keyed by (provider_id, model_id). Returns exact counter if available,
-    otherwise returns the default heuristic counter.
-    """
-
-    def __init__(self):
-        self._counters: Dict[Tuple[str, str], TokenCounter] = {}
-        self._default_counter = HeuristicTokenCounter()
-
-    def register(self, provider_id: str, model_id: str, counter: TokenCounter) -> None:
-        """Register a counter for a specific provider/model combination."""
-        key = (provider_id.lower(), model_id.lower())
-        self._counters[key] = counter
-
-    def get(self, provider_id: Optional[str], model_id: Optional[str]) -> TokenCounter:
-        """
-        Get a counter for the given provider/model.
-
-        Returns exact counter if registered, otherwise default heuristic.
-        """
-        if provider_id and model_id:
-            key = (provider_id.lower(), model_id.lower())
-            if key in self._counters:
-                return self._counters[key]
-
-        # No exact counter available - return heuristic
-        return self._default_counter
-
-    def get_default(self) -> TokenCounter:
-        """Get the default heuristic counter."""
-        return self._default_counter
-
-
-# Global registry instance
-token_counter_registry = _TokenCounterRegistry()
-
-
-def get_token_counter(provider_id: Optional[str] = None, model_id: Optional[str] = None) -> TokenCounter:
-    """
-    Get a token counter for the given provider/model.
-
-    Convenience function that delegates to the global registry.
-    """
-    return token_counter_registry.get(provider_id, model_id)
-
-
-# =============================================================================
-# Gap B: Drop Actions and Budget Configuration
-# =============================================================================
 
 class DropAction(Enum):
     """Actions taken to reduce token count."""
@@ -180,34 +49,6 @@ class TokenBudget:
 
 
 @dataclass
-class TokenEstimate:
-    """Token estimate for a message assembly."""
-    # Estimated tokens per component
-    system_prompt: int = 0
-    summary: int = 0
-    anchors: int = 0
-    recency: int = 0
-    rag_context: int = 0
-    web_context: int = 0
-    user_message: int = 0
-    other: int = 0
-
-    @property
-    def total(self) -> int:
-        """Total estimated tokens."""
-        return (
-            self.system_prompt
-            + self.summary
-            + self.anchors
-            + self.recency
-            + self.rag_context
-            + self.web_context
-            + self.user_message
-            + self.other
-        )
-
-
-@dataclass
 class ValidationResult:
     """Result of assembly token validation."""
     valid: bool
@@ -222,122 +63,12 @@ class ValidationResult:
     truncation_result: Optional[Any] = None  # TruncationResult from truncation module
 
 
-# =============================================================================
-# Token Estimation Functions (for backward compatibility)
-# =============================================================================
-
-def estimate_tokens_text(text: str, safety_factor: float = 1.0) -> int:
-    """
-    Estimate token count from text.
-
-    Uses the default heuristic counter.
-
-    Args:
-        text: The text to estimate tokens for
-        safety_factor: Multiplicative safety factor (applied externally)
-
-    Returns:
-        Estimated token count
-    """
-    counter = token_counter_registry.get_default()
-    base_count = counter.count_text(text)
-    return int(base_count * safety_factor)
-
-
-def estimate_tokens_message(message: Dict[str, Any], safety_factor: float = 1.0) -> int:
-    """
-    Estimate tokens for a single message.
-
-    Args:
-        message: Message dict with 'role' and 'content'
-        safety_factor: Multiplicative safety factor
-
-    Returns:
-        Estimated token count
-    """
-    counter = token_counter_registry.get_default()
-    if isinstance(counter, HeuristicTokenCounter):
-        base_count = counter.count_message(message)
-    else:
-        # For protocol-only counters, use messages list
-        base_count = counter.count_messages([message])
-    return int(base_count * safety_factor)
-
-
-def estimate_tokens_messages(
-    messages: List[Dict[str, Any]],
-    safety_factor: float = 1.0
-) -> Tuple[int, TokenEstimate]:
-    """
-    Estimate total tokens for a list of messages.
-
-    Categorizes tokens by message type for detailed breakdown.
-
-    Args:
-        messages: List of message dicts
-        safety_factor: Multiplicative safety factor
-
-    Returns:
-        Tuple of (total_tokens, breakdown)
-    """
-    estimate = TokenEstimate()
-    total = 0
-
-    for msg in messages:
-        tokens = estimate_tokens_message(msg, safety_factor)
-        total += tokens
-
-        role = msg.get("role", "")
-        content = msg.get("content", "")
-
-        # Categorize by content type
-        if role == "system":
-            content_str = content if isinstance(content, str) else str(content)
-            if "# Topic:" in content_str or "## Summary" in content_str:
-                if "## Summary" in content_str:
-                    estimate.summary += tokens
-                else:
-                    estimate.system_prompt += tokens
-            elif "## Relevant Past Context" in content_str:
-                estimate.anchors += tokens
-            elif "Relevant context from knowledge base" in content_str or "[Doc:" in content_str:
-                estimate.rag_context += tokens
-            elif "[Memory]" in content_str:
-                estimate.rag_context += tokens
-            elif "search results" in content_str.lower() or "web" in content_str.lower():
-                estimate.web_context += tokens
-            else:
-                estimate.system_prompt += tokens
-        elif role == "user":
-            estimate.user_message += tokens
-        elif role == "assistant":
-            estimate.recency += tokens
-        else:
-            estimate.other += tokens
-
-    return total, estimate
-
-
-# =============================================================================
-# Bug Event Logging
-# =============================================================================
-
 def log_bug_event(
     event_type: str,
     details: Dict[str, Any],
     severity: str = "warning"
 ) -> None:
-    """
-    Log a bug event for token overflow or validation failure.
-
-    This creates a structured log entry that can be analyzed for debugging
-    and identifying systematic issues with token estimation.
-
-    Args:
-        event_type: Type of bug event (e.g., "token_overflow", "estimation_mismatch")
-        details: Additional details about the event
-        severity: Log severity level
-    """
+    """Log a structured bug event for token overflow or validation failure."""
     log_record = {
         "event": "token_guard_bug",
         "event_type": event_type,
@@ -351,10 +82,6 @@ def log_bug_event(
     else:
         logger.info(f"TOKEN_GUARD_BUG: {log_record}")
 
-
-# =============================================================================
-# Drop Policy Helper Functions
-# =============================================================================
 
 def _find_summary_message_index(messages: List[Dict[str, Any]]) -> Optional[int]:
     """Find the index of the summary-containing message."""
@@ -372,12 +99,7 @@ def _truncate_summary_in_messages(
     summary_min: int,
     counter: Optional[TokenCounter] = None
 ) -> Tuple[List[Dict[str, Any]], int]:
-    """
-    Truncate summary section to reduce tokens.
-
-    Returns:
-        Tuple of (modified_messages, tokens_reduced)
-    """
+    """Truncate summary section to reduce tokens. Returns (messages, tokens_reduced)."""
     if counter is None:
         counter = token_counter_registry.get_default()
 
@@ -432,11 +154,7 @@ def _truncate_summary_in_messages(
 
 
 def _find_recency_messages(messages: List[Dict[str, Any]]) -> List[int]:
-    """
-    Find indices of recency (conversation history) messages.
-
-    Recency messages are user/assistant pairs that aren't the current user message.
-    """
+    """Find indices of recency messages (user/assistant pairs excluding current query)."""
     indices = []
     for i, msg in enumerate(messages):
         role = msg.get("role", "")
@@ -455,12 +173,7 @@ def _drop_recency_messages(
     target_reduction: int,
     counter: Optional[TokenCounter] = None
 ) -> Tuple[List[Dict[str, Any]], int]:
-    """
-    Drop recency messages (oldest first) to reduce tokens.
-
-    Returns:
-        Tuple of (modified_messages, tokens_reduced)
-    """
+    """Drop recency messages oldest-first to reduce tokens. Returns (messages, tokens_reduced)."""
     if counter is None:
         counter = token_counter_registry.get_default()
 
@@ -511,12 +224,7 @@ def _drop_anchors_from_messages(
     messages: List[Dict[str, Any]],
     counter: Optional[TokenCounter] = None
 ) -> Tuple[List[Dict[str, Any]], int]:
-    """
-    Drop anchor section entirely.
-
-    Returns:
-        Tuple of (modified_messages, tokens_reduced)
-    """
+    """Drop anchor section entirely. Returns (messages, tokens_reduced)."""
     if counter is None:
         counter = token_counter_registry.get_default()
 
@@ -564,10 +272,6 @@ def _drop_anchors_from_messages(
     return new_messages, tokens_reduced
 
 
-# =============================================================================
-# Category D: Event Emission Helper
-# =============================================================================
-
 def _emit_token_guard_event(
     result: ValidationResult,
     assembly_id: str,
@@ -577,11 +281,7 @@ def _emit_token_guard_event(
     effective_cap: int,
     effective_safety_factor: float,
 ) -> None:
-    """
-    Emit a structured token guard event.
-
-    Helper function to ensure consistent event emission regardless of code path.
-    """
+    """Emit a structured token guard event for consistent event logging."""
     try:
         from episodic.token_guard_events import get_event_logger, EventType
 
@@ -630,10 +330,6 @@ def _emit_token_guard_event(
         logger.warning(f"Failed to emit token guard event: {e}")
 
 
-# =============================================================================
-# Main Validation Functions
-# =============================================================================
-
 def validate_assembly(
     messages: List[Dict[str, Any]],
     budget: Optional[TokenBudget] = None,
@@ -650,37 +346,13 @@ def validate_assembly(
     anchor_indices: Optional[set] = None,
 ) -> ValidationResult:
     """
-    Validate assembled messages against token cap.
+    Validate assembled messages against token cap with fail-closed drop policy.
 
-    Implements fail-closed policy:
-    0. If relevance truncation enabled: use importance-based drop (Phase 2)
-    1. Check if total tokens exceed cap
-    2. If over: truncate summary (down to s_min)
-    3. If still over: drop recency messages (oldest first)
-    4. If still over: drop anchors
-    5. If still over: abort with safe fallback and log bug event
+    Drop order: relevance truncation (if enabled) -> truncate summary -> drop recency
+    (oldest first) -> drop anchors -> abort with fallback.
 
-    Gap A: Safety factor is only applied when counter.is_exact()==False.
-    Category D: Emits exactly one structured event per call.
-    Phase 2: Relevance-aware truncation drops by importance score when enabled.
-
-    Args:
-        messages: List of assembled messages
-        budget: Token budget configuration (uses defaults if None)
-        safety_factor: Multiplicative safety factor for heuristic counters
-        apply_drops: Whether to apply drop actions or just validate
-        counter: Explicit token counter (overrides registry lookup)
-        provider_id: Provider ID for registry lookup
-        model_id: Model ID for registry lookup
-        turn_id: Unique ID for conversation turn (auto-generated if None)
-        assembly_id: Unique ID for this assembly call (auto-generated if None)
-        emit_event: Whether to emit structured event (default True)
-        enable_relevance_truncation: Use importance-based truncation (default: from config)
-        current_query: Current user query for relevance scoring (required if truncation enabled)
-        anchor_indices: Set of message indices that are anchors (for truncation scoring)
-
-    Returns:
-        ValidationResult with valid flag, actions taken, and optionally modified messages
+    Safety factor only applied when counter.is_exact()==False.
+    Emits exactly one structured event per call (Category D).
     """
     import uuid
     from episodic.config import config
@@ -709,35 +381,25 @@ def validate_assembly(
             overhead_reserve=config.get("token_overhead_reserve", 500),
         )
 
-    # Count tokens with counter
     raw_tokens = counter.count_messages(messages)
     original_tokens = int(raw_tokens * effective_safety_factor)
-
-    # Build breakdown (uses internal estimation for categorization)
     _, breakdown = estimate_tokens_messages(messages, effective_safety_factor)
 
+    breakdown_dict = {
+        "system_prompt": breakdown.system_prompt, "summary": breakdown.summary,
+        "anchors": breakdown.anchors, "recency": breakdown.recency,
+        "rag_context": breakdown.rag_context, "web_context": breakdown.web_context,
+        "user_message": breakdown.user_message, "other": breakdown.other,
+    }
+    budget_dict = {
+        "full_cap": budget.full_cap, "summary_min": budget.summary_min,
+        "overhead_reserve": budget.overhead_reserve,
+    }
     result = ValidationResult(
-        valid=True,
-        original_tokens=original_tokens,
-        final_tokens=original_tokens,
+        valid=True, original_tokens=original_tokens, final_tokens=original_tokens,
         messages=messages,
         details={
-            "breakdown": {
-                "system_prompt": breakdown.system_prompt,
-                "summary": breakdown.summary,
-                "anchors": breakdown.anchors,
-                "recency": breakdown.recency,
-                "rag_context": breakdown.rag_context,
-                "web_context": breakdown.web_context,
-                "user_message": breakdown.user_message,
-                "other": breakdown.other,
-            },
-            "budget": {
-                "full_cap": budget.full_cap,
-                "summary_min": budget.summary_min,
-                "overhead_reserve": budget.overhead_reserve,
-            },
-            # Gap A: Log counter info
+            "breakdown": breakdown_dict, "budget": budget_dict,
             "counter_backend": counter.backend_name(),
             "counter_exact": counter.is_exact(),
             "applied_safety_factor": effective_safety_factor,
@@ -745,22 +407,18 @@ def validate_assembly(
         }
     )
 
-    # Resolve relevance truncation setting from config if not explicitly provided
     if enable_relevance_truncation is None:
         enable_relevance_truncation = config.get("enable_relevance_truncation", False)
 
-    # Fail-fast invariant: If relevance truncation is enabled, anchor_indices MUST be provided
-    # This prevents silent loss of anchor priority when truncation is active
+    # Fail-fast: relevance truncation requires anchor_indices for priority enforcement
     if enable_relevance_truncation and (anchor_indices is None or len(anchor_indices) == 0):
         raise ValueError(
             "enable_relevance_truncation=True requires anchor_indices to be provided and non-empty. "
             "Without anchor_indices, anchor priority cannot be enforced during truncation."
         )
 
-    # Check if within cap
     effective_cap = budget.full_cap - budget.overhead_reserve
     if original_tokens <= effective_cap:
-        # Category D: Emit event for successful validation too
         if emit_event:
             _emit_token_guard_event(
                 result=result,
@@ -773,18 +431,15 @@ def validate_assembly(
             )
         return result
 
-    # Over cap - need to reduce
     current_messages = messages.copy() if apply_drops else messages
     current_tokens = original_tokens
     target = effective_cap
 
-    # Phase 2: Relevance-aware truncation (when enabled)
-    # This runs BEFORE the legacy drop policy as the preferred approach
+    # Phase 2: Relevance-aware truncation (runs before legacy drop policy)
     if enable_relevance_truncation and apply_drops and current_tokens > target:
         try:
             from episodic.truncation import truncate_by_relevance
 
-            # Extract current query from last user message if not provided
             query = current_query
             if query is None:
                 for msg in reversed(messages):
@@ -801,7 +456,6 @@ def validate_assembly(
                 if query is None:
                     query = ""
 
-            # Run relevance truncation with same counter for consistency
             truncation_result = truncate_by_relevance(
                 messages=current_messages,
                 target_tokens=target,
@@ -810,11 +464,9 @@ def validate_assembly(
                 anchor_indices=anchor_indices,
             )
 
-            # Check if truncation made progress
             if truncation_result.tokens_after < truncation_result.tokens_before:
                 result.actions_taken.append(DropAction.RELEVANCE_TRUNCATION)
                 current_messages = truncation_result.messages
-                # Recount with safety factor for consistency
                 raw_after = counter.count_messages(current_messages)
                 current_tokens = int(raw_after * effective_safety_factor)
                 result.truncation_result = truncation_result
@@ -828,7 +480,7 @@ def validate_assembly(
         except Exception as e:
             logger.warning(f"Relevance truncation failed, falling back to legacy: {e}")
 
-    # Step 1: Truncate summary (legacy fallback if still over)
+    # Legacy drop policy: summary -> recency -> anchors -> abort
     if apply_drops and current_tokens > target:
         reduction_needed = current_tokens - target
         new_messages, reduced = _truncate_summary_in_messages(
@@ -840,7 +492,6 @@ def validate_assembly(
             current_messages = new_messages
             current_tokens -= reduced_with_factor
 
-    # Step 2: Drop recency
     if apply_drops and current_tokens > target:
         reduction_needed = current_tokens - target
         new_messages, reduced = _drop_recency_messages(current_messages, reduction_needed, counter)
@@ -850,7 +501,6 @@ def validate_assembly(
             current_messages = new_messages
             current_tokens -= reduced_with_factor
 
-    # Step 3: Drop anchors
     if apply_drops and current_tokens > target:
         new_messages, reduced = _drop_anchors_from_messages(current_messages, counter)
         if reduced > 0:
@@ -859,12 +509,10 @@ def validate_assembly(
             current_messages = new_messages
             current_tokens -= reduced_with_factor
 
-    # Recount final tokens to be accurate
     if apply_drops:
         raw_final = counter.count_messages(current_messages)
         current_tokens = int(raw_final * effective_safety_factor)
 
-    # Step 4: Still over - abort with fallback
     if current_tokens > target:
         result.valid = False
         result.actions_taken.append(DropAction.ABORT)
@@ -875,46 +523,32 @@ def validate_assembly(
         )
         result.bug_event_logged = True
 
-        log_bug_event(
-            event_type="token_overflow_abort",
-            details={
-                "original_tokens": original_tokens,
-                "final_tokens": current_tokens,
-                "target": target,
-                "actions_taken": [a.value for a in result.actions_taken],
-                "breakdown": result.details["breakdown"],
-                "counter_backend": counter.backend_name(),
-                "counter_exact": counter.is_exact(),
-                "applied_safety_factor": effective_safety_factor,
-            },
-            severity="error"
-        )
+        _bug_details = {
+            "original_tokens": original_tokens, "final_tokens": current_tokens,
+            "target": target, "actions_taken": [a.value for a in result.actions_taken],
+            "breakdown": result.details["breakdown"],
+            "counter_backend": counter.backend_name(), "counter_exact": counter.is_exact(),
+            "applied_safety_factor": effective_safety_factor,
+        }
+        log_bug_event("token_overflow_abort", _bug_details, severity="error")
     else:
-        # Successfully reduced
         result.messages = current_messages
         result.final_tokens = current_tokens
 
         if result.actions_taken:
-            log_bug_event(
-                event_type="token_overflow_recovered",
-                details={
-                    "original_tokens": original_tokens,
-                    "final_tokens": current_tokens,
-                    "target": target,
-                    "actions_taken": [a.value for a in result.actions_taken],
-                    "counter_backend": counter.backend_name(),
-                    "counter_exact": counter.is_exact(),
-                    "applied_safety_factor": effective_safety_factor,
-                },
-                severity="warning"
-            )
+            _bug_details = {
+                "original_tokens": original_tokens, "final_tokens": current_tokens,
+                "target": target, "actions_taken": [a.value for a in result.actions_taken],
+                "counter_backend": counter.backend_name(), "counter_exact": counter.is_exact(),
+                "applied_safety_factor": effective_safety_factor,
+            }
+            log_bug_event("token_overflow_recovered", _bug_details, severity="warning")
 
     result.details["final_tokens"] = current_tokens
     result.details["within_cap"] = current_tokens <= target
     result.details["assembly_id"] = assembly_id
     result.details["turn_id"] = turn_id
 
-    # Category D: Emit exactly one structured event
     if emit_event:
         _emit_token_guard_event(
             result=result,
@@ -944,29 +578,9 @@ def guard_assembly(
     anchor_indices: Optional[set] = None,
 ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     """
-    Guard assembly - validate and return safe messages.
+    Validate and return safe messages, or a fallback response if validation fails.
 
-    Convenience function that either returns validated messages
-    or a fallback response if validation fails.
-
-    Args:
-        messages: List of assembled messages
-        budget: Token budget configuration
-        safety_factor: Multiplicative safety factor (only used if counter is heuristic)
-        counter: Explicit token counter (overrides registry lookup)
-        provider_id: Provider ID for registry lookup
-        model_id: Model ID for registry lookup
-        turn_id: Unique ID for conversation turn
-        assembly_id: Unique ID for this assembly call
-        emit_event: Whether to emit structured event
-        enable_relevance_truncation: Use importance-based truncation (default: from config)
-        current_query: Current user query for relevance scoring
-        anchor_indices: Set of message indices that are anchors
-
-    Returns:
-        Tuple of (messages, fallback_response)
-        - If valid: (validated_messages, None)
-        - If abort: ([], fallback_response_string)
+    Returns (validated_messages, None) if valid, or ([], fallback_string) if abort.
     """
     result = validate_assembly(
         messages, budget, safety_factor, apply_drops=True,

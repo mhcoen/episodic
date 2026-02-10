@@ -12,8 +12,6 @@ PARAM_MAPPING = {
     'stream-constant-rate': 'stream_constant_rate', 
     'stream-natural-rhythm': 'stream_natural_rhythm',
     'stream-char-mode': 'stream_char_mode',
-    'stream-char-rate': 'stream_char_rate',
-    'stream-line-delay': 'stream_line_delay',
     'text-wrap': 'text_wrap',
     'show-cost': 'show_cost',
     'show-costs': 'show_cost',
@@ -34,7 +32,6 @@ PARAM_MAPPING = {
     'analyze-topic-boundaries': 'analyze_topic_boundaries',
     'use-llm-boundary-analysis': 'use_llm_boundary_analysis',
     'use-sliding-window-detection': 'use_sliding_window_detection',
-    'sliding-window-size': 'sliding_window_size',
     'drift-threshold': 'drift_threshold',
     
     # RAG settings
@@ -71,7 +68,6 @@ PARAM_MAPPING = {
     'benchmark-display': 'benchmark_display',
     'use-context-cache': 'use_context_cache',
     'active-prompt': 'active_prompt',
-    'running-topic-guess': 'running_topic_guess',
 }
 
 # Short aliases for common parameters
@@ -117,7 +113,6 @@ SHORT_ALIASES = {
     'topic-boundaries': 'analyze_topic_boundaries',
     'topic-llm-analysis': 'use_llm_boundary_analysis',
     'topic-window': 'use_sliding_window_detection',
-    'window-size': 'sliding_window_size',
     'drift': 'drift_threshold',
     
     # Knowledge Graph
@@ -131,7 +126,6 @@ SHORT_ALIASES = {
     'kg-max-derived': 'kg_max_derived',
     'kg-include-past': 'kg_include_past',
     'kg-realtime': 'kg_realtime',
-    'kg-escalate-model': 'kg_escalate_model',
     'kg-closure-seed-limit': 'kg_closure_seed_limit',
     'kg-edges-per-entity': 'kg_edges_per_entity',
     'kg-derived-per-seed': 'kg_derived_per_seed',

@@ -54,13 +54,10 @@ CONFIG_DOCS = {
     "auto_compress_topics": "Automatically compress topics when they end",
     "resummarize_completed_topics": "Re-extract topic name when topic ends (uses full context for better naming)",
     "min_messages_before_topic_change": "Minimum user messages required before allowing a topic change",
-    "running_topic_guess": "Show ongoing topic predictions (not yet implemented)",
     "show_topics": "Display topic evolution in responses",
     "analyze_topic_boundaries": "Analyze recent messages to find precise topic boundaries",
     "use_llm_boundary_analysis": "Use LLM for boundary analysis (more accurate than heuristics)",
-    "manual_index_window_size": "Default sliding window size for manual topic indexing",
-    "manual_index_threshold": "Drift score threshold for detecting topic boundaries",
-    
+
     # Topic strategy (new experimental system)
     "topic_strategy": "Strategy for topic detection/retrieval: 'dual_window', 'keyword', 'relative_embedding'",
     "topic_strategy_params": "Strategy-specific parameters (varies by strategy)",
@@ -75,7 +72,6 @@ CONFIG_DOCS = {
     # Topic detection methods (legacy)
     "use_hybrid_topic_detection": "Use multi-signal topic detection (combines drift, keywords, etc)",
     "use_sliding_window_detection": "Use sliding window detection (compares groups of messages)",
-    "sliding_window_size": "Size of sliding windows for topic detection (default: 3)",
     "use_dual_window_detection": "Use dual-window detection combining (4,1) and (4,2) windows",
     "dual_window_high_precision_threshold": "Similarity threshold for (4,1) high-precision detection",
     "dual_window_safety_net_threshold": "Similarity threshold for (4,2) safety net detection",
@@ -89,9 +85,7 @@ CONFIG_DOCS = {
     "stream_constant_rate": "Use constant rate streaming instead of token-based",
     "stream_natural_rhythm": "Add natural pauses at punctuation for more human-like streaming",
     "stream_char_mode": "Stream character by character instead of word by word",
-    "stream_char_rate": "Characters per second when using character-mode streaming",
-    "stream_line_delay": "Delay in seconds between lines when streaming multi-line responses",
-    
+
     # Model parameters
     "main_params": "Model parameters for main conversation",
     "topic_params": "Model parameters for topic detection",
@@ -131,24 +125,17 @@ CONFIG_DOCS = {
     "openrouter_app_name": "Your app name for OpenRouter tracking (optional)",
     "openrouter_default_models": "List of popular OpenRouter models to show when API key is set",
     
-    # System Memory (always on, stores conversations)
-    "system_memory_enabled": "Enable automatic conversation memory (independent of user RAG)",
-    "system_memory_auto_store": "Automatically store conversations in memory",
-    "system_memory_auto_context": "Automatically use conversation memory for context",
-    
     # User RAG settings (for user's own documents)
     "rag_enabled": "Enable RAG for user's indexed documents",
     "rag_auto_search": "Automatically search user's knowledge base for each message",
     "rag_search_threshold": "Minimum relevance score for including search results",
     "rag_max_results": "Maximum number of search results to include in context",
     "rag_embedding_model": "Sentence transformer model for embeddings",
-    "rag_include_citations": "Include source citations in responses",
     "rag_context_prefix": "Prefix added before RAG context in prompts",
     "rag_chunk_size": "Number of words per document chunk",
     "rag_chunk_overlap": "Number of overlapping words between chunks",
     "rag_max_file_size": "Maximum file size for indexing (in bytes)",
     "rag_show_citations": "Show which documents were used in responses",
-    "rag_citation_style": "How to display citations: 'inline' or 'footnote'",
     "rag_allowed_file_types": "List of allowed file extensions for indexing",
     
     # Web search settings
@@ -183,7 +170,6 @@ CONFIG_DOCS = {
     "kg_max_derived": "Maximum derived (closure) edges total",
     "kg_include_past": "Include TIME_PAST tagged edges by default",
     "kg_realtime": "Enable per-turn background KG extraction",
-    "kg_escalate_model": "Fallback model for failed extractions",
     "kg_closure_seed_limit": "Max matched entities used as closure seeds",
     "kg_edges_per_entity": "Budget per entity (guaranteed 2 + fill)",
     "kg_derived_per_seed": "Max derived edges per seed entity",

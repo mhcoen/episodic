@@ -574,7 +574,7 @@ class ConversationManager:
                 typer.echo(f"⚠️  Drift calculation error: {e}")
     
     def handle_chat_message(
-        self, 
+        self,
         user_input: str,
         model: str,
         system_message: str,
@@ -582,679 +582,71 @@ class ConversationManager:
     ) -> Tuple[str, str]:
         """
         Handle a chat message (non-command input).
-        
+
+        Delegates to phase functions in conversation_pipeline.py.
+
         Args:
             user_input: The user's chat message
             model: The LLM model to use
             system_message: The system prompt
             context_depth: Number of messages to include in context
-            
+
         Returns:
             Tuple of (assistant_node_id, display_response)
         """
-        # Import db functions locally to avoid Python scoping issues
-        
+        from episodic.conversation_pipeline import (
+            TurnContext,
+            phase_setup,
+            phase_correction_reactivation,
+            phase_topic_detection,
+            phase_skip_llm,
+            phase_memory_enhancement,
+            phase_context_assembly,
+            phase_message_augmentation,
+            phase_llm_query,
+            phase_postprocessing,
+        )
+
+        ctx = TurnContext(
+            user_input=user_input,
+            model=model,
+            system_message=system_message,
+            context_depth=context_depth,
+        )
+
         with benchmark_operation("Message Processing"):
-            # Get recent messages for context BEFORE adding the new message
-            with benchmark_resource("Database", "get recent nodes"):
-                # For sliding window detection, we need more history
-                detection_history_limit = 50 if config.get("use_sliding_window_detection") else 10
-                recent_nodes = get_recent_nodes(limit=detection_history_limit)
-            
-            # Add the user message to the database
-            with benchmark_resource("Database", "insert user node"):
-                user_node_id, user_short_id = insert_node(user_input, self.current_node_id, role="user")
+            # Phase 1: Insert user node, compute drift
+            phase_setup(self, ctx)
 
-            # Real-time KG extraction (fire-and-forget, non-blocking)
-            if config.get("kg_realtime", False):
-                from episodic.kg.realtime import extract_node_async
-                extract_node_async(user_node_id, user_input)
+            # Phase 2: Correction and reactivation probing
+            phase_correction_reactivation(self, ctx)
 
-            # Compute semantic drift BEFORE topic detection (for hybrid trigger)
-            # This allows high embedding drift to fast-path into SUSPECT state
-            semantic_drift = None
-            if config.get("show_drift") or config.get("use_drift_trigger", True):
-                semantic_drift = self.compute_semantic_drift(user_node_id)
+            # Phase 3: Topic detection
+            phase_topic_detection(self, ctx)
 
-            # Check for correction to previous disambiguation (before normal reactivation probe)
-            reactivation_packet = None
-            reactivation_applied = False
-            correction_applied = False
+            # Phase 4: Skip-LLM early return (testing/debug mode)
+            phase_skip_llm(self, ctx)
+            if ctx.early_return:
+                return ctx.early_return_value
 
-            if self.pending_correction:
-                state = self.pending_correction
-                turn_idx = self._get_turn_idx()
+            # Phase 5: Memory enhancement via RAG
+            phase_memory_enhancement(self, ctx)
 
-                # Check if state is still valid (expires after 1-2 turns)
-                if turn_idx - state.turn_created > 1:
-                    self.pending_correction = None  # Expired
-                else:
-                    from episodic.recall.correction import detect_correction, resolve_correction
+            # Phase 6: Context assembly
+            phase_context_assembly(self, ctx)
 
-                    is_correction, hint = detect_correction(user_input)
-                    if is_correction:
-                        new_option = resolve_correction(state, hint)
-                        self.pending_correction = None  # Clear state after correction
+            # Phase 7: Message augmentation (memory, reactivation, persona, style, voice)
+            phase_message_augmentation(self, ctx)
 
-                        if new_option:
-                            # Apply reactivation with corrected topic
-                            reactivation_packet = self.apply_topic_reactivation(
-                                new_option.topic_name,
-                                new_option.topic_start_node_id,
-                                user_input
-                            )
-                            if reactivation_packet:
-                                reactivation_applied = True
-                                correction_applied = True
-                                if config.get("show_reactivation_decisions", False) or config.get("debug"):
-                                    secho_color(f"🔄 Switching to: {new_option.topic_name}", fg=get_system_color())
+            # Phase 8: LLM query (muse synthesis or regular)
+            phase_llm_query(self, ctx)
+            if ctx.early_return:
+                return ctx.early_return_value
 
-            # Probe for implicit topic reactivation (skip if correction was applied)
-            if config.get("enable_topic_reactivation", False) and not correction_applied:
-                should_reactivate, react_topic_name, react_start_node_id = \
-                    self.probe_topic_reactivation(
-                        user_input=user_input,
-                        recent_nodes=recent_nodes,
-                        is_meta_query=False,
-                        is_recall_intent=False
-                    )
+            # Phase 9: Post-processing (store response, indexing, topics)
+            phase_postprocessing(self, ctx)
 
-                # Debug: Log probe result if show_reactivation_decisions is enabled
-            if config.get("show_reactivation_decisions") or config.get("debug"):
-                decision = getattr(self, '_last_reactivation_decision', None)
-                if decision:
-                    debug_print(f"Probe result: {decision.action}, topic={decision.topic_name}, gates_failed={decision.debug.get('gates_failed', [])}, exit_reason={decision.debug.get('exit_reason')}", category="memory")
-
-            if should_reactivate and react_topic_name and react_start_node_id:
-                    # Check if tracker would want a new topic (dry run)
-                    raw_topic_changed, _, _, _ = self.topic_handler.detect_and_handle_topic_change(
-                        recent_nodes, user_input, user_node_id,
-                        semantic_drift=semantic_drift,
-                        dry_run=True
-                    )
-
-                    # Reactivation wins unless tracker wants new topic with weak evidence
-                    # (For now, always let reactivation win if probe returned positive)
-                    reactivation_packet = self.apply_topic_reactivation(
-                        react_topic_name, react_start_node_id, user_input
-                    )
-                    if reactivation_packet:
-                        reactivation_applied = True
-                        # Show reactivation one-liner if enabled (separate from full debug)
-                        if config.get("show_reactivation_decisions", False):
-                            secho_color(f"🔄 Resuming topic: {react_topic_name}", fg=get_system_color())
-                        elif config.get("debug"):
-                            secho_color(f"\n📌 Reactivated topic: {react_topic_name}", fg=get_system_color())
-
-            # Persist reactivation decision for calibration (if feature logging enabled)
-            if config.get("reactivation_log_features", True) and hasattr(self, '_last_reactivation_decision'):
-                try:
-                    from episodic.db_reactivation_decisions import persist_reactivation_decision
-                    persist_reactivation_decision(user_node_id, self._last_reactivation_decision)
-                except Exception as e:
-                    debug_print(f"Failed to persist reactivation decision: {e}", category="memory")
-
-            # Detect topic change BEFORE querying the main LLM
-            if reactivation_applied:
-                # Force continue - we've already switched topics via reactivation
-                topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
-                    self.topic_handler.detect_and_handle_topic_change(
-                        recent_nodes, user_input, user_node_id,
-                        semantic_drift=semantic_drift,
-                        decision_override="FORCE_CONTINUE"
-                    )
-            else:
-                topic_changed, new_topic_name, topic_cost_info, topic_change_info = \
-                    self.topic_handler.detect_and_handle_topic_change(
-                        recent_nodes, user_input, user_node_id,
-                        semantic_drift=semantic_drift
-                    )
-            
-            # Store topic detection scores for debugging
-            self.topic_handler.store_topic_detection_scores(
-                recent_nodes, user_node_id, topic_cost_info, topic_changed
-            )
-            
-            # Update node ID
-            self.set_current_node_id(user_node_id)
-            
-            # Check if skip_llm_response is enabled
-            if config.get("skip_llm_response", False):
-                # Build reactivation decision for strategy-based context assembly
-                reactivation_decision = None
-                if reactivation_applied:
-                    from episodic.recall.reactivation import ReactivationDecision
-                    reactivation_decision = ReactivationDecision(
-                        action="REACTIVATE",
-                        topic_name=self.current_topic[0] if self.current_topic else None,
-                        topic_start_node_id=self.current_topic[1] if self.current_topic else None,
-                        debug={"source": "probe_topic_reactivation"}
-                    )
-
-                # Get active topic ID (POST-reactivation)
-                active_topic_start_node_id = self.current_topic[1] if self.current_topic else None
-
-                # Build context using strategy (even though we skip LLM, ensures "B disappears")
-                _, _, _, _, context_debug = \
-                    self.context_builder.build_context_full(
-                        user_node_id=user_node_id,
-                        user_input=user_input,
-                        active_topic_start_node_id=active_topic_start_node_id,
-                        model=model,
-                        reactivation_decision=reactivation_decision,
-                        skip_rag=True  # Skip RAG for performance when LLM is skipped
-                    )
-
-                # Persist context assembly debug info
-                from episodic.db_context_debug import persist_context_assembly_debug
-                persist_context_assembly_debug(user_node_id, context_debug, reactivation_decision)
-
-                # Create a placeholder response
-                display_response = "[LLM response skipped]"
-                # Extract provider from model if present
-                if "/" in model:
-                    provider, model_name = model.split("/", 1)
-                else:
-                    provider = None
-                    model_name = model
-
-                assistant_node_id, assistant_short_id = insert_node(
-                    display_response,
-                    user_node_id,
-                    role="assistant",
-                    provider=provider,
-                    model=model
-                )
-
-                # Display drift if enabled
-                if config.get("show_drift"):
-                    self.display_semantic_drift(user_node_id, cached_drift=semantic_drift)
-
-                # Display the skipped response message
-                typer.echo("")
-                secho_color(f"🤖 {display_response}", fg=get_system_color())
-
-                # Update current node
-                self.set_current_node_id(assistant_node_id)
-
-                # Display disambiguation hint if we have pending correction state
-                if self.pending_correction and not correction_applied:
-                    from episodic.ui.disambiguation import format_disambiguation_hint
-                    mode = "voice" if config.get("voice_mode", False) else "text"
-                    hint = format_disambiguation_hint(self.pending_correction.runner_ups, mode)
-                    if hint:
-                        secho_color(hint, fg=get_system_color(), dim=True)
-
-                # Handle topic boundaries
-                self.topic_handler.handle_topic_boundaries(
-                    topic_changed, user_node_id, assistant_node_id, topic_change_info, new_topic_name
-                )
-
-                # Check for first topic creation
-                if not topic_changed and not self.current_topic and config.get("automatic_topic_detection"):
-                    self.topic_handler.check_and_create_first_topic(user_node_id, assistant_node_id)
-
-                # Add nodes to topic_nodes table for topic-local context assembly
-                self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
-
-                # Auto-index in memory system - fire-and-forget (non-blocking)
-                # Index if memory RAG OR topic reactivation is enabled (reactivation needs embeddings)
-                if config.get("enable_memory_rag", False) or config.get("enable_topic_reactivation", False):
-                    user_node = {
-                        'id': user_node_id,
-                        'content': user_input,
-                        'role': 'user'
-                    }
-                    assistant_node = {
-                        'id': assistant_node_id,
-                        'content': display_response,
-                        'role': 'assistant'
-                    }
-                    # Include topic_start_node_id for anchor retrieval filtering
-                    topic_id = self.current_topic[1] if self.current_topic else None
-                    _fire_and_forget_index(user_node, assistant_node, topic_id)
-
-                return assistant_node_id, display_response
-
-            # Check for memory context enhancement
-            memory_context = None
-            memory_indicator = None
-            if config.get("enable_memory_rag", False):
-                try:
-                    # Use smart detection if enabled (Milestone 2)
-                    if config.get("enable_smart_memory", False):
-                        from episodic.rag_memory_smart import enhance_with_smart_context
-                        import asyncio
-                        
-                        # Build conversation state for smart detection
-                        conv_state = {
-                            'current_topic_name': self.current_topic[0] if self.current_topic else None,
-                            'messages_since_topic_change': len(recent_nodes),
-                            'total_messages': len(get_ancestry(user_node_id)) if user_node_id else 0
-                        }
-                        
-                        loop = asyncio.new_event_loop()
-                        memory_context, memory_indicator = loop.run_until_complete(
-                            enhance_with_smart_context(user_input, conv_state)
-                        )
-                        loop.close()
-                    else:
-                        # Original referential detection (Milestone 1)
-                        from episodic.rag_memory_sqlite import enhance_with_memory_context
-                        import asyncio
-                        loop = asyncio.new_event_loop()
-                        memory_context = loop.run_until_complete(enhance_with_memory_context(user_input))
-                        loop.close()
-                    
-                    if memory_context:
-                        debug_print("Added relevant context from past conversations", category="memory")
-                except Exception as e:
-                    debug_print(f"Context enhancement error: {e}", category="memory")
-            
-            # Build reactivation decision for strategy-based context assembly
-            reactivation_decision = None
-            if reactivation_applied:
-                from episodic.recall.reactivation import ReactivationDecision
-                reactivation_decision = ReactivationDecision(
-                    action="REACTIVATE",
-                    topic_name=self.current_topic[0] if self.current_topic else None,
-                    topic_start_node_id=self.current_topic[1] if self.current_topic else None,
-                    debug={"source": "probe_topic_reactivation"}
-                )
-
-            # Get active topic ID (POST-reactivation)
-            active_topic_start_node_id = self.current_topic[1] if self.current_topic else None
-
-            # Build conversation context using strategy-based assembly
-            messages, raw_messages, rag_context, web_context, context_debug = \
-                self.context_builder.build_context_full(
-                    user_node_id=user_node_id,
-                    user_input=user_input,
-                    active_topic_start_node_id=active_topic_start_node_id,
-                    model=model,
-                    reactivation_decision=reactivation_decision,
-                    skip_rag=False
-                )
-
-            # Persist context assembly debug info
-            from episodic.db_context_debug import persist_context_assembly_debug
-            persist_context_assembly_debug(user_node_id, context_debug, reactivation_decision)
-            
-            # Insert memory context if found
-            if memory_context and messages:
-                # Find the position to insert memory context (before current user message)
-                if len(messages) >= 2 and messages[-1]["role"] == "user":
-                    # Insert as a system message before the current user message
-                    memory_msg = {
-                        "role": "system",
-                        "content": memory_context
-                    }
-                    messages.insert(-1, memory_msg)
-
-            # Insert reactivation packet if topic was reactivated
-            if reactivation_packet and messages:
-                if len(messages) >= 2 and messages[-1]["role"] == "user":
-                    # Insert as a system message before the current user message
-                    reactivation_msg = {
-                        "role": "system",
-                        "content": reactivation_packet
-                    }
-                    messages.insert(-1, reactivation_msg)
-
-            # Display topic evolution if requested
-            if config.get("show_topics") and raw_messages:
-                _display_topic_evolution(user_node_id)
-            
-            # Display drift if enabled
-            if config.get("show_drift"):
-                self.display_semantic_drift(user_node_id, cached_drift=semantic_drift)
-
-            # Display memory indicator if enabled
-            if memory_indicator and config.get("memory_show_indicators", True):
-                typer.echo("")
-                secho_color(memory_indicator, fg=get_system_color())
-            
-            # Apply active persona/prompt if set
-            active_prompt_name = config.get("active_prompt")
-            if active_prompt_name:
-                from episodic.prompt_manager import load_prompt
-                prompt_data = load_prompt(active_prompt_name)
-                if prompt_data and prompt_data.get('content'):
-                    # Insert persona as first system message
-                    persona_msg = {"role": "system", "content": prompt_data['content']}
-                    messages.insert(0, persona_msg)
-
-            # Add global style and detail prompts to messages for non-muse modes
-            if not config.get("muse_mode"):
-                from episodic.commands.style import get_style_prompt
-                from episodic.commands.detail import get_detail_prompt
-
-                style_prompt = get_style_prompt(
-                    has_rag=bool(rag_context),
-                    rag_length=len(rag_context) if rag_context else 0,
-                    has_web=bool(web_context)
-                )
-
-                detail_prompt = get_detail_prompt()
-
-                # Combine style and detail prompts
-                combined_prompt = f"{style_prompt}\n\n{detail_prompt}"
-
-                # Add combined prompt as a system message before the user's current message
-                if messages and messages[-1]["role"] == "user":
-                    # Insert combined instruction before the latest user message
-                    last_user_message = messages.pop()
-                    enhanced_content = f"{combined_prompt}\n\nUser: {last_user_message['content']}"
-                    last_user_message["content"] = enhanced_content
-                    messages.append(last_user_message)
-            
-            # Apply reflection mode if enabled
-            if config.get("reflection_mode", False):
-                from episodic.commands.reflection import handle_reflection_in_conversation
-                messages = handle_reflection_in_conversation(user_input, messages)
-
-            # Apply voice persona if voice mode is enabled
-            if config.get("voice_mode", False):
-                from episodic.voice.voice_persona import get_voice_system_prompt_addition
-                voice_prompt = get_voice_system_prompt_addition()
-
-                # Insert voice persona as system message near the end
-                if messages and messages[-1]["role"] == "user":
-                    last_user_message = messages.pop()
-                    messages.append({"role": "system", "content": voice_prompt})
-                    messages.append(last_user_message)
-                else:
-                    messages.append({"role": "system", "content": voice_prompt})
-
-            # Prepare for LLM query
-            from episodic.web_synthesis import synthesize_web_response
-            
-            # Check if we're in muse mode and have web context
-            if config.get("muse_mode") and web_context:
-                # Debug: print conversation history
-                if config.get("debug"):
-                    debug_print(f"Muse mode: passing {len(messages)} messages to synthesis")
-                    for i, msg in enumerate(messages):
-                        debug_print(f"  Message {i}: {msg['role']} - {msg['content'][:50]}...")
-                
-                # Use web synthesis for muse mode
-                try:
-                    synthesis_result = synthesize_web_response(
-                        query=user_input,
-                        search_results=web_context,
-                        conversation_history=messages,
-                        model=model
-                    )
-
-                    if config.get("debug"):
-                        debug_print(f"Synthesis result type: {type(synthesis_result)}")
-                        if isinstance(synthesis_result, dict):
-                            debug_print(f"Synthesis dict keys: {synthesis_result.keys()}")
-                        debug_print(f"Synthesis result: {str(synthesis_result)[:200]}")
-                except Exception as e:
-                    typer.secho(f"\n❌ Web synthesis error: {e}", fg=get_error_color())
-                    if config.get("debug"):
-                        import traceback
-                        traceback.print_exc()
-                    return None, None
-
-                # Handle streaming case for muse mode
-                if isinstance(synthesis_result, dict) and synthesis_result.get('streaming'):
-                    # Extract streaming info and execute the query
-                    from episodic.llm import _execute_llm_query
-
-                    # Preserve conversation history by appending synthesis to existing messages
-                    synthesis_messages = messages.copy() if messages else []
-
-                    # Add synthesis as the final exchange
-                    synthesis_messages.append({
-                        "role": "system",
-                        "content": synthesis_result['system_message']
-                    })
-                    synthesis_messages.append({
-                        "role": "user",
-                        "content": synthesis_result['prompt']
-                    })
-
-                    # Gap B: Token guard for muse mode
-                    from episodic.token_guard import guard_assembly, TokenBudget
-                    token_budget = TokenBudget(
-                        full_cap=config.get("token_full_cap", 8000),
-                        summary_min=config.get("token_summary_min", 100),
-                        overhead_reserve=config.get("token_overhead_reserve", 500),
-                    )
-                    synthesis_messages, fallback_response = guard_assembly(synthesis_messages, token_budget)
-
-                    if fallback_response:
-                        display_response = fallback_response
-                        debug_print("Token guard triggered fallback response (muse)", category="memory")
-                        with benchmark_resource("Database", "insert assistant node"):
-                            if "/" in model:
-                                provider, model_name = model.split("/", 1)
-                            else:
-                                provider = None
-                                model_name = model
-                            assistant_node_id, assistant_short_id = insert_node(
-                                display_response,
-                                user_node_id,
-                                role="assistant",
-                                provider=provider,
-                                model=model
-                            )
-                        self.set_current_node_id(assistant_node_id)
-                        self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
-                        typer.echo("")
-                        secho_color(display_response, fg=get_error_color())
-                        return assistant_node_id, display_response
-
-                    try:
-                        stream_generator, _ = _execute_llm_query(
-                            synthesis_messages,
-                            model=synthesis_result['model'],
-                            temperature=synthesis_result.get('temperature', 0.3),
-                            max_tokens=synthesis_result.get('max_tokens', 1500),
-                            stream=True
-                        )
-                    except Exception as e:
-                        # Handle model not found errors gracefully
-                        error_str = str(e).lower()
-                        model_name = synthesis_result['model']
-
-                        if 'not found' in error_str or '404' in error_str or 'does not exist' in error_str:
-                            typer.echo("")
-                            typer.secho(f"❌ Synthesis model '{model_name}' not available", fg=get_error_color())
-                            typer.echo("")
-
-                            if model_name.startswith('ollama/'):
-                                model_only = model_name.replace('ollama/', '')
-                                typer.secho(f"   For Ollama models, pull them first:", fg=get_error_color())
-                                typer.secho(f"     ollama pull {model_only}", fg="cyan")
-                                typer.echo("")
-
-                            typer.secho(f"   Change to an available model:", fg=get_error_color())
-                            typer.secho(f"     /set synthesis_model gpt-4o-mini", fg="cyan")
-                            typer.secho(f"     /set synthesis_model null  (uses your main chat model)", fg="cyan")
-                            typer.echo("")
-                            return None, None
-                        else:
-                            # Re-raise other errors
-                            raise
-                    
-                    # Stream the response with unified streamer
-                    typer.echo("")  # Newline before streaming
-                    full_response = unified_stream_response(
-                        stream_generator=stream_generator,
-                        model=synthesis_result['model']
-                    )
-                    display_response = full_response
-                else:
-                    # Non-streaming response
-                    full_response = synthesis_result
-                    display_response = full_response
-            else:
-                # Regular LLM query
-                with benchmark_resource("LLM Call", f"main query - {model}"):
-                    # Debug: Show messages being sent to LLM
-                    debug_print(f"Messages to LLM ({len(messages)} total):", category="memory")
-                    for i, msg in enumerate(messages):
-                        role = msg.get('role', 'unknown')
-                        content = msg.get('content', '')
-                        if isinstance(content, str):
-                            preview = content[:200].replace('\n', ' ')
-                        else:
-                            preview = str(content)[:200]
-                        debug_print(f"  [{i}] {role}: {preview}...", category="memory")
-
-                    # Gap B: Full-assembly token assertion
-                    from episodic.token_guard import guard_assembly, TokenBudget
-                    token_budget = TokenBudget(
-                        full_cap=config.get("token_full_cap", 8000),
-                        summary_min=config.get("token_summary_min", 100),
-                        overhead_reserve=config.get("token_overhead_reserve", 500),
-                    )
-                    messages, fallback_response = guard_assembly(messages, token_budget)
-
-                    if fallback_response:
-                        # Token guard triggered abort - use fallback response
-                        display_response = fallback_response
-                        debug_print("Token guard triggered fallback response", category="memory")
-                        # Skip LLM query and store fallback
-                        with benchmark_resource("Database", "insert assistant node"):
-                            if "/" in model:
-                                provider, model_name = model.split("/", 1)
-                            else:
-                                provider = None
-                                model_name = model
-                            assistant_node_id, assistant_short_id = insert_node(
-                                display_response,
-                                user_node_id,
-                                role="assistant",
-                                provider=provider,
-                                model=model
-                            )
-                        self.set_current_node_id(assistant_node_id)
-                        self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
-                        typer.echo("")
-                        secho_color(display_response, fg=get_error_color())
-                        return assistant_node_id, display_response
-
-                    # Query the LLM with streaming
-                    stream_enabled = config.get("stream_responses", True)
-
-                    # Get max_tokens from style setting (if not muse mode)
-                    from episodic.commands.style import get_style_max_tokens
-                    style_max_tokens = get_style_max_tokens() if not config.get("muse_mode") else None
-
-                    if stream_enabled:
-                        # Get the stream generator
-                        with benchmark_resource("LLM", f"query stream - {model}"):
-                            from episodic.llm import _execute_llm_query
-                            llm_kwargs = {"messages": messages, "model": model, "stream": True}
-                            if style_max_tokens:
-                                llm_kwargs["max_tokens"] = style_max_tokens
-                            stream_generator, _ = _execute_llm_query(**llm_kwargs)
-
-                        # Stream the response
-                        typer.echo("")  # Newline before streaming
-                        full_response = unified_stream_response(
-                            stream_generator=stream_generator,
-                            model=model
-                        )
-                        display_response = full_response
-                    else:
-                        # Non-streaming response
-                        with benchmark_resource("LLM", f"query - {model}"):
-                            from episodic.llm import _execute_llm_query
-                            llm_kwargs = {"messages": messages, "model": model, "stream": False}
-                            if style_max_tokens:
-                                llm_kwargs["max_tokens"] = style_max_tokens
-                            response, cost_info = _execute_llm_query(**llm_kwargs)
-                        
-                        # Display the response
-                        if response:
-                            typer.echo("")
-                            # Debug: Check if response is duplicated
-                            if config.get("debug", False):
-                                typer.echo(f"[DEBUG] Response length: {len(response)} chars", err=True)
-                                typer.echo(f"[DEBUG] First 100 chars: {response[:100]}", err=True)
-                            wrapped_llm_print(response, fg=get_llm_color())
-                            display_response = response
-                        else:
-                            display_response = "[No response from LLM]"
-                            typer.echo("")
-                            secho_color(display_response, fg=get_error_color())
-            
-            # Store the assistant's response
-            with benchmark_resource("Database", "insert assistant node"):
-                # Extract provider from model if present
-                if "/" in model:
-                    provider, model_name = model.split("/", 1)
-                else:
-                    provider = None
-                    model_name = model
-                    
-                assistant_node_id, assistant_short_id = insert_node(
-                    display_response, 
-                    user_node_id, 
-                    role="assistant",
-                    provider=provider,
-                    model=model
-                )
-            
-            # Update current node
-            self.set_current_node_id(assistant_node_id)
-
-            # Display disambiguation hint if we have pending correction state
-            if self.pending_correction and not correction_applied:
-                from episodic.ui.disambiguation import format_disambiguation_hint
-                mode = "voice" if config.get("voice_mode", False) else "text"
-                hint = format_disambiguation_hint(self.pending_correction.runner_ups, mode)
-                if hint:
-                    secho_color(hint, fg=get_system_color(), dim=True)
-
-            # Auto-index in memory system - fire-and-forget (non-blocking)
-            # Index if memory RAG OR topic reactivation is enabled (reactivation needs embeddings)
-            if config.get("enable_memory_rag", False) or config.get("enable_topic_reactivation", False):
-                user_node = {
-                    'id': user_node_id,
-                    'content': user_input,
-                    'role': 'user'
-                }
-                assistant_node = {
-                    'id': assistant_node_id,
-                    'content': display_response,
-                    'role': 'assistant'
-                }
-                # Include topic_start_node_id for anchor retrieval filtering
-                topic_id = self.current_topic[1] if self.current_topic else None
-                _fire_and_forget_index(user_node, assistant_node, topic_id)
-
-            # Track RAG usage if applicable
-            if rag_context:
-                self.context_builder.track_rag_usage(assistant_node_id)
-            
-            # Handle topic boundaries
-            self.topic_handler.handle_topic_boundaries(
-                topic_changed, user_node_id, assistant_node_id, topic_change_info, new_topic_name
-            )
-            
-            # Check for first topic creation or update ongoing topic
-            if config.get("automatic_topic_detection"):
-                if not topic_changed and not self.current_topic:
-                    self.topic_handler.check_and_create_first_topic(user_node_id, assistant_node_id)
-                elif self.current_topic:
-                    # Update ongoing topic name if needed
-                    self.topic_handler.update_ongoing_topic_name(assistant_node_id)
-
-                # Update centroid for current topic (at checkpoint intervals)
-                if self.current_topic and config.get("enable_topic_reactivation", False):
-                    self.topic_handler.update_current_topic_centroid()
-
-            # Add nodes to topic_nodes table for topic-local context assembly
-            # Must be after topic boundaries are handled (so current_topic is set)
-            self.add_nodes_to_current_topic(user_node_id, assistant_node_id)
-
-            return assistant_node_id, display_response
+            return ctx.assistant_node_id, ctx.display_response
 
 
 # Background indexing helper for non-blocking memory storage

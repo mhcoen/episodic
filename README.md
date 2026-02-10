@@ -38,7 +38,7 @@ This example shows what Episodic does that a vanilla LLM cannot. The user mentio
 > My daughter Emma is starting at MIT this fall.
 🤖 That's exciting! MIT is a great choice...
 
-> I just bought a MacBook Pro M3 Max with 64GB of RAM.
+> We got Emma a MacBook Pro M3 Max with 64GB of RAM.
 🤖 The M3 Max is a powerful machine...
 
 # ... hours of conversation on other topics ...
@@ -55,7 +55,7 @@ This example shows what Episodic does that a vanilla LLM cannot. The user mentio
 > /kg explain
 🔗 Injected 4 edges (83 tokens):
    user:self → related_to → Emma (seed: user:self)
-   user:self → has → MacBook Pro M3 Max (seed: user:self)
+   Emma → has → MacBook Pro M3 Max (seed: Emma)
    MacBook Pro M3 Max → has → 64GB RAM (derived: DEVICE_SPEC)
    Emma → located_at → MIT (derived: KINSHIP_LOCATION)
 ```

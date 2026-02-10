@@ -6,7 +6,7 @@ Episodic is a conversational memory system that helps avoid the usual
 Instead of stuffing the prompt with lots of old messages, Episodic
 tracks topics, ignores irrelevant content, and injects only the most
 relevant prior facts for what you’re talking about right now. It can
-also link facts through relationships (multi-hop t raversal) to include
+also link facts through relationships (multi-hop traversal) to include
 context you did not explicitly repeat. In short, Episodic keeps long
 chats coherent.
 

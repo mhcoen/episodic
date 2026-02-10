@@ -8,24 +8,24 @@
 5. [Basic Usage](#basic-usage)
 6. [Topic Management](#topic-management)
 7. [Knowledge Base (RAG)](#knowledge-base-rag)
-8. [Web Search](#web-search)
-9. [Muse Mode](#muse-mode)
-10. [Configuration](#configuration)
-11. [Saving and Loading Conversations](#saving-and-loading-conversations)
-12. [Advanced Features](#advanced-features)
-13. [Experimental Features](#experimental-features)
+8. [Knowledge Graph](#knowledge-graph)
+9. [Web Search](#web-search)
+10. [Muse Mode](#muse-mode)
+11. [Configuration](#configuration)
+12. [Saving and Loading Conversations](#saving-and-loading-conversations)
+13. [Advanced Features](#advanced-features)
+14. [Experimental Features](#experimental-features)
 
 ## Introduction
 
-Episodic is a conversational memory system that creates persistent, navigable conversations with language models. It automatically organizes conversations into topics, compresses old topics to manage context, and provides tools for searching both local knowledge and the web.
+Episodic is a conversational memory system that helps prevent the "I already told you that" problem in chatbots.
 
-### Key Features
-- **Persistent Conversations**: All conversations are stored in a local SQLite database
-- **Automatic Topic Detection**: Conversations are automatically segmented into topics
-- **Context Management**: Old topics are compressed to stay within LLM context limits
-- **Knowledge Base (RAG)**: Index documents and search them during conversations
-- **Web Search**: Search the web for current information
-- **Multi-Model Support**: Works with OpenAI, Anthropic, Google, Ollama, and more
+Instead of stuffing the model with lots of old messages, Episodic tracks what you're talking about, leaves irrelevant history out of the context, and injects only the most relevant prior facts. It can also connect related facts through a knowledge graph (multi-hop traversal) to recover context you didn't explicitly repeat.
+
+Episodic has two modes:
+
+* Simple mode: chat normally, with topic organization and context handled automatically. Conversations are stored as readable markdown files.
+* Advanced mode: for developers, researchers, and anyone who wants full control. It unlocks commands for multi-model workflows, retrieval (RAG), prompt/system tuning, benchmarking, and cost/performance analysis.
 
 ## Core Concepts
 
@@ -193,29 +193,38 @@ Episodic uses semantic drift detection to identify topic changes. When drift exc
 | `/topics delete --pattern <pat>` | Delete topics matching pattern |
 | `/topics delete --time <expr>` | Delete topics by time range |
 
-### Topic Detection Methods
+### Topic Detection Strategies
 
-#### 1. Sliding Window (Default)
-Compares groups of messages to detect semantic shifts:
+Episodic uses a pluggable strategy system for topic detection. The default strategy combines neural boundary detection with a commitment policy to reduce false positives.
+
+#### Configuring the Strategy
 ```bash
-/set topic-window true
-/set window-size 3  # Compare 3-message windows
-/set drift 0.9    # Threshold for topic change
+/set topic-strategy default       # Neural + Commitment (recommended)
+/set topic-strategy neural        # Neural boundary detection only
+/set topic-strategy commitment    # Commitment policy only
+/set topic-strategy dual_window   # Dual-window cosine similarity
+/set topic-strategy ensemble      # Weighted ensemble of multiple signals
 ```
 
-#### 2. Hybrid Detection (Experimental)
-Combines multiple signals:
-```bash
-/set hybrid-topics true
-```
-Signals include:
-- Semantic drift (embedding similarity)
-- Explicit keywords ("let's talk about", "changing topics")
-- Domain-specific keywords
-- Message gaps (time between messages)
-- Conversation flow patterns
+#### Available Strategies
 
-#### 3. Manual Detection
+| Strategy | Description |
+|----------|-------------|
+| `default` | Neural detection + Commitment policy (recommended) |
+| `neural` | DistilBERT-based boundary classification |
+| `commitment` | Evidence accumulation before committing to a boundary |
+| `dual_window` | Dual-window (4,1)+(4,2) cosine similarity |
+| `ensemble` | Weighted combination of multiple strategies |
+| `cusum` | CUSUM change-point detection on embedding drift |
+| `delta` | Raw embedding delta with adaptive threshold |
+| `keyword` | Explicit transition phrase detection |
+| `speech_act` | Speech act classification for topic shifts |
+| `time_aware` | Time-gap weighted detection |
+| `relative_embedding` | Relative embedding position changes |
+| `summary_probe` | LLM-based summary comparison |
+| `null` | No automatic detection (manual only) |
+
+#### Manual Detection
 Disable automatic detection and control topics manually:
 ```bash
 /set topic-auto false
@@ -229,6 +238,44 @@ When topics end, they can be automatically compressed:
 /set comp-min 10  # Minimum messages before compression
 /compression stats  # View compression queue
 ```
+
+### Topic Reactivation
+
+Episodic can detect when you return to a previously discussed topic and automatically restore its context. This uses a two-channel matching system:
+
+- **Channel A (Semantic)**: Compares your message embedding against topic centroids
+- **Channel B (Alias)**: Matches distinctive topic terms in referential queries (e.g., "what was that about Emma?")
+
+When a match is found, the system either silently reactivates the topic or presents a disambiguation prompt if multiple topics match.
+
+```bash
+# Enable/disable reactivation (enabled by default)
+/set enable-topic-reactivation true
+
+# Show a one-liner when reactivation fires
+/set show-reactivation-decisions true
+
+# Log detailed probe features for debugging
+/set reactivation-log-features true
+```
+
+### Context Recovery Modes
+
+When assembling context for the LLM, Episodic supports three strategies:
+
+| Mode | Description |
+|------|-------------|
+| `ancestry` | Traditional DAG ancestry traversal (all parent nodes) |
+| `topic_local` | Topic-isolated context with semantic anchors and summaries |
+| `hybrid` | Switches between ancestry and topic_local based on reactivation (default) |
+
+```bash
+/set context-recovery-mode hybrid    # Recommended (default)
+/set context-recovery-mode ancestry  # Traditional behavior
+/set context-recovery-mode topic_local  # Topic isolation only
+```
+
+In hybrid mode, when topic reactivation fires, context switches to `topic_local` which provides the reactivated topic's summary and semantically relevant anchors instead of raw ancestry.
 
 ### Topic Deletion
 Remove unwanted topics by name, pattern, or time range:
@@ -313,6 +360,100 @@ Test mode uses separate paths (`~/.episodic/test/`) for both SQLite and ChromaDB
 /set rag-chunk 500         # Words per document chunk
 ```
 
+### Conceptual Search (WordNet)
+
+Enable WordNet-based conceptual expansion to find results related by meaning, not just keywords. For example, searching for "physics" can also find documents about "science" or "mechanics".
+
+```bash
+/set enable-conceptual-search true
+/set wordnet-expansion-mode balanced   # narrow | balanced | broad | children_only
+/set expansion-max-depth 2             # Hierarchy depth (1-3)
+/set expansion-max-terms 10            # Max expansion terms
+/set conceptual-boost-factor 0.3       # Boost for conceptual matches (0.0-1.0)
+```
+
+## Knowledge Graph
+
+The Knowledge Graph (KG) automatically extracts entities and relationships from your conversations, enabling the LLM to recall structured facts like "Emma studies at MIT" or "the project deadline is March 15th".
+
+### Enabling the Knowledge Graph
+
+The KG has two modes of operation:
+
+```bash
+# Manual extraction (process conversation history on demand)
+/kg update
+
+# Real-time extraction (extract from each turn as you chat)
+/set kg-realtime true
+
+# Timed background extraction
+/set kg-auto true
+/set kg-interval 3600        # Extract every hour
+
+# Enable KG context injection (inject facts into LLM context)
+/set kg-context true
+```
+
+### How It Works
+
+1. **Extraction**: Each user/assistant exchange is analyzed by an LLM to extract entities (people, places, organizations, concepts) and relationships between them
+2. **Storage**: Entities and edges are stored in SQLite tables with provenance tracking (which conversation node produced each fact)
+3. **Closure**: Transitive rules derive implicit facts (e.g., if A is-parent-of B and B is-parent-of C, then A is-grandparent-of C)
+4. **Context Injection**: When you mention a known entity, relevant facts are injected into the LLM context so it can reference them naturally
+
+### KG Commands
+
+| Command | Description |
+|---------|-------------|
+| `/kg` or `/kg status` | Show KG status (entity/edge counts, staleness) |
+| `/kg entities` | List all entities |
+| `/kg entity <id>` | Show detail for entity (aliases, degree) |
+| `/kg edges [entity_id]` | List edges, optionally filtered by entity |
+| `/kg search <query>` | Search entities by name or alias |
+| `/kg stats` | Comprehensive statistics (types, predicates, assertions) |
+| `/kg update [--max N] [--lookback N] [--dry-run]` | Run batch extraction from high-water mark |
+| `/kg rebuild` | Full rebuild: drop all KG data and reprocess |
+| `/kg skip <node_id> [--reason ...]` | Add node to skip list |
+| `/kg patch <node_id>` | Show the extraction patch for a node |
+| `/kg probe <text>` | Dry-run context injection for a query |
+| `/kg merge <id1> <id2> [--survivor=<id>]` | Merge two entities |
+| `/kg dupes` | Find duplicate entities (same name + type) |
+| `/kg eval [dataset] [--model M] [--conditions A,B,C]` | Run ablation evaluation |
+| `/kg visualize [--layout cose] [--type T] [--relation R] [--save path]` | Interactive graph visualization |
+| `/kg explain` | Show what happened on last KG context injection |
+| `/kg blame <text>` | Show provenance for an edge from last injection |
+
+### Example
+
+```
+> Tell me about my friend Emma
+🧠 KG context injected (3 edges, 1 derived):
+  Emma --studies_at--> MIT
+  Emma --lives_in--> Boston
+  Emma --interested_in--> machine learning
+  (derived) Emma --located_in--> Massachusetts
+
+Based on what I know, Emma is studying at MIT in Boston...
+```
+
+### KG Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `kg_context` | false | Enable KG facts in context assembly |
+| `kg_realtime` | false | Per-turn background extraction |
+| `kg_auto` | false | Timer-based batch extraction |
+| `kg_interval` | 3600 | Extraction interval in seconds |
+| `kg_lookback` | 3 | Preceding turns for extraction context |
+| `kg_budget` | 500 | Token budget for KG context |
+| `kg_max_entities` | 5 | Max entities to match per message |
+| `kg_max_edges` | 5 | Max edges per matched entity |
+| `kg_max_derived` | 3 | Max derived (closure) edges total |
+| `kg_include_past` | false | Include TIME_PAST edges by default |
+| `kg_closure_seed_limit` | 3 | Max entities used as closure seeds |
+| `kg_relevance_gate` | true | Suppress block if no direct overlap |
+
 ## Web Search
 
 ### Mode Switching
@@ -385,6 +526,10 @@ what's new in quantum computing
 4. **Searx** (Privacy-focused, can self-host)
    - Configure with `/set searx-instance-url`
    - No API key needed
+
+5. **Brave** (Requires API key)
+   - Set `BRAVE_API_KEY`
+   - Privacy-focused with independent index
 
 ### How Fallback Works
 When you search, Episodic will:
@@ -686,6 +831,43 @@ export EPISODIC_CACHE=true
 
 **Note**: The memory system is always on by default and separate from the user RAG system. It automatically indexes your conversations for intelligent context recall.
 
+### Rollback
+
+Roll back the conversation to a specific point, deleting all nodes after the target. This also cleans up topic boundaries and KG data for deleted nodes.
+
+```bash
+/rollback <short_id>   # Roll back to a specific node
+```
+
+Use `/ancestry` or `/show` to find the node ID you want to roll back to. This operation cannot be undone.
+
+### Critique
+
+Have another LLM critique the last assistant response, analyzing it for accuracy, logical gaps, and areas for improvement.
+
+```bash
+/critique              # Critique the last response
+/critique <short_id>   # Critique a specific response
+```
+
+The critique uses the critic model (configurable with `/model critic <model>`), defaulting to a capable model for thorough analysis.
+
+### Reflection
+
+Enable multi-step reasoning where the LLM analyzes a problem, reflects on its analysis, and synthesizes a final answer.
+
+```bash
+/reflect                        # Enable reflection mode for next message
+/reflect "complex problem"      # Reflect on a specific problem immediately
+/reflect off                    # Disable reflection mode
+```
+
+Reflection uses configurable steps (default 3): initial analysis, self-critique, and final synthesis. This is useful for complex reasoning tasks where the first answer may miss nuances.
+
+### MCP Server
+
+Episodic includes a Model Context Protocol server for exposing conversation memory to external AI clients. See the [MCP Guide](docs/mcp-guide.md) for full setup details and the [Features Guide](docs/features.md) for a tool overview.
+
 ### Reset Configuration
 ```bash
 /reset              # Show reset options
@@ -696,44 +878,29 @@ export EPISODIC_CACHE=true
 
 ## Experimental Features
 
-### Alternative Topic Detection Methods
+### Alternative Topic Detection Strategies
 
-#### 1. Embedding-Based Drift Detection
-The ML module (`episodic/ml/`) contains experimental embedding-based drift detection:
-- Uses sentence transformers for embeddings
-- Calculates cosine similarity between messages
-- Includes peak detection for topic boundaries
+The default strategy (Neural + Commitment) works well for most conversations. The following alternative strategies are available for experimentation:
 
-#### 2. Keyword-Based Detection
-The `TransitionDetector` in `episodic/topics/keywords.py` identifies:
-- Explicit transition phrases ("let's move on to")
-- Question patterns indicating topic shifts
-- Domain changes (technical → casual)
+- **`ensemble`**: Weighted combination of multiple strategies for higher accuracy
+- **`cusum`**: CUSUM change-point detection on embedding drift series
+- **`speech_act`**: Detects topic shifts via speech act classification
+- **`time_aware`**: Incorporates time gaps between messages
+- **`summary_probe`**: Uses LLM to compare topic summaries
 
-#### 3. Boundary Analysis
-When enabled, analyzes where topics actually change:
+Use `/set topic-strategy <name>` to switch. See [Topic Detection Strategies](#topic-detection-strategies) for the full list.
+
+### Topic Evaluation Framework
+
+Evaluate and compare strategies against annotated datasets:
 ```bash
-/set topic-boundaries true
-/set topic-llm-analysis true  # Use LLM for analysis
-```
-
-### Hybrid Scoring System
-Combines multiple signals with configurable weights:
-```python
-"hybrid_topic_weights": {
-    "semantic_drift": 0.6,      # Embedding similarity
-    "keyword_explicit": 0.25,    # Transition phrases
-    "keyword_domain": 0.1,       # Domain shifts
-    "message_gap": 0.025,        # Time gaps
-    "conversation_flow": 0.025   # Question/answer patterns
-}
+/topics evaluate                    # Run evaluation with current strategy
+/topics evaluate --strategy neural  # Evaluate a specific strategy
+/topics calibrate                   # Calibrate thresholds
 ```
 
 ### Running Topic Prediction
-```bash
-/set running-topic-guess true  # Not implemented yet
-```
-Planned feature to show topic predictions in real-time.
+Planned feature to show topic predictions in real-time. Not yet implemented.
 
 ## Common Workflows
 
@@ -919,26 +1086,34 @@ The following commands are deprecated but still work with warnings. They will be
 
 ### Database Schema
 - **nodes**: Stores all messages
-- **topics**: Topic boundaries and metadata  
+- **topics**: Topic boundaries and metadata
+- **topic_centroids**: Topic embedding centroids for reactivation
 - **compressions_v2**: Compressed topic summaries
 - **rag_documents**: Indexed documents
+- **kg_entities / kg_edges / kg_assertions**: Knowledge graph data
+- **kg_patches / kg_state**: KG extraction tracking
 - **configuration**: Key-value settings
 
 ### Module Organization
-- `episodic/cli.py` - Main CLI interface
-- `episodic/conversation.py` - Conversation management
-- `episodic/topics/` - Topic detection implementations
-- `episodic/rag.py` - Knowledge base functionality
+- `episodic/cli_main.py` - CLI setup and session lifecycle
+- `episodic/conversation_pipeline.py` - Turn processing orchestration
+- `episodic/conversation.py` - Conversation state management
+- `episodic/topics/` - Pluggable topic detection strategies (13 strategies)
+- `episodic/kg/` - Knowledge graph extraction, storage, closure, context injection
+- `episodic/context_recovery/` - Context assembly strategies (ancestry, topic_local, hybrid)
+- `episodic/recall/` - Topic reactivation probe and alias matching
+- `episodic/rag*.py` - Knowledge base and WordNet conceptual search
 - `episodic/web_search.py` - Web search integration
+- `episodic/web_search_providers/` - Provider implementations (DuckDuckGo, Google, Bing, Searx, Brave)
+- `episodic/mcp/` - MCP server, tools, auth, threads, traces
+- `episodic/token_counting.py` - Token budget tracking
 
 ## Contributing
 
-Episodic has several experimental features that could use improvement:
+Episodic has several areas that could use improvement:
 
 1. **Non-linear DAG conversations** - Currently only linear
-2. **Running topic prediction** - Real-time topic guessing
+2. **Running topic prediction** - Real-time topic guessing (planned)
 3. **Embedding provider alternatives** - Currently uses sentence-transformers
-4. **Additional web search providers** - More search engines
-5. **Topic detection improvements** - Better algorithms
-
-See `ADAPTIVE_TOPIC_DETECTION_PLAN.md` for planned improvements.
+4. **Knowledge graph improvements** - Better extraction models, multi-hop reasoning
+5. **Topic detection tuning** - Strategy evaluation and calibration

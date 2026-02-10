@@ -121,24 +121,35 @@ Set with: `/set color-mode full`, `/set color-mode basic`, or `/set color-mode n
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `automatic_topic_detection` | true | Enable automatic detection |
-| `topic_detection_model` | "huggingface/tiiuae/falcon-7b-instruct" | Model for detection (use instruct models) |
+| `topic_strategy` | "default" | Strategy: default, neural, commitment, dual_window, ensemble, etc. |
+| `topic_detection_model` | "custom/topic-boundary-distilbert" | Model for neural detection |
 | `min_messages_before_topic_change` | 8 | Minimum messages per topic |
 | `show_topics` | false | Show topic info in responses |
-| `use_dual_window_detection` | true | Use dual-window detection system |
-| `dual_window_high_precision_threshold` | 0.2 | Threshold for (4,1) high precision window |
-| `dual_window_safety_net_threshold` | 0.25 | Threshold for (4,2) safety net window |
-| `analyze_topic_boundaries` | true | Refine topic boundaries |
-| `use_llm_boundary_analysis` | true | Use LLM for boundary analysis |
-| `show_hybrid_topics` | true | Show topic info with hybrid detector |
-| `topic_window_size` | 5 | Window size for detection |
-| `topic_similarity_threshold` | 0.3 | Similarity threshold |
+| `topic_strategy_params` | {} | Strategy-specific parameters |
+
+### Topic Reactivation & Context Recovery Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `enable_topic_reactivation` | true | Detect return to dormant topics |
+| `context_recovery_mode` | "hybrid" | Context strategy: ancestry, topic_local, hybrid |
+| `context_token_budget` | 4000 | Max tokens for context assembly |
+| `show_reactivation_decisions` | false | Show one-liner when reactivation fires |
+| `reactivation_log_features` | true | Log detailed probe features |
+| `topic_context_retrieval` | false | Retrieve context from previous topics |
+| `topic_context_max_messages` | 10 | Max messages from previous topics |
+| `topic_context_max_tokens` | 2000 | Max tokens from previous topics |
+| `anchor_count` | 3 | Semantic anchors for topic-local context |
+| `anchor_similarity_threshold` | 0.5 | Minimum anchor similarity |
+| `import_detection_enabled` | true | Cross-topic import detection |
+| `import_token_budget` | 100 | Max tokens for imported context |
 
 ### Compression Settings
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `auto_compress_topics` | true | Auto-compress completed topics |
-| `compression_model` | "huggingface/tiiuae/falcon-7b-instruct" | Model for compression |
+| `compression_model` | "gpt-4o-mini" | Model for compression |
 | `compression_min_nodes` | 5 | Minimum nodes to compress |
 | `compression_strategy` | "simple" | Strategy: simple, keymoments |
 | `show_compression_notifications` | true | Notify about compressions |
@@ -173,6 +184,47 @@ Web search parameters can be set using the shorter `web.` prefix:
 
 # Adjust cache duration
 /set web.cache 7200  # Cache for 2 hours
+```
+
+### Knowledge Graph Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `kg_context` | false | Enable KG facts in context assembly |
+| `kg_realtime` | false | Per-turn background extraction |
+| `kg_auto` | false | Timer-based batch extraction |
+| `kg_interval` | 3600 | Extraction interval in seconds |
+| `kg_lookback` | 3 | Preceding turns for extraction context |
+| `kg_budget` | 500 | Token budget for KG context |
+| `kg_max_entities` | 5 | Max entities to match per message |
+| `kg_max_edges` | 5 | Max edges per matched entity |
+| `kg_max_derived` | 3 | Max derived (closure) edges total |
+| `kg_include_past` | false | Include TIME_PAST edges by default |
+| `kg_closure_seed_limit` | 3 | Max entities used as closure seeds |
+| `kg_relevance_gate` | true | Suppress block if no direct overlap |
+
+### Conceptual Search (WordNet) Settings
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `enable_conceptual_search` | false | Enable WordNet-based conceptual search |
+| `search_query_expansion` | true | Auto-expand queries with related concepts |
+| `expansion_max_depth` | 2 | Max hierarchy depth (1-3) |
+| `expansion_max_terms` | 10 | Max expansion terms |
+| `conceptual_boost_factor` | 0.3 | Boost for conceptual matches (0.0-1.0) |
+| `wordnet_expansion_mode` | "balanced" | Mode: narrow, balanced, broad, children_only |
+
+### Model Selection
+
+Models can be configured per context:
+
+```bash
+/model chat gpt-4o              # Main conversation model
+/model detection custom/topic-boundary-distilbert  # Topic detection
+/model compression gpt-4o-mini  # Topic compression
+/model synthesis gpt-4o-mini    # Web synthesis
+/model critic anthropic/claude-opus-4-5-20251101   # Critique model
+/model extraction gpt-4o-mini   # KG extraction model
 ```
 
 ### Model Parameters

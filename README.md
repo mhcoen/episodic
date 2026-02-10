@@ -1,6 +1,6 @@
 # Episodic 🧠
 
-Episodic is a conversational memory system that makes talking to an LLM feel like talking to someone who remembers what you said and can make logical inferences about it. It does this through two mechanisms that run continuously during conversation. Neural topic segmentation organizes the conversation into a navigable graph, compresses inactive segments, and restores them when subjects recur. A knowledge graph extracts structured facts from every message in real time, performs multi-hop inference over them, and injects relevant results back into the context window with no additional LLM calls.
+Episodic is a conversational memory system that makes talking to an LLM feel like talking to someone who remembers what you said and can reason about it. Two mechanisms run continuously during conversation to make this possible. Neural topic segmentation organizes the conversation into a navigable graph, compresses inactive segments, and restores them when subjects recur. A knowledge graph extracts structured facts from every message in real time, performs multi-hop inference over them, and injects relevant results back into the context window with no additional LLM calls.
 
 - **Simple mode** lets users chat and search the web without touching any configuration. It handles topic detection, subject-change boundaries, conversation records, and summaries automatically. Conversations are stored as plain markdown files that Episodic can both read and write.
 
@@ -49,12 +49,8 @@ This example shows what Episodic does that a vanilla LLM cannot. The user mentio
 🤖 Yes. With 64GB of unified memory, Emma's MacBook Pro M3 Max can run
    models up to ~30B parameters using Ollama or llama.cpp.
 
-# How did the model know?
-# "my daughter" matched the user entity, and closure inferred:
-#   user → related_to → Emma
-#   user → has → MacBook Pro M3 Max → has → 64GB RAM
-# These facts were injected from the knowledge graph, not from the
-# conversation history (which was compressed long ago).
+# The original messages were compressed long ago.
+# Episodic reconstructed the answer from its knowledge graph:
 
 > /kg explain
 🔗 Injected 4 edges (83 tokens):

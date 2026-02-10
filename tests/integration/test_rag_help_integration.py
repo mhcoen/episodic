@@ -138,7 +138,6 @@ class TestRAGHelpIntegration(unittest.TestCase):
             os.environ.pop("HOME", None)
         shutil.rmtree(cls._temp_home, ignore_errors=True)
     
-    @unittest.skip("ChromaDB isolation issues in CI - quick path to green")
     def test_help_search_finds_muse_documentation(self):
         """Test that searching for 'muse' finds relevant documentation."""
         mock_results = {
@@ -166,7 +165,6 @@ class TestRAGHelpIntegration(unittest.TestCase):
         
         self.assertTrue(found_muse, "At least one result should mention 'muse'")
     
-    @unittest.skip("ChromaDB isolation issues in CI - quick path to green")
     def test_rag_enhancement_adds_context(self):
         """Test that RAG enhancement adds documentation context to prompts."""
         # Note: enhance_with_context was removed from EpisodicRAGAdapter

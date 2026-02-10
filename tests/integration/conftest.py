@@ -17,6 +17,7 @@ from episodic.harness import (
     process_input,
     StubWeatherProvider,
     StubNewsProvider,
+    StubTimerProvider,
     WeatherResult,
     create_default_stub_providers,
 )
@@ -113,6 +114,7 @@ def session_with_providers():
             "New York": WeatherResult(temp=55, condition="Rainy", location="New York", emoji="🌧️"),
         }),
         "news": StubNewsProvider(),
+        "timer": StubTimerProvider(),
     }
     session = HarnessSession(
         providers=providers,

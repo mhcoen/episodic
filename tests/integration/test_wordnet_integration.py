@@ -8,7 +8,7 @@ and that performance remains acceptable.
 
 import pytest
 
-pytest.skip("Missing dependency: nltk", allow_module_level=True)
+nltk = pytest.importorskip("nltk")
 
 import time
 import uuid

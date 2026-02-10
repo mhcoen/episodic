@@ -61,30 +61,20 @@ class TestCommandSmoke:
     # /help - HelpRAG initialization and search
     # =========================================================================
 
-    @pytest.mark.skipif(
-        "SOCKS" in str(__import__('os').environ.get('http_proxy', '')) or
-        "SOCKS" in str(__import__('os').environ.get('https_proxy', '')),
-        reason="SOCKS proxy configured - skip network-dependent test"
-    )
     def test_help_with_query(self):
-        """Test /help with a search query initializes HelpRAG."""
+        """Test /help with a search query doesn't crash."""
         from episodic.commands.help import help_command
 
-        output, exc = self._run_command(help_command, "how do I change settings")
+        # Mock get_help_rag to avoid real model loading (sentence-transformers)
+        mock_rag = MagicMock()
+        mock_rag.search_help.return_value = [
+            {"content": "Use /set to change settings.", "metadata": {"source": "docs"}}
+        ]
+        with patch('episodic.commands.help.get_help_rag', return_value=mock_rag):
+            output, exc = self._run_command(help_command, "how do I change settings")
 
         assert exc is None, f"/help <query> crashed: {exc}"
         assert len(output) > 0, "/help <query> produced no output"
-        # Skip assertion if SOCKS proxy error (env-specific, not a code bug)
-        if "SOCKS proxy" in output or "socksio" in output:
-            pytest.skip("SOCKS proxy configured without socksio - env issue, not code bug")
-        # Check for error messages that indicate silent failures
-        # Allow SOCKS proxy errors (test environment issue, not code bug)
-        if "Error initializing help system" in output:
-            # Skip if it's a test environment network issue
-            if "socksio" in output or "proxy" in output.lower():
-                pytest.skip("Test environment network/proxy issue")
-            else:
-                pytest.fail(f"/help failed silently: {output}")
 
     def test_help_with_existing_collection_conflict(self):
         """Test /help handles existing collection with different embedding function.

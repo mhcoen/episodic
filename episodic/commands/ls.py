@@ -170,16 +170,3 @@ def display_file_info(file_info: dict):
         typer.secho(f"   Preview: {preview}", fg=get_system_color())
 
 
-def format_relative_path(filepath: str) -> str:
-    """Format a file path relative to current directory if possible."""
-    try:
-        cwd = os.getcwd()
-        relpath = os.path.relpath(filepath, cwd)
-        # If the relative path is shorter or cleaner, use it
-        if len(relpath) < len(filepath) and not relpath.startswith('..'):
-            return relpath
-    except ValueError:
-        # Different drives on Windows, can't make relative
-        pass
-    
-    return filepath

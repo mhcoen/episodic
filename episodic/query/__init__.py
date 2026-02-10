@@ -12,7 +12,7 @@ from .normalizer import normalize, PUNCT_MAP
 from .parser import Parser, parse, ParseError
 from .pipeline import parse_query, parse_to_ast, tokenize_input
 from .resolver import Resolver, resolve, resolve_temporal, resolve_segment
-from .classifier import classify_and_extract_intent, classify_freetext, extract_memory_intent, ClassificationResult
+from .classifier import classify_and_extract_intent, ClassificationResult
 from .retrieval import (
     QueryExecutor,
     RetrievedNode,
@@ -90,8 +90,6 @@ __all__ = [
     "SegmentResolutionResult",
     # Classifier
     "classify_and_extract_intent",
-    "classify_freetext",  # Deprecated
-    "extract_memory_intent",  # Deprecated
     "ClassificationResult",
     # Retrieval
     "QueryExecutor",

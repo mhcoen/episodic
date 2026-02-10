@@ -171,20 +171,3 @@ def classify_and_extract_intent(user_input: str, model: Optional[str] = None) ->
             confidence="low",
             raw_response=f"ERROR: {e}"
         )
-
-
-# Backwards compatibility aliases (deprecated)
-def classify_freetext(user_input: str, model: Optional[str] = None) -> ClassificationResult:
-    """Deprecated: Use classify_and_extract_intent() instead."""
-    return classify_and_extract_intent(user_input, model)
-
-
-def extract_memory_intent(user_input: str, model: Optional[str] = None) -> dict:
-    """Deprecated: Use classify_and_extract_intent() instead."""
-    result = classify_and_extract_intent(user_input, model)
-    return {
-        "target": result.target,
-        "mode": result.mode,
-        "temporal_hint": result.temporal_hint,
-        "speaker_hint": result.speaker_hint
-    }

@@ -134,12 +134,3 @@ def get_prompt() -> str:
     return HTML(f'<ansigreen><b>{prompt_text}</b></ansigreen>')
 
 
-def display_thinking_indicator():
-    """Display a thinking indicator."""
-    typer.secho("🤔 Thinking...", fg=get_llm_color(), nl=False)
-
-
-def clear_thinking_indicator():
-    """Clear the thinking indicator."""
-    # Move cursor back and clear the line
-    typer.echo("\r" + " " * 20 + "\r", nl=False)

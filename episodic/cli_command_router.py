@@ -596,26 +596,6 @@ def _handle_prompt(args: List[str]):
             typer.secho(f"Unknown prompt action: {action}", fg=get_error_color())
 
 
-def _handle_script(args: List[str]):
-    """Handle /script command."""
-    if not args:
-        typer.secho("Usage: /script <script_file>", fg=get_error_color())
-    else:
-        from episodic.cli_session import execute_script
-        filename = " ".join(args)
-        execute_script(filename)
-
-
-def _handle_save(args: List[str]):
-    """Handle /save command."""
-    if not args:
-        typer.secho("Usage: /save <filename>", fg=get_error_color())
-    else:
-        from episodic.cli_session import save_session_script
-        filename = " ".join(args)
-        save_session_script(filename)
-        typer.secho(f"✅ Session saved to scripts/{filename}", fg=get_success_color())
-
 
 def _handle_benchmark(args: List[str]):
     """Handle /benchmark command."""
@@ -905,11 +885,6 @@ def _handle_load(args: List[str]):
         filename = " ".join(args)
         load_command(filename)
 
-
-def _handle_files():
-    """Handle /files command (when not handled by /ls)."""
-    from episodic.commands.save_load import files_command
-    files_command()
 
 
 def _handle_simple():

@@ -6,7 +6,6 @@ documentation when given a query. RAG search works regardless of global RAG sett
 """
 
 import typer
-import re
 from typing import Optional
 from episodic.config import config
 from episodic.configuration import (
@@ -34,50 +33,6 @@ def suppress_all_output():
         yield
 
 
-
-def _display_help_output(text: str, color: str):
-    """Display help output with proper formatting and word wrapping."""
-    import shutil
-    import textwrap
-    
-    # Get terminal width for wrapping
-    terminal_width = shutil.get_terminal_size().columns
-    max_width = config.get('wrap_width', 80)
-    wrap_width = min(terminal_width - 2, max_width)  # Leave some margin
-    
-    # For non-streaming output, we need to handle bold markers
-    lines = text.split('\n')
-    for line in lines:
-        # Wrap long lines
-        if len(line) > wrap_width:
-            # First remove bold markers temporarily for accurate wrapping
-            clean_line = line.replace('**', '')
-            wrapped = textwrap.wrap(clean_line, width=wrap_width)
-            
-            # Now display each wrapped line with bold markers restored
-            for wrapped_line in wrapped:
-                if '**' not in line:
-                    typer.secho(wrapped_line, fg=color)
-                else:
-                    # Restore and handle bold markers
-                    # This is simplified - just displays without bold for wrapped lines
-                    typer.secho(wrapped_line, fg=color)
-        else:
-            # Short lines - display normally with bold support
-            if '**' not in line:
-                typer.secho(line, fg=color)
-            else:
-                # Split by bold markers
-                parts = re.split(r'(\*\*[^*]+\*\*)', line)
-                for part in parts:
-                    if part.startswith('**') and part.endswith('**'):
-                        # This is bold text - remove markers and display bold
-                        bold_text = part[2:-2]
-                        typer.secho(bold_text, fg=color, bold=True, nl=False)
-                    else:
-                        # Regular text
-                        typer.secho(part, fg=color, nl=False)
-                typer.echo()  # Add newline at end
 
 
 

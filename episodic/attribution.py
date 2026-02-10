@@ -506,27 +506,6 @@ def analyze_response(
     )
 
 
-def analyze_snapshot_response(
-    snapshot: ReplaySnapshot,
-    response_text: str,
-) -> AttributionReport:
-    """
-    Analyze a response in the context of a ReplaySnapshot.
-
-    Args:
-        snapshot: The ReplaySnapshot with context
-        response_text: The model's response
-
-    Returns:
-        AttributionReport
-    """
-    has_tool_output = bool(snapshot.inputs.web_context)
-    return analyze_response(
-        response_text=response_text,
-        assembled_messages=snapshot.assembled_messages,
-        has_tool_output=has_tool_output,
-    )
-
 
 # =============================================================================
 # Mitigation Hook

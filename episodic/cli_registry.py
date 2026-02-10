@@ -171,23 +171,6 @@ def _display_aligned_commands(commands_and_descriptions, max_width=None):
                 typer.secho(line, fg="cyan")
 
 
-def _format_aligned_commands(commands_and_descriptions, max_width=None):
-    """Format a list of (command, description) tuples with perfect alignment."""
-    if not commands_and_descriptions:
-        return ""
-    
-    # Use provided max_width or find the longest command in this list
-    if max_width is None:
-        max_width = max(len(cmd) for cmd, _ in commands_and_descriptions)
-    
-    # Format each line with perfect alignment
-    lines = []
-    for cmd, desc in commands_and_descriptions:
-        padding = ' ' * max(2, max_width - len(cmd) + 2)  # Minimum 2 spaces between command and description
-        lines.append(f"- **{cmd}**{padding}{desc}")
-    
-    return '\n'.join(lines)
-
 
 def show_help_with_categories():
     """Show basic help information with common commands and categories."""

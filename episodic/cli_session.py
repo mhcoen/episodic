@@ -26,16 +26,6 @@ def add_to_session_commands(command: str):
     session_commands.append(command)
 
 
-def get_session_commands() -> List[str]:
-    """Get the current session commands."""
-    return session_commands
-
-
-def clear_session_commands():
-    """Clear the session commands."""
-    global session_commands
-    session_commands = []
-
 
 def save_session_script(filename: str):
     """Save the current session's commands to a script file."""

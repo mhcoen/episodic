@@ -38,10 +38,3 @@ def muse_on():
                 fg=typer.colors.WHITE, dim=True)
 
 
-def muse_off():
-    """Disable muse mode - return to normal chat mode."""
-    config.set("muse_mode", False)
-    
-    typer.secho("💬 Chat mode ", nl=False, fg=get_system_color(), bold=True)
-    typer.secho("ENABLED", fg="bright_green", bold=True)
-    typer.secho("Input will be sent to the LLM", fg=get_text_color())

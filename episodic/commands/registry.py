@@ -78,10 +78,6 @@ class CommandRegistry:
         info = self.get_command(name)
         return info.deprecated if info else False
     
-    def get_replacement(self, name: str) -> Optional[str]:
-        """Get replacement command for deprecated command."""
-        info = self.get_command(name)
-        return info.replacement if info else None
 
 
 # Create global registry instance

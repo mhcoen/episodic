@@ -5,10 +5,9 @@ Tracks performance of conceptual operations and resource usage with minimal over
 """
 
 import time
-from typing import Dict, List, Any, Callable, Tuple
+from typing import Dict, List, Any, Tuple
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import wraps
 import typer
 
 from episodic.config import config
@@ -237,16 +236,6 @@ def benchmark_resource(resource_type: str, resource_name: str):
         benchmark_manager.record_resource(resource_type, resource_name, elapsed)
 
 
-def benchmark_decorator(operation_name: str):
-    """Decorator for benchmarking functions as conceptual operations."""
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            with benchmark_operation(operation_name):
-                return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
 
 # Convenience functions
 def display_benchmark_summary():
@@ -258,10 +247,6 @@ def reset_benchmarks():
     """Reset all benchmark data."""
     benchmark_manager.reset()
 
-
-def is_benchmark_enabled() -> bool:
-    """Check if benchmarking is enabled."""
-    return benchmark_manager.is_enabled()
 
 
 def display_pending_benchmark():

@@ -4,31 +4,11 @@ Display functions for settings command.
 This module handles displaying various configuration settings.
 """
 
-from typing import List, Tuple
+from typing import List
 
 from episodic.config import config
 from episodic.param_display import get_param_description
 
-
-def display_setting(setting: str, value: str, description: str):
-    """Display a single setting with consistent formatting."""
-    from episodic.text_formatter import unified_format_and_display
-    
-    # Format as bulleted list with key:value
-    content = f"  • **{setting}**: {value} - {description}"
-    unified_format_and_display(content, instant=True)
-
-
-def display_section(title: str, settings: List[Tuple[str, str, str]]):
-    """Display a section of settings."""
-    from episodic.text_formatter import unified_format_and_display
-    
-    # Format section header and content together
-    content = f"\n## {title}\n"
-    for setting, value, desc in settings:
-        content += f"• **{setting}**: {value} - {desc}\n"
-    
-    unified_format_and_display(content, instant=True)
 
 
 def display_all_settings(context_depth: int, semdepth: int):

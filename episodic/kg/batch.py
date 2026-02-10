@@ -199,6 +199,7 @@ def run_batch(
     conn=None,
     progress_callback: Optional[Callable] = None,
     dry_run: bool = False,
+    db_path: str | None = None,
 ) -> dict:
     """Run the extraction batch from the current high-water mark.
 
@@ -213,6 +214,8 @@ def run_batch(
     - conn: DB connection (used for validate/apply, not extraction)
     - progress_callback: optional callable(node_id, index, total)
     - dry_run: if True, extract and validate but do not apply
+    - db_path: if set, extraction threads open connections to this DB
+      instead of the production DB (used by eval harness)
     """
     with _use_conn(conn) as c:
         ensure_kg_schema(c)
@@ -274,9 +277,21 @@ def run_batch(
                 nodes_to_extract.append(node)
 
         # Phase 1b: Parallel extraction (each thread opens its own conn)
+        def _extract_with_conn(node_id, lb, path):
+            if path:
+                ec = sqlite3.connect(path)
+                ec.execute("PRAGMA foreign_keys=ON")
+            else:
+                ec = None
+            try:
+                return extract_patch(node_id, lb, conn=ec)
+            finally:
+                if ec:
+                    ec.close()
+
         with ThreadPoolExecutor(max_workers=EXTRACTION_CONCURRENCY) as pool:
             future_to_node = {
-                pool.submit(extract_patch, node['node_id'], lookback, conn=None): node
+                pool.submit(_extract_with_conn, node['node_id'], lookback, db_path): node
                 for node in nodes_to_extract
             }
             for future in as_completed(future_to_node):

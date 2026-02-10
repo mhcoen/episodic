@@ -50,6 +50,8 @@ class KGContextResult:
     cache_status: str  # "hit" or "rebuilt"
     edges: list['EdgeFact'] = field(default_factory=list)
     derived: list['DerivedFact'] = field(default_factory=list)
+    dropped_edges: list['EdgeFact'] = field(default_factory=list)
+    dropped_derived: list['DerivedFact'] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -484,54 +486,67 @@ def format_kg_context(
     facts: list[EdgeFact],
     derived_facts: list[DerivedFact],
     budget_tokens: int = 500,
-) -> str:
+) -> tuple[str, list[EdgeFact], list[DerivedFact]]:
     """Format facts into a context string, respecting token budget.
 
     Token estimate: len(text) // 4.
     Drops lowest-ranked facts first if over budget.
+
+    Returns: (formatted_text, dropped_edges, dropped_derived)
     """
     if not facts and not derived_facts:
-        return ""
+        return "", [], []
 
-    lines: list[tuple[float, str]] = []
+    # Build (rank, line, source) tuples — source is the original fact/derived
+    entries: list[tuple[float, str, EdgeFact | DerivedFact]] = []
 
     for f in facts:
         line = f"- {f.subj_name} {f.predicate} {f.obj_name} [node:{f.source_node_id}]"
-        lines.append((f.rank_score, line))
+        entries.append((f.rank_score, line, f))
 
     for d in derived_facts:
         nodes_str = " + ".join(f"node:{nid}" for nid in d.source_node_ids)
         line = f"- (derived:{d.rule}) {d.subj_name} {d.predicate} {d.obj_name} [from {nodes_str}]"
-        # Derived facts get a slight rank boost so they're kept if possible
-        lines.append((999.0, line))
+        entries.append((999.0, line, d))
 
-    # Sort by rank descending
-    lines.sort(key=lambda x: x[0], reverse=True)
+    entries.sort(key=lambda x: x[0], reverse=True)
 
     result_lines: list[str] = []
     tokens_used = 0
     header = "Known facts about entities mentioned:"
     tokens_used += len(header) // 4
+    dropped_edges: list[EdgeFact] = []
+    dropped_derived: list[DerivedFact] = []
 
-    for _rank, line in lines:
+    for _rank, line, source in entries:
         line_tokens = len(line) // 4
         if tokens_used + line_tokens > budget_tokens:
-            break
+            if isinstance(source, EdgeFact):
+                dropped_edges.append(source)
+            else:
+                dropped_derived.append(source)
+            continue
         result_lines.append(line)
         tokens_used += line_tokens
 
     if not result_lines:
-        return ""
+        return "", list(facts), list(derived_facts)
 
-    return header + "\n" + "\n".join(result_lines)
+    return header + "\n" + "\n".join(result_lines), dropped_edges, dropped_derived
 
 
 # ---------------------------------------------------------------------------
 # Top-level entry point
 # ---------------------------------------------------------------------------
 
-# Module-level singleton
+# Module-level singletons
 _mention_dict = MentionDictionary()
+_last_kg_result: Optional[KGContextResult] = None
+
+
+def get_last_kg_result() -> Optional[KGContextResult]:
+    """Return the most recent KGContextResult from get_kg_context()."""
+    return _last_kg_result
 
 
 def get_kg_context(
@@ -608,13 +623,16 @@ def get_kg_context(
     )
 
     # Format
-    text = format_kg_context(all_facts, derived, budget_tokens=budget)
+    global _last_kg_result
+    text, dropped_edges, dropped_derived = format_kg_context(
+        all_facts, derived, budget_tokens=budget
+    )
     if not text:
         return None
 
     budget_used = len(text) // 4
 
-    return KGContextResult(
+    result = KGContextResult(
         text=text,
         matched_entities=[
             {'entity_id': eid, 'surface_form': form, 'weight': w}
@@ -627,4 +645,8 @@ def get_kg_context(
         cache_status=cache_status,
         edges=all_facts,
         derived=derived,
+        dropped_edges=dropped_edges,
+        dropped_derived=dropped_derived,
     )
+    _last_kg_result = result
+    return result

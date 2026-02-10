@@ -1,9 +1,7 @@
 """CLI command handler for /kg and subcommands."""
-
 import os
 import typer
 from typing import List
-
 from episodic.configuration import (
     get_text_color, get_heading_color, get_success_color,
     get_error_color, get_warning_color, get_system_color,
@@ -40,11 +38,17 @@ def kg_command(action: str = None, *args: str) -> None:
         kg_merge(list(args))
     elif action == 'dupes':
         kg_dupes()
+    elif action == 'eval':
+        kg_eval(list(args))
+    elif action in ('explain', 'blame'):
+        from episodic.commands import kg_explain
+        (kg_explain.kg_explain_last if action == 'explain'
+         else lambda: kg_explain.kg_blame(list(args)))()
     else:
         typer.secho(f"Unknown KG action: {action}", fg=get_error_color())
         typer.secho(
-            "Usage: /kg [status|visualize|entities|entity|edges|search|"
-            "update|rebuild|skip|patch|stats|probe|merge|dupes]",
+            "Usage: /kg [status|entities|entity|edges|search|update|rebuild|"
+            "skip|patch|stats|probe|merge|dupes|eval|explain|blame]",
             fg=get_text_color(),
         )
 
@@ -282,25 +286,18 @@ def kg_rebuild(args: List[str]) -> None:
     typer.secho("This will delete all KG data and reprocess from scratch.",
                  fg=get_warning_color(), bold=True)
     try:
-        confirm = input("Continue? [y/N] ")
+        if input("Continue? [y/N] ").lower() != 'y':
+            typer.secho("Cancelled.", fg=get_text_color()); return
     except (EOFError, KeyboardInterrupt):
-        typer.secho("\nCancelled.", fg=get_text_color())
-        return
-    if confirm.lower() != 'y':
-        typer.secho("Cancelled.", fg=get_text_color())
-        return
+        typer.secho("\nCancelled.", fg=get_text_color()); return
     from episodic.kg.batch import run_rebuild
     typer.secho("Rebuilding KG...", fg=get_heading_color())
-    def progress(nid, idx, tot):
-        typer.secho(f"  Processing node {nid} ({idx}/{tot})...", fg=get_system_color())
-    r = run_rebuild(progress_callback=progress)
+    r = run_rebuild(progress_callback=lambda nid, idx, tot:
+        typer.secho(f"  Processing node {nid} ({idx}/{tot})...", fg=get_system_color()))
     tc = get_text_color()
-    typer.secho(f"\nRebuild complete:", fg=get_heading_color(), bold=True)
-    typer.secho(f"  Nodes processed: {r['nodes_processed']}", fg=tc)
-    typer.secho(f"  Patches applied: {r['patches_applied']}",
-                 fg=get_success_color() if r['patches_applied'] else tc)
-    typer.secho(f"  Patches rejected: {r['patches_rejected']}",
-                 fg=get_warning_color() if r['patches_rejected'] else tc)
+    typer.secho(f"\nRebuild: {r['nodes_processed']} processed, "
+                f"{r['patches_applied']} applied, {r['patches_rejected']} rejected",
+                fg=get_heading_color(), bold=True)
 
 
 def kg_skip(args: List[str]) -> None:
@@ -379,68 +376,43 @@ def _safe_query(conn, sql, default=None):
 def kg_stats() -> None:
     """Show comprehensive KG statistics."""
     from episodic.kg.db_kg import kg_tables_exist, _use_conn
-
     if not kg_tables_exist():
         typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
         return
-
     tc = get_text_color()
     with _use_conn() as conn:
         typer.secho("KG Statistics", fg=get_heading_color(), bold=True)
-
-        rows = _safe_query(conn,
-            "SELECT entity_type, COUNT(*) FROM kg_entities "
-            "GROUP BY entity_type ORDER BY entity_type")
-        if rows:
-            typer.secho("\n  Entities by type:", fg=tc)
-            total = sum(r[1] for r in rows)
-            for r in rows:
-                typer.secho(f"    {r[0]}: {r[1]}", fg=tc)
-            typer.secho(f"    total: {total}", fg=tc, dim=True)
-
-        rows = _safe_query(conn,
-            "SELECT predicate, COUNT(*) FROM kg_edges "
-            "GROUP BY predicate ORDER BY predicate")
-        if rows:
-            typer.secho("\n  Edges by predicate:", fg=tc)
-            total = sum(r[1] for r in rows)
-            for r in rows:
-                typer.secho(f"    {r[0]}: {r[1]}", fg=tc)
-            typer.secho(f"    total: {total}", fg=tc, dim=True)
-
+        for label, sql in [
+            ("\n  Entities by type:", "SELECT entity_type, COUNT(*) FROM kg_entities GROUP BY entity_type"),
+            ("\n  Edges by predicate:", "SELECT predicate, COUNT(*) FROM kg_edges GROUP BY predicate"),
+        ]:
+            rows = _safe_query(conn, sql)
+            if rows:
+                typer.secho(label, fg=tc)
+                for r in rows:
+                    typer.secho(f"    {r[0]}: {r[1]}", fg=tc)
+                typer.secho(f"    total: {sum(r[1] for r in rows)}", fg=tc, dim=True)
         rows = _safe_query(conn, "SELECT COUNT(*) FROM kg_assertions")
         if rows:
             typer.secho(f"\n  Assertions: {rows[0][0]}", fg=tc)
-
         rows = _safe_query(conn,
             "SELECT COUNT(*), SUM(CASE WHEN applied=1 THEN 1 ELSE 0 END), "
             "SUM(CASE WHEN applied=0 THEN 1 ELSE 0 END) FROM kg_patches")
         if rows and rows[0]:
             r = rows[0]
-            typer.secho(f"  Patches: {r[0]} total "
-                         f"({r[1] or 0} applied, {r[2] or 0} rejected)", fg=tc)
-
+            typer.secho(f"  Patches: {r[0]} total ({r[1] or 0} applied, {r[2] or 0} rejected)", fg=tc)
         try:
-            hwm_row = conn.execute(
-                "SELECT value FROM kg_state WHERE key = 'high_water_mark'"
-            ).fetchone()
-            hwm = int(hwm_row[0]) if hwm_row else 0
-            max_row = conn.execute(
-                "SELECT MAX(rowid) FROM nodes WHERE role = 'user'"
-            ).fetchone()
-            max_nid = max_row[0] if max_row and max_row[0] else 0
+            hwm = int((conn.execute("SELECT value FROM kg_state WHERE key='high_water_mark'").fetchone() or [0])[0])
+            max_nid = (conn.execute("SELECT MAX(rowid) FROM nodes WHERE role='user'").fetchone() or [0])[0] or 0
             staleness = max(0, max_nid - hwm)
-            typer.secho(f"\n  High-water mark: {hwm}", fg=tc)
-            typer.secho(f"  Max user node:   {max_nid}", fg=tc)
-            stale_fg = get_warning_color() if staleness else get_success_color()
-            stale_str = f"{staleness} nodes behind" if staleness else "up to date"
-            typer.secho(f"  Staleness:       {stale_str}", fg=stale_fg)
+            typer.secho(f"\n  HWM: {hwm}  Max node: {max_nid}  "
+                        f"{'up to date' if not staleness else f'{staleness} behind'}",
+                        fg=get_success_color() if not staleness else get_warning_color())
         except Exception:
             pass
-
         rows = _safe_query(conn, "SELECT COUNT(*) FROM kg_skiplist")
         if rows and rows[0][0]:
-            typer.secho(f"  Skip list:       {rows[0][0]} nodes", fg=tc)
+            typer.secho(f"  Skip list: {rows[0][0]} nodes", fg=tc)
 
 
 def _fetch_assertion_spans(conn, edges) -> dict:
@@ -595,3 +567,34 @@ def kg_dupes() -> None:
     typer.secho(f"Duplicate entities ({len(rows)}):", fg=get_heading_color(), bold=True)
     for r in rows:
         typer.secho(f"  e{r[0]} + e{r[1]}: {r[2]} ({r[3]})", fg=get_text_color())
+
+
+def kg_eval(args: List[str]) -> None:
+    """Run KG ablation evaluation."""
+    import argparse
+    parser = argparse.ArgumentParser(prog='/kg eval', add_help=False)
+    parser.add_argument('dataset', nargs='?', default=None)
+    parser.add_argument('--model', type=str, default=None)
+    parser.add_argument('--conditions', type=str, default='A,B,C')
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--skip-preload', action='store_true')
+    try:
+        opts = parser.parse_args(args)
+    except SystemExit:
+        return
+    from episodic.kg.eval_ablation import (
+        run_ablation, format_summary_table, save_results,
+    )
+    conds = [c.strip() for c in opts.conditions.split(',')]
+    typer.secho("KG Ablation Evaluation" + (" [dry run]" if opts.dry_run else ""),
+                fg=get_heading_color(), bold=True)
+    summary = run_ablation(
+        dataset_path=opts.dataset, model=opts.model,
+        conditions=conds, dry_run=opts.dry_run,
+        skip_preload=opts.skip_preload,
+    )
+    table = format_summary_table(summary, conds)
+    typer.secho(f"\n{table}", fg=get_text_color())
+    if not opts.dry_run:
+        path = save_results(summary)
+        typer.secho(f"\nFull results saved to: {path}", fg=get_success_color())

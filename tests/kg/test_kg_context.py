@@ -271,7 +271,7 @@ def test_budget_drop_lowest_rank(kg_db, monkeypatch):
             tags=[],
         ))
 
-    output = format_kg_context(facts, [], budget_tokens=50)
+    output, dropped_e, dropped_d = format_kg_context(facts, [], budget_tokens=50)
     # Budget is 50 tokens. Output should fit.
     assert len(output) // 4 <= 50, f"Output {len(output)//4} tokens exceeds budget 50"
 
@@ -282,6 +282,8 @@ def test_budget_drop_lowest_rank(kg_db, monkeypatch):
 
         # Highest-ranked facts should be kept (highest rank_score = Entity7)
         assert 'Entity7' in output, "Highest-ranked fact should be kept"
+        # Dropped edges should be tracked
+        assert len(dropped_e) > 0, "Should have dropped some edges"
 
 
 # ---------------------------------------------------------------------------

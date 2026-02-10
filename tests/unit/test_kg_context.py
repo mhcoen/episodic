@@ -262,13 +262,13 @@ def test_budget_enforcement(kg_db, monkeypatch):
         ))
 
     # Very tight budget
-    text = format_kg_context(facts, [], budget_tokens=30)
+    text, dropped_e, dropped_d = format_kg_context(facts, [], budget_tokens=30)
     # Should have header + only a few facts
     lines = text.strip().split('\n') if text else []
     assert len(lines) < 22  # less than 20 facts + header
 
     # Zero budget
-    text_zero = format_kg_context(facts, [], budget_tokens=0)
+    text_zero, _, _ = format_kg_context(facts, [], budget_tokens=0)
     assert text_zero == ""
 
 
@@ -302,7 +302,7 @@ def test_insertion_ordering(kg_db, monkeypatch):
         all_facts.extend(facts)
 
     derived = apply_closure_rules(matched_ids, all_facts, conn)
-    text = format_kg_context(all_facts, derived, budget_tokens=500)
+    text, _, _ = format_kg_context(all_facts, derived, budget_tokens=500)
 
     if text:
         # Insert at position after system messages

@@ -1,7 +1,7 @@
 # Episodic 🧠
 
 Episodic is a conversational memory system that helps avoid the usual
-“I already told you that” problem in chatbots.
+“I already told you that” problem with chatbots.
 
 Instead of stuffing the prompt with lots of old messages, Episodic
 tracks topics, ignores irrelevant content, and injects only the most

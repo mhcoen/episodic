@@ -10,8 +10,7 @@ python -m episodic
 # Database automatically created at ~/.episodic/episodic.db on first run
 
 # Execute a script non-interactively
-python -m episodic --execute scripts/my-script.txt
-python -m episodic -e scripts/my-script.txt
+python -m episodic --script scripts/my-script.txt
 
 # Specify a model at startup
 python -m episodic --model gpt-4o
@@ -21,7 +20,7 @@ python -m episodic -m ollama/llama3.3
 python -m episodic --no-stream
 
 # Combine options
-python -m episodic -m gpt-4o -e scripts/test.txt
+python -m episodic -m gpt-4o --script scripts/test.txt
 ```
 
 ## Command Structure
@@ -172,6 +171,13 @@ Show conversation thread
 ```bash
 /ancestry <node_id> # Show ancestry of node
 ```
+
+### /rollback
+Roll back conversation to a specific node, deleting all nodes after the target. Cleans up topic boundaries and KG data for deleted nodes.
+```bash
+/rollback <short_id>   # Roll back to node (e.g., /rollback a3)
+```
+This operation cannot be undone. Use `/ancestry` or `/show` to identify the target node.
 
 ## Configuration Commands
 
@@ -452,6 +458,7 @@ Configure web search providers
 - `google` - Requires GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID
 - `bing` - Requires BING_API_KEY
 - `searx` - Requires searx_instance_url configuration
+- `brave` - Requires BRAVE_API_KEY
 
 ## Compression
 
@@ -472,6 +479,68 @@ Manual compression
 /compress                   # Compress to current head
 /compress --node <id>       # Compress to specific node
 /compress --dry-run         # Preview only
+```
+
+## Knowledge Graph
+
+### /kg
+Manage the conversation knowledge graph. Extracts entities and relationships from your conversations for structured recall.
+
+```bash
+# Status and inspection
+/kg                              # Show KG status (entity/edge counts)
+/kg status                       # Same as /kg
+/kg entities                     # List all entities
+/kg entity <id>                  # Show entity detail (aliases, degree)
+/kg edges [entity_id]            # List edges, optionally filtered
+/kg search <query>               # Search entities by name/alias
+/kg stats                        # Comprehensive statistics
+
+# Extraction
+/kg update                       # Run batch extraction from high-water mark
+/kg update --max 50              # Process at most 50 nodes
+/kg update --lookback 5          # Use 5 preceding turns for context
+/kg update --dry-run             # Preview without applying
+/kg rebuild                      # Full rebuild (drops all KG data)
+
+# Maintenance
+/kg skip <node_id>               # Add node to skip list
+/kg skip <node_id> --reason "..." # Skip with reason
+/kg patch <node_id>              # Show extraction patch record
+/kg merge <id1> <id2>            # Merge two entities (lower ID survives)
+/kg merge <id1> <id2> --survivor=<id>  # Specify survivor
+/kg dupes                        # Find duplicate entities
+
+# Diagnostics
+/kg probe <text>                 # Dry-run context injection for a query
+/kg explain                      # Show last KG context injection report
+/kg blame <text>                 # Show provenance for an edge
+
+# Visualization
+/kg visualize                    # Open interactive graph in browser
+/kg visualize --layout cose      # Layout: cose (default), concentric, grid
+/kg visualize --type person      # Filter by entity type
+/kg visualize --relation works_at # Filter by relation
+/kg visualize --save path.html   # Save to file
+
+# Evaluation
+/kg eval                         # Run ablation evaluation
+/kg eval dataset.json --model gpt-4o --conditions A,B,C
+```
+
+### /critique
+Have another LLM critique an assistant response
+```bash
+/critique                        # Critique the last response
+/critique <short_id>             # Critique a specific response
+```
+
+### /reflect
+Multi-step reflection on complex problems
+```bash
+/reflect                         # Enable reflection mode for next message
+/reflect "problem description"   # Reflect on a specific problem
+/reflect off                     # Disable reflection mode
 ```
 
 ## Script and Automation
@@ -869,7 +938,7 @@ What is quantum computing?
 /cost
 
 # Execute the script:
-python -m episodic -e example.txt
+python -m episodic --script example.txt
 ```
 
 ## Short Node IDs

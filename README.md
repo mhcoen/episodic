@@ -1,6 +1,14 @@
 # Episodic 🧠
 
-Episodic is a conversational memory system that makes talking to an LLM feel like talking to a person. It remembers what you said and can reason about it. Two mechanisms run continuously during conversation to make this possible. Neural topic segmentation organizes the conversation into a navigable graph, compresses inactive segments, and restores them when subjects recur. A knowledge graph extracts structured facts from every message in real time, performs multi-hop inference over them, and injects relevant results back into the context window with no additional LLM calls.
+Episodic is a conversational memory system that helps avoid the usual
+“I already told you that” problem in chatbots.
+
+Instead of stuffing the prompt with lots of old messages, Episodic
+tracks topics, ignores irrelevant content, and injects only the most
+relevant prior facts for what you’re talking about right now. It can
+also link facts through relationships (multi-hop t raversal) to include
+context you did not explicitly repeat. In short, Episodic keeps long
+chats coherent.
 
 - **Simple mode** lets users chat and search the web without touching any configuration. It handles topic detection, subject-change boundaries, conversation records, and summaries automatically. Conversations are stored as plain markdown files that Episodic can both read and write.
 
@@ -29,7 +37,7 @@ I originally wrote this to fill a gap I couldn't find addressed elsewhere. It ha
 
 If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation* ([arXiv:2512.17083](https://arxiv.org/abs/2512.17083)), see the [`paper/`](paper/) directory.
 
-## 🎬 Example Session
+## 🎬 Basic Example
 
 This example shows what Episodic does that a vanilla LLM cannot. The user mentions facts in separate turns, talks about other things long enough for the original topic to be compressed out of context, and then asks a question that requires connecting those earlier facts.
 

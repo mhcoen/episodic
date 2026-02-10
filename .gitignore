@@ -39,6 +39,8 @@ archive/
 # Working directory for temporary notes and documentation
 working/
 devel/
+specs/
+docs/design/
 .idea/
 
 # Episodic history files (should be in ~/.episodic/)

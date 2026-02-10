@@ -145,6 +145,7 @@ pip install piper-tts
 - **Searx/SearxNG**: Self-hosted, privacy-focused meta-search
 - **Google Custom Search**: Requires API key and search engine ID
 - **Bing Search**: Requires API key
+- **Brave Search**: Requires API key, privacy-focused with independent index
 
 ### Key Features
 
@@ -227,7 +228,7 @@ Episodic includes an always-on conversation memory system:
 
 ### Automatic Organization
 
-Episodic uses a dual-window detection system with 95% precision to automatically detect topic changes:
+Episodic uses a pluggable strategy system for topic detection. The default strategy combines neural boundary detection with a commitment policy:
 
 ```bash
 # View all topics
@@ -239,19 +240,17 @@ Episodic uses a dual-window detection system with 95% precision to automatically
 # Enable debug mode to see detection details
 /debug on topic
 
-# Configure dual-window detection (default: enabled)
-/set use-dual-window-detection true
-/set dual-window-high-precision-threshold 0.65  # (4,1) window
-/set dual-window-safety-net-threshold 0.75      # (4,2) window
+# Configure the detection strategy
+/set topic-strategy default         # Neural + Commitment (recommended)
+/set topic-strategy neural          # Neural boundary detection only
+/set topic-strategy dual_window     # Dual-window cosine similarity
+/set topic-strategy commitment      # Commitment policy only
 
 # Configure minimum messages before topic change
 /set min-messages-before-topic-change 8
 ```
 
-The dual-window system uses:
-- **(4,1) window**: High precision detection (95% precision)
-- **(4,2) window**: Safety net for boundaries (94% F1 score)
-- Optimized to skip safety net when high precision detects change
+13 strategies are available including `ensemble`, `cusum`, `delta`, `keyword`, `speech_act`, `time_aware`, `relative_embedding`, `summary_probe`, and `null` (manual only).
 
 ### Topic Management
 
@@ -287,6 +286,23 @@ Fine-tune topic boundary detection:
 /set topic-temperature 1.0       # Default (no scaling)
 /set topic-temperature 0.7       # More confident predictions
 /set topic-temperature 1.5       # Less confident predictions
+```
+
+### Topic Reactivation
+
+Episodic detects when you return to a previously discussed topic and automatically restores its context. Uses two-channel matching:
+
+- **Semantic similarity**: Compares your message embedding against topic centroids
+- **Alias matching**: Matches distinctive topic terms in referential queries
+
+```bash
+# Enable/disable (enabled by default)
+/set enable-topic-reactivation true
+
+# Context recovery mode
+/set context-recovery-mode hybrid     # Switches based on reactivation (default)
+/set context-recovery-mode ancestry   # Traditional DAG ancestry
+/set context-recovery-mode topic_local # Topic-isolated context only
 ```
 
 ## 6. RAG (Knowledge Base)
@@ -330,7 +346,61 @@ When RAG doesn't find relevant results, it automatically searches the web (if en
 # Now queries check your docs first, then web if needed
 ```
 
-## 7. MCP Server (Model Context Protocol)
+### Conceptual Search (WordNet)
+
+Enable WordNet-based query expansion to find conceptually related results:
+
+```bash
+/set enable-conceptual-search true
+/set wordnet-expansion-mode balanced  # narrow | balanced | broad | children_only
+/set conceptual-boost-factor 0.3     # Boost for conceptual matches (0.0-1.0)
+```
+
+For example, searching for "physics" can also surface documents about "science" or "mechanics".
+
+## 7. Knowledge Graph
+
+The Knowledge Graph automatically extracts entities and relationships from conversations, enabling structured fact recall.
+
+### Key Capabilities
+
+- **Automatic extraction**: Entities (people, places, organizations) and relationships extracted per turn
+- **Closure reasoning**: Transitive rules derive implicit facts (e.g., grandparent from parent-of chains)
+- **Context injection**: Relevant facts are injected into LLM context when you mention known entities
+- **Provenance tracking**: Every fact traces back to the conversation node that produced it
+
+### Quick Start
+
+```bash
+# Extract from existing conversation
+/kg update
+
+# Enable real-time extraction
+/set kg-realtime true
+
+# Enable KG context injection
+/set kg-context true
+
+# Inspect the graph
+/kg entities              # List entities
+/kg stats                 # Statistics
+/kg probe "Tell me about Emma"  # Test context injection
+/kg visualize             # Interactive visualization
+```
+
+### Management Commands
+
+```bash
+/kg merge <id1> <id2>    # Merge duplicate entities
+/kg dupes                 # Find duplicates
+/kg explain               # Show last injection report
+/kg blame <text>          # Trace provenance of an edge
+/kg rebuild               # Full rebuild from scratch
+```
+
+See the [User Guide](../USER_GUIDE.md#knowledge-graph) for full command reference and configuration.
+
+## 8. MCP Server (Model Context Protocol)
 
 Expose Episodic's conversation memory, knowledge base, and LLM capabilities to external AI clients (e.g., Claude Desktop, custom agents) via the Model Context Protocol.
 

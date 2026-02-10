@@ -115,7 +115,7 @@ def _check_optional_features() -> List[CheckResult]:
         except ImportError:
             pass
         try:
-            import duckduckgo_search  # noqa: F401
+            import ddgs  # noqa: F401
             web_parts.append("duckduckgo")
         except ImportError:
             pass

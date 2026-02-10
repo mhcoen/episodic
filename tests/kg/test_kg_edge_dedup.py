@@ -258,7 +258,7 @@ def test_closure_dedup():
     ]
 
     derived = apply_closure_rules(
-        matched_entity_ids=[eids['Emma']],
+        seed_ids=[eids['Emma']],
         edges=edges,
         conn=conn,
         max_derived=5,

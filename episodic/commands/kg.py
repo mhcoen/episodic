@@ -578,6 +578,8 @@ def kg_eval(args: List[str]) -> None:
     parser.add_argument('--conditions', type=str, default='A,B,C')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--skip-preload', action='store_true')
+    parser.add_argument('--filter', type=str, default=None,
+                        help='Filter dataset (e.g., closure_expected)')
     try:
         opts = parser.parse_args(args)
     except SystemExit:
@@ -586,12 +588,14 @@ def kg_eval(args: List[str]) -> None:
         run_ablation, format_summary_table, save_results,
     )
     conds = [c.strip() for c in opts.conditions.split(',')]
+    filter_closure = opts.filter == 'closure_expected'
     typer.secho("KG Ablation Evaluation" + (" [dry run]" if opts.dry_run else ""),
                 fg=get_heading_color(), bold=True)
     summary = run_ablation(
         dataset_path=opts.dataset, model=opts.model,
         conditions=conds, dry_run=opts.dry_run,
         skip_preload=opts.skip_preload,
+        filter_closure=filter_closure,
     )
     table = format_summary_table(summary, conds)
     typer.secho(f"\n{table}", fg=get_text_color())

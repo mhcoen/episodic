@@ -293,8 +293,9 @@ def test_budget_drop_lowest_rank(kg_db, monkeypatch):
 def test_closure_kinship_location(kg_db, monkeypatch):
     """Input: 'How is Emma doing at school?'
     Assert: Emma located_at MIT appears in output (via direct edge).
-    Closure derives the same triple but it's suppressed since the direct
-    edge already covers it — no wasted budget tokens on duplicates.
+    The KINSHIP_LOCATION closure duplicate is deduped against the direct edge.
+    DEVICE_SPEC closure may also fire (MacBook has RAM) since closure queries
+    all user:self edges from DB, but it has no bridge bonus here.
     """
     conn, entity_ids, assertion_ids = kg_db
     monkeypatch.setattr('episodic.kg.context_source.config', _MockConfig())
@@ -307,10 +308,13 @@ def test_closure_kinship_location(kg_db, monkeypatch):
     assert 'located_at' in result.text
     assert 'MIT' in result.text
 
-    # Derived count is 0 because the closure triple duplicates the direct edge
-    assert result.derived_count == 0
+    # KINSHIP_LOCATION closure duplicate is deduped; any remaining derived
+    # facts are DEVICE_SPEC (low-scored, no device bridge cues in prompt)
+    kinship_derived = [d for d in result.derived
+                       if d.rule == 'KINSHIP_LOCATION']
+    assert len(kinship_derived) == 0, "KINSHIP duplicate should be deduped"
 
-    # But the direct edge IS present
+    # Direct edge IS present
     direct = [e for e in result.edges
               if e.subj_name == 'Emma' and e.predicate == 'located_at']
     assert len(direct) >= 1, "Direct located_at edge should be present"
@@ -323,8 +327,9 @@ def test_closure_kinship_location(kg_db, monkeypatch):
 def test_closure_device_spec(kg_db, monkeypatch):
     """Input: 'Can my MacBook handle it?'
     Assert: MacBook has 64GB RAM appears in output (via direct edge).
-    Closure derives the same triple but it's suppressed since the direct
-    edge already covers it — no wasted budget tokens on duplicates.
+    DEVICE_SPEC closure derives the same triple but it's suppressed since the
+    direct edge already covers it. KINSHIP_LOCATION may fire via user:self
+    auto-injection (for Emma→located_at→MIT).
     """
     conn, entity_ids, _ = kg_db
     monkeypatch.setattr('episodic.kg.context_source.config', _MockConfig())
@@ -336,10 +341,11 @@ def test_closure_device_spec(kg_db, monkeypatch):
     assert '64 gigs of RAM' in result.text
     assert 'MacBook Pro M3 Max' in result.text
 
-    # Derived count is 0 because the closure triple duplicates the direct edge
-    assert result.derived_count == 0
+    # No DEVICE_SPEC derived — the closure triple duplicates the direct edge
+    device_derived = [d for d in result.derived if d.rule == 'DEVICE_SPEC']
+    assert len(device_derived) == 0, "DEVICE_SPEC closure should be deduped"
 
-    # But the direct edge IS present
+    # Direct edge IS present
     direct = [e for e in result.edges
               if e.subj_name == 'MacBook Pro M3 Max' and e.predicate == 'has'
               and e.obj_name == '64 gigs of RAM']

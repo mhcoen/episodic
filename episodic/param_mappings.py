@@ -132,6 +132,10 @@ SHORT_ALIASES = {
     'kg-include-past': 'kg_include_past',
     'kg-realtime': 'kg_realtime',
     'kg-escalate-model': 'kg_escalate_model',
+    'kg-closure-seed-limit': 'kg_closure_seed_limit',
+    'kg-edges-per-entity': 'kg_edges_per_entity',
+    'kg-derived-per-seed': 'kg_derived_per_seed',
+    'kg-relevance-gate': 'kg_relevance_gate',
 
     # Compression
     'comp-model': 'compression_model',

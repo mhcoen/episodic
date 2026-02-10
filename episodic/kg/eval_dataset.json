@@ -1,133 +1,399 @@
 [
   {
-    "id": "rel_bridge_01",
-    "prompt": "Can Emma run local models on her MacBook Pro M3 Max?",
+    "id": "multi_hop_01",
+    "prompt": "Where does my daughter go to school?",
     "setup_context": [
-      "My daughter Emma has a MacBook Pro M3 Max with 64 gigs of RAM",
-      "That's a great setup for local inference"
+      "My daughter is Emma.",
+      "She sounds lovely.",
+      "Emma is a sophomore at MIT.",
+      "MIT is a great school."
     ],
     "answer_key": {
-      "required_facts": ["Emma", "MacBook Pro M3 Max", "64"],
-      "expected_answer_contains": ["RAM", "64"],
+      "required_facts": ["Emma", "MIT"],
+      "expected_answer_contains": ["MIT"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "KINSHIP_LOCATION",
+    "closure_derived": "Emma located_at MIT"
+  },
+  {
+    "id": "multi_hop_02",
+    "prompt": "How much memory does my main laptop have?",
+    "setup_context": [
+      "My main laptop is a MacBook Pro M3 Max.",
+      "Good choice.",
+      "The MacBook Pro M3 Max has 64 gigs of RAM.",
+      "That's plenty for local inference."
+    ],
+    "answer_key": {
+      "required_facts": ["MacBook Pro M3 Max", "64"],
+      "expected_answer_contains": ["64", "RAM"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "MacBook Pro M3 Max has 64GB RAM"
+  },
+  {
+    "id": "multi_hop_03",
+    "prompt": "What GPU is in my desktop workstation?",
+    "setup_context": [
+      "I have a Linux workstation under my desk.",
+      "Nice setup.",
+      "The Linux workstation has an RTX 4090 dedicated to training runs.",
+      "The 4090 is great for training."
+    ],
+    "answer_key": {
+      "required_facts": ["Linux workstation", "RTX 4090"],
+      "expected_answer_contains": ["RTX 4090"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Linux workstation has RTX 4090"
+  },
+  {
+    "id": "multi_hop_04",
+    "prompt": "What kind of switches does my keyboard have?",
+    "setup_context": [
+      "I have a Keychron Q1 keyboard.",
+      "Nice choice.",
+      "The Keychron Q1 has Cherry MX Brown switches.",
+      "Those are nice tactile switches."
+    ],
+    "answer_key": {
+      "required_facts": ["Keychron Q1", "Cherry MX Brown"],
+      "expected_answer_contains": ["Cherry MX Brown"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Keychron Q1 has Cherry MX Brown switches"
+  },
+  {
+    "id": "multi_hop_05",
+    "prompt": "What GPUs does my university compute cluster have?",
+    "setup_context": [
+      "I have access to a cluster at my university.",
+      "That's handy.",
+      "The cluster has 8 A100 GPUs for large model training.",
+      "A100s are great for large models."
+    ],
+    "answer_key": {
+      "required_facts": ["cluster", "A100"],
+      "expected_answer_contains": ["A100"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "cluster has A100 GPU"
+  },
+  {
+    "id": "multi_hop_06",
+    "prompt": "What school is my daughter attending?",
+    "setup_context": [
+      "Emma is my daughter.",
+      "That's a nice name.",
+      "Emma studies computer science at MIT.",
+      "MIT has a strong CS program."
+    ],
+    "answer_key": {
+      "required_facts": ["Emma", "MIT"],
+      "expected_answer_contains": ["MIT"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "KINSHIP_LOCATION",
+    "closure_derived": "Emma located_at MIT"
+  },
+  {
+    "id": "multi_hop_07",
+    "prompt": "Can my main laptop handle local inference?",
+    "setup_context": [
+      "The MacBook Pro M3 Max is my daily driver.",
+      "Great choice.",
+      "The MacBook Pro M3 Max is specced with 64 gigs of RAM.",
+      "That should handle most tasks."
+    ],
+    "answer_key": {
+      "required_facts": ["MacBook Pro M3 Max", "64"],
+      "expected_answer_contains": ["64", "RAM"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "MacBook Pro M3 Max has 64GB RAM"
+  },
+  {
+    "id": "multi_hop_08",
+    "prompt": "Is my desktop workstation good for training runs?",
+    "setup_context": [
+      "The Linux workstation sits under my desk.",
+      "Convenient location.",
+      "The Linux workstation has an RTX 4090 GPU.",
+      "The 4090 has 24GB VRAM."
+    ],
+    "answer_key": {
+      "required_facts": ["Linux workstation", "RTX 4090"],
+      "expected_answer_contains": ["RTX 4090"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Linux workstation has RTX 4090"
+  },
+  {
+    "id": "multi_hop_09",
+    "prompt": "What field is my daughter studying?",
+    "setup_context": [
+      "My daughter is Emma.",
+      "Lovely name.",
+      "Emma wants to go into NLP research.",
+      "NLP is a hot field right now."
+    ],
+    "answer_key": {
+      "required_facts": ["Emma", "NLP"],
+      "expected_answer_contains": ["NLP"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "KINSHIP_LOCATION",
+    "closure_derived": "Emma interested_in NLP"
+  },
+  {
+    "id": "multi_hop_10",
+    "prompt": "How much RAM does my daily driver computer have?",
+    "setup_context": [
+      "My daily driver is the MacBook Pro M3 Max.",
+      "Good laptop.",
+      "It has 64 gigs of RAM installed.",
+      "Plenty for most workloads."
+    ],
+    "answer_key": {
+      "required_facts": ["MacBook Pro M3 Max", "64"],
+      "expected_answer_contains": ["64"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "MacBook Pro M3 Max has 64GB RAM"
+  },
+  {
+    "id": "multi_hop_11",
+    "prompt": "What switches are in my mechanical keyboard?",
+    "setup_context": [
+      "I use a Keychron Q1 for typing.",
+      "Good keyboard.",
+      "The Keychron Q1 is loaded with Cherry MX Brown switches.",
+      "Tactile without being clicky."
+    ],
+    "answer_key": {
+      "required_facts": ["Keychron Q1", "Cherry MX Brown"],
+      "expected_answer_contains": ["Cherry MX Brown"],
+      "category": "multi_hop"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Keychron Q1 has Cherry MX Brown switches"
+  },
+  {
+    "id": "rel_bridge_01",
+    "prompt": "What university is my daughter at?",
+    "setup_context": [
+      "My daughter Emma is studying computer science.",
+      "CS is a great field.",
+      "Emma is at MIT.",
+      "MIT is a top school."
+    ],
+    "answer_key": {
+      "required_facts": ["Emma", "MIT"],
+      "expected_answer_contains": ["MIT"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "KINSHIP_LOCATION",
+    "closure_derived": "Emma located_at MIT"
   },
   {
     "id": "rel_bridge_02",
-    "prompt": "What does Dave use his Ooni Koda for?",
+    "prompt": "How much memory is in my laptop?",
     "setup_context": [
-      "My neighbor Dave has an Ooni Koda that runs on propane",
-      "That sounds like a great pizza setup"
+      "I have a MacBook Pro M3 Max as my main machine.",
+      "Nice laptop.",
+      "The MacBook Pro M3 Max comes with 64 gigs of RAM.",
+      "Great for running models locally."
     ],
     "answer_key": {
-      "required_facts": ["Dave", "Ooni Koda"],
-      "expected_answer_contains": ["Ooni", "propane"],
+      "required_facts": ["MacBook Pro M3 Max", "64"],
+      "expected_answer_contains": ["64", "RAM"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "MacBook Pro M3 Max has 64GB RAM"
   },
   {
     "id": "rel_bridge_03",
-    "prompt": "What breed is Biscuit?",
+    "prompt": "What graphics card is in my training machine?",
     "setup_context": [
-      "My wife Sarah picked out Biscuit as a puppy. Biscuit is a seven-year-old golden retriever.",
-      "That's a lovely breed"
-    ],
-    "answer_key": {
-      "required_facts": ["Biscuit", "golden retriever"],
-      "expected_answer_contains": ["golden retriever"],
-      "category": "relational_bridging"
-    }
-  },
-  {
-    "id": "rel_bridge_04",
-    "prompt": "What GPU does the Linux workstation have?",
-    "setup_context": [
-      "The Linux workstation sits under my desk with an RTX 4090 dedicated to training runs",
-      "Nice, that's a powerful GPU"
+      "My Linux workstation handles all training.",
+      "Dedicated machines are the way to go.",
+      "The Linux workstation has an RTX 4090.",
+      "That's a powerful GPU."
     ],
     "answer_key": {
       "required_facts": ["Linux workstation", "RTX 4090"],
       "expected_answer_contains": ["RTX 4090"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Linux workstation has RTX 4090"
   },
   {
-    "id": "rel_bridge_05",
-    "prompt": "What powers Dave's Ooni Koda?",
+    "id": "rel_bridge_04",
+    "prompt": "What type of key switches does my typing keyboard use?",
     "setup_context": [
-      "My neighbor Dave has an Ooni Koda that runs on propane",
-      "Propane heats up fast"
-    ],
-    "answer_key": {
-      "required_facts": ["Ooni Koda", "propane"],
-      "expected_answer_contains": ["propane"],
-      "category": "relational_bridging"
-    }
-  },
-  {
-    "id": "rel_bridge_06",
-    "prompt": "What kind of switches does the Keychron Q1 have?",
-    "setup_context": [
-      "I have a Keychron Q1 with Cherry MX Brown switches",
-      "Those are nice tactile switches"
+      "I type on a Keychron Q1.",
+      "That's a popular board.",
+      "The Keychron Q1 uses Cherry MX Brown switches.",
+      "Browns are a good balance."
     ],
     "answer_key": {
       "required_facts": ["Keychron Q1", "Cherry MX Brown"],
       "expected_answer_contains": ["Cherry MX Brown"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Keychron Q1 has Cherry MX Brown switches"
+  },
+  {
+    "id": "rel_bridge_05",
+    "prompt": "What accelerators does my lab cluster use?",
+    "setup_context": [
+      "I have access to a cluster in the lab.",
+      "Shared compute is great.",
+      "The cluster has 8 A100 GPUs.",
+      "A100s handle large batch sizes well."
+    ],
+    "answer_key": {
+      "required_facts": ["cluster", "A100"],
+      "expected_answer_contains": ["A100"],
+      "category": "relational_bridging"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "cluster has A100 GPU"
+  },
+  {
+    "id": "rel_bridge_06",
+    "prompt": "Where is my daughter going to school?",
+    "setup_context": [
+      "My daughter's name is Emma.",
+      "What a nice name.",
+      "Emma attends MIT for her studies.",
+      "MIT is very competitive."
+    ],
+    "answer_key": {
+      "required_facts": ["Emma", "MIT"],
+      "expected_answer_contains": ["MIT"],
+      "category": "relational_bridging"
+    },
+    "closure_expected": true,
+    "closure_rule": "KINSHIP_LOCATION",
+    "closure_derived": "Emma located_at MIT"
   },
   {
     "id": "rel_bridge_07",
-    "prompt": "How much RAM does the MacBook Pro M3 Max have?",
+    "prompt": "What are the specs of my primary computer?",
     "setup_context": [
-      "The MacBook Pro M3 Max is my daily driver, specced with 64 gigs of RAM",
-      "That should handle most tasks"
+      "My primary computer is the MacBook Pro M3 Max.",
+      "That's a solid machine.",
+      "The MacBook Pro M3 Max has 64 gigs of RAM.",
+      "More than enough for most tasks."
     ],
     "answer_key": {
       "required_facts": ["MacBook Pro M3 Max", "64"],
-      "expected_answer_contains": ["64"],
+      "expected_answer_contains": ["64", "RAM"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "MacBook Pro M3 Max has 64GB RAM"
   },
   {
     "id": "rel_bridge_08",
-    "prompt": "What does the CalDigit TS4 dock connect through?",
+    "prompt": "Can my desktop handle large training jobs?",
     "setup_context": [
-      "CalDigit TS4 dock connects everything through a single Thunderbolt cable",
-      "Single cable setups are the best"
+      "I do training on my Linux workstation.",
+      "Dedicated hardware helps.",
+      "The Linux workstation has an RTX 4090.",
+      "Great for CUDA workloads."
     ],
     "answer_key": {
-      "required_facts": ["CalDigit TS4", "Thunderbolt"],
-      "expected_answer_contains": ["CalDigit", "Thunderbolt"],
+      "required_facts": ["Linux workstation", "RTX 4090"],
+      "expected_answer_contains": ["RTX 4090"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Linux workstation has RTX 4090"
   },
   {
     "id": "rel_bridge_09",
-    "prompt": "What brand is the standing desk frame?",
+    "prompt": "What kind of feel does my keyboard have?",
     "setup_context": [
-      "The standing desk is an Uplift frame with a butcher block top",
-      "Uplift makes great frames"
+      "My keyboard is a Keychron Q1.",
+      "Keychrons are well-built.",
+      "The Keychron Q1 has Cherry MX Brown switches.",
+      "Tactile bumps without the click noise."
     ],
     "answer_key": {
-      "required_facts": ["standing desk", "Uplift"],
-      "expected_answer_contains": ["Uplift"],
+      "required_facts": ["Keychron Q1", "Cherry MX Brown"],
+      "expected_answer_contains": ["Cherry MX Brown"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "Keychron Q1 has Cherry MX Brown switches"
   },
   {
     "id": "rel_bridge_10",
-    "prompt": "What kind of top does the standing desk have?",
+    "prompt": "What major is my daughter pursuing?",
     "setup_context": [
-      "The standing desk is an Uplift frame with a butcher block top",
-      "Butcher block looks great"
+      "Emma is my daughter.",
+      "Lovely.",
+      "Emma studies computer science at MIT.",
+      "CS is a great choice."
     ],
     "answer_key": {
-      "required_facts": ["standing desk", "butcher block"],
-      "expected_answer_contains": ["butcher block"],
+      "required_facts": ["Emma", "computer science"],
+      "expected_answer_contains": ["computer science"],
       "category": "relational_bridging"
-    }
+    },
+    "closure_expected": true,
+    "closure_rule": "KINSHIP_LOCATION",
+    "closure_derived": "Emma studies computer science"
+  },
+  {
+    "id": "rel_bridge_11",
+    "prompt": "How much compute does my lab cluster provide?",
+    "setup_context": [
+      "I have access to a cluster at the university.",
+      "University compute is valuable.",
+      "The cluster is equipped with 8 A100 GPUs.",
+      "Plenty for distributed training."
+    ],
+    "answer_key": {
+      "required_facts": ["cluster", "A100"],
+      "expected_answer_contains": ["A100"],
+      "category": "relational_bridging"
+    },
+    "closure_expected": true,
+    "closure_rule": "DEVICE_SPEC",
+    "closure_derived": "cluster has A100 GPU"
   },
   {
     "id": "alias_01",
@@ -140,7 +406,8 @@
       "required_facts": ["MacBook Pro M3 Max", "64"],
       "expected_answer_contains": ["64"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_02",
@@ -153,7 +420,8 @@
       "required_facts": ["Neovim"],
       "expected_answer_contains": ["Neovim"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_03",
@@ -166,7 +434,8 @@
       "required_facts": ["34-inch LG ultrawide monitor"],
       "expected_answer_contains": ["ultrawide"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_04",
@@ -179,7 +448,8 @@
       "required_facts": ["MacBook Pro M3 Max"],
       "expected_answer_contains": ["MacBook", "model"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_05",
@@ -192,7 +462,8 @@
       "required_facts": ["Keychron Q1", "Cherry MX Brown"],
       "expected_answer_contains": ["Keychron"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_06",
@@ -205,7 +476,8 @@
       "required_facts": ["Martin D-28"],
       "expected_answer_contains": ["Martin"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_07",
@@ -218,7 +490,8 @@
       "required_facts": ["ruff"],
       "expected_answer_contains": ["ruff"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_08",
@@ -231,7 +504,8 @@
       "required_facts": ["Poly Voyager Focus 2"],
       "expected_answer_contains": ["Poly", "Voyager"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_09",
@@ -244,7 +518,8 @@
       "required_facts": ["PyTorch"],
       "expected_answer_contains": ["PyTorch"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_10",
@@ -257,384 +532,8 @@
       "required_facts": ["Shure SM7B", "Focusrite Scarlett"],
       "expected_answer_contains": ["SM7B"],
       "category": "alias"
-    }
-  },
-  {
-    "id": "temporal_01",
-    "prompt": "Did I used to work at IBM Research?",
-    "setup_context": [
-      "I previously worked at IBM Research before moving to my current position",
-      "IBM Research has a great reputation"
-    ],
-    "answer_key": {
-      "required_facts": ["IBM Research"],
-      "expected_answer_contains": ["IBM"],
-      "category": "temporal_negation"
-    }
-  },
-  {
-    "id": "temporal_02",
-    "prompt": "Have I stopped using flake8?",
-    "setup_context": [
-      "I used to use flake8 but switched to ruff",
-      "Ruff is much faster"
-    ],
-    "answer_key": {
-      "required_facts": ["flake8"],
-      "expected_answer_contains": ["flake8"],
-      "category": "temporal_negation"
-    }
-  },
-  {
-    "id": "temporal_03",
-    "prompt": "Did I switch away from VS Code to Neovim?",
-    "setup_context": [
-      "I switched to Neovim about three years ago from VS Code",
-      "Neovim has a learning curve"
-    ],
-    "answer_key": {
-      "required_facts": ["VS Code"],
-      "expected_answer_contains": ["VS Code"],
-      "category": "temporal_negation"
-    }
-  },
-  {
-    "id": "temporal_04",
-    "prompt": "Have I always preferred Python over JavaScript?",
-    "setup_context": [
-      "I prefer Python for most work, though I use JavaScript occasionally",
-      "Python is versatile"
-    ],
-    "answer_key": {
-      "required_facts": ["Python"],
-      "expected_answer_contains": ["Python"],
-      "category": "temporal_negation"
-    }
-  },
-  {
-    "id": "temporal_05",
-    "prompt": "What did I work on at IBM Research?",
-    "setup_context": [
-      "When I was at IBM Research I worked on dialogue systems",
-      "Dialogue systems are interesting"
-    ],
-    "answer_key": {
-      "required_facts": ["IBM Research", "dialogue systems"],
-      "expected_answer_contains": ["dialogue"],
-      "category": "temporal_negation"
-    }
-  },
-  {
-    "id": "temporal_06",
-    "prompt": "Have I published at ACL?",
-    "setup_context": [
-      "I published a paper at ACL last year on dialogue segmentation",
-      "ACL is a top venue for that work"
-    ],
-    "answer_key": {
-      "required_facts": ["ACL"],
-      "expected_answer_contains": ["ACL"],
-      "category": "temporal_negation"
-    }
-  },
-  {
-    "id": "multi_hop_01",
-    "prompt": "Where does Emma study?",
-    "setup_context": [
-      "My daughter Emma studies computer science at MIT",
-      "MIT is a great school"
-    ],
-    "answer_key": {
-      "required_facts": ["Emma", "MIT"],
-      "expected_answer_contains": ["MIT"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_02",
-    "prompt": "What specs does the MacBook Pro M3 Max have?",
-    "setup_context": [
-      "The MacBook Pro M3 Max has 64 gigs of RAM for running local models",
-      "That should handle most inference tasks"
-    ],
-    "answer_key": {
-      "required_facts": ["MacBook Pro M3 Max", "64"],
-      "expected_answer_contains": ["64", "RAM"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_03",
-    "prompt": "What is Emma interested in pursuing?",
-    "setup_context": [
-      "My daughter Emma wants to go into NLP research",
-      "NLP is a hot field right now"
-    ],
-    "answer_key": {
-      "required_facts": ["Emma", "NLP"],
-      "expected_answer_contains": ["NLP"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_04",
-    "prompt": "What does Emma study at MIT?",
-    "setup_context": [
-      "Emma studies computer science at MIT, she wants to go into NLP research",
-      "MIT has a strong CS program"
-    ],
-    "answer_key": {
-      "required_facts": ["Emma", "MIT", "computer science"],
-      "expected_answer_contains": ["computer science"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_05",
-    "prompt": "Can the Linux workstation handle training with its RTX 4090?",
-    "setup_context": [
-      "The Linux workstation has an RTX 4090 dedicated to training runs",
-      "The 4090 is great for training"
-    ],
-    "answer_key": {
-      "required_facts": ["Linux workstation", "RTX 4090"],
-      "expected_answer_contains": ["RTX 4090", "training"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_06",
-    "prompt": "Can we take the dogs to the cabin in Vermont?",
-    "setup_context": [
-      "We have a cabin up in Vermont where the dogs can run free on weekends",
-      "That sounds wonderful"
-    ],
-    "answer_key": {
-      "required_facts": ["cabin", "Vermont"],
-      "expected_answer_contains": ["Vermont", "cabin"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_07",
-    "prompt": "What's Emma working on at MIT?",
-    "setup_context": [
-      "I work with Emma at MIT on natural language processing research",
-      "That's great collaborative work"
-    ],
-    "answer_key": {
-      "required_facts": ["Emma", "natural language processing"],
-      "expected_answer_contains": ["natural language processing"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_08",
-    "prompt": "What breed is Biscuit and what breed is Patches?",
-    "setup_context": [
-      "Biscuit is a golden retriever and Patches is a border collie. Professor Whiskers is our cat.",
-      "That's quite a menagerie"
-    ],
-    "answer_key": {
-      "required_facts": ["Biscuit", "Patches", "Professor Whiskers"],
-      "expected_answer_contains": ["Biscuit", "Patches"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_09",
-    "prompt": "Is ruff written in Rust?",
-    "setup_context": [
-      "I use ruff for linting, it's written in Rust so it's fast",
-      "Rust makes it very performant"
-    ],
-    "answer_key": {
-      "required_facts": ["ruff", "Rust"],
-      "expected_answer_contains": ["Rust"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "multi_hop_10",
-    "prompt": "Did Sarah pick out Biscuit?",
-    "setup_context": [
-      "My wife Sarah picked out Biscuit as a puppy. Biscuit is a golden retriever.",
-      "Golden retrievers are great family dogs"
-    ],
-    "answer_key": {
-      "required_facts": ["Sarah", "Biscuit", "golden retriever"],
-      "expected_answer_contains": ["golden retriever"],
-      "category": "multi_hop"
-    }
-  },
-  {
-    "id": "baseline_01",
-    "prompt": "Do I have a Keychron Q1?",
-    "setup_context": [
-      "I have a Keychron Q1 with Cherry MX Brown switches",
-      "Great keyboard"
-    ],
-    "answer_key": {
-      "required_facts": ["Keychron Q1"],
-      "expected_answer_contains": ["Keychron"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_02",
-    "prompt": "Do I use Python?",
-    "setup_context": [
-      "I prefer Python for most work and use Rust occasionally",
-      "Both are great languages"
-    ],
-    "answer_key": {
-      "required_facts": ["Python"],
-      "expected_answer_contains": ["Python"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_03",
-    "prompt": "Tell me about Biscuit and Patches",
-    "setup_context": [
-      "I have a golden retriever named Biscuit and a border collie named Patches",
-      "Dogs are wonderful companions"
-    ],
-    "answer_key": {
-      "required_facts": ["Biscuit", "Patches"],
-      "expected_answer_contains": ["Biscuit", "Patches"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_04",
-    "prompt": "Do I use Neovim?",
-    "setup_context": [
-      "I use Neovim for all my coding, the Lua config system is excellent",
-      "Neovim is very customizable"
-    ],
-    "answer_key": {
-      "required_facts": ["Neovim"],
-      "expected_answer_contains": ["Neovim"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_05",
-    "prompt": "Is the MacBook Pro M3 Max my main laptop?",
-    "setup_context": [
-      "My daily driver is a MacBook Pro M3 Max with 64 gigs of RAM",
-      "Great specs"
-    ],
-    "answer_key": {
-      "required_facts": ["MacBook Pro M3 Max"],
-      "expected_answer_contains": ["MacBook"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_06",
-    "prompt": "Am I a researcher?",
-    "setup_context": [
-      "I'm a senior researcher working on natural language processing",
-      "That's an exciting field"
-    ],
-    "answer_key": {
-      "required_facts": ["senior researcher"],
-      "expected_answer_contains": ["researcher"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_07",
-    "prompt": "Do I use Ableton Live?",
-    "setup_context": [
-      "I use Ableton Live for music production",
-      "Ableton is industry standard"
-    ],
-    "answer_key": {
-      "required_facts": ["Ableton"],
-      "expected_answer_contains": ["Ableton"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_08",
-    "prompt": "Do I like Italian food?",
-    "setup_context": [
-      "I love Italian food, especially carbonara and fresh pasta",
-      "Italian cuisine is wonderful"
-    ],
-    "answer_key": {
-      "required_facts": ["Italian food", "carbonara"],
-      "expected_answer_contains": ["Italian"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_09",
-    "prompt": "Do I use pytest?",
-    "setup_context": [
-      "I use pytest for all my testing, it's my preferred framework",
-      "Pytest is very popular"
-    ],
-    "answer_key": {
-      "required_facts": ["pytest"],
-      "expected_answer_contains": ["pytest"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_10",
-    "prompt": "Do I work at a university lab?",
-    "setup_context": [
-      "I work at a university lab doing research in NLP",
-      "University research is great"
-    ],
-    "answer_key": {
-      "required_facts": ["university lab"],
-      "expected_answer_contains": ["university"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_11",
-    "prompt": "Do I play guitar and piano?",
-    "setup_context": [
-      "I play guitar and piano, I have a Fender Telecaster and a Martin D-28",
-      "Nice collection of instruments"
-    ],
-    "answer_key": {
-      "required_facts": ["guitar", "piano"],
-      "expected_answer_contains": ["guitar"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "baseline_12",
-    "prompt": "Do I use PyTorch for deep learning?",
-    "setup_context": [
-      "I use PyTorch for all my deep learning experiments",
-      "PyTorch is great for research"
-    ],
-    "answer_key": {
-      "required_facts": ["PyTorch"],
-      "expected_answer_contains": ["PyTorch"],
-      "category": "baseline_factual"
-    }
-  },
-  {
-    "id": "rel_bridge_11",
-    "prompt": "What interface feeds into the Shure SM7B?",
-    "setup_context": [
-      "The signal chain is a Focusrite Scarlett 2i2 interface into a Shure SM7B",
-      "Classic broadcast signal chain"
-    ],
-    "answer_key": {
-      "required_facts": ["Focusrite Scarlett 2i2", "Shure SM7B"],
-      "expected_answer_contains": ["Focusrite", "Scarlett"],
-      "category": "relational_bridging"
-    }
+    },
+    "closure_expected": false
   },
   {
     "id": "alias_11",
@@ -647,20 +546,92 @@
       "required_facts": ["MacBook Pro M3 Max", "64"],
       "expected_answer_contains": ["64", "RAM"],
       "category": "alias"
-    }
+    },
+    "closure_expected": false
   },
   {
-    "id": "multi_hop_11",
-    "prompt": "What GPUs does the cluster have?",
+    "id": "temporal_01",
+    "prompt": "Did I used to work at IBM Research?",
     "setup_context": [
-      "I have access to a cluster at my university with 8 A100 GPUs",
-      "A100s are great for large models"
+      "I previously worked at IBM Research before moving to my current position",
+      "IBM Research has a great reputation"
     ],
     "answer_key": {
-      "required_facts": ["A100", "university"],
-      "expected_answer_contains": ["A100"],
-      "category": "multi_hop"
-    }
+      "required_facts": ["IBM Research"],
+      "expected_answer_contains": ["IBM"],
+      "category": "temporal_negation"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "temporal_02",
+    "prompt": "Have I stopped using flake8?",
+    "setup_context": [
+      "I used to use flake8 but switched to ruff",
+      "Ruff is much faster"
+    ],
+    "answer_key": {
+      "required_facts": ["flake8"],
+      "expected_answer_contains": ["flake8"],
+      "category": "temporal_negation"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "temporal_03",
+    "prompt": "Did I switch away from VS Code to Neovim?",
+    "setup_context": [
+      "I switched to Neovim about three years ago from VS Code",
+      "Neovim has a learning curve"
+    ],
+    "answer_key": {
+      "required_facts": ["VS Code"],
+      "expected_answer_contains": ["VS Code"],
+      "category": "temporal_negation"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "temporal_04",
+    "prompt": "Have I always preferred Python over JavaScript?",
+    "setup_context": [
+      "I prefer Python for most work, though I use JavaScript occasionally",
+      "Python is versatile"
+    ],
+    "answer_key": {
+      "required_facts": ["Python"],
+      "expected_answer_contains": ["Python"],
+      "category": "temporal_negation"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "temporal_05",
+    "prompt": "What did I work on at IBM Research?",
+    "setup_context": [
+      "When I was at IBM Research I worked on dialogue systems",
+      "Dialogue systems are interesting"
+    ],
+    "answer_key": {
+      "required_facts": ["IBM Research", "dialogue systems"],
+      "expected_answer_contains": ["dialogue"],
+      "category": "temporal_negation"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "temporal_06",
+    "prompt": "Have I published at ACL?",
+    "setup_context": [
+      "I published a paper at ACL last year on dialogue segmentation",
+      "ACL is a top venue for that work"
+    ],
+    "answer_key": {
+      "required_facts": ["ACL"],
+      "expected_answer_contains": ["ACL"],
+      "category": "temporal_negation"
+    },
+    "closure_expected": false
   },
   {
     "id": "temporal_07",
@@ -673,6 +644,259 @@
       "required_facts": ["flake8"],
       "expected_answer_contains": ["flake8"],
       "category": "temporal_negation"
-    }
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_01",
+    "prompt": "Do I have a Keychron Q1?",
+    "setup_context": [
+      "I have a Keychron Q1 with Cherry MX Brown switches",
+      "Great keyboard"
+    ],
+    "answer_key": {
+      "required_facts": ["Keychron Q1"],
+      "expected_answer_contains": ["Keychron"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_02",
+    "prompt": "Do I use Python?",
+    "setup_context": [
+      "I prefer Python for most work and use Rust occasionally",
+      "Both are great languages"
+    ],
+    "answer_key": {
+      "required_facts": ["Python"],
+      "expected_answer_contains": ["Python"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_03",
+    "prompt": "Tell me about Biscuit and Patches",
+    "setup_context": [
+      "I have a golden retriever named Biscuit and a border collie named Patches",
+      "Dogs are wonderful companions"
+    ],
+    "answer_key": {
+      "required_facts": ["Biscuit", "Patches"],
+      "expected_answer_contains": ["Biscuit", "Patches"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_04",
+    "prompt": "Do I use Neovim?",
+    "setup_context": [
+      "I use Neovim for all my coding, the Lua config system is excellent",
+      "Neovim is very customizable"
+    ],
+    "answer_key": {
+      "required_facts": ["Neovim"],
+      "expected_answer_contains": ["Neovim"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_05",
+    "prompt": "Is the MacBook Pro M3 Max my main laptop?",
+    "setup_context": [
+      "My daily driver is a MacBook Pro M3 Max with 64 gigs of RAM",
+      "Great specs"
+    ],
+    "answer_key": {
+      "required_facts": ["MacBook Pro M3 Max"],
+      "expected_answer_contains": ["MacBook"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_06",
+    "prompt": "Am I a researcher?",
+    "setup_context": [
+      "I'm a senior researcher working on natural language processing",
+      "That's an exciting field"
+    ],
+    "answer_key": {
+      "required_facts": ["senior researcher"],
+      "expected_answer_contains": ["researcher"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_07",
+    "prompt": "Do I use Ableton Live?",
+    "setup_context": [
+      "I use Ableton Live for music production",
+      "Ableton is industry standard"
+    ],
+    "answer_key": {
+      "required_facts": ["Ableton"],
+      "expected_answer_contains": ["Ableton"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_08",
+    "prompt": "Do I like Italian food?",
+    "setup_context": [
+      "I love Italian food, especially carbonara and fresh pasta",
+      "Italian cuisine is wonderful"
+    ],
+    "answer_key": {
+      "required_facts": ["Italian food", "carbonara"],
+      "expected_answer_contains": ["Italian"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_09",
+    "prompt": "Do I use pytest?",
+    "setup_context": [
+      "I use pytest for all my testing, it's my preferred framework",
+      "Pytest is very popular"
+    ],
+    "answer_key": {
+      "required_facts": ["pytest"],
+      "expected_answer_contains": ["pytest"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_10",
+    "prompt": "Do I work at a university lab?",
+    "setup_context": [
+      "I work at a university lab doing research in NLP",
+      "University research is great"
+    ],
+    "answer_key": {
+      "required_facts": ["university lab"],
+      "expected_answer_contains": ["university"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_11",
+    "prompt": "Do I play guitar and piano?",
+    "setup_context": [
+      "I play guitar and piano, I have a Fender Telecaster and a Martin D-28",
+      "Nice collection of instruments"
+    ],
+    "answer_key": {
+      "required_facts": ["guitar", "piano"],
+      "expected_answer_contains": ["guitar"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_12",
+    "prompt": "Do I use PyTorch for deep learning?",
+    "setup_context": [
+      "I use PyTorch for all my deep learning experiments",
+      "PyTorch is great for research"
+    ],
+    "answer_key": {
+      "required_facts": ["PyTorch"],
+      "expected_answer_contains": ["PyTorch"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_13",
+    "prompt": "What breed is Biscuit?",
+    "setup_context": [
+      "Biscuit is a seven-year-old golden retriever",
+      "That's a lovely breed"
+    ],
+    "answer_key": {
+      "required_facts": ["Biscuit", "golden retriever"],
+      "expected_answer_contains": ["golden retriever"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_14",
+    "prompt": "What does Dave use his Ooni Koda for?",
+    "setup_context": [
+      "My neighbor Dave has an Ooni Koda that runs on propane",
+      "That sounds like a great pizza setup"
+    ],
+    "answer_key": {
+      "required_facts": ["Dave", "Ooni Koda"],
+      "expected_answer_contains": ["Ooni", "propane"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_15",
+    "prompt": "Can we take the dogs to the cabin in Vermont?",
+    "setup_context": [
+      "We have a cabin up in Vermont where the dogs can run free on weekends",
+      "That sounds wonderful"
+    ],
+    "answer_key": {
+      "required_facts": ["cabin", "Vermont"],
+      "expected_answer_contains": ["Vermont", "cabin"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_16",
+    "prompt": "Did Sarah pick out Biscuit?",
+    "setup_context": [
+      "My wife Sarah picked out Biscuit as a puppy. Biscuit is a golden retriever.",
+      "Golden retrievers are great family dogs"
+    ],
+    "answer_key": {
+      "required_facts": ["Sarah", "Biscuit", "golden retriever"],
+      "expected_answer_contains": ["golden retriever"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_17",
+    "prompt": "What interface feeds into the Shure SM7B?",
+    "setup_context": [
+      "The signal chain is a Focusrite Scarlett 2i2 interface into a Shure SM7B",
+      "Classic broadcast signal chain"
+    ],
+    "answer_key": {
+      "required_facts": ["Focusrite Scarlett 2i2", "Shure SM7B"],
+      "expected_answer_contains": ["Focusrite", "Scarlett"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
+  },
+  {
+    "id": "baseline_18",
+    "prompt": "Is ruff written in Rust?",
+    "setup_context": [
+      "I use ruff for linting, it's written in Rust so it's fast",
+      "Rust makes it very performant"
+    ],
+    "answer_key": {
+      "required_facts": ["ruff", "Rust"],
+      "expected_answer_contains": ["Rust"],
+      "category": "baseline_factual"
+    },
+    "closure_expected": false
   }
 ]

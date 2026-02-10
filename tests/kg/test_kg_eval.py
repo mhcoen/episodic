@@ -8,8 +8,15 @@ from episodic.kg.eval_ablation import (
     score_response,
     build_messages,
     EvalResult,
+    EvalSummary,
     evaluate_prompt,
     _create_eval_db,
+    _check_closure_differentiation,
+    _build_closure_analysis,
+    compute_derived_relevance,
+    compute_oracle_hit,
+    _tokenize,
+    _jaccard,
 )
 from episodic.kg.schema import ensure_kg_schema
 
@@ -157,3 +164,201 @@ class TestEvalDb:
         ).fetchone()
         assert row is not None
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Closure differentiation checks
+# ---------------------------------------------------------------------------
+
+class TestClosureChecks:
+    def _make_result(self, pid, cond, closure_expected=False,
+                     derived=0, rule=""):
+        return EvalResult(
+            prompt_id=pid, condition=cond, category="multi_hop",
+            derived_edges_count=derived,
+            closure_expected=closure_expected,
+            closure_rule=rule,
+        )
+
+    def test_passing_check(self):
+        """B=0 derived, C>=1 derived → pass."""
+        summary = EvalSummary(results=[
+            self._make_result("mh01", "B", True, derived=0, rule="DEVICE_SPEC"),
+            self._make_result("mh01", "C", True, derived=2, rule="DEVICE_SPEC"),
+        ])
+        checks = _check_closure_differentiation(summary, ["B", "C"])
+        assert checks["pass_count"] == 1
+        assert checks["fail_count"] == 0
+
+    def test_failing_check_b_has_derived(self):
+        """B has derived edges → fail (shouldn't happen with max_derived=0)."""
+        summary = EvalSummary(results=[
+            self._make_result("mh01", "B", True, derived=1, rule="DEVICE_SPEC"),
+            self._make_result("mh01", "C", True, derived=1, rule="DEVICE_SPEC"),
+        ])
+        checks = _check_closure_differentiation(summary, ["B", "C"])
+        assert checks["fail_count"] == 1
+        assert not checks["items"][0]["b_ok"]
+
+    def test_failing_check_c_no_derived(self):
+        """C has no derived edges → fail (closure didn't fire)."""
+        summary = EvalSummary(results=[
+            self._make_result("mh01", "B", True, derived=0, rule="DEVICE_SPEC"),
+            self._make_result("mh01", "C", True, derived=0, rule="DEVICE_SPEC"),
+        ])
+        checks = _check_closure_differentiation(summary, ["B", "C"])
+        assert checks["fail_count"] == 1
+        assert not checks["items"][0]["c_ok"]
+
+    def test_non_closure_items_skipped(self):
+        """Items without closure_expected are not checked."""
+        summary = EvalSummary(results=[
+            self._make_result("bl01", "B", False, derived=0),
+            self._make_result("bl01", "C", False, derived=0),
+        ])
+        checks = _check_closure_differentiation(summary, ["B", "C"])
+        assert len(checks["items"]) == 0
+
+    def test_dry_run_closure_tracking(self):
+        """EvalResult captures closure fields from dataset item."""
+        db = sqlite3.connect(":memory:")
+        ensure_kg_schema(db)
+        item = {
+            "id": "mh01",
+            "prompt": "Where does my daughter go?",
+            "setup_context": ["a", "b", "c", "d"],
+            "answer_key": {
+                "required_facts": ["Emma"],
+                "expected_answer_contains": ["MIT"],
+                "category": "multi_hop",
+            },
+            "closure_expected": True,
+            "closure_rule": "KINSHIP_LOCATION",
+            "closure_derived": "Emma located_at MIT",
+        }
+        result = evaluate_prompt(item, "A", db, "gpt-4o-mini", dry_run=True)
+        assert result.closure_expected is True
+        assert result.closure_rule == "KINSHIP_LOCATION"
+        assert result.derived_edges_count == 0  # A has no KG
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# Derived relevance
+# ---------------------------------------------------------------------------
+
+class TestDerivedRelevance:
+    def test_tokenize_removes_stopwords(self):
+        tokens = _tokenize("What does my laptop have?")
+        assert "what" not in tokens
+        assert "does" not in tokens
+        assert "my" not in tokens
+        assert "laptop" in tokens
+
+    def test_jaccard_identical(self):
+        assert _jaccard({"a", "b"}, {"a", "b"}) == 1.0
+
+    def test_jaccard_disjoint(self):
+        assert _jaccard({"a"}, {"b"}) == 0.0
+
+    def test_jaccard_partial(self):
+        assert abs(_jaccard({"a", "b", "c"}, {"b", "c", "d"}) - 0.5) < 0.01
+
+    def test_relevance_with_facts(self):
+        """Mock DerivedFact-like objects for relevance scoring."""
+        class FakeDerived:
+            def __init__(self, s, p, o):
+                self.subj_name, self.predicate, self.obj_name = s, p, o
+        facts = [
+            FakeDerived("MacBook Pro M3 Max", "has", "64GB RAM"),
+            FakeDerived("signal chain", "has", "SM7B"),
+        ]
+        # Prompt shares "MacBook" and "RAM" with the first derived fact
+        result = compute_derived_relevance(
+            "What RAM size does the MacBook support?", facts
+        )
+        assert result["max_rel"] > 0
+        assert result["top_fact"] != ""
+        assert result["mean_rel"] > 0
+
+    def test_relevance_empty_facts(self):
+        result = compute_derived_relevance("some prompt", [])
+        assert result["max_rel"] == 0.0
+
+    def test_oracle_hit(self):
+        class FakeDerived:
+            def __init__(self, s, p, o, rule):
+                self.subj_name, self.predicate, self.obj_name = s, p, o
+                self.rule = rule
+        facts = [
+            FakeDerived("Emma", "located_at", "MIT", "KINSHIP_LOCATION"),
+            FakeDerived("signal chain", "has", "SM7B", "DEVICE_SPEC"),
+        ]
+        result = compute_oracle_hit(facts, "KINSHIP_LOCATION", ["Emma", "MIT"])
+        assert result["oracle_hit"] is True
+        assert "Emma" in result["oracle_fact"]
+
+    def test_oracle_miss_wrong_rule(self):
+        class FakeDerived:
+            def __init__(self, s, p, o, rule):
+                self.subj_name, self.predicate, self.obj_name = s, p, o
+                self.rule = rule
+        facts = [FakeDerived("signal chain", "has", "SM7B", "DEVICE_SPEC")]
+        result = compute_oracle_hit(facts, "KINSHIP_LOCATION", ["Emma"])
+        assert result["oracle_hit"] is False
+
+    def test_oracle_miss_no_required_facts(self):
+        class FakeDerived:
+            def __init__(self, s, p, o, rule):
+                self.subj_name, self.predicate, self.obj_name = s, p, o
+                self.rule = rule
+        facts = [FakeDerived("Emma", "located_at", "MIT", "KINSHIP_LOCATION")]
+        result = compute_oracle_hit(facts, "KINSHIP_LOCATION", ["Stanford"])
+        assert result["oracle_hit"] is False
+
+
+# ---------------------------------------------------------------------------
+# Closure analysis table
+# ---------------------------------------------------------------------------
+
+class TestClosureAnalysis:
+    def _make_result(self, pid, cond, closure_expected=False,
+                     derived=0, rule="", score=0.5,
+                     max_rel=0.0, oracle_hit=False):
+        return EvalResult(
+            prompt_id=pid, condition=cond, category="multi_hop",
+            factual_score=score, derived_edges_count=derived,
+            closure_expected=closure_expected, closure_rule=rule,
+            derived_max_relevance=max_rel, oracle_hit=oracle_hit,
+        )
+
+    def test_analysis_table_produced(self):
+        summary = EvalSummary(results=[
+            self._make_result("mh01", "B", True, derived=0, rule="DEVICE_SPEC", score=0.3),
+            self._make_result("mh01", "C", True, derived=2, rule="DEVICE_SPEC",
+                              score=0.8, max_rel=0.25, oracle_hit=True),
+        ])
+        summary.closure_checks = {"items": [], "pass_count": 0, "fail_count": 0}
+        lines = _build_closure_analysis(summary, ["A", "B", "C"])
+        assert any("Closure Analysis" in l for l in lines)
+        assert any("DEVICE_SPEC" in l for l in lines)
+        assert any("ALL closure" in l for l in lines)
+
+    def test_no_closure_items_empty(self):
+        summary = EvalSummary(results=[
+            self._make_result("bl01", "B", False),
+            self._make_result("bl01", "C", False),
+        ])
+        lines = _build_closure_analysis(summary, ["A", "B", "C"])
+        assert lines == []
+
+    def test_multiple_rules(self):
+        summary = EvalSummary(results=[
+            self._make_result("mh01", "B", True, 0, "DEVICE_SPEC", 0.3),
+            self._make_result("mh01", "C", True, 2, "DEVICE_SPEC", 0.8, 0.2, True),
+            self._make_result("mh02", "B", True, 0, "KINSHIP_LOCATION", 0.2),
+            self._make_result("mh02", "C", True, 1, "KINSHIP_LOCATION", 0.6, 0.3, False),
+        ])
+        lines = _build_closure_analysis(summary, ["A", "B", "C"])
+        rule_lines = [l for l in lines if "DEVICE_SPEC" in l or "KINSHIP_LOCATION" in l]
+        assert len(rule_lines) == 2

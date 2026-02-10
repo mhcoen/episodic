@@ -184,6 +184,10 @@ CONFIG_DOCS = {
     "kg_include_past": "Include TIME_PAST tagged edges by default",
     "kg_realtime": "Enable per-turn background KG extraction",
     "kg_escalate_model": "Fallback model for failed extractions",
+    "kg_closure_seed_limit": "Max matched entities used as closure seeds",
+    "kg_edges_per_entity": "Budget per entity (guaranteed 2 + fill)",
+    "kg_derived_per_seed": "Max derived edges per seed entity",
+    "kg_relevance_gate": "Suppress block if no direct overlap and no seeded closure",
     "extraction_model": "Model for KG extraction",
 
     # Muse mode synthesis configuration

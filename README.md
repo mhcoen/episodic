@@ -1,6 +1,6 @@
 # Episodic 🧠
 
-Episodic is a conversational memory system that makes talking to an LLM feel like talking to someone who remembers what you said and can reason about it. Two mechanisms run continuously during conversation to make this possible. Neural topic segmentation organizes the conversation into a navigable graph, compresses inactive segments, and restores them when subjects recur. A knowledge graph extracts structured facts from every message in real time, performs multi-hop inference over them, and injects relevant results back into the context window with no additional LLM calls.
+Episodic is a conversational memory system that makes talking to an LLM feel like talking to a person. It remembers what you said and can reason about it. Two mechanisms run continuously during conversation to make this possible. Neural topic segmentation organizes the conversation into a navigable graph, compresses inactive segments, and restores them when subjects recur. A knowledge graph extracts structured facts from every message in real time, performs multi-hop inference over them, and injects relevant results back into the context window with no additional LLM calls.
 
 - **Simple mode** lets users chat and search the web without touching any configuration. It handles topic detection, subject-change boundaries, conversation records, and summaries automatically. Conversations are stored as plain markdown files that Episodic can both read and write.
 

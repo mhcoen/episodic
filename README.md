@@ -39,7 +39,7 @@ If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation
 
 ## 🎬 Basic Example
 
-This example shows what Episodic does that a vanilla LLM cannot. The user
+This is one example of what Episodic does that a vanilla LLM cannot. The user
 has a working conversation, moves on to unrelated topics for hours, then
 comes back. The system restores the prior discussion thread and fills in
 entity relationships from the knowledge graph — the user never repeats

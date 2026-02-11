@@ -227,11 +227,11 @@ class WeatherProvider(DataProvider):
         import json
 
         try:
-            url = "http://ip-api.com/json/?fields=city,regionCode,country"
+            url = "http://ip-api.com/json/?fields=city,region,country"
             with urllib.request.urlopen(url, timeout=5) as response:
                 data = json.loads(response.read().decode())
                 if data.get("city"):
-                    region = data.get("regionCode", "")
+                    region = data.get("region", "")
                     if region:
                         return f"{data['city']}, {region}"
                     return data["city"]

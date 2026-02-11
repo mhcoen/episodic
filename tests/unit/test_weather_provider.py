@@ -219,7 +219,7 @@ class TestIPGeolocation:
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
             "city": "Chicago",
-            "regionCode": "IL",
+            "region": "IL",
             "country": "United States"
         }).encode()
         mock_response.__enter__ = lambda s: s
@@ -235,7 +235,7 @@ class TestIPGeolocation:
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
             "city": "London",
-            "regionCode": "",
+            "region": "",
             "country": "United Kingdom"
         }).encode()
         mock_response.__enter__ = lambda s: s
@@ -260,7 +260,7 @@ class TestIPGeolocation:
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
             "city": "Seattle",
-            "regionCode": "WA",
+            "region": "WA",
         }).encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
@@ -276,7 +276,7 @@ class TestIPGeolocation:
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
             "city": "Denver",
-            "regionCode": "CO",
+            "region": "CO",
         }).encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)
@@ -330,7 +330,7 @@ class TestIPGeolocation:
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps({
             "city": "Austin",
-            "regionCode": "TX",
+            "region": "TX",
         }).encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = MagicMock(return_value=False)

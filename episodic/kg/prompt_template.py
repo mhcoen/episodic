@@ -77,6 +77,11 @@ Predicate set and triggers
   CRITICAL projection rule: "studying X" and "studies X" MUST emit studies, NEVER uses. "Studies at MIT" remains located_at (object is org, not topic).
 - WORKS_ON(Person, Artifact|Topic) — building, working on, developing, creating, contributing to, maintaining, hacking on
   Use when a person is actively building or developing something. Do NOT use uses or has for active development relationships.
+- DEADLINE(Entity, DateDesc) — deadline, due, due date, submit by, submission
+- SCHEDULED_FOR(Entity, DateDesc) — scheduled for, happening on, planned for, set for, on [date]
+- STARTS_AT(Entity, DateDesc) — starts, begins, starting, commencing, kicks off
+- ENDS_AT(Entity, DateDesc) — ends, ending, until, through, concludes, wraps up
+- RECURRING(Entity, RecurrenceDesc) — every, weekly, daily, monthly, each, recurring, regularly on
 
 Projection rules (MANDATORY — override general triggers)
 These rules take precedence over general trigger matching. Apply them first.
@@ -121,6 +126,11 @@ Allowed subject and object types per predicate:
 - studies: subject must be a person. object must be topic.
 - affiliated_with: subject must be person or org. object must be org.
 - works_on: subject must be a person. object must be artifact or topic.
+- deadline: subject may be artifact or topic or org. object must be topic (date description).
+- scheduled_for: subject may be person or artifact or topic or org. object must be topic.
+- starts_at: subject may be person or artifact or topic or org. object must be topic.
+- ends_at: subject may be person or artifact or topic or org. object must be topic.
+- recurring: subject may be artifact or topic or org. object must be topic.
 
 Explicit anti-star policy (CRITICAL)
 Before emitting any edge with subj_ref = user:self, answer this question for the specific clause:
@@ -143,6 +153,17 @@ Examples you must follow:
   Emit: Emma studies computer science
   Do not emit: user:self located_at MIT
   Do not swap Jake and Emma. The subject of studies at is the named person in the same clause.
+
+- We're submitting to AAAI. Deadline is March 15.
+  Emit: AAAI deadline March 15
+
+- The team standup is every Monday at 9am.
+  Emit: team standup recurring Mondays 9am
+
+- The conference runs June 10-14 in Vancouver.
+  Emit: conference starts_at June 10
+  Emit: conference ends_at June 14
+  Emit: conference located_at Vancouver
 
 Clause segmentation and subject selection procedure (apply in order)
 You must apply this procedure for each edge you emit.
@@ -372,7 +393,7 @@ Aliases enable read-side entity resolution. Do not invent aliases not present in
 
 - edges: array of objects with keys:
   - subj_ref: "user:self" or "eN" or "db:<entity_id>"
-  - predicate: one of "uses", "wants", "prefers", "role", "has", "located_at", "part_of", "related_to", "is_a", "powered_by", "studies", "affiliated_with", "works_on"
+  - predicate: one of "uses", "wants", "prefers", "role", "has", "located_at", "part_of", "related_to", "is_a", "powered_by", "studies", "affiliated_with", "works_on", "deadline", "scheduled_for", "starts_at", "ends_at", "recurring"
   - obj_ref: "user:self" or "eN" or "db:<entity_id>"
   - source_assertion: assertion_key
   - confidence: number 0.0 to 1.0

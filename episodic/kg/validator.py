@@ -188,6 +188,7 @@ ALLOWED_PREDICATES = {
     'uses', 'wants', 'prefers', 'role', 'has', 'located_at',
     'part_of', 'related_to', 'is_a', 'powered_by',
     'studies', 'affiliated_with', 'works_on',  # Phase 1.2
+    'deadline', 'scheduled_for', 'starts_at', 'ends_at', 'recurring',  # Temporal
 }
 ALLOWED_POLARITIES = {'affirm', 'negate'}
 ALLOWED_CERTAINTIES = {'explicit', 'hedged'}
@@ -219,6 +220,11 @@ DOMAIN_RANGE: dict[str, tuple[set[str], set[str]]] = {
     'studies':        ({'person'},                     {'topic'}),                       # Phase 1.2
     'affiliated_with':({'person', 'org'},              {'org'}),                         # Phase 1.2
     'works_on':       ({'person'},                     {'artifact', 'topic'}),           # Phase 1.2
+    'deadline':       ({'artifact', 'topic', 'org'},              {'topic'}),           # Temporal
+    'scheduled_for':  ({'person', 'artifact', 'topic', 'org'},   {'topic'}),           # Temporal
+    'starts_at':      ({'person', 'artifact', 'topic', 'org'},   {'topic'}),           # Temporal
+    'ends_at':        ({'person', 'artifact', 'topic', 'org'},   {'topic'}),           # Temporal
+    'recurring':      ({'artifact', 'topic', 'org'},              {'topic'}),           # Temporal
 }
 
 

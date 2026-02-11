@@ -27,6 +27,7 @@ PREDICATE_PRIORITY = {
     'has': 0, 'is_a': 1, 'located_at': 2, 'affiliated_with': 3,
     'part_of': 4, 'related_to': 5, 'powered_by': 6, 'role': 7,
     'studies': 8, 'works_on': 9, 'uses': 10, 'prefers': 11, 'wants': 12,
+    'deadline': 1, 'scheduled_for': 2, 'starts_at': 2, 'ends_at': 2, 'recurring': 3,
 }
 
 KINSHIP_CUES = frozenset({

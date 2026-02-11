@@ -36,6 +36,8 @@ def kg_command(action: str = None, *args: str) -> None:
         kg_probe(list(args))
     elif action == 'merge':
         kg_merge(list(args))
+    elif action == 'deadlines':
+        kg_deadlines()
     elif action == 'dupes':
         kg_dupes()
     elif action == 'eval':
@@ -48,7 +50,7 @@ def kg_command(action: str = None, *args: str) -> None:
         typer.secho(f"Unknown KG action: {action}", fg=get_error_color())
         typer.secho(
             "Usage: /kg [status|entities|entity|edges|search|update|rebuild|"
-            "skip|patch|stats|probe|merge|dupes|eval|explain|blame]",
+            "skip|patch|stats|probe|merge|dupes|deadlines|eval|explain|blame]",
             fg=get_text_color(),
         )
 
@@ -567,6 +569,35 @@ def kg_dupes() -> None:
     typer.secho(f"Duplicate entities ({len(rows)}):", fg=get_heading_color(), bold=True)
     for r in rows:
         typer.secho(f"  e{r[0]} + e{r[1]}: {r[2]} ({r[3]})", fg=get_text_color())
+
+
+def kg_deadlines() -> None:
+    """Show temporal edges (deadline, scheduled_for, starts_at, ends_at, recurring)."""
+    from episodic.kg.db_kg import kg_tables_exist, _use_conn
+    if not kg_tables_exist():
+        typer.secho("Knowledge graph tables not found.", fg=get_warning_color())
+        return
+    with _use_conn() as conn:
+        rows = conn.execute("""
+            SELECT s.canonical_name, e.predicate, o.canonical_name, a.source_node_id
+            FROM kg_edges e
+            JOIN kg_entities s ON e.subj_entity_id = s.entity_id
+            JOIN kg_entities o ON e.obj_entity_id = o.entity_id
+            JOIN kg_assertions a ON e.assertion_id = a.assertion_id
+            WHERE e.predicate IN ('deadline','scheduled_for','starts_at','ends_at','recurring')
+              AND a.status = 'active'
+              AND s.merged_into_entity_id IS NULL
+              AND o.merged_into_entity_id IS NULL
+            ORDER BY e.predicate, s.canonical_name
+        """).fetchall()
+    if not rows:
+        typer.secho("No temporal edges found.", fg=get_system_color())
+        return
+    typer.secho("Temporal edges:", fg=get_heading_color())
+    for subj, pred, obj, node_id in rows:
+        typer.secho(
+            f"  {subj} {pred} {obj}  (node {node_id})", fg=get_text_color(),
+        )
 
 
 def kg_eval(args: List[str]) -> None:

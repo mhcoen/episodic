@@ -318,6 +318,16 @@ def phase_skip_llm(manager: "ConversationManager", ctx: TurnContext) -> None:
 
     persist_context_assembly_debug(ctx.user_node_id, context_debug, reactivation_decision)
 
+    # Show context restoration feedback to user
+    if ctx.reactivation_applied and context_debug:
+        node_count = len(context_debug.get("included_node_ids", []))
+        if node_count > 0:
+            topic_name = manager.current_topic[0] if manager.current_topic else "unknown"
+            secho_color(
+                f"\n📎 Pulled {node_count} earlier messages about: {topic_name}",
+                fg=get_system_color(),
+            )
+
     # Create a placeholder response
     display_response = "[LLM response skipped]"
     # Extract provider from model if present
@@ -499,6 +509,26 @@ def phase_context_assembly(manager: "ConversationManager", ctx: TurnContext) -> 
 
     persist_context_assembly_debug(
         ctx.user_node_id, ctx.context_debug, ctx.reactivation_decision
+    )
+
+    # Show context restoration feedback to user
+    if ctx.reactivation_applied and ctx.context_debug:
+        _show_context_restoration(manager, ctx)
+
+
+def _show_context_restoration(manager: "ConversationManager", ctx: TurnContext) -> None:
+    """Print a one-liner when context is restored from a reactivated topic."""
+    from episodic.color_utils import secho_color
+    from episodic.configuration import get_system_color
+
+    node_count = len(ctx.context_debug.get("included_node_ids", []))
+    if node_count == 0:
+        return
+
+    topic_name = manager.current_topic[0] if manager.current_topic else "unknown"
+    secho_color(
+        f"\n📎 Pulled {node_count} earlier messages about: {topic_name}",
+        fg=get_system_color(),
     )
 
 

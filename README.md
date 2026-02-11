@@ -39,33 +39,59 @@ If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation
 
 ## 🎬 Basic Example
 
-This example shows what Episodic does that a vanilla LLM cannot. The user mentions facts in separate turns, talks about other things long enough for the original topic to be compressed out of context, and then asks a question that requires connecting those earlier facts.
+This example shows what Episodic does that a vanilla LLM cannot. The user
+has a working conversation, moves on to unrelated topics for hours, then
+comes back. The system restores the prior discussion thread and fills in
+entity relationships from the knowledge graph — the user never repeats
+anything.
 
 ```text
-# Early in the conversation, two facts are stated separately:
-> My daughter Emma is starting at MIT this fall.
-🤖 That's exciting! MIT is a great choice...
-
-> We got Emma a MacBook Pro M3 Max with 64GB of RAM.
-🤖 The M3 Max is a powerful machine...
+# A working conversation about a paper:
+> I'm working with Dr. Reyes on a paper about coastal erosion modeling.
+> We're submitting to AAAI. Deadline is March 15.
+> Should we use the NOAA tidal dataset or the EU Copernicus data?
+🤖 NOAA has better temporal resolution for the Atlantic coast sites
+   you're modeling. Copernicus has broader coverage but coarser
+   granularity. For site-specific erosion rates, NOAA is stronger.
+> Let's go with NOAA.
 
 # ... hours of conversation on other topics ...
-# The original messages have been compressed out of the context window.
-# A standard LLM has lost both facts entirely.
+# The original messages have left the context window.
 
-> Can my daughter run local models on her laptop?
-🤖 Yes. With 64GB of unified memory, Emma's MacBook Pro M3 Max can run
-   models up to ~30B parameters using Ollama or llama.cpp.
+# The user returns to the topic:
+> Where did we land on the dataset for the paper?
 
-# The original messages were compressed long ago.
-# Episodic builds the context for every interaction. The LLM does the rest.
+📎 Pulled 6 earlier messages about: coastal-erosion-paper
+
+🤖 You decided on the NOAA tidal dataset over EU Copernicus. The
+   reasoning was that NOAA has better temporal resolution for the
+   Atlantic coast sites. I had suggested downloading the hourly
+   tide gauge records for your three stations first.
+
+# That answer came from the restored conversation thread — the original
+# messages were retrieved from the database and placed back into context.
+
+# Now the user asks for a task:
+> Send Dr. Reyes a reminder about the submission deadline.
+🤖 Drafting a message to Dr. Reyes:
+
+   "Hi Dr. Reyes — just a heads-up that the AAAI submission deadline
+    for our coastal erosion modeling paper is March 15. Let me know
+    if you need anything from my end before then."
+
+   [Send via MCP → email tool]
+
+# The user said eight words. Episodic filled in who, what, and when:
 
 > /kg explain
-🔗 Injected 4 edges (83 tokens):
-   user:self → related_to → Emma (seed: user:self)
-   Emma → has → MacBook Pro M3 Max (seed: Emma)
-   MacBook Pro M3 Max → has → 64GB RAM (derived: DEVICE_SPEC)
-   Emma → located_at → MIT (derived: KINSHIP_LOCATION)
+🔗 Injected 4 edges (71 tokens):
+   user:self → works_on → coastal erosion modeling paper (seed: user:self)
+   user:self → related_to → Dr. Reyes (seed: user:self)
+   Dr. Reyes → works_on → coastal erosion modeling paper (seed: Dr. Reyes)
+   coastal erosion modeling paper → deadline → AAAI March 15 (seed: paper)
+
+# A vanilla LLM that lost the earlier conversation would not know who
+# Dr. Reyes is, what paper you're working on, or when it's due.
 ```
 
 ## 🚀 Quick Start

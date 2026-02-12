@@ -352,14 +352,37 @@ class TestLiveMCPGsuite:
 
     @pytest.fixture(scope="class")
     def manager(self):
-        """Create and connect to the real MCP server."""
+        """Create and connect to the real MCP server.
+
+        Reads config from the real ~/.episodic/config.json since pytest
+        conftest redirects EPISODIC_HOME to a temp dir.
+        """
+        import json
+        from pathlib import Path
         from episodic.mcp.client_manager import MCPClientManager
-        mgr = MCPClientManager()
+
+        # Load real user config (pytest conftest overrides HOME/EPISODIC_HOME)
+        from tests.conftest import _ORIGINAL_HOME
+        real_home = _ORIGINAL_HOME or str(Path.home())
+        config_path = Path(real_home) / ".episodic" / "config.json"
+        if not config_path.exists():
+            pytest.skip(f"No config at {config_path}")
+
+        with open(config_path) as f:
+            user_config = json.load(f)
+
+        servers = user_config.get("mcp_servers", {})
+        if "gsuite" not in servers:
+            pytest.skip("No gsuite server in config")
+
+        mgr = MCPClientManager(config=servers)
 
         async def _connect():
             ok = await mgr.connect("gsuite")
             if not ok:
-                pytest.skip("Could not connect to gsuite MCP server")
+                client = mgr.get_client("gsuite")
+                err = client.health if client else "no client"
+                pytest.skip(f"Could not connect to gsuite MCP server: {err}")
             return mgr
 
         yield asyncio.run(_connect())

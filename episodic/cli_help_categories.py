@@ -471,6 +471,64 @@ def show_assistant_help():
     typer.secho("  Example: \"Set a timer for five minutes\"", fg=get_system_color())
 
 
+def show_calendar_email_help():
+    """Show calendar and email commands (MCP-backed)."""
+
+    # Calendar commands
+    calendar_commands = [
+        ("/cal [query]", "Show calendar events (e.g., /cal tomorrow)"),
+        ("/calendar [query]", "Show calendar events (alias for /cal)"),
+        ("/calendars", "List available calendars"),
+        ("/schedule <event> at <time>", "Create a calendar event"),
+    ]
+
+    # Email commands
+    email_commands = [
+        ("/email [query]", "Search email (e.g., /email from Alice)"),
+        ("/mail [query]", "Search email (alias for /email)"),
+        ("/inbox [unread]", "Show inbox (optionally unread only)"),
+        ("/draft <to> <body>", "Compose an email draft"),
+        ("/reply <body>", "Reply to last email"),
+        ("/forward <to>", "Forward last email"),
+    ]
+
+    # Examples
+    examples = [
+        ("/cal tomorrow", "Show tomorrow's events"),
+        ("/cal next week", "Show next week's events"),
+        ("/schedule standup at 9am", "Create a standup event"),
+        ("/email from Alice", "Search emails from Alice"),
+        ("/inbox unread", "Show unread messages"),
+        ("/draft bob@example.com Hi!", "Draft an email to Bob"),
+        ("/reply sounds good", "Reply to last email"),
+    ]
+
+    # Find the longest command for alignment
+    all_commands = calendar_commands + email_commands + examples
+    max_width = max(len(cmd) for cmd, _ in all_commands)
+
+    # Display header
+    typer.secho("📅 Calendar & Email", fg=get_heading_color(), bold=True)
+    typer.secho("Manage calendar events and email via Google Workspace (MCP).", fg=get_text_color())
+    typer.echo()
+
+    typer.secho("Calendar:", fg=get_text_color())
+    _display_aligned_commands(calendar_commands, max_width)
+    typer.echo()
+
+    typer.secho("Email:", fg=get_text_color())
+    _display_aligned_commands(email_commands, max_width)
+    typer.echo()
+
+    typer.secho("Examples:", fg=get_heading_color(), bold=True)
+    _display_aligned_commands(examples, max_width)
+    typer.echo()
+
+    typer.secho("Note:", fg=get_text_color())
+    typer.secho("  Requires MCP server (mcp-gsuite) configuration.", fg=get_system_color())
+    typer.secho("  These commands also work via voice in /voice mode.", fg=get_system_color())
+
+
 def show_mcp_help():
     """Show MCP server commands."""
 

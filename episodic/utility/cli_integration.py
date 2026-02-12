@@ -26,7 +26,17 @@ _adapter_registry: Optional[AdapterRegistry] = None
 _audio_player: Optional[AudioPlayerImpl] = None
 _data_refresh_scheduler: Optional[DataRefreshScheduler] = None
 _last_result: Optional[UtilityResult] = None
+_mcp_client_manager = None
 _schema_initialized: bool = False
+
+
+def _get_mcp_client_manager():
+    """Get or create the shared MCPClientManager singleton."""
+    global _mcp_client_manager
+    if _mcp_client_manager is None:
+        from episodic.mcp.client_manager import MCPClientManager
+        _mcp_client_manager = MCPClientManager()
+    return _mcp_client_manager
 
 
 def _ensure_utility_schema() -> None:
@@ -558,6 +568,10 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
     if query is None:
         return None
 
+    # Calendar/Email: delegate to async MCP dispatch
+    if query.category in ("calendar", "email"):
+        return _execute_async_utility_query(query)
+
     # Initialize only the services needed for this command category
     scheduler = None
     adapter_registry = None
@@ -776,6 +790,8 @@ def _execute_async_utility_query(query: UtilityQuery) -> Optional[UtilityResult]
     user_tz = config.get("timezone", "America/Chicago")
     _ensure_utility_schema()
 
+    mcp_client = _get_mcp_client_manager()
+
     from ..db_connection import get_connection
 
     async def _run():
@@ -784,15 +800,17 @@ def _execute_async_utility_query(query: UtilityQuery) -> Optional[UtilityResult]
                 query,
                 conn=conn,
                 user_tz=user_tz,
+                mcp_client=mcp_client,
             )
 
     # Run in event loop (create one if not running)
     try:
         loop = asyncio.get_running_loop()
-        # If we're already in an async context, use create_task
+        # Already in async context — run in a thread to avoid nested loop
         import concurrent.futures
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            result = loop.run_in_executor(pool, asyncio.run, _run())
+            future = pool.submit(asyncio.run, _run())
+            result = future.result()
     except RuntimeError:
         # No running loop, safe to use asyncio.run
         result = asyncio.run(_run())

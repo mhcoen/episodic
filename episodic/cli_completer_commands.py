@@ -425,7 +425,7 @@ def complete_help_command(parts: List[str], word: str) -> List[Completion]:
             'assistant': 'Timers, alarms, weather, news', 'settings': 'Configuration and system',
             'search': 'Knowledge base and muse', 'history': 'Navigation and history',
             'topics': 'Topic detection and management', 'markdown': 'Markdown file operations',
-            'all': 'Show all available commands',
+            'calendar': 'Calendar and email commands', 'all': 'Show all available commands',
         }, word)
         for cmd in sorted(command_registry._commands.keys()):
             if cmd.startswith(word.lower()):
@@ -571,4 +571,26 @@ def complete_alarm_command(parts: List[str], word: str) -> List[Completion]:
             '6am': '6:00 AM', '6:30am': '6:30 AM', '7am': '7:00 AM', '7:30am': '7:30 AM',
             '8am': '8:00 AM', '8:30am': '8:30 AM', '9am': '9:00 AM',
             '12pm': '12:00 PM (noon)', '1pm': '1:00 PM', '6pm': '6:00 PM',
+        }, word)
+
+
+def complete_calendar_command(parts: List[str], word: str) -> List[Completion]:
+    """Complete /cal, /calendar, /calendars, /schedule commands."""
+    if len(parts) == 2:
+        yield from _yield_options({
+            'today': 'Today\'s events',
+            'tomorrow': 'Tomorrow\'s events',
+            'this week': 'This week\'s events',
+            'next week': 'Next week\'s events',
+        }, word)
+
+
+def complete_email_command(parts: List[str], word: str) -> List[Completion]:
+    """Complete /email, /mail, /inbox, /draft, /reply, /forward commands."""
+    if len(parts) == 2:
+        yield from _yield_options({
+            'unread': 'Unread messages',
+            'from': 'Search by sender',
+            'about': 'Search by subject',
+            'recent': 'Recent messages',
         }, word)

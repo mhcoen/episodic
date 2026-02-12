@@ -43,6 +43,8 @@ from episodic.cli_completer_commands import (
     complete_play_command,
     complete_timer_command,
     complete_alarm_command,
+    complete_calendar_command,
+    complete_email_command,
 )
 
 
@@ -83,6 +85,16 @@ class EpisodicCompleter(Completer):
             'dnd': 'Do not disturb mode',
             'status': 'Show system status',
             'stop': 'Stop current action',
+            'cal': 'Show calendar events',
+            'calendar': 'Show calendar events',
+            'calendars': 'List available calendars',
+            'schedule': 'Schedule a calendar event',
+            'email': 'Search or manage email',
+            'mail': 'Search or manage email',
+            'inbox': 'Show email inbox',
+            'draft': 'Compose email draft',
+            'reply': 'Reply to email',
+            'forward': 'Forward email',
         }
         self.commands.update(self.utility_commands.keys())
 
@@ -199,6 +211,10 @@ class EpisodicCompleter(Completer):
                 yield from complete_timer_command(parts, word_before_cursor)
             elif full_cmd == 'alarm':
                 yield from complete_alarm_command(parts, word_before_cursor)
+            elif full_cmd in ('cal', 'calendar', 'calendars', 'schedule'):
+                yield from complete_calendar_command(parts, word_before_cursor)
+            elif full_cmd in ('email', 'mail', 'inbox', 'draft', 'reply', 'forward'):
+                yield from complete_email_command(parts, word_before_cursor)
 
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""

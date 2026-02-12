@@ -347,7 +347,7 @@ def help(advanced: bool = False, query: Optional[str] = None):
         query_lower = query.lower()
         
         # Check for category help first
-        categories = ["chat", "settings", "search", "history", "topics", "markdown", "voice", "assistant", "mcp"]
+        categories = ["chat", "settings", "search", "history", "topics", "markdown", "voice", "assistant", "calendar", "email", "cal", "mcp"]
         if query_lower in categories:
             from episodic.cli_registry import show_category_help
             show_category_help(query_lower)

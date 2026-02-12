@@ -377,9 +377,16 @@ async def dispatch_mcp(
         )
 
     try:
-        raw_result = await mcp_client.call_tool(
-            resolution.server_id, resolution.tool_name, {}
-        )
+        from .adapters import ARGUMENT_ADAPTERS
+
+        adapter_cls = ARGUMENT_ADAPTERS.get(query.command)
+        if adapter_cls:
+            adapted_args = adapter_cls().adapt(query.args or {}, resolution)
+        else:
+            adapted_args = query.args or {}
+
+        namespaced_tool = f"{resolution.server_id}.{resolution.tool_name}"
+        raw_result = await mcp_client.call_tool(namespaced_tool, adapted_args)
     except Exception as e:
         from .security.error_sanitizer import sanitize_error
         sanitized = sanitize_error(e)
@@ -389,6 +396,19 @@ async def dispatch_mcp(
             display_text=sanitized["error"]["message"],
             error_type="tool_error",
             error_message=str(e),
+            latency_us=(time.monotonic_ns() - start) // 1000,
+            logged=True,
+        )
+
+    # Check for error responses from client manager
+    if isinstance(raw_result, dict) and "error" in raw_result:
+        error_msg = raw_result.get("message", raw_result["error"])
+        return DispatchResult(
+            success=False,
+            speech_text="There was a problem with that request.",
+            display_text=error_msg,
+            error_type=raw_result["error"],
+            error_message=error_msg,
             latency_us=(time.monotonic_ns() - start) // 1000,
             logged=True,
         )

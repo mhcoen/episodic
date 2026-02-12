@@ -24,6 +24,7 @@ from episodic.cli_help_categories import (  # noqa: F401
     show_markdown_help,
     show_voice_help,
     show_assistant_help,
+    show_calendar_email_help,
     show_mcp_help,
 )
 
@@ -65,6 +66,7 @@ def show_help_with_categories():
         ("/help history", "Navigation and conversation history"),
         ("/help topics", "Topic detection and management"),
         ("/help markdown", "Markdown file operations"),
+        ("/help calendar", "Calendar and email commands (Google Workspace)"),
         ("/help mcp", "MCP server, tokens, and external tool access")
     ]
 
@@ -126,11 +128,13 @@ def show_category_help(category: str):
         show_voice_help()
     elif category == "assistant":
         show_assistant_help()
+    elif category in ("calendar", "email", "cal"):
+        show_calendar_email_help()
     elif category == "mcp":
         show_mcp_help()
     else:
         typer.secho(f"Unknown help category: {category}", fg="red")
-        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice, assistant, mcp", fg=get_text_color())
+        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice, assistant, calendar, mcp", fg=get_text_color())
 
 
 def show_advanced_help():

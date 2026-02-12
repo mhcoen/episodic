@@ -795,13 +795,18 @@ def _execute_async_utility_query(query: UtilityQuery) -> Optional[UtilityResult]
     from ..db_connection import get_connection
 
     async def _run():
-        with get_connection() as conn:
-            return await async_dispatch_utility(
-                query,
-                conn=conn,
-                user_tz=user_tz,
-                mcp_client=mcp_client,
-            )
+        try:
+            with get_connection() as conn:
+                return await async_dispatch_utility(
+                    query,
+                    conn=conn,
+                    user_tz=user_tz,
+                    mcp_client=mcp_client,
+                )
+        finally:
+            # Disconnect within same async context to avoid
+            # cancel-scope errors during event loop shutdown
+            await mcp_client.disconnect_all()
 
     # Run in event loop (create one if not running)
     try:

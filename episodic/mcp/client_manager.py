@@ -18,6 +18,8 @@ class MCPClientManager:
     to avoid collisions.
     """
 
+    _logging_configured = False
+
     def __init__(self, config: Optional[dict] = None):
         """Initialize the client manager.
 
@@ -30,6 +32,30 @@ class MCPClientManager:
             config = self._load_config()
         self._server_configs = config or {}
         self._clients: Dict[str, "MCPClient"] = {}
+        self._suppress_library_noise()
+
+    @classmethod
+    def _suppress_library_noise(cls) -> None:
+        """Suppress noisy logs from MCP and Google libraries.
+
+        The mcp-gsuite subprocess prints INFO lines to stderr (credentials,
+        discovery cache) and the MCP SDK logs ERROR tracebacks for non-JSON
+        lines the server emits during startup (e.g. ``'darwin'``).  Neither
+        affects functionality, so we silence them here.
+        """
+        if cls._logging_configured:
+            return
+        cls._logging_configured = True
+        # Suppress JSONRPC parse-error tracebacks for non-JSON server output
+        logging.getLogger("mcp.client.stdio").setLevel(logging.CRITICAL)
+        for name in (
+            "mcp",
+            "mcp.server.lowlevel.server",
+            "googleapiclient.discovery_cache",
+            "httpcore",
+            "httpx",
+        ):
+            logging.getLogger(name).setLevel(logging.WARNING)
 
     @staticmethod
     def _load_config() -> dict:

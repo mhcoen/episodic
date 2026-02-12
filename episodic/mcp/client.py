@@ -87,8 +87,12 @@ class MCPClient:
             )
 
             self._exit_stack = AsyncExitStack()
+            # Redirect subprocess stderr to devnull to suppress
+            # noisy INFO logs from mcp-gsuite (credentials, discovery cache)
+            devnull = open(os.devnull, "w")  # noqa: SIM115
+            self._exit_stack.callback(devnull.close)
             stdio_transport = await self._exit_stack.enter_async_context(
-                stdio_client(server_params)
+                stdio_client(server_params, errlog=devnull)
             )
             read_stream, write_stream = stdio_transport
 
@@ -129,6 +133,10 @@ class MCPClient:
         if self._exit_stack:
             try:
                 await self._exit_stack.aclose()
+            except (RuntimeError, GeneratorExit, BaseExceptionGroup):
+                # Known noise from anyio cancel-scope cleanup when the
+                # event loop is shutting down from a different context.
+                pass
             except Exception as e:
                 logger.warning("Error disconnecting from %s: %s", self.server_id, e)
         self._session = None

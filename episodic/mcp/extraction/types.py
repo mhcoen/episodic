@@ -1,7 +1,7 @@
 """Core data types for the MCP intent extraction pipeline."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,16 @@ class ExtractionResult:
     confidence: float              # Logged only, not used for dispatch
     followup_suggestion: Optional[str]  # Secondary request if compound utterance
     raw_json: str                  # The raw JSON string from the LLM
+
+
+@dataclass(frozen=True)
+class PluginExtractionContribution:
+    """Extraction-pipeline contributions from a plugin."""
+    gate_keywords: List[str]
+    gate_phrases: List[List[str]]
+    intents: List["IntentDefinition"]
+    contacts: Dict[str, str] = field(default_factory=dict)
+    context_provider: Optional[Callable] = field(default=None, hash=False)
 
 
 @dataclass(frozen=True)

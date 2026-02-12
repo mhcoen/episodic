@@ -18,6 +18,7 @@ from episodic.mcp.extraction.types import (
     DispatchabilityVerdict,
     ExtractionResult,
     IntentDefinition,
+    PluginExtractionContribution,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "IntentDefinition",
     "ExtractionResult",
     "DispatchabilityVerdict",
+    "PluginExtractionContribution",
 ]

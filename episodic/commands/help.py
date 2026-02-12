@@ -347,7 +347,22 @@ def help(advanced: bool = False, query: Optional[str] = None):
         query_lower = query.lower()
         
         # Check for category help first
-        categories = ["chat", "settings", "search", "history", "topics", "markdown", "voice", "assistant", "calendar", "email", "cal", "mcp"]
+        categories = ["chat", "settings", "search", "history", "topics", "markdown", "voice", "assistant", "mcp"]
+        # Add plugin-contributed categories
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            if not registry.initialized:
+                registry.register_all()
+            for reg in registry.registered():
+                for sc in reg.slash_commands:
+                    if sc.domain and sc.domain not in categories:
+                        categories.append(sc.domain)
+                    name = sc.name.lstrip('/')
+                    if name not in categories:
+                        categories.append(name)
+        except ImportError:
+            pass
         if query_lower in categories:
             from episodic.cli_registry import show_category_help
             show_category_help(query_lower)

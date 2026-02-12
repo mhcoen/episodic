@@ -35,9 +35,6 @@ CATEGORY_DISPATCHERS = {
     "media": dispatch_media_command,
     "weather": dispatch_weather_command,
     "news": dispatch_news_command,
-    # MCP-backed categories (dispatched via async path)
-    "calendar": None,
-    "email": None,
 }
 
 
@@ -156,6 +153,20 @@ def dispatch_utility(
     dispatcher = CATEGORY_DISPATCHERS.get(query.category)
 
     if dispatcher is None:
+        # Check plugin registry for MCP-backed categories
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            for reg in registry.registered():
+                for sc in reg.slash_commands:
+                    if sc.domain == query.category:
+                        # MCP-backed category — must use async path
+                        return UtilityResult.error(
+                            "async_required",
+                            f"{query.category} commands require async dispatch"
+                        )
+        except ImportError:
+            pass
         result = UtilityResult.error(
             "unknown_category",
             f"Unknown utility category: {query.category}"
@@ -253,7 +264,19 @@ async def async_dispatch_utility(
 
     For non-MCP categories, delegates to sync dispatch_utility().
     """
-    if query.category not in ("calendar", "email"):
+    # Check if category is MCP-backed via plugin registry
+    _mcp_categories = {"calendar", "email"}
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        for reg in registry.registered():
+            for sc in reg.slash_commands:
+                if sc.domain:
+                    _mcp_categories.add(sc.domain)
+    except ImportError:
+        pass
+
+    if query.category not in _mcp_categories:
         # Delegate to sync dispatcher for non-MCP categories
         return dispatch_utility(query, conn=conn, user_tz=user_tz)
 

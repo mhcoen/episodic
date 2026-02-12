@@ -66,7 +66,7 @@ def show_help_with_categories():
         ("/help history", "Navigation and conversation history"),
         ("/help topics", "Topic detection and management"),
         ("/help markdown", "Markdown file operations"),
-        ("/help calendar", "Calendar and email commands (Google Workspace)"),
+        ("/help calendar", "Calendar and email commands (plugins)"),
         ("/help mcp", "MCP server, tokens, and external tool access")
     ]
 
@@ -128,13 +128,45 @@ def show_category_help(category: str):
         show_voice_help()
     elif category == "assistant":
         show_assistant_help()
-    elif category in ("calendar", "email", "cal"):
-        show_calendar_email_help()
     elif category == "mcp":
         show_mcp_help()
     else:
-        typer.secho(f"Unknown help category: {category}", fg="red")
-        typer.secho("Available categories: chat, settings, search, history, topics, markdown, voice, assistant, calendar, mcp", fg=get_text_color())
+        # Check plugin registry for help categories
+        handled = False
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            if not registry.initialized:
+                registry.register_all()
+            # Check if category matches a plugin slash command or help category
+            for reg in registry.registered():
+                sc_match = any(
+                    category in (sc.name.lstrip('/'), sc.domain)
+                    or category in [a.lstrip('/') for a in sc.aliases]
+                    for sc in reg.slash_commands
+                )
+                cat_match = reg.help_category and category.lower() in reg.help_category.lower()
+                if (sc_match or cat_match) and reg.help_fn:
+                    help_text = reg.help_fn()
+                    typer.echo(help_text)
+                    handled = True
+                    break
+        except ImportError:
+            pass
+
+        if not handled:
+            typer.secho(f"Unknown help category: {category}", fg="red")
+            # Build available categories dynamically
+            cats = ["chat", "settings", "search", "history", "topics", "markdown", "voice", "assistant", "mcp"]
+            try:
+                from episodic.mcp.plugins import get_plugin_registry
+                registry = get_plugin_registry()
+                for reg in registry.registered():
+                    for sc in reg.slash_commands:
+                        cats.append(sc.domain)
+            except ImportError:
+                pass
+            typer.secho(f"Available categories: {', '.join(sorted(set(cats)))}", fg=get_text_color())
 
 
 def show_advanced_help():

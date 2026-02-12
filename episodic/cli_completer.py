@@ -43,8 +43,6 @@ from episodic.cli_completer_commands import (
     complete_play_command,
     complete_timer_command,
     complete_alarm_command,
-    complete_calendar_command,
-    complete_email_command,
 )
 
 
@@ -85,17 +83,24 @@ class EpisodicCompleter(Completer):
             'dnd': 'Do not disturb mode',
             'status': 'Show system status',
             'stop': 'Stop current action',
-            'cal': 'Show calendar events',
-            'calendar': 'Show calendar events',
-            'calendars': 'List available calendars',
-            'schedule': 'Schedule a calendar event',
-            'email': 'Search or manage email',
-            'mail': 'Search or manage email',
-            'inbox': 'Show email inbox',
-            'draft': 'Compose email draft',
-            'reply': 'Reply to email',
-            'forward': 'Forward email',
         }
+
+        # Add plugin slash commands
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            if not registry.initialized:
+                registry.register_all()
+            for reg in registry.registered():
+                for sc in reg.slash_commands:
+                    name = sc.name.lstrip('/')
+                    self.utility_commands[name] = sc.description or f"{sc.category} command"
+                    for alias in sc.aliases:
+                        alias_name = alias.lstrip('/')
+                        self.utility_commands[alias_name] = sc.description or f"{sc.category} command"
+        except ImportError:
+            pass
+
         self.commands.update(self.utility_commands.keys())
 
         # Cache commonly used completions
@@ -211,10 +216,25 @@ class EpisodicCompleter(Completer):
                 yield from complete_timer_command(parts, word_before_cursor)
             elif full_cmd == 'alarm':
                 yield from complete_alarm_command(parts, word_before_cursor)
-            elif full_cmd in ('cal', 'calendar', 'calendars', 'schedule'):
-                yield from complete_calendar_command(parts, word_before_cursor)
-            elif full_cmd in ('email', 'mail', 'inbox', 'draft', 'reply', 'forward'):
-                yield from complete_email_command(parts, word_before_cursor)
+            else:
+                # Check plugin slash commands for completions
+                yield from self._complete_plugin_command(full_cmd, parts, word_before_cursor)
+
+    def _complete_plugin_command(self, cmd: str, parts: list, word: str):
+        """Complete a plugin slash command using its defined completions."""
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            sc = registry.get_slash_command(f"/{cmd}")
+            if sc and sc.completions and len(parts) == 2:
+                for comp in sc.completions:
+                    if comp.startswith(word.lower()):
+                        yield Completion(
+                            comp, start_position=-len(word),
+                            display_meta=sc.category or "",
+                        )
+        except ImportError:
+            pass
 
     def _get_command_meta(self, cmd: str) -> str:
         """Get command description for display."""

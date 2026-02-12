@@ -334,6 +334,97 @@ def _parse_remind_args(text: str, user_tz: str = "America/Chicago") -> Tuple[Opt
     return (None, None, None)
 
 
+def _handle_plugin_slash_command(sc, args_str: str, cmd: str) -> Optional[UtilityQuery]:
+    """Build a UtilityQuery for a plugin slash command.
+
+    Uses the extraction pipeline's matched_domains + domain scoping
+    to create a query that will be dispatched via async MCP path.
+
+    Since the user explicitly typed a slash command, we always produce
+    a query — extraction refines it, but on failure or null intent we
+    fall back to a simple passthrough query for the domain.
+    """
+    default_command = (
+        f"{sc.domain}.query" if sc.domain == "calendar"
+        else f"{sc.domain}.search"
+    )
+
+    if not args_str.strip():
+        # No arguments — default to a basic query for the domain
+        default_args: dict = {}
+        if sc.domain == "email":
+            default_args = {"unread_only": True}
+        return create_utility_query(
+            sc.domain, default_command,
+            args=default_args, source="cli",
+            raw_input=f"/{cmd}",
+        )
+
+    # Use extraction to parse the natural language args
+    try:
+        import asyncio
+        from episodic.mcp.extraction import (
+            extract_intent,
+            check_dispatchability,
+        )
+        from episodic.mcp.extraction.prompt import get_intents_for_domains
+
+        # Scope extraction to the slash command's domain
+        domains = {sc.domain}
+        intents = get_intents_for_domains(domains)
+
+        async def _extract():
+            return await extract_intent(
+                args_str,
+                matched_domains=domains,
+                contacts={},
+            )
+
+        try:
+            loop = asyncio.get_running_loop()
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, _extract())
+                result = future.result()
+        except RuntimeError:
+            result = asyncio.run(_extract())
+
+        verdict = check_dispatchability(result, intents)
+
+        if verdict.dispatchable and verdict.intent:
+            return create_utility_query(
+                sc.domain, verdict.intent,
+                args=verdict.args,
+                source="cli",
+                confidence=1.0,
+                raw_input=f"/{cmd} {args_str}",
+            )
+        elif verdict.missing_required_args:
+            missing = ", ".join(verdict.missing_required_args)
+            from ..color_utils import secho_color
+            secho_color(f"Missing required info: {missing}", fg="yellow")
+            return None
+        elif verdict.is_unknown_command:
+            from ..color_utils import secho_color
+            secho_color(
+                f"Not sure what you mean by that. "
+                f"Try: /{cmd} {', '.join(sc.completions[:3])}",
+                fg="yellow",
+            )
+            return None
+        # Null intent or other non-dispatchable: fall through to default
+    except Exception:
+        pass  # Extraction failure: fall through to default
+
+    # Fallback: user typed /cmd <text>, pass text as raw query
+    return create_utility_query(
+        sc.domain, default_command,
+        args={"query": args_str},
+        source="cli",
+        raw_input=f"/{cmd} {args_str}",
+    )
+
+
 def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
     """
     Handle a utility slash command.
@@ -522,48 +613,21 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
             raw_input=f"news {args_str}" if args_str else "news",
         )
 
-    # --- Calendar & Email (MCP) ---
-    elif cmd in ("cal", "calendar"):
-        from .cli_slash_calendar_email import parse_cal_args
-        query = parse_cal_args(args_str or "")
-
-    elif cmd == "calendars":
-        query = create_utility_query(
-            "calendar", "calendar.list",
-            args={}, source="cli",
-            raw_input="/calendars",
-        )
-
-    elif cmd == "schedule":
-        from .cli_slash_calendar_email import parse_schedule_args
-        query = parse_schedule_args(args_str or "")
-
-    elif cmd in ("email", "mail"):
-        from .cli_slash_calendar_email import parse_email_args
-        query = parse_email_args(args_str or "")
-
-    elif cmd == "inbox":
-        query = create_utility_query(
-            "email", "email.search",
-            args={"unread_only": True}, source="cli",
-            raw_input="/inbox",
-        )
-
-    elif cmd == "draft":
-        from .cli_slash_calendar_email import parse_draft_args
-        query = parse_draft_args(args_str or "")
-
-    elif cmd == "reply":
-        from .cli_slash_calendar_email import parse_reply_args
-        query = parse_reply_args(args_str or "")
-
-    elif cmd == "forward":
-        from .cli_slash_calendar_email import parse_forward_args
-        query = parse_forward_args(args_str or "")
-
     else:
-        # Not a utility command
-        return None
+        # Check plugin registry for slash commands
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        if not registry.initialized:
+            registry.register_all()
+
+        slash_cmd = f"/{cmd}"
+        sc = registry.get_slash_command(slash_cmd)
+        if sc is not None:
+            # Plugin slash command — use extraction pipeline
+            query = _handle_plugin_slash_command(sc, args_str or "", cmd)
+        else:
+            # Not a utility command
+            return None
 
     if query is None:
         return None
@@ -671,11 +735,22 @@ def is_utility_command(cmd: str) -> bool:
         "stop", "timer", "alarm", "time", "calc", "note",
         "remind", "play", "pause", "cancel", "undo", "dnd", "status",
         "weather", "forecast", "news",
-        # Calendar & Email (MCP)
-        "cal", "calendar", "calendars", "schedule",
-        "email", "mail", "inbox", "draft", "reply", "forward",
     }
-    return cmd in utility_commands
+    if cmd in utility_commands:
+        return True
+
+    # Check plugin registry for slash commands
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        if not registry.initialized:
+            registry.register_all()
+        if registry.has_slash_command(f"/{cmd}"):
+            return True
+    except ImportError:
+        pass
+
+    return False
 
 
 def handle_voice_utterance(text: str) -> Optional[UtilityResult]:
@@ -726,8 +801,19 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
     """Execute a UtilityQuery and return the result."""
     global _last_result
 
-    # Calendar/Email: delegate to async dispatch
-    if query.category in ("calendar", "email"):
+    # MCP-backed categories: delegate to async dispatch
+    _mcp_categories = {"calendar", "email"}
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        for reg in registry.registered():
+            for sc in reg.slash_commands:
+                if sc.domain:
+                    _mcp_categories.add(sc.domain)
+    except ImportError:
+        pass
+
+    if query.category in _mcp_categories:
         return _execute_async_utility_query(query)
 
     user_tz = config.get("timezone", "America/Chicago")

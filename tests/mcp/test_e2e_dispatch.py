@@ -2,8 +2,14 @@
 E2E tests for MCP dispatch — full chain from slash command to tool call.
 
 Tests the complete flow:
-  /cal tomorrow → parse_cal_args → UtilityQuery → async_dispatch_utility
-    → MCPResolver → dispatch_mcp → adapter.adapt → client.call_tool
+  /cal tomorrow → plugin extraction (fallback) → UtilityQuery
+    → async_dispatch_utility → MCPResolver → dispatch_mcp
+    → adapter.adapt → client.call_tool
+
+Only /cal (alias /calendar) and /email (aliases /mail, /gmail) are
+supported as plugin slash commands. All other calendar/email commands
+(/inbox, /calendars, /schedule, /draft, /reply, /forward) have been
+removed in favour of extraction-based routing through /cal and /email.
 
 Uses a mock MCP client injected at the client manager level to verify
 the entire wiring without needing a live server.
@@ -262,47 +268,6 @@ class TestE2EHandleUtilityCommand:
         _, params = _tool_call_args(mock_mgr)
         assert "is:unread" in params["query"]
 
-    def test_inbox_via_handle(self):
-        """/inbox routed through handle_utility_command."""
-        mock_mgr = _mock_manager({"emails": [], "content": ["No emails"]})
-        result = self._run("inbox", "", mock_mgr)
-
-        assert result is not None
-        assert result.status == ResultStatus.OK
-
-    def test_calendars_via_handle(self):
-        """/calendars routed through handle_utility_command."""
-        mock_mgr = _mock_manager({
-            "calendars": [{"id": "primary"}],
-            "content": ["Primary"],
-        })
-        result = self._run("calendars", "", mock_mgr)
-
-        assert result is not None
-        assert result.status == ResultStatus.OK
-        tool, _ = _tool_call_args(mock_mgr)
-        assert tool == "gsuite.list_calendars"
-
-    def test_schedule_via_handle(self):
-        """/schedule meeting routed through handle_utility_command."""
-        mock_mgr = _mock_manager({"content": ["Event created"]})
-        result = self._run("schedule", "team standup", mock_mgr)
-
-        assert result is not None
-        tool, params = _tool_call_args(mock_mgr)
-        assert tool == "gsuite.create_calendar_event"
-        assert params.get("summary") == "team standup"
-
-    def test_draft_via_handle(self):
-        """/draft to X about Y routed through handle_utility_command."""
-        mock_mgr = _mock_manager({"content": ["Draft created"]})
-        result = self._run("draft", "to bob@test.com about project update", mock_mgr)
-
-        assert result is not None
-        tool, params = _tool_call_args(mock_mgr)
-        assert tool == "gsuite.create_gmail_draft"
-        assert params["to"] == "bob@test.com"
-
     def test_mail_alias(self):
         """/mail is an alias for /email."""
         mock_mgr = _mock_manager({"emails": [], "content": ["No emails"]})
@@ -311,24 +276,12 @@ class TestE2EHandleUtilityCommand:
         assert result is not None
         assert result.status == ResultStatus.OK
 
-    def test_forward_via_handle(self):
-        """/forward to X routed through handle_utility_command."""
-        mock_mgr = _mock_manager({"content": ["Forwarded"]})
-        result = self._run("forward", "to carol@test.com", mock_mgr)
-
-        assert result is not None
-        tool, params = _tool_call_args(mock_mgr)
-        assert params.get("to") == "carol@test.com"
-
-    def test_reply_via_handle(self):
-        """/reply body text routed through handle_utility_command."""
-        mock_mgr = _mock_manager({"content": ["Replied"]})
-        result = self._run("reply", "sounds good", mock_mgr)
-
-        assert result is not None
-        tool, params = _tool_call_args(mock_mgr)
-        assert tool == "gsuite.reply_gmail_email"
-        assert params.get("body") == "sounds good"
+    def test_removed_commands_return_none(self):
+        """Removed commands (/inbox, /calendars, /schedule, /draft, /reply, /forward) return None."""
+        for cmd in ("inbox", "calendars", "schedule", "draft", "forward", "reply"):
+            mock_mgr = _mock_manager({})
+            result = self._run(cmd, "test", mock_mgr)
+            assert result is None, f"/{cmd} should return None (no longer a utility command)"
 
 
 # ============================================================

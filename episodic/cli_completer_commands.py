@@ -574,23 +574,3 @@ def complete_alarm_command(parts: List[str], word: str) -> List[Completion]:
         }, word)
 
 
-def complete_calendar_command(parts: List[str], word: str) -> List[Completion]:
-    """Complete /cal, /calendar, /calendars, /schedule commands."""
-    if len(parts) == 2:
-        yield from _yield_options({
-            'today': 'Today\'s events',
-            'tomorrow': 'Tomorrow\'s events',
-            'this week': 'This week\'s events',
-            'next week': 'Next week\'s events',
-        }, word)
-
-
-def complete_email_command(parts: List[str], word: str) -> List[Completion]:
-    """Complete /email, /mail, /inbox, /draft, /reply, /forward commands."""
-    if len(parts) == 2:
-        yield from _yield_options({
-            'unread': 'Unread messages',
-            'from': 'Search by sender',
-            'about': 'Search by subject',
-            'recent': 'Recent messages',
-        }, word)

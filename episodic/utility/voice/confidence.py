@@ -46,6 +46,10 @@ class ConfidenceCalculator:
         "list_add", "list_remove",
         "dnd_on", "dnd_off",
         "media_play", "media_pause", "media_stop",
+        # Calendar (MCP)
+        "calendar.create", "calendar.delete", "calendar.reschedule",
+        # Email (MCP)
+        "email.create_draft", "email.reply", "email.forward", "email.delete_draft",
     }
 
     READ_COMMANDS: Set[str] = {
@@ -54,6 +58,10 @@ class ConfidenceCalculator:
         "weather_now", "weather_forecast",
         "news_headlines",
         "media_status", "status",
+        # Calendar (MCP)
+        "calendar.list", "calendar.query", "calendar.freebusy",
+        # Email (MCP)
+        "email.search", "email.get", "email.get_attachments",
     }
 
     SYSTEM_COMMANDS: Set[str] = {

@@ -22,6 +22,8 @@ class UtilityCategory(Enum):
     MEDIA = "media"
     SYSTEM = "system"
     ROUTINE = "routine"
+    CALENDAR = "calendar"
+    EMAIL = "email"
 
 
 @dataclass(frozen=True)
@@ -130,8 +132,12 @@ MUTATING_COMMANDS = {
     "volume_up", "volume_down", "volume_mute", "volume_set",
     # System
     "stop", "cancel", "undo",
-    # Calendar
+    # Calendar (legacy)
     "cal_add", "cal_cancel",
+    # Calendar (MCP)
+    "calendar.create", "calendar.delete", "calendar.reschedule",
+    # Email (MCP)
+    "email.create_draft", "email.reply", "email.forward", "email.delete_draft",
     # Routine
     "routine_run",
 }

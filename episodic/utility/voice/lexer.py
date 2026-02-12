@@ -39,6 +39,14 @@ class Lexer:
         ("at night", "AMPM"),
 
         # 2 words
+        ("this week", "TIME_RANGE"),
+        ("next week", "TIME_RANGE"),
+        ("this morning", "TIME_RANGE"),
+        ("this afternoon", "TIME_RANGE"),
+        ("set up", "ACTION_SET"),
+        ("look for", "ACTION_SEARCH"),
+        ("look up", "ACTION_SEARCH"),
+        ("draft a", "ACTION_DRAFT"),
         ("what is", "QUERY"),
         ("tell me", "QUERY"),
         ("show me", "QUERY"),
@@ -54,6 +62,8 @@ class Lexer:
         # Query markers
         "what": "QUERY", "when": "QUERY", "where": "QUERY",
         "how": "QUERY", "which": "QUERY",
+        "what's": "QUERY", "check": "QUERY", "show": "QUERY",
+        "list": "QUERY", "get": "QUERY",
 
         # Action verbs
         "set": "ACTION_SET", "start": "ACTION_SET", "create": "ACTION_SET",
@@ -74,6 +84,30 @@ class Lexer:
         "date": "KW_DATE", "day": "KW_DATE",
         "radio": "KW_RADIO", "station": "KW_RADIO",
         "music": "KW_MUSIC", "song": "KW_MUSIC",
+
+        # Calendar domain
+        "calendar": "KW_CALENDAR", "meeting": "KW_MEETING",
+        "agenda": "KW_CALENDAR", "schedule": "KW_CALENDAR",
+        "event": "KW_CALENDAR", "events": "KW_CALENDAR",
+        "busy": "KW_BUSY", "free": "KW_BUSY", "available": "KW_BUSY",
+        "reschedule": "ACTION_RESCHEDULE", "postpone": "ACTION_RESCHEDULE",
+        "book": "ACTION_SET",
+        "calendars": "KW_CALENDARS",
+
+        # Email domain
+        "email": "KW_EMAIL", "mail": "KW_EMAIL",
+        "inbox": "KW_EMAIL", "gmail": "KW_EMAIL",
+        "message": "KW_EMAIL",
+        "unread": "KW_UNREAD",
+        "draft": "KW_DRAFT",
+        "send": "ACTION_SEND", "reply": "ACTION_REPLY",
+        "respond": "ACTION_REPLY",
+        "forward": "ACTION_FORWARD",
+        "compose": "ACTION_DRAFT",
+        "search": "ACTION_SEARCH", "find": "ACTION_SEARCH",
+        "about": "KW_ABOUT", "regarding": "KW_ABOUT",
+        "subject": "KW_ABOUT",
+        "yesterday": "RELATIVE_DAY",
 
         # Time units
         "second": "TIME_UNIT", "seconds": "TIME_UNIT", "sec": "TIME_UNIT", "secs": "TIME_UNIT",

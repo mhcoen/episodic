@@ -512,6 +512,45 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
             raw_input=f"news {args_str}" if args_str else "news",
         )
 
+    # --- Calendar & Email (MCP) ---
+    elif cmd in ("cal", "calendar"):
+        from .cli_slash_calendar_email import parse_cal_args
+        query = parse_cal_args(args_str or "")
+
+    elif cmd == "calendars":
+        query = create_utility_query(
+            "calendar", "calendar.list",
+            args={}, source="cli",
+            raw_input="/calendars",
+        )
+
+    elif cmd == "schedule":
+        from .cli_slash_calendar_email import parse_schedule_args
+        query = parse_schedule_args(args_str or "")
+
+    elif cmd in ("email", "mail"):
+        from .cli_slash_calendar_email import parse_email_args
+        query = parse_email_args(args_str or "")
+
+    elif cmd == "inbox":
+        query = create_utility_query(
+            "email", "email.search",
+            args={"unread_only": True}, source="cli",
+            raw_input="/inbox",
+        )
+
+    elif cmd == "draft":
+        from .cli_slash_calendar_email import parse_draft_args
+        query = parse_draft_args(args_str or "")
+
+    elif cmd == "reply":
+        from .cli_slash_calendar_email import parse_reply_args
+        query = parse_reply_args(args_str or "")
+
+    elif cmd == "forward":
+        from .cli_slash_calendar_email import parse_forward_args
+        query = parse_forward_args(args_str or "")
+
     else:
         # Not a utility command
         return None
@@ -617,7 +656,10 @@ def is_utility_command(cmd: str) -> bool:
     utility_commands = {
         "stop", "timer", "alarm", "time", "calc", "note",
         "remind", "play", "pause", "cancel", "undo", "dnd", "status",
-        "weather", "forecast", "news"
+        "weather", "forecast", "news",
+        # Calendar & Email (MCP)
+        "cal", "calendar", "calendars", "schedule",
+        "email", "mail", "inbox", "draft", "reply", "forward",
     }
     return cmd in utility_commands
 
@@ -670,6 +712,10 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
     """Execute a UtilityQuery and return the result."""
     global _last_result
 
+    # Calendar/Email: delegate to async dispatch
+    if query.category in ("calendar", "email"):
+        return _execute_async_utility_query(query)
+
     user_tz = config.get("timezone", "America/Chicago")
 
     # Initialize only the services needed for this command category
@@ -718,6 +764,41 @@ def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
     _last_result = utility_result
 
     return utility_result
+
+
+def _execute_async_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:
+    """Execute a calendar/email UtilityQuery via async MCP dispatch."""
+    import asyncio
+    from .dispatcher import async_dispatch_utility
+
+    global _last_result
+
+    user_tz = config.get("timezone", "America/Chicago")
+    _ensure_utility_schema()
+
+    from ..db_connection import get_connection
+
+    async def _run():
+        with get_connection() as conn:
+            return await async_dispatch_utility(
+                query,
+                conn=conn,
+                user_tz=user_tz,
+            )
+
+    # Run in event loop (create one if not running)
+    try:
+        loop = asyncio.get_running_loop()
+        # If we're already in an async context, use create_task
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            result = loop.run_in_executor(pool, asyncio.run, _run())
+    except RuntimeError:
+        # No running loop, safe to use asyncio.run
+        result = asyncio.run(_run())
+
+    _last_result = result
+    return result
 
 
 def shutdown_utility_services() -> None:

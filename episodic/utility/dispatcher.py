@@ -35,6 +35,9 @@ CATEGORY_DISPATCHERS = {
     "media": dispatch_media_command,
     "weather": dispatch_weather_command,
     "news": dispatch_news_command,
+    # MCP-backed categories (dispatched via async path)
+    "calendar": None,
+    "email": None,
 }
 
 
@@ -236,6 +239,74 @@ def dispatch_utility(
         log_utility_event(conn, query, result, latency_us)
 
     return result
+
+
+async def async_dispatch_utility(
+    query: UtilityQuery,
+    conn: Optional[sqlite3.Connection] = None,
+    user_tz: str = "America/Chicago",
+    mcp_client=None,
+    pipeline=None,
+) -> UtilityResult:
+    """
+    Async dispatch for calendar/email commands via MCP.
+
+    For non-MCP categories, delegates to sync dispatch_utility().
+    """
+    if query.category not in ("calendar", "email"):
+        # Delegate to sync dispatcher for non-MCP categories
+        return dispatch_utility(query, conn=conn, user_tz=user_tz)
+
+    start_time = time.perf_counter_ns()
+
+    # Safety gate
+    should_exec, reason = should_execute(query)
+    if not should_exec:
+        if "confirm" in reason.lower():
+            return UtilityResult.confirm(reason)
+        return UtilityResult.fallback()
+
+    # Resolve MCP tool
+    from episodic.mcp.dispatch import MCPResolver, dispatch_mcp
+    resolver = MCPResolver()
+    resolution = resolver.resolve(query.command)
+
+    if resolution is None:
+        return UtilityResult.error(
+            "unmapped_intent",
+            f"No MCP tool mapped for {query.command}",
+        )
+
+    # Dispatch via MCP
+    result = await dispatch_mcp(
+        query=query,
+        resolution=resolution,
+        user_message=query.raw_input,
+        pipeline=pipeline,
+        mcp_client=mcp_client,
+    )
+
+    # Convert DispatchResult to UtilityResult
+    if result.success:
+        util_result = UtilityResult.ok(
+            display=result.display_text,
+            speech=result.speech_text,
+            _command=query.command,
+            **result.payload,
+        )
+    else:
+        util_result = UtilityResult.error(
+            result.error_type or "mcp_error",
+            result.error_message or result.display_text,
+        )
+
+    # Log event
+    end_time = time.perf_counter_ns()
+    latency_us = (end_time - start_time) // 1000
+    if conn is not None:
+        log_utility_event(conn, query, util_result, latency_us)
+
+    return util_result
 
 
 def create_utility_query(

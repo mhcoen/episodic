@@ -66,6 +66,8 @@ from .news import (
     handle_news_topic,
     dispatch_news_command,
 )
+from .calendar import dispatch_calendar_command
+from .email import dispatch_email_command
 
 __all__ = [
     # Time/Date
@@ -127,4 +129,7 @@ __all__ = [
     "handle_news_headlines",
     "handle_news_topic",
     "dispatch_news_command",
+    # Calendar & Email (MCP)
+    "dispatch_calendar_command",
+    "dispatch_email_command",
 ]

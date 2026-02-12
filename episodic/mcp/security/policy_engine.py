@@ -27,6 +27,12 @@ DESTRUCTIVE_TOOLS: FrozenSet[str] = frozenset({
     "file_write",
     "file_delete",
     "shell_execute",
+    # mcp-gsuite tools (v1.1)
+    "delete_calendar_event",
+    "delete_gmail_draft",
+    "create_calendar_event",
+    "reply_gmail_email",
+    "create_gmail_draft",
 })
 
 

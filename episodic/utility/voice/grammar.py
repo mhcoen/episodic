@@ -4,35 +4,19 @@ Grammar Parser for Voice Grammar.
 Pattern matching engine that converts token streams into UtilityQuery candidates.
 """
 
-from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Tuple
 
 from .lexer import Token, Lexer
 from .label_extractor import LabelExtractor
 from .time_normalizer import TimeNormalizer
 from .confidence import ParseFeatures
-
-
-@dataclass
-class GrammarMatch:
-    """Result of a grammar rule match."""
-    command: str
-    category: str
-    args: Dict[str, Any]
-    features: ParseFeatures
-    consumed_tokens: int
-
-
-@dataclass
-class GrammarRule:
-    """A grammar rule definition."""
-    name: str
-    category: str
-    command: str
-    patterns: List[List[str]]  # List of token kind patterns
-    required_args: List[str]
-    optional_args: List[str]
-    is_exact_template: bool = False
+from .grammar_types import GrammarMatch, GrammarRule
+from .grammar_calendar_email import (
+    build_calendar_rules,
+    build_email_rules,
+    extract_calendar_args,
+    extract_email_args,
+)
 
 
 class GrammarParser:
@@ -249,6 +233,9 @@ class GrammarParser:
                 is_exact_template=False,
             ),
 
+            # Calendar and email rules (from grammar_calendar_email.py)
+            *build_calendar_rules(),
+            *build_email_rules(),
         ]
 
     def parse(self, text: str, tokens: List[Token]) -> Optional[GrammarMatch]:
@@ -349,8 +336,8 @@ class GrammarParser:
                 matched_positions.append(token_idx)
                 pattern_idx += 1
                 token_idx += 1
-            elif actual in ("ARTICLE", "POLITENESS", "PRONOUN"):
-                # Skip filler tokens
+            elif actual in ("ARTICLE", "POLITENESS", "PRONOUN", "AMPM", "CONJ", "PREP_ON"):
+                # Skip filler tokens (AMPM covers "am" in "when am I free")
                 token_idx += 1
             else:
                 # No match
@@ -389,6 +376,14 @@ class GrammarParser:
             args.update(self._extract_reminder_args(remaining_tokens, remaining_words, rule.command))
         elif rule.command == "note_add":
             args.update(self._extract_note_args(remaining_tokens, remaining_words, rule.command))
+        elif rule.command.startswith("calendar."):
+            args.update(extract_calendar_args(
+                rule.command, tokens, words, consumed,
+            ))
+        elif rule.command.startswith("email."):
+            args.update(extract_email_args(
+                rule.command, tokens, words, consumed,
+            ))
 
         return args, features
 
@@ -549,5 +544,7 @@ class GrammarParser:
             "KW_WEATHER_HIGH", "KW_WEATHER_LOW",
             "KW_NEWS", "KW_NOTE", "KW_TIME", "KW_DATE",
             "KW_RADIO", "KW_MUSIC", "KW_DND",
+            "KW_CALENDAR", "KW_MEETING", "KW_BUSY", "KW_CALENDARS",
+            "KW_EMAIL", "KW_UNREAD", "KW_DRAFT",
         }
         return any(k in domain_keywords for k in token_kinds)

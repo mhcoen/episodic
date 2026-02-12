@@ -299,12 +299,14 @@ class TestResultContextUpdate:
 
     def test_email_search_updates_context(self):
         """Successful email.search updates anaphoric result context."""
+        import json
         from episodic.mcp.dispatch import get_result_context
 
         query = _make_query("email", "email.search", {"query": "test"})
         resolution = _make_resolution("query_gmail_emails")
         client = _mock_client(return_value={
-            "emails": [{"id": "msg123", "subject": "Test"}],
+            "content": [json.dumps([{"id": "msg123", "subject": "Test"}])],
+            "is_error": False,
         })
 
         asyncio.run(dispatch_mcp(
@@ -317,12 +319,14 @@ class TestResultContextUpdate:
 
     def test_calendar_query_updates_context(self):
         """Successful calendar.query updates event result context."""
+        import json
         from episodic.mcp.dispatch import get_result_context
 
         query = _make_query("calendar", "calendar.query", {})
         resolution = _make_resolution("get_calendar_events")
         client = _mock_client(return_value={
-            "events": [{"id": "evt456", "summary": "Standup"}],
+            "content": [json.dumps([{"id": "evt456", "summary": "Standup"}])],
+            "is_error": False,
         })
 
         asyncio.run(dispatch_mcp(

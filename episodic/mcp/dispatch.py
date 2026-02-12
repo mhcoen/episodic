@@ -291,6 +291,24 @@ def _extract_list(result: Any, *keys: str) -> List[Dict[str, Any]]:
     return []
 
 
+def _update_context_from_parsed(
+    command: str, parsed_items: List[Dict[str, Any]],
+) -> None:
+    """Update result context from already-parsed items."""
+    if not parsed_items:
+        return
+    ctx = get_result_context()
+    dicts = [i for i in parsed_items if isinstance(i, dict)]
+    if not dicts:
+        return
+    if command.startswith("email.search") or command == "email.get":
+        ctx.update_emails(dicts)
+    elif command.startswith("calendar."):
+        ctx.update_events(dicts)
+    elif command == "email.create_draft":
+        ctx.update_drafts(dicts)
+
+
 async def dispatch_mcp(
     query: "UtilityQuery",
     resolution: MCPResolution,
@@ -413,25 +431,29 @@ async def dispatch_mcp(
             logged=True,
         )
 
-    # 4. Process inbound (if pipeline available)
+    # 4. Format result into human-readable text
+    from .result_formatters import format_result
+    display_text, speech_text, parsed_items = format_result(
+        query.command, raw_result,
+    )
+
+    # 5. Process inbound security (if pipeline available)
     if pipeline is not None:
         processed = pipeline.process_inbound(
-            content=str(raw_result),
+            content=display_text,
             ctx=ctx,
         )
-        display_content = processed.content
-    else:
-        display_content = str(raw_result)
+        display_text = processed.content
 
-    # 5. Update result context
-    update_result_context(query.command, raw_result)
+    # 6. Update result context with parsed items
+    _update_context_from_parsed(query.command, parsed_items)
 
-    # 6. Format result
+    # 7. Format result
     latency_us = (time.monotonic_ns() - start) // 1000
     return DispatchResult(
         success=True,
-        speech_text=f"Done with {query.command}.",
-        display_text=display_content,
+        speech_text=speech_text,
+        display_text=display_text,
         payload=raw_result if isinstance(raw_result, dict) else {},
         latency_us=latency_us,
         logged=True,

@@ -17,6 +17,88 @@ class Token:
     position: int
 
 
+# Core single-word tokens (no calendar/email — those come from plugins)
+_CORE_TOKENS: Dict[str, str] = {
+    # Query markers
+    "what": "QUERY", "when": "QUERY", "where": "QUERY",
+    "how": "QUERY", "which": "QUERY",
+    "what's": "QUERY", "check": "QUERY", "show": "QUERY",
+    "list": "QUERY", "get": "QUERY",
+
+    # Action verbs
+    "set": "ACTION_SET", "start": "ACTION_SET", "create": "ACTION_SET",
+    "cancel": "ACTION_CANCEL", "delete": "ACTION_CANCEL", "remove": "ACTION_CANCEL",
+    "play": "ACTION_PLAY", "pause": "ACTION_PAUSE", "resume": "ACTION_RESUME",
+    "stop": "ACTION_STOP", "skip": "ACTION_SKIP",
+    "add": "ACTION_ADD", "remind": "ACTION_REMIND",
+
+    # Domain keywords
+    "timer": "KW_TIMER", "timers": "KW_TIMER",
+    "alarm": "KW_ALARM", "alarms": "KW_ALARM",
+    "reminder": "KW_REMIND", "reminders": "KW_REMIND",
+    "weather": "KW_WEATHER", "forecast": "KW_WEATHER", "temperature": "KW_WEATHER",
+    "temp": "KW_WEATHER", "high": "KW_WEATHER_HIGH", "low": "KW_WEATHER_LOW",
+    "news": "KW_NEWS", "headlines": "KW_NEWS",
+    "note": "KW_NOTE", "notes": "KW_NOTE",
+    "time": "KW_TIME", "clock": "KW_TIME",
+    "date": "KW_DATE", "day": "KW_DATE",
+    "radio": "KW_RADIO", "station": "KW_RADIO",
+    "music": "KW_MUSIC", "song": "KW_MUSIC",
+
+    # Time units
+    "second": "TIME_UNIT", "seconds": "TIME_UNIT", "sec": "TIME_UNIT", "secs": "TIME_UNIT",
+    "minute": "TIME_UNIT", "minutes": "TIME_UNIT", "min": "TIME_UNIT", "mins": "TIME_UNIT",
+    "hour": "TIME_UNIT", "hours": "TIME_UNIT", "hr": "TIME_UNIT", "hrs": "TIME_UNIT",
+
+    # Duration words
+    "couple": "DURATION_WORD", "few": "DURATION_WORD",
+    "half": "DURATION_WORD", "quarter": "DURATION_WORD",
+
+    # Relative time
+    "today": "RELATIVE_DAY", "tomorrow": "RELATIVE_DAY",
+    "tonight": "RELATIVE_DAY", "morning": "RELATIVE_DAY",
+    "afternoon": "RELATIVE_DAY", "evening": "RELATIVE_DAY",
+
+    # AM/PM
+    "am": "AMPM", "pm": "AMPM",
+
+    # Prepositions
+    "at": "PREP_AT", "in": "PREP_IN", "for": "PREP_FOR",
+    "on": "PREP_ON", "to": "PREP_TO", "from": "PREP_FROM",
+
+    # Articles and fillers
+    "a": "ARTICLE", "an": "ARTICLE", "the": "ARTICLE",
+    "please": "POLITENESS", "could": "POLITENESS", "would": "POLITENESS",
+    "me": "PRONOUN", "my": "PRONOUN", "i": "PRONOUN",
+
+    # Conjunctions
+    "and": "CONJ", "or": "CONJ", "then": "CONJ", "also": "CONJ",
+
+    # Named (for labels)
+    "called": "NAMED", "named": "NAMED", "labeled": "NAMED",
+}
+
+
+def _build_single_word_map() -> Dict[str, str]:
+    """Build the complete single-word map from core + plugin tokens."""
+    word_map = dict(_CORE_TOKENS)
+
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        if not registry.initialized:
+            registry.register_all()
+        for reg in registry.registered():
+            for td in reg.tokens:
+                word = td.word.lower()
+                # Plugin tokens can add or override non-core words
+                word_map[word] = td.token_kind
+    except ImportError:
+        pass
+
+    return word_map
+
+
 class Lexer:
     """
     Lexer with REQUIRED maximal munch semantics.
@@ -57,90 +139,8 @@ class Lexer:
         ("put on", "ACTION_ON"),
     ]
 
-    # Single-word classifications
-    SINGLE_WORD_MAP: Dict[str, str] = {
-        # Query markers
-        "what": "QUERY", "when": "QUERY", "where": "QUERY",
-        "how": "QUERY", "which": "QUERY",
-        "what's": "QUERY", "check": "QUERY", "show": "QUERY",
-        "list": "QUERY", "get": "QUERY",
-
-        # Action verbs
-        "set": "ACTION_SET", "start": "ACTION_SET", "create": "ACTION_SET",
-        "cancel": "ACTION_CANCEL", "delete": "ACTION_CANCEL", "remove": "ACTION_CANCEL",
-        "play": "ACTION_PLAY", "pause": "ACTION_PAUSE", "resume": "ACTION_RESUME",
-        "stop": "ACTION_STOP", "skip": "ACTION_SKIP",
-        "add": "ACTION_ADD", "remind": "ACTION_REMIND",
-
-        # Domain keywords
-        "timer": "KW_TIMER", "timers": "KW_TIMER",
-        "alarm": "KW_ALARM", "alarms": "KW_ALARM",
-        "reminder": "KW_REMIND", "reminders": "KW_REMIND",
-        "weather": "KW_WEATHER", "forecast": "KW_WEATHER", "temperature": "KW_WEATHER",
-        "temp": "KW_WEATHER", "high": "KW_WEATHER_HIGH", "low": "KW_WEATHER_LOW",
-        "news": "KW_NEWS", "headlines": "KW_NEWS",
-        "note": "KW_NOTE", "notes": "KW_NOTE",
-        "time": "KW_TIME", "clock": "KW_TIME",
-        "date": "KW_DATE", "day": "KW_DATE",
-        "radio": "KW_RADIO", "station": "KW_RADIO",
-        "music": "KW_MUSIC", "song": "KW_MUSIC",
-
-        # Calendar domain
-        "calendar": "KW_CALENDAR", "meeting": "KW_MEETING",
-        "agenda": "KW_CALENDAR", "schedule": "KW_CALENDAR",
-        "event": "KW_CALENDAR", "events": "KW_CALENDAR",
-        "busy": "KW_BUSY", "free": "KW_BUSY", "available": "KW_BUSY",
-        "reschedule": "ACTION_RESCHEDULE", "postpone": "ACTION_RESCHEDULE",
-        "book": "ACTION_SET",
-        "calendars": "KW_CALENDARS",
-
-        # Email domain
-        "email": "KW_EMAIL", "mail": "KW_EMAIL",
-        "inbox": "KW_EMAIL", "gmail": "KW_EMAIL",
-        "message": "KW_EMAIL",
-        "unread": "KW_UNREAD",
-        "draft": "KW_DRAFT",
-        "send": "ACTION_SEND", "reply": "ACTION_REPLY",
-        "respond": "ACTION_REPLY",
-        "forward": "ACTION_FORWARD",
-        "compose": "ACTION_DRAFT",
-        "search": "ACTION_SEARCH", "find": "ACTION_SEARCH",
-        "about": "KW_ABOUT", "regarding": "KW_ABOUT",
-        "subject": "KW_ABOUT",
-        "yesterday": "RELATIVE_DAY",
-
-        # Time units
-        "second": "TIME_UNIT", "seconds": "TIME_UNIT", "sec": "TIME_UNIT", "secs": "TIME_UNIT",
-        "minute": "TIME_UNIT", "minutes": "TIME_UNIT", "min": "TIME_UNIT", "mins": "TIME_UNIT",
-        "hour": "TIME_UNIT", "hours": "TIME_UNIT", "hr": "TIME_UNIT", "hrs": "TIME_UNIT",
-
-        # Duration words
-        "couple": "DURATION_WORD", "few": "DURATION_WORD",
-        "half": "DURATION_WORD", "quarter": "DURATION_WORD",
-
-        # Relative time
-        "today": "RELATIVE_DAY", "tomorrow": "RELATIVE_DAY",
-        "tonight": "RELATIVE_DAY", "morning": "RELATIVE_DAY",
-        "afternoon": "RELATIVE_DAY", "evening": "RELATIVE_DAY",
-
-        # AM/PM
-        "am": "AMPM", "pm": "AMPM",
-
-        # Prepositions
-        "at": "PREP_AT", "in": "PREP_IN", "for": "PREP_FOR",
-        "on": "PREP_ON", "to": "PREP_TO", "from": "PREP_FROM",
-
-        # Articles and fillers
-        "a": "ARTICLE", "an": "ARTICLE", "the": "ARTICLE",
-        "please": "POLITENESS", "could": "POLITENESS", "would": "POLITENESS",
-        "me": "PRONOUN", "my": "PRONOUN", "i": "PRONOUN",
-
-        # Conjunctions
-        "and": "CONJ", "or": "CONJ", "then": "CONJ", "also": "CONJ",
-
-        # Named (for labels)
-        "called": "NAMED", "named": "NAMED", "labeled": "NAMED",
-    }
+    def __init__(self) -> None:
+        self.SINGLE_WORD_MAP: Dict[str, str] = _build_single_word_map()
 
     def tokenize(self, text: str) -> List[Token]:
         """Tokenize with maximal munch."""

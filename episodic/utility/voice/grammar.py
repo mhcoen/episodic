@@ -11,12 +11,6 @@ from .label_extractor import LabelExtractor
 from .time_normalizer import TimeNormalizer
 from .confidence import ParseFeatures
 from .grammar_types import GrammarMatch, GrammarRule
-from .grammar_calendar_email import (
-    build_calendar_rules,
-    build_email_rules,
-    extract_calendar_args,
-    extract_email_args,
-)
 
 
 class GrammarParser:
@@ -28,11 +22,25 @@ class GrammarParser:
         self.lexer = Lexer()
         self.label_extractor = LabelExtractor()
         self.time_normalizer = TimeNormalizer()
+        self._plugin_arg_extractors: Dict[str, Any] = {}
+        self._load_plugin_arg_extractors()
         self.rules = self._build_rules()
 
+    def _load_plugin_arg_extractors(self) -> None:
+        """Load arg extractors from registered plugins."""
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            if not registry.initialized:
+                registry.register_all()
+            for reg in registry.registered():
+                self._plugin_arg_extractors.update(reg.arg_extractors)
+        except ImportError:
+            pass
+
     def _build_rules(self) -> List[GrammarRule]:
-        """Build the grammar rules."""
-        return [
+        """Build core grammar rules, then append plugin-contributed rules."""
+        rules = [
             # Time queries
             GrammarRule(
                 name="time_query",
@@ -232,11 +240,20 @@ class GrammarParser:
                 optional_args=[],
                 is_exact_template=False,
             ),
-
-            # Calendar and email rules (from grammar_calendar_email.py)
-            *build_calendar_rules(),
-            *build_email_rules(),
         ]
+
+        # Append plugin-contributed grammar rules
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            if not registry.initialized:
+                registry.register_all()
+            for reg in registry.registered():
+                rules.extend(reg.grammar_rules)
+        except ImportError:
+            pass
+
+        return rules
 
     def parse(self, text: str, tokens: List[Token]) -> Optional[GrammarMatch]:
         """
@@ -364,7 +381,12 @@ class GrammarParser:
         remaining_words = words[consumed:] if consumed < len(words) else []
 
         # Extract based on rule type
-        if rule.command == "timer_set":
+        if rule.arg_extractor is not None:
+            # Plugin-provided extractor takes priority
+            args.update(rule.arg_extractor(
+                rule.command, tokens, words, consumed,
+            ))
+        elif rule.command == "timer_set":
             # Pass all tokens for duration extraction
             args.update(self._extract_timer_args(tokens, words, rule.command))
         elif rule.command == "alarm_set":
@@ -376,14 +398,14 @@ class GrammarParser:
             args.update(self._extract_reminder_args(remaining_tokens, remaining_words, rule.command))
         elif rule.command == "note_add":
             args.update(self._extract_note_args(remaining_tokens, remaining_words, rule.command))
-        elif rule.command.startswith("calendar."):
-            args.update(extract_calendar_args(
-                rule.command, tokens, words, consumed,
-            ))
-        elif rule.command.startswith("email."):
-            args.update(extract_email_args(
-                rule.command, tokens, words, consumed,
-            ))
+        else:
+            # Check plugin arg extractors by command prefix
+            for prefix, extractor in self._plugin_arg_extractors.items():
+                if rule.command.startswith(prefix):
+                    args.update(extractor(
+                        rule.command, tokens, words, consumed,
+                    ))
+                    break
 
         return args, features
 

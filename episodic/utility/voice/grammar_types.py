@@ -5,8 +5,8 @@ Shared dataclasses used by grammar.py and grammar_calendar_email.py.
 Extracted to break circular imports.
 """
 
-from dataclasses import dataclass
-from typing import Any, Dict, List
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
 
 from .confidence import ParseFeatures
 
@@ -31,3 +31,4 @@ class GrammarRule:
     required_args: List[str]
     optional_args: List[str]
     is_exact_template: bool = False
+    arg_extractor: Optional[Callable] = field(default=None, repr=False)

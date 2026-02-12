@@ -18,6 +18,29 @@ from .base import (
 
 logger = logging.getLogger(__name__)
 
+# 2-letter US state/territory codes — OWM needs ",US" appended for these
+_US_STATE_CODES = frozenset({
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "DC", "PR", "VI", "GU", "AS", "MP",
+})
+
+
+def _normalize_owm_location(location: str) -> str:
+    """Normalize location for OpenWeatherMap API.
+
+    OWM requires US locations as 'City,ST,US'. Detect 'City, ST'
+    where ST is a 2-letter US state code and append ',US'.
+    """
+    parts = [p.strip() for p in location.split(",")]
+    if len(parts) == 2 and parts[1].upper() in _US_STATE_CODES:
+        return f"{parts[0]},{parts[1]},US"
+    return location
+
+
 # OpenWeatherMap condition code to description and emoji
 CONDITION_MAP = {
     # Thunderstorm
@@ -270,7 +293,7 @@ class WeatherProvider(DataProvider):
             # Build API URL
             units = "imperial" if self._temp_unit == "F" else "metric"
             params = urllib.parse.urlencode({
-                "q": location,
+                "q": _normalize_owm_location(location),
                 "appid": self._api_key,
                 "units": units,
             })

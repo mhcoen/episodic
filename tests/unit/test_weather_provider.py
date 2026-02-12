@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 import json
 
-from episodic.utility.providers.weather import WeatherProvider, _get_condition
+from episodic.utility.providers.weather import WeatherProvider, _get_condition, _normalize_owm_location
 from episodic.utility.providers.base import ProviderResult
 
 
@@ -42,6 +42,33 @@ class TestWeatherConditions:
     def test_unknown_code(self):
         desc, emoji = _get_condition(9999)
         assert desc == "unknown"
+
+
+class TestOWMLocationNormalization:
+    """Test OpenWeatherMap location normalization."""
+
+    def test_us_state_appends_country(self):
+        assert _normalize_owm_location("Madison, WI") == "Madison,WI,US"
+
+    def test_us_state_no_space(self):
+        assert _normalize_owm_location("Madison,WI") == "Madison,WI,US"
+
+    def test_us_state_case_insensitive(self):
+        assert _normalize_owm_location("austin, tx") == "austin,tx,US"
+
+    def test_country_code_not_modified(self):
+        # "UK" is not a US state code, so leave as-is
+        assert _normalize_owm_location("London, UK") == "London, UK"
+
+    def test_city_only_not_modified(self):
+        assert _normalize_owm_location("Chicago") == "Chicago"
+
+    def test_full_format_not_modified(self):
+        # Already has country code
+        assert _normalize_owm_location("Madison,WI,US") == "Madison,WI,US"
+
+    def test_dc_recognized(self):
+        assert _normalize_owm_location("Washington, DC") == "Washington,DC,US"
 
 
 class TestWeatherProvider:

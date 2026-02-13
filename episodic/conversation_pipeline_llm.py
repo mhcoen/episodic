@@ -134,7 +134,11 @@ def phase_llm_query(manager: "ConversationManager", ctx: "TurnContext") -> None:
 
 
 def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
-    """Handle muse-mode web synthesis LLM path."""
+    """Handle muse-mode web synthesis LLM path.
+
+    Security: synthesis is buffered (not streamed) so canary detection can
+    run before the response is displayed or stored (INV-MUSE-6, Erratum 1).
+    """
     import typer
 
     from episodic.benchmark import benchmark_resource
@@ -143,8 +147,15 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
     from episodic.configuration import get_error_color
     from episodic.db import insert_node
     from episodic.debug_utils import debug_print
-    from episodic.unified_streaming import unified_stream_response
     from episodic.web_synthesis import synthesize_web_response
+
+    # Generate session canary for injection detection (INV-MUSE-6)
+    session_canary = None
+    try:
+        from episodic.mcp.security.canary import generate_canary
+        session_canary = generate_canary("muse_session")
+    except Exception:
+        debug_print("Could not generate session canary", category="security")
 
     # Debug: print conversation history
     if config.get("debug"):
@@ -159,6 +170,7 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
             search_results=ctx.web_context,
             conversation_history=ctx.messages,
             model=ctx.model,
+            session_canary=session_canary,
         )
 
         if config.get("debug"):
@@ -176,7 +188,7 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
         ctx.early_return_value = (None, None)
         return
 
-    # Handle streaming case for muse mode
+    # Handle dict synthesis result (always expected from restructured synthesizer)
     if isinstance(synthesis_result, dict) and synthesis_result.get("streaming"):
         from episodic.llm import _execute_llm_query
 
@@ -229,13 +241,16 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
             ctx.early_return_value = (assistant_node_id, ctx.display_response)
             return
 
+        # INV-MUSE-1: No tools parameter on synthesis call
         try:
-            stream_generator, _ = _execute_llm_query(
+            # Erratum 1: Buffered output — no streaming for synthesis
+            # so canary check can run pre-display (INV-MUSE-6)
+            response_text, _ = _execute_llm_query(
                 synthesis_messages,
                 model=synthesis_result["model"],
                 temperature=synthesis_result.get("temperature", 0.3),
                 max_tokens=synthesis_result.get("max_tokens", 1500),
-                stream=True,
+                stream=False,
             )
         except Exception as e:
             # Handle model not found errors gracefully
@@ -281,14 +296,30 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
                 # Re-raise other errors
                 raise
 
-        # Stream the response with unified streamer
-        typer.echo("")  # Newline before streaming
-        full_response = unified_stream_response(
-            stream_generator=stream_generator, model=synthesis_result["model"]
-        )
-        ctx.display_response = full_response
+        # INV-MUSE-6: Canary detection — discard response if canary leaked
+        if session_canary and response_text:
+            from episodic.mcp.security.canary import detect_canary
+            if detect_canary(response_text, session_canary):
+                typer.echo("")
+                typer.secho(
+                    "\u26a0\ufe0f  Security: synthesis response contained "
+                    "injected canary token. Response discarded.",
+                    fg="yellow", bold=True,
+                )
+                ctx.canary_leaked = True
+                ctx.early_return = True
+                ctx.early_return_value = (None, None)
+                return
+
+        # Display buffered response using unified text formatter
+        typer.echo("")
+        from episodic.unified_streaming import unified_stream_text
+        unified_stream_text(response_text or "", model=synthesis_result["model"])
+        ctx.display_response = response_text or ""
+        # Flag for source_type in postprocessing
+        ctx.muse_synthesis = True
     else:
-        # Non-streaming response
+        # Non-streaming response (legacy path)
         ctx.display_response = synthesis_result
 
 
@@ -439,12 +470,15 @@ def phase_postprocessing(manager: "ConversationManager", ctx: "TurnContext") -> 
             provider = None
             model_name = ctx.model
 
+        # INV-MUSE-2: Muse DAG nodes carry source_type='web_synthesis'
+        source_type = 'web_synthesis' if getattr(ctx, 'muse_synthesis', False) else 'chat'
         ctx.assistant_node_id, ctx.assistant_short_id = insert_node(
             ctx.display_response,
             ctx.user_node_id,
             role="assistant",
             provider=provider,
             model=ctx.model,
+            source_type=source_type,
         )
 
     # Update current node

@@ -208,6 +208,7 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
         migrate_to_topic_local_tables()
         migrate_to_context_assembly_debug()
         migrate_to_reactivation_decisions()
+        migrate_to_node_source_type()
 
     logger.info("Database initialized successfully")
 
@@ -456,3 +457,17 @@ def migrate_to_reactivation_decisions():
         if not cursor.fetchone():
             migrate_labels(conn)
             logger.info("Created reactivation_labels table for ground truth")
+
+
+def migrate_to_node_source_type():
+    """Add source_type column to nodes table for muse security provenance tracking."""
+    with get_connection() as conn:
+        c = conn.cursor()
+
+        c.execute("PRAGMA table_info(nodes)")
+        columns = [column[1] for column in c.fetchall()]
+
+        if 'source_type' not in columns:
+            c.execute("ALTER TABLE nodes ADD COLUMN source_type TEXT DEFAULT 'chat'")
+            conn.commit()
+            logger.info("Added source_type column to nodes table")

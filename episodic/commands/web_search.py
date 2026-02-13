@@ -193,7 +193,11 @@ def websearch(query: str, limit: Optional[int] = None, index: bool = None, extra
                                 'title': result.title,
                                 'url': result.url,
                                 'search_query': query,
-                                'search_timestamp': result.timestamp.isoformat()
+                                'search_timestamp': result.timestamp.isoformat(),
+                                # INV-MUSE-4: Provenance metadata for web content
+                                'source_type': 'web_content',
+                                'source_url': result.url,
+                                'trust_level': 'untrusted',
                             }
                         )
                     if doc_ids:

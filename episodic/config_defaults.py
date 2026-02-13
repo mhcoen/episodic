@@ -182,6 +182,17 @@ CONFIG_DOCS = {
     "muse_sources": "Source selection: first-only, top-three (default), all-relevant, selective",
     "muse_model": "Specific model for synthesis (None = use main conversation model)",
     "muse_context_depth": "Number of previous messages to include as context in muse mode",
+
+    # Muse security settings
+    "muse_sanitize_html": "Sanitize HTML from web pages before extraction (L0 security)",
+    "muse_isolate_content": "Wrap web content in untrusted_content tags (L1 security)",
+    "web_auto_index_rag": "Auto-index web synthesis results into RAG (default: off for security)",
+    "muse_flush_on_mode_switch": "Flush web-derived context when switching out of muse mode",
+    "muse_kg_quarantine": "Quarantine KG triples extracted from muse responses",
+    "muse_escalation_gate": "Enhanced confirmation for tool calls when web-derived content present",
+    "muse_rag_in_tool_context": "Include untrusted RAG chunks in tool-enabled context",
+    "muse_max_chars_per_source": "Max chars per web source in synthesis prompt",
+    "muse_max_chars_total": "Max total chars from web sources in synthesis prompt",
     
     # Provider-specific settings
     "searx_instance_url": "URL of Searx/SearxNG instance to use (default: https://searx.be)",

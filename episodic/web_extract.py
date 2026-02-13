@@ -11,6 +11,35 @@ import re
 
 import typer
 from episodic.config import config
+from episodic.debug_utils import debug_print
+
+
+def _sanitize_soup(soup, url: str):
+    """Apply L0 HTML sanitization to a BeautifulSoup object.
+
+    Strips CSS-hidden elements, HTML comments, data-* attributes,
+    SVG text, and other injection vectors.  Returns a new soup object.
+    """
+    from bs4 import BeautifulSoup
+    from episodic.mcp.security.sanitizer import sanitize
+    from episodic.mcp.security.types import ContentType
+
+    result = sanitize(str(soup), ContentType.HTML)
+    if result.warnings:
+        debug_print(
+            f"L0 sanitization for {url}: {', '.join(result.warnings)}",
+            category="security",
+        )
+    return BeautifulSoup(result.cleaned_text, 'html.parser')
+
+
+def _normalize_text(text: str) -> str:
+    """Apply L0 Unicode normalization (NFC + zero-width stripping)."""
+    from episodic.mcp.security.sanitizer import sanitize
+    from episodic.mcp.security.types import ContentType
+
+    result = sanitize(text, ContentType.PLAINTEXT)
+    return result.cleaned_text
 
 
 class WebContentExtractor:
@@ -69,10 +98,18 @@ class WebContentExtractor:
                     # Remove script and style elements
                     for script in soup(["script", "style"]):
                         script.decompose()
-                    
+
+                    # L0: Sanitize HTML to strip hidden/injected content (INV-MUSE-10)
+                    if config.get('muse_sanitize_html', True):
+                        soup = _sanitize_soup(soup, url)
+
                     # Try to extract main content
                     content = self._extract_main_content(soup, url)
-                    
+
+                    # L0: Unicode normalization at extraction boundary (INV-MUSE-10)
+                    if config.get('muse_sanitize_html', True) and content:
+                        content = _normalize_text(content)
+
                     return {
                         'title': title_text,
                         'content': content,
@@ -299,14 +336,22 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
-        
+
         # Remove script and style elements
         for script in soup(["script", "style"]):
             script.decompose()
-        
+
+        # L0: Sanitize HTML to strip hidden/injected content (INV-MUSE-10)
+        if config.get('muse_sanitize_html', True):
+            soup = _sanitize_soup(soup, url)
+
         # Extract content based on site
         extractor = WebContentExtractor()
         content = extractor._extract_main_content(soup, url)
+
+        # L0: Unicode normalization at extraction boundary (INV-MUSE-10)
+        if config.get('muse_sanitize_html', True) and content:
+            content = _normalize_text(content)
         
         # Debug: show what we got
         if config.get('debug') and content:

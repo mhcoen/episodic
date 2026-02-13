@@ -17,7 +17,7 @@ from .db_ids import generate_short_id
 logger = logging.getLogger(__name__)
 
 
-def insert_node(content, parent_id=None, role=None, provider=None, model=None, is_meta_query=False, max_retries=MAX_DATABASE_RETRIES):
+def insert_node(content, parent_id=None, role=None, provider=None, model=None, is_meta_query=False, max_retries=MAX_DATABASE_RETRIES, source_type='chat'):
     """
     Insert a new node into the database.
 
@@ -29,6 +29,7 @@ def insert_node(content, parent_id=None, role=None, provider=None, model=None, i
         model: LLM model
         is_meta_query: If True, this node is a meta-query and excluded from retrieval
         max_retries: Max retries for short_id collision
+        source_type: Content provenance ('chat' or 'web_synthesis')
     """
     node_id = str(uuid.uuid4())
     short_id = None
@@ -41,9 +42,9 @@ def insert_node(content, parent_id=None, role=None, provider=None, model=None, i
             with get_connection() as conn:
                 c = conn.cursor()
                 c.execute("""
-                    INSERT INTO nodes (id, short_id, parent_id, content, role, provider, model, is_meta_query)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (node_id, short_id, parent_id, content, role, provider, model, is_meta_query))
+                    INSERT INTO nodes (id, short_id, parent_id, content, role, provider, model, is_meta_query, source_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (node_id, short_id, parent_id, content, role, provider, model, is_meta_query, source_type))
                 
                 # Update head to point to this new node
                 c.execute("UPDATE state SET head_id = ? WHERE name = 'head'", (node_id,))

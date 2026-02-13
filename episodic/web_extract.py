@@ -12,6 +12,7 @@ import re
 import typer
 from episodic.config import config
 from episodic.debug_utils import debug_print
+from episodic.debug_system import debug_enabled
 
 
 def _sanitize_soup(soup, url: str):
@@ -326,7 +327,7 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
             try:
                 response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
             except requests.RequestException as e:
-                if config.get('debug'):
+                if debug_enabled('web'):
                     typer.secho(f"⚠️  Request failed for {url}: {type(e).__name__}", fg="yellow")
                 return None
         
@@ -360,10 +361,10 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         return content if content and len(content) > 50 else None
         
     except Exception as e:
-        # Always show errors for debugging
-        # Show concise error message
-        if "timeout" in str(e).lower():
-            typer.secho(f"⚠️  Timeout fetching {url.split('/')[2]}", fg="yellow")
-        else:
-            typer.secho(f"⚠️  Failed to fetch {url.split('/')[2]}: {type(e).__name__}", fg="yellow")
+        # Show extraction failures only when web/muse debug is enabled.
+        if debug_enabled('web'):
+            if "timeout" in str(e).lower():
+                typer.secho(f"⚠️  Timeout fetching {url.split('/')[2]}", fg="yellow")
+            else:
+                typer.secho(f"⚠️  Failed to fetch {url.split('/')[2]}: {type(e).__name__}", fg="yellow")
         return None

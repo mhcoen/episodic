@@ -100,33 +100,10 @@ def unified_stream_response(
         if isinstance(color, str):
             color = color.lower()
     
-    # Auto-detect if format preservation is needed
+    # Default to standard streaming unless explicitly requested.
+    # Auto-detection caused markdown rendering inconsistencies across outputs.
     if preserve_formatting is None:
-        # Peek at the first chunk to decide
-        import itertools
-        stream_generator, peek_generator = itertools.tee(stream_generator)
-        first_chunk = ""
-        try:
-            for chunk in process_stream_response(peek_generator, model):
-                first_chunk += chunk
-                if len(first_chunk) > 200:  # Check first 200 chars
-                    break
-        except Exception as e:
-            debug_print(f"Stream format check failed: {e}", category="llm")
-        
-        # Check for formatting indicators
-        formatting_indicators = [
-            '  /',      # Indented commands
-            '\n  ',     # Multi-space indentation
-            '    ',     # 4-space indentation
-            '\t',       # Tabs
-            '```',      # Code blocks
-            '|',        # Tables
-        ]
-        preserve_formatting = any(indicator in first_chunk for indicator in formatting_indicators)
-        
-        if config.get("debug_streaming_verbose", False):
-            debug_print(f"Format preservation auto-detected: {preserve_formatting}")
+        preserve_formatting = False
     
     # Route to appropriate streaming function
     if preserve_formatting:

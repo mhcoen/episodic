@@ -449,13 +449,24 @@ def show_assistant_help():
         ("/calc 20% of 150", "Calculate 20% of 150"),
     ]
 
-    # Find the longest command for alignment
-    all_commands = commands + examples
+    # Calendar & Email commands (from gsuite plugin)
+    plugin_commands = [
+        ("/cal <text>", "Calendar query or action"),
+        ("/email <text>", "Email query or action"),
+    ]
+
+    plugin_examples = [
+        ("/cal what's on tomorrow", "Check tomorrow's calendar"),
+        ("/email check my unread", "Check unread email"),
+    ]
+
+    # Find the longest command for alignment across all sections
+    all_commands = commands + plugin_commands + examples + plugin_examples
     max_width = max(len(cmd) for cmd, _ in all_commands)
 
     # Display header
     typer.secho("🤖 Assistant Utilities", fg=get_heading_color(), bold=True)
-    typer.secho("Timers, alarms, reminders, weather, news, and more.", fg=get_text_color())
+    typer.secho("Timers, alarms, reminders, weather, news, calendar, email.", fg=get_text_color())
     typer.echo()
 
     typer.secho("Commands:", fg=get_text_color())
@@ -469,24 +480,19 @@ def show_assistant_help():
     typer.secho("Voice Mode:", fg=get_text_color())
     typer.secho("  These commands also work via voice in /voice mode", fg=get_system_color())
     typer.secho("  Example: \"Set a timer for five minutes\"", fg=get_system_color())
+    typer.echo()
 
+    # Calendar & Email section
+    typer.secho("📅 Calendar & Email (Google Workspace plugin)", fg=get_heading_color(), bold=True)
+    typer.secho("  Aliases: /calendar, /mail, /gmail", fg=get_text_color())
+    typer.echo()
+    _display_aligned_commands(plugin_commands, max_width)
+    typer.echo()
+    _display_aligned_commands(plugin_examples, max_width)
+    typer.echo()
+    typer.secho("  Commands use natural language extraction.", fg=get_system_color())
+    typer.secho("  Connect with /mcp connect gsuite first.", fg=get_system_color())
 
-def show_calendar_email_help():
-    """Show calendar and email commands — delegates to plugin help."""
-    try:
-        from episodic.mcp.plugins import get_plugin_registry
-        registry = get_plugin_registry()
-        if not registry.initialized:
-            registry.register_all()
-        reg = registry.get("gsuite")
-        if reg and reg.help_fn:
-            typer.echo(reg.help_fn())
-            return
-    except ImportError:
-        pass
-
-    # Fallback if plugin not available
-    typer.secho("Calendar & Email commands require the gsuite plugin.", fg=get_text_color())
 
 
 def show_mcp_help():

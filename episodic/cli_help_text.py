@@ -24,7 +24,6 @@ from episodic.cli_help_categories import (  # noqa: F401
     show_markdown_help,
     show_voice_help,
     show_assistant_help,
-    show_calendar_email_help,
     show_mcp_help,
 )
 
@@ -60,13 +59,12 @@ def show_help_with_categories():
     categories = [
         ("/help chat", "Mode switching and conversation management"),
         ("/help voice", "Voice mode, STT/TTS providers"),
-        ("/help assistant", "Timers, alarms, weather, news, and utilities"),
+        ("/help assistant", "Timers, alarms, weather, news, calendar, email"),
         ("/help settings", "Configuration and system management"),
         ("/help search", "Knowledge base and muse configuration"),
         ("/help history", "Navigation and conversation history"),
         ("/help topics", "Topic detection and management"),
         ("/help markdown", "Markdown file operations"),
-        ("/help calendar", "Calendar and email commands (plugins)"),
         ("/help mcp", "MCP server, tokens, and external tool access")
     ]
 
@@ -131,14 +129,13 @@ def show_category_help(category: str):
     elif category == "mcp":
         show_mcp_help()
     else:
-        # Check plugin registry for help categories
+        # Check if category matches a plugin — redirect to assistant help
         handled = False
         try:
             from episodic.mcp.plugins import get_plugin_registry
             registry = get_plugin_registry()
             if not registry.initialized:
                 registry.register_all()
-            # Check if category matches a plugin slash command or help category
             for reg in registry.registered():
                 sc_match = any(
                     category in (sc.name.lstrip('/'), sc.domain)
@@ -146,9 +143,8 @@ def show_category_help(category: str):
                     for sc in reg.slash_commands
                 )
                 cat_match = reg.help_category and category.lower() in reg.help_category.lower()
-                if (sc_match or cat_match) and reg.help_fn:
-                    help_text = reg.help_fn()
-                    typer.echo(help_text)
+                if sc_match or cat_match:
+                    show_assistant_help()
                     handled = True
                     break
         except ImportError:

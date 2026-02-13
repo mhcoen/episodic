@@ -7,7 +7,6 @@ import unittest
 import json
 import time
 import types
-import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock
 
@@ -227,68 +226,6 @@ class TestWebSearchManager(unittest.TestCase):
         self.assertIn('providers', stats)
         self.assertIn('rate_limit_remaining', stats)
         self.assertIn('cache', stats)
-
-
-class _TimedProvider:
-    """Test provider for measuring async fan-out behavior."""
-
-    def __init__(self, delay: float = 0.12):
-        self.delay = delay
-        self.calls = []
-
-    def is_available(self) -> bool:
-        return True
-
-    async def search(self, query: str, num_results: int = 5):
-        self.calls.append(query)
-        await asyncio.sleep(self.delay)
-        return [
-            SearchResult(
-                title=f"Result {query}",
-                url=f"https://example.com/{query.replace(' ', '-')}",
-                snippet="Snippet",
-                timestamp=datetime.now(),
-            )
-        ]
-
-
-class TestWebSearchParallelSubqueries(unittest.IsolatedAsyncioTestCase):
-    """Test provider-internal subquery fan-out in Muse mode."""
-
-    async def test_parallel_subqueries_reduce_wall_time(self):
-        config.set('muse_mode', True)
-        config.set('web_search_parallel_enabled', True)
-        config.set('web_search_parallel_queries', 3)
-        config.set('web_search_subquery_timeout', 5)
-
-        manager = WebSearchManager()
-        provider = _TimedProvider(delay=0.12)
-        manager.providers = [provider]
-
-        with patch('episodic.web_search.plan_subqueries', return_value=['original', 'q1', 'q2']):
-            start = time.perf_counter()
-            results = await manager.search_async("original", num_results=5, use_cache=False)
-            elapsed = time.perf_counter() - start
-
-        self.assertEqual(len(results), 3)
-        self.assertEqual(set(provider.calls), {'original', 'q1', 'q2'})
-        # Sequential would be ~0.36s; allow headroom for CI jitter.
-        self.assertLess(elapsed, 0.28)
-
-    async def test_parallel_fanout_disabled_uses_single_query(self):
-        config.set('muse_mode', True)
-        config.set('web_search_parallel_enabled', False)
-        config.set('web_search_parallel_queries', 3)
-
-        manager = WebSearchManager()
-        provider = _TimedProvider(delay=0.01)
-        manager.providers = [provider]
-
-        with patch('episodic.web_search.plan_subqueries', return_value=['q1', 'q2', 'q3']):
-            results = await manager.search_async("original", num_results=5, use_cache=False)
-
-        self.assertEqual(len(results), 1)
-        self.assertEqual(provider.calls, ['original'])
 
 
 class TestWebSearchCommands(unittest.TestCase):

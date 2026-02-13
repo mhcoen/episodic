@@ -9,9 +9,18 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
+import secrets
 
-# Default secret — in production, override via configuration
-_DEFAULT_SECRET = b"episodic-canary-secret-change-me"
+# Default secret:
+# - use EPISODIC_CANARY_SECRET when configured
+# - otherwise generate a process-local random secret
+_ENV_SECRET = os.environ.get("EPISODIC_CANARY_SECRET")
+_DEFAULT_SECRET = (
+    _ENV_SECRET.encode("utf-8")
+    if _ENV_SECRET
+    else secrets.token_bytes(32)
+)
 
 
 def generate_canary(session_id: str, secret: bytes = _DEFAULT_SECRET) -> str:

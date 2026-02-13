@@ -7,7 +7,10 @@ import unittest
 from unittest.mock import patch
 
 from episodic.config import config
-from episodic.unified_streaming import unified_stream_response
+from episodic.unified_streaming import (
+    unified_stream_response,
+    _strip_inline_source_citations_for_tts,
+)
 
 
 class TestUnifiedStreaming(unittest.TestCase):
@@ -59,3 +62,8 @@ class TestUnifiedStreaming(unittest.TestCase):
                 model="test-model",
                 preserve_formatting=False
             )
+
+    def test_strip_inline_source_citations_for_tts(self):
+        text = "Great pick [Source 2]. Also see this [Sources 1, 3]."
+        cleaned = _strip_inline_source_citations_for_tts(text)
+        self.assertEqual(cleaned, "Great pick . Also see this .")

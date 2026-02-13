@@ -586,6 +586,41 @@ class TestRegisterTools:
         for name, fn in tool_fns.items():
             assert callable(fn), f"{name} is not callable"
 
+    @patch("episodic.mcp.tools.get_current_client_id", return_value="client-ctx")
+    @patch("episodic.mcp.tools.tool_ask_llm_stateless", return_value={"ok": True})
+    @patch("episodic.mcp.tools.tool_index_document", return_value={"ok": True})
+    @patch("episodic.mcp.tools.tool_ask_llm_stateful", return_value={"ok": True})
+    @patch("episodic.mcp.tools.create_thread", return_value={"ok": True})
+    def test_wrappers_forward_context_client_id(
+        self,
+        mock_create_thread,
+        mock_stateful,
+        mock_index,
+        mock_stateless,
+        _mock_client_id,
+    ):
+        mock_server = MagicMock()
+        tool_fns = {}
+
+        def mock_tool():
+            def decorator(fn):
+                tool_fns[fn.__name__] = fn
+                return fn
+            return decorator
+
+        mock_server.tool = mock_tool
+        register_tools(mock_server)
+
+        tool_fns["mcp_create_thread"]()
+        tool_fns["mcp_ask_llm_stateful"]("handle", "hi")
+        tool_fns["mcp_index_document"]("content", "source")
+        tool_fns["mcp_ask_llm_stateless"]("hello")
+
+        assert mock_create_thread.call_args.kwargs["client_id"] == "client-ctx"
+        assert mock_stateful.call_args.kwargs["client_id"] == "client-ctx"
+        assert mock_index.call_args.kwargs["client_id"] == "client-ctx"
+        assert mock_stateless.call_args.kwargs["client_id"] == "client-ctx"
+
 
 # ===================================================================
 # Trace integration

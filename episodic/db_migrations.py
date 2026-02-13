@@ -51,6 +51,8 @@ def initialize_db(erase=False, create_root_node=True, migrate=True):
                 role TEXT,
                 provider TEXT,
                 model TEXT,
+                is_meta_query BOOLEAN DEFAULT FALSE,
+                source_type TEXT DEFAULT 'chat',
                 FOREIGN KEY (parent_id) REFERENCES nodes(id)
             )
         ''')
@@ -471,3 +473,14 @@ def migrate_to_node_source_type():
             c.execute("ALTER TABLE nodes ADD COLUMN source_type TEXT DEFAULT 'chat'")
             conn.commit()
             logger.info("Added source_type column to nodes table")
+
+
+def ensure_runtime_schema():
+    """Apply lightweight runtime schema guards for existing DBs.
+
+    This is intended for startup on existing installations where full
+    initialize_db() is not invoked.
+    """
+    if not database_exists():
+        return
+    migrate_to_node_source_type()

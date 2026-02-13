@@ -35,6 +35,23 @@ def run_cli(*args, input_text=None, timeout=TIMEOUT):
     return result.stdout, result.stderr, result.returncode
 
 
+def run_cli_with_env(*args, env=None, input_text=None, timeout=TIMEOUT):
+    """Run the CLI with explicit environment overrides."""
+    cmd = [sys.executable, "-m", "episodic"] + list(args)
+    merged_env = ENV.copy()
+    if env:
+        merged_env.update(env)
+    result = subprocess.run(
+        cmd,
+        input=input_text,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=merged_env,
+    )
+    return result.stdout, result.stderr, result.returncode
+
+
 def run_script(content, timeout=TIMEOUT):
     """Run a script through the CLI and return (stdout, stderr, returncode)."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -44,6 +61,19 @@ def run_script(content, timeout=TIMEOUT):
 
     try:
         return run_cli("--script", script_path, timeout=timeout)
+    finally:
+        os.unlink(script_path)
+
+
+def run_script_with_env(content, env=None, timeout=TIMEOUT):
+    """Run a script through the CLI with environment overrides."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write(content)
+        f.flush()
+        script_path = f.name
+
+    try:
+        return run_cli_with_env("--script", script_path, env=env, timeout=timeout)
     finally:
         os.unlink(script_path)
 
@@ -195,3 +225,52 @@ class TestErrorHandling:
         """Script with blank lines should handle gracefully."""
         stdout, stderr, code = run_script("\n\n/time\n\n/exit\n")
         assert code == 0
+
+
+class TestMuseScriptFailClosed:
+    """Script-mode regressions for Muse fail-closed behavior."""
+
+    def test_muse_fail_closed_without_search_provider(self, tmp_path):
+        """Muse should return fail-closed message and skip LLM when no provider can run."""
+        fake_mod_dir = tmp_path / "fake_mods"
+        fake_mod_dir.mkdir()
+        # Force ddgs import failure for deterministic provider-unavailable path.
+        (fake_mod_dir / "ddgs.py").write_text(
+            "raise ImportError('forced missing ddgs for test')\n",
+            encoding="utf-8",
+        )
+
+        env = {
+            "HOME": str(tmp_path),
+            "EPISODIC_HOME": str(tmp_path),
+            "PYTHONPATH": f"{fake_mod_dir}{os.pathsep}{os.getcwd()}",
+        }
+        script = "/muse\nWhat are the latest developments in AI?\n/exit\n"
+        stdout, stderr, code = run_script_with_env(script, env=env, timeout=60)
+
+        assert code == 0
+        assert "Muse web search unavailable." in stdout
+        assert "No answer generated." in stdout
+        # Regression guard: do not fall through to generic, ungrounded LLM fallback.
+        assert "As of my last update" not in stdout
+
+    def test_muse_script_has_no_nested_event_loop_warning(self, tmp_path):
+        """Muse script execution should not emit nested-loop or unawaited-coroutine warnings."""
+        fake_mod_dir = tmp_path / "fake_mods"
+        fake_mod_dir.mkdir()
+        (fake_mod_dir / "ddgs.py").write_text(
+            "raise ImportError('forced missing ddgs for test')\n",
+            encoding="utf-8",
+        )
+
+        env = {
+            "HOME": str(tmp_path),
+            "EPISODIC_HOME": str(tmp_path),
+            "PYTHONPATH": f"{fake_mod_dir}{os.pathsep}{os.getcwd()}",
+        }
+        script = "/muse\nWhat is there to do this weekend in Madison, WI?\n/exit\n"
+        stdout, stderr, code = run_script_with_env(script, env=env, timeout=60)
+
+        assert code == 0
+        assert "Cannot run the event loop while another loop is running" not in stderr
+        assert "was never awaited" not in stderr

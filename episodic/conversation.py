@@ -384,6 +384,10 @@ class ConversationManager:
     
     def initialize_conversation(self) -> None:
         """Initialize the conversation state from the database."""
+        # Ensure startup-safe schema upgrades on existing installations.
+        from episodic.db_migrations import ensure_runtime_schema
+        ensure_runtime_schema()
+
         self.current_node_id = get_head()
         
         # Initialize current topic from database

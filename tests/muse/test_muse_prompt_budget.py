@@ -224,3 +224,48 @@ class TestCanaryNotInUserMessage:
 
         # Canary must NOT be in user message
         assert canary not in user_msg
+
+
+class TestStrictGroundingPrompt:
+    """Prompt behavior for time-sensitive/event Muse queries."""
+
+    def test_strict_grounding_enabled_for_weekend_events_query(self):
+        from episodic.web_synthesis import WebSynthesizer
+
+        config.set("model", "gpt-4o-mini")
+        config.set("response_style", "standard")
+        config.set("response_format", "mixed")
+
+        synth = WebSynthesizer()
+        result = synth.synthesize_results(
+            query="What is there to do this weekend in San Francisco?",
+            results=[
+                SearchResult(title="T", url="https://example.com", snippet="s", relevance_score=1.0)
+            ],
+            extracted_content={},
+        )
+
+        system_msg = result["system_message"]
+        assert "STRICT GROUNDING MODE" in system_msg
+        assert "Every concrete activity/event bullet MUST include [Source N]" in system_msg
+        assert "Do NOT include generic filler" in system_msg
+        assert "prioritize listing those items" in system_msg
+
+    def test_strict_grounding_not_enabled_for_neutral_query(self):
+        from episodic.web_synthesis import WebSynthesizer
+
+        config.set("model", "gpt-4o-mini")
+        config.set("response_style", "standard")
+        config.set("response_format", "mixed")
+
+        synth = WebSynthesizer()
+        result = synth.synthesize_results(
+            query="Explain the history of the transistor",
+            results=[
+                SearchResult(title="T", url="https://example.com", snippet="s", relevance_score=1.0)
+            ],
+            extracted_content={},
+        )
+
+        system_msg = result["system_message"]
+        assert "STRICT GROUNDING MODE" not in system_msg

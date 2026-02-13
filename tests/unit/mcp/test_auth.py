@@ -169,10 +169,9 @@ class TestRotateToken:
     def test_rotate_with_grace_period(self, db):
         old_plain, old_id = create_token(db, "test")
         rotate_token(db, old_id, grace_seconds=3600)
-        # Old token has revoked_at set in the future, so validate should reject
-        # (revoked_at is set, even if in the future — our validate checks for non-None)
+        # Old token remains valid until the scheduled revoke time.
         result = validate_token(db, old_plain)
-        assert result is None
+        assert result is not None
 
     def test_rotate_nonexistent(self, db):
         assert rotate_token(db, "bogus") is None

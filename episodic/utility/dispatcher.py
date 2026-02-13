@@ -38,6 +38,15 @@ CATEGORY_DISPATCHERS = {
 }
 
 
+class _AutoConfirmHandler:
+    """Default confirmation handler for async utility MCP dispatch."""
+
+    async def confirm(self, tool: str, args: dict, context: dict) -> bool:
+        # Legacy behavior executed mutating MCP commands without an
+        # interactive secondary prompt in this path.
+        return True
+
+
 def should_execute(query: UtilityQuery, confirm_mutations: bool = False) -> tuple[bool, Optional[str]]:
     """
     Safety gate: determine if command should execute.
@@ -307,6 +316,7 @@ async def async_dispatch_utility(
         user_message=query.raw_input,
         pipeline=pipeline,
         mcp_client=mcp_client,
+        confirm_handler=_AutoConfirmHandler(),
     )
 
     # Convert DispatchResult to UtilityResult

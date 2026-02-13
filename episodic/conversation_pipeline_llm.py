@@ -11,11 +11,90 @@ Split from conversation_pipeline.py for size compliance.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import os
+import sys
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from episodic.conversation import ConversationManager
     from episodic.conversation_pipeline import TurnContext
+
+
+def _select_muse_source_urls(web_context: Dict[str, Any]) -> List[str]:
+    """Select display source URLs based on muse source selection config."""
+    from episodic.config import config
+
+    if not isinstance(web_context, dict):
+        return []
+
+    results = web_context.get("results", [])
+    if not isinstance(results, list):
+        return []
+
+    urls: List[str] = []
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        url = result.get("url")
+        if isinstance(url, str) and url and url not in urls:
+            urls.append(url)
+
+    sources_config = config.get("muse_sources", "top-three")
+    if sources_config == "first-only":
+        return urls[:1]
+    if sources_config in ("top-three", "selective"):
+        return urls[:3]
+    return urls
+
+
+def _print_muse_sources_footer(web_context: Dict[str, Any]) -> None:
+    """Print Muse source URLs for display only (not part of spoken stream)."""
+    import typer
+
+    from episodic.configuration import get_system_color
+
+    urls = _select_muse_source_urls(web_context)
+    if not urls:
+        return
+
+    typer.echo("")
+    typer.secho("Sources:", fg=get_system_color(), bold=True)
+    for i, url in enumerate(urls, 1):
+        typer.secho(f"  [{i}]", fg="cyan", nl=False)
+        typer.echo(f" {_format_clickable_url(url)}")
+
+
+def _format_clickable_url(url: str) -> str:
+    """Format URL as OSC 8 hyperlink when terminal likely supports it."""
+    if not isinstance(url, str) or not url:
+        return ""
+
+    if not _supports_osc8_hyperlinks():
+        return url
+
+    # OSC 8 format: ESC ] 8 ; ; URL ESC \ LABEL ESC ] 8 ; ; ESC \
+    esc = "\033"
+    return f"{esc}]8;;{url}{esc}\\{url}{esc}]8;;{esc}\\"
+
+
+def _supports_osc8_hyperlinks() -> bool:
+    """Best-effort terminal capability check for OSC 8 hyperlinks."""
+    if not getattr(sys.stdout, "isatty", lambda: False)():
+        return False
+
+    # macOS Terminal generally does not support OSC 8 hyperlink rendering.
+    if os.environ.get("TERM_PROGRAM") == "Apple_Terminal":
+        return False
+
+    term = os.environ.get("TERM", "").lower()
+    if term == "dumb":
+        return False
+
+    # User opt-out for compatibility.
+    if os.environ.get("NO_OSC8") == "1" or os.environ.get("EPISODIC_NO_OSC8") == "1":
+        return False
+
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -346,6 +425,7 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
         typer.echo("")
         from episodic.unified_streaming import unified_stream_text
         unified_stream_text(response_text or "", model=synthesis_result["model"])
+        _print_muse_sources_footer(ctx.web_context)
         ctx.display_response = response_text or ""
         # Flag for source_type in postprocessing
         ctx.muse_synthesis = True

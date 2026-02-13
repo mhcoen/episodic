@@ -144,6 +144,17 @@ class TestRedactParameters:
         assert result["config"]["api_key"] == "[REDACTED]"
         assert result["config"]["name"] == "ok"
 
+    def test_nested_list_redaction(self):
+        result = redact_parameters({
+            "items": [
+                {"api_key": "secret", "name": "ok"},
+                {"nested": [{"auth_token": "tok_abc"}]},
+            ]
+        })
+        assert result["items"][0]["api_key"] == "[REDACTED]"
+        assert result["items"][0]["name"] == "ok"
+        assert result["items"][1]["nested"][0]["auth_token"] == "[REDACTED]"
+
     def test_case_insensitive(self):
         result = redact_parameters({"API_KEY": "x", "Password": "y"})
         assert result["API_KEY"] == "[REDACTED]"

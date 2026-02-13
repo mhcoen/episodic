@@ -97,6 +97,15 @@ def create_server(name: str = "episodic"):
 
     # Get the ASGI app and prepend health route
     app = server.sse_app()
+    from episodic.mcp.middleware import (
+        DEFAULT_DAILY_COST_LIMIT,
+        create_auth_middleware,
+    )
+    db_path = os.environ.get("EPISODIC_DB_PATH", str(_get_data_dir() / "episodic.db"))
+    daily_limit = float(
+        os.environ.get("EPISODIC_MCP_DAILY_COST_LIMIT", DEFAULT_DAILY_COST_LIMIT)
+    )
+    app.add_middleware(create_auth_middleware(db_path, daily_limit))
     app.routes.insert(0, Route("/health", health_endpoint, methods=["GET"]))
 
     return server, app

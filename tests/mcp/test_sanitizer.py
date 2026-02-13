@@ -8,8 +8,10 @@ from __future__ import annotations
 import base64
 import unicodedata
 import urllib.parse
+from unittest.mock import patch
 
 import pytest
+from bs4 import BeautifulSoup
 
 from episodic.mcp.security.sanitizer import sanitize
 from episodic.mcp.security.types import ContentType
@@ -410,3 +412,17 @@ class TestDisplayParity:
         assert result.class_hiding_possible is False
         assert len(result.mixed_script_words) == 0
         assert len(result.warnings) == 0
+
+
+def test_html_sanitizer_handles_tag_with_none_attrs():
+    """Regression: sanitizer should not crash when a tag has attrs=None."""
+    html = "<div>ok</div>"
+    soup = BeautifulSoup(html, "html.parser")
+    div = soup.find("div")
+    assert div is not None
+    div.attrs = None
+
+    with patch("episodic.mcp.security.sanitizer.BeautifulSoup", return_value=soup):
+        result = sanitize(html, ContentType.HTML)
+
+    assert "ok" in result.cleaned_text

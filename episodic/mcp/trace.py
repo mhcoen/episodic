@@ -98,9 +98,26 @@ def redact_parameters(params: Dict[str, Any]) -> Dict[str, Any]:
             redacted[k] = "[REDACTED]"
         elif isinstance(v, dict):
             redacted[k] = redact_parameters(v)
+        elif isinstance(v, list):
+            redacted[k] = _redact_sequence(v)
+        elif isinstance(v, tuple):
+            redacted[k] = _redact_sequence(v)
         else:
             redacted[k] = v
     return redacted
+
+
+def _redact_sequence(values: Any) -> list[Any]:
+    """Redact nested dict/list elements inside a sequence."""
+    redacted_items: list[Any] = []
+    for item in values:
+        if isinstance(item, dict):
+            redacted_items.append(redact_parameters(item))
+        elif isinstance(item, list) or isinstance(item, tuple):
+            redacted_items.append(_redact_sequence(item))
+        else:
+            redacted_items.append(item)
+    return redacted_items
 
 
 def record_trace(conn: sqlite3.Connection, trace_data: Dict[str, Any]) -> str:

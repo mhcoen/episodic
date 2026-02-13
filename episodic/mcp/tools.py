@@ -19,6 +19,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from episodic.mcp.request_context import get_current_client_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -548,6 +550,7 @@ def register_tools(server) -> None:
         """
         return create_thread(
             background_influences_topics=background_influences_topics,
+            client_id=get_current_client_id(),
         )
 
     @server.tool()
@@ -571,6 +574,7 @@ def register_tools(server) -> None:
             thread_handle=thread_handle,
             message=message,
             purpose=purpose,
+            client_id=get_current_client_id(),
         )
 
     @server.tool()
@@ -593,6 +597,7 @@ def register_tools(server) -> None:
             content=content,
             source_name=source_name,
             content_type=content_type,
+            client_id=get_current_client_id(),
         )
 
     @server.tool()
@@ -627,4 +632,5 @@ def register_tools(server) -> None:
             include_memory=include_memory,
             memory_query=memory_query,
             max_memory_results=max_memory_results,
+            client_id=get_current_client_id(),
         )

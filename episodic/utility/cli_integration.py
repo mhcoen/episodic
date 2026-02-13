@@ -27,6 +27,7 @@ _audio_player: Optional[AudioPlayerImpl] = None
 _data_refresh_scheduler: Optional[DataRefreshScheduler] = None
 _last_result: Optional[UtilityResult] = None
 _mcp_client_manager = None
+_security_pipeline = None
 _schema_initialized: bool = False
 
 
@@ -37,6 +38,16 @@ def _get_mcp_client_manager():
         from episodic.mcp.client_manager import MCPClientManager
         _mcp_client_manager = MCPClientManager()
     return _mcp_client_manager
+
+
+def _get_security_pipeline():
+    """Get or create a shared MCP SecurityPipeline for async utility dispatch."""
+    global _security_pipeline
+    if _security_pipeline is None:
+        from episodic.mcp.security.audit import AuditLogger
+        from episodic.mcp.security.pipeline import SecurityPipeline
+        _security_pipeline = SecurityPipeline(audit_logger=AuditLogger())
+    return _security_pipeline
 
 
 def _ensure_utility_schema() -> None:
@@ -950,6 +961,7 @@ def _execute_async_utility_query(query: UtilityQuery) -> Optional[UtilityResult]
                     conn=conn,
                     user_tz=user_tz,
                     mcp_client=mcp_client,
+                    pipeline=_get_security_pipeline(),
                 )
         finally:
             # Disconnect within same async context to avoid

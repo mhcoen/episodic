@@ -782,7 +782,7 @@ class ContextBuilder:
                                     result = url_map[url]
                                     try:
                                         content = future.result(timeout=0)  # Already complete
-                                        if content and len(content) > 50:
+                                        if content:
                                             extracted_content[result.url] = content
                                             debug_print(
                                                 f"Extracted {len(content)} chars from {result.url}",

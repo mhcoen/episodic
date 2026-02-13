@@ -204,6 +204,63 @@ class TestDispatchAdapterWiring:
         _, params = _call_args(client)
         assert params == {}
 
+    def test_pipeline_receives_adapted_args(self):
+        """Security pipeline check gets adapted args (not raw/empty args)."""
+        query = _make_query("email", "email.search", {"query": "budget"})
+        resolution = _make_resolution("query_gmail_emails")
+        client = _mock_client()
+
+        class _Pipeline:
+            def __init__(self):
+                self.captured_args = None
+
+            def check_tool_execution(self, tool, args, ctx, auth_event=None):
+                self.captured_args = args
+                return MagicMock(allowed=True, reason="ok")
+
+            def process_inbound(self, content, ctx):
+                return MagicMock(content=content)
+
+        pipe = _Pipeline()
+
+        result = asyncio.run(dispatch_mcp(
+            query, resolution, "/email about budget", mcp_client=client, pipeline=pipe
+        ))
+
+        assert result.success
+        assert pipe.captured_args["__user_id__"] == DEFAULT_ACCOUNT
+        assert "budget" in pipe.captured_args["query"]
+
+    def test_action_gate_cancelled_blocks_execution(self):
+        """Write/destructive dispatch respects action-gate cancellation."""
+        query = _make_query("email", "email.create_draft", {"to": "a@b.com"})
+        resolution = _make_resolution("create_gmail_draft", sensitivity="write")
+        client = _mock_client()
+
+        class _Pipeline:
+            def check_tool_execution(self, tool, args, ctx, auth_event=None):
+                return MagicMock(allowed=True, reason="ok")
+
+            def process_inbound(self, content, ctx):
+                return MagicMock(content=content)
+
+        class _DenyConfirm:
+            async def confirm(self, tool, args, context):
+                return False
+
+        result = asyncio.run(dispatch_mcp(
+            query,
+            resolution,
+            "/draft to a@b.com",
+            mcp_client=client,
+            pipeline=_Pipeline(),
+            confirm_handler=_DenyConfirm(),
+        ))
+
+        assert not result.success
+        assert result.error_type == "cancelled"
+        assert not client.call_tool.called
+
 
 # ============================================================
 # Resolver → dispatch_mcp integration

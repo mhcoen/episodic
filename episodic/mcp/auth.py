@@ -120,9 +120,17 @@ def validate_token(conn: sqlite3.Connection, plaintext: str) -> Optional[Dict]:
 
     token_id, client_id, scopes_json, expires_at, revoked_at = row
 
-    # Check revoked
+    # Check revoked: immediate revoke OR scheduled revoke with grace period.
     if revoked_at is not None:
-        return None
+        try:
+            revoked_dt = datetime.fromisoformat(revoked_at)
+            if revoked_dt.tzinfo is None:
+                revoked_dt = revoked_dt.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) >= revoked_dt:
+                return None
+        except ValueError:
+            # If timestamp is malformed, fail closed.
+            return None
 
     # Check expired
     if expires_at is not None:

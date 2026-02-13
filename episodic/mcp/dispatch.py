@@ -369,17 +369,57 @@ async def dispatch_mcp(
     auth_adapter = CFGDirectiveAdapter()
     auth_event = auth_adapter.produce(query, user_message)
 
+    try:
+        adapter_cls = _resolve_adapter(query.command)
+        if adapter_cls:
+            adapted_args = adapter_cls().adapt(query.args or {}, resolution)
+        else:
+            adapted_args = query.args or {}
+    except Exception as e:
+        from .security.error_sanitizer import sanitize_error
+        sanitized = sanitize_error(e)
+        return DispatchResult(
+            success=False,
+            speech_text="There was a problem with that request.",
+            display_text=sanitized["error"]["message"],
+            error_type="tool_error",
+            error_message=str(e),
+            latency_us=(time.monotonic_ns() - start) // 1000,
+            logged=True,
+        )
+
     # 2. Security check (if pipeline available)
     if pipeline is not None:
         from .security.types import SecurityContext, TrustLevel, ContentType, PolicyConfig
+        from .security.validation import validate_arguments
+        audit_logger = getattr(pipeline, "_audit_logger", None)
 
+        validation = validate_arguments(resolution.tool_name, adapted_args)
+        if not validation.valid:
+            reason = "; ".join(validation.errors) if validation.errors else "Invalid parameters"
+            if audit_logger is not None:
+                audit_logger.log_quick(
+                    event_type="validation_block",
+                    tool_name=resolution.tool_name,
+                    action_summary=reason,
+                )
+            return DispatchResult(
+                success=False,
+                speech_text="I can't do that with these parameters.",
+                display_text=reason,
+                error_type="invalid_params",
+                error_message=reason,
+                latency_us=(time.monotonic_ns() - start) // 1000,
+                logged=True,
+            )
         ctx = SecurityContext(
             mode="client",
             source_type="mcp_server",
             source_id=resolution.server_id,
             trust_level=TrustLevel.UNTRUSTED,
             content_type=ContentType.PLAINTEXT,
-            policy=PolicyConfig(),
+            # External MCP write tools are permitted, gated by auth_event and action gate.
+            policy=PolicyConfig(enable_destructive=True),
             confirmation_handler=confirm_handler,
         )
 
@@ -398,12 +438,18 @@ async def dispatch_mcp(
 
         gate_result = pipeline.check_tool_execution(
             tool=resolution.tool_name,
-            args={},
+            args=adapted_args,
             ctx=ctx,
             auth_event=effective_event,
         )
 
         if not gate_result.allowed:
+            if audit_logger is not None:
+                audit_logger.log_quick(
+                    event_type="policy_block",
+                    tool_name=resolution.tool_name,
+                    action_summary=gate_result.reason,
+                )
             return DispatchResult(
                 success=False,
                 speech_text=f"I can't do that: {gate_result.reason}",
@@ -413,6 +459,39 @@ async def dispatch_mcp(
                 latency_us=(time.monotonic_ns() - start) // 1000,
                 logged=True,
             )
+
+        from .security.action_gate import ActionGate, ActionProposal
+        requires_confirmation = resolution.sensitivity != SENSITIVITY_READ
+        context_has_web_derived = bool((query.args or {}).get("context_has_web_derived"))
+
+        if requires_confirmation or context_has_web_derived:
+            proposal = ActionProposal(
+                tool_name=resolution.tool_name,
+                args=adapted_args,
+                summary=f"Execute {query.command}",
+                context={"server_id": resolution.server_id},
+            )
+            confirmed = await ActionGate().confirm(
+                proposal=proposal,
+                ctx=ctx,
+                context_has_web_derived=context_has_web_derived,
+            )
+            if not confirmed:
+                if audit_logger is not None:
+                    audit_logger.log_quick(
+                        event_type="action_cancelled",
+                        tool_name=resolution.tool_name,
+                        action_summary="Action cancelled by user",
+                    )
+                return DispatchResult(
+                    success=False,
+                    speech_text="Okay, I won't do that.",
+                    display_text="Action cancelled by user.",
+                    error_type="cancelled",
+                    error_message="Action cancelled by user",
+                    latency_us=(time.monotonic_ns() - start) // 1000,
+                    logged=True,
+                )
 
     # 3. Execute via MCP client
     if mcp_client is None:
@@ -426,12 +505,6 @@ async def dispatch_mcp(
         )
 
     try:
-        adapter_cls = _resolve_adapter(query.command)
-        if adapter_cls:
-            adapted_args = adapter_cls().adapt(query.args or {}, resolution)
-        else:
-            adapted_args = query.args or {}
-
         namespaced_tool = f"{resolution.server_id}.{resolution.tool_name}"
         raw_result = await mcp_client.call_tool(namespaced_tool, adapted_args)
     except Exception as e:
@@ -479,6 +552,13 @@ async def dispatch_mcp(
 
     # 7. Format result
     latency_us = (time.monotonic_ns() - start) // 1000
+    if pipeline is not None:
+        audit_logger = getattr(pipeline, "_audit_logger", None)
+        if audit_logger is not None:
+            audit_logger.log_quick(
+                event_type="dispatch_success",
+                tool_name=resolution.tool_name,
+            )
     return DispatchResult(
         success=True,
         speech_text=speech_text,

@@ -16,6 +16,13 @@ from episodic.debug_utils import debug_print
 from episodic.debug_system import debug_enabled
 
 
+_EXTRACT_PLACEHOLDERS = {
+    "could not extract content from this page.",
+    "weather information not found on page.",
+    "could not extract article content.",
+}
+
+
 def _sanitize_soup(soup, url: str):
     """Apply L0 HTML sanitization to a BeautifulSoup object.
 
@@ -42,6 +49,47 @@ def _normalize_text(text: str) -> str:
 
     result = sanitize(text, ContentType.PLAINTEXT)
     return result.cleaned_text
+
+
+def _extract_with_trafilatura(html: str) -> Optional[str]:
+    """Extract page text using trafilatura when available."""
+    try:
+        import trafilatura  # type: ignore
+    except ImportError:
+        return None
+
+    try:
+        extracted = trafilatura.extract(
+            html,
+            include_comments=False,
+            include_tables=False,
+            output_format="txt",
+        )
+    except Exception:
+        return None
+
+    if not extracted:
+        return None
+
+    # Keep paragraph breaks while normalizing excessive empty lines.
+    extracted = re.sub(r"\n{3,}", "\n\n", extracted).strip()
+    return extracted or None
+
+
+def _is_usable_extracted_content(content: Optional[str]) -> bool:
+    """Determine if extracted content is usable for Muse grounding."""
+    if not content:
+        return False
+
+    text = content.strip()
+    if not text:
+        return False
+
+    if text.lower() in _EXTRACT_PLACEHOLDERS:
+        return False
+
+    min_chars = int(config.get("muse_extract_min_chars", 20))
+    return len(text) >= max(1, min_chars)
 
 
 class WebContentExtractor:
@@ -106,11 +154,16 @@ class WebContentExtractor:
                         soup = _sanitize_soup(soup, url)
 
                     # Try to extract main content
-                    content = self._extract_main_content(soup, url)
+                    content = _extract_with_trafilatura(html)
+                    if not _is_usable_extracted_content(content):
+                        content = self._extract_main_content(soup, url)
 
                     # L0: Unicode normalization at extraction boundary (INV-MUSE-10)
                     if config.get('muse_sanitize_html', True) and content:
                         content = _normalize_text(content)
+
+                    if not _is_usable_extracted_content(content):
+                        content = None
 
                     return {
                         'title': title_text,
@@ -349,19 +402,24 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         if config.get('muse_sanitize_html', True):
             soup = _sanitize_soup(soup, url)
 
-        # Extract content based on site
-        extractor = WebContentExtractor()
-        content = extractor._extract_main_content(soup, url)
+        # Extract content with trafilatura first, then fall back to selector-based extraction
+        content = _extract_with_trafilatura(response.text)
+        if not _is_usable_extracted_content(content):
+            extractor = WebContentExtractor()
+            content = extractor._extract_main_content(soup, url)
 
         # L0: Unicode normalization at extraction boundary (INV-MUSE-10)
         if config.get('muse_sanitize_html', True) and content:
             content = _normalize_text(content)
+
+        if not _is_usable_extracted_content(content):
+            content = None
         
         # Debug: show what we got
         if (config.get('debug') or debug_enabled('web') or debug_enabled('muse')) and content:
             typer.secho(f"\nExtracted {len(content)} chars from {url}", fg="yellow")
         
-        return content if content and len(content) > 50 else None
+        return content
         
     except Exception as e:
         # Show extraction failures only when web/muse debug is enabled.

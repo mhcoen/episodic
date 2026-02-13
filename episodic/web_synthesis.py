@@ -110,6 +110,26 @@ class WebSynthesizer:
         # Use the global format system
         from episodic.commands.style import get_format_prompt
         return get_format_prompt()
+
+    @staticmethod
+    def _is_strict_grounding_query(query: str) -> bool:
+        """Detect queries that should use strict source-grounded synthesis."""
+        q = (query or "").lower()
+        if not q:
+            return False
+
+        time_markers = (
+            "this weekend", "weekend", "today", "tonight", "tomorrow",
+            "this week", "latest", "current", "happening now", "upcoming",
+        )
+        activity_markers = (
+            "things to do", "what to do", "events", "activities",
+            "concerts", "shows", "festival",
+        )
+
+        has_time = any(marker in q for marker in time_markers)
+        has_activity = any(marker in q for marker in activity_markers)
+        return has_time or has_activity
     
     def _load_prompt_template(self) -> str:
         """Load the customizable prompt template."""
@@ -208,9 +228,11 @@ class WebSynthesizer:
 
         # --- Assemble system message (all trusted instructions) ---
         style_info = self._get_style_instructions()
+        strict_grounding = self._is_strict_grounding_query(query)
         system_message = self._build_system_message(
             style_info=style_info,
             session_canary=session_canary,
+            strict_grounding=strict_grounding,
         )
 
         # INV-MUSE-8: canary must NOT appear in user message region
@@ -239,6 +261,7 @@ class WebSynthesizer:
         self,
         style_info: Dict[str, Any],
         session_canary: Optional[str] = None,
+        strict_grounding: bool = False,
     ) -> str:
         """Build the synthesis system message with all trusted instructions."""
         detail_instructions = self._get_detail_instructions()
@@ -282,6 +305,20 @@ class WebSynthesizer:
             "- Include [Source N] citations after claims\n"
             "- Use conversation context ONLY for follow-up references"
         )
+
+        if strict_grounding:
+            parts.append(
+                "STRICT GROUNDING MODE (time-sensitive/event queries):\n"
+                "- Include ONLY activities/events explicitly present in provided sources\n"
+                "- Do NOT add generic city recommendations unless directly sourced\n"
+                "- Every concrete activity/event bullet MUST include [Source N]\n"
+                "- Do NOT include generic filler (for example broad neighborhood tips, park/beach suggestions, "
+                "or 'check this site' advice) unless those exact recommendations are sourced\n"
+                "- If concrete sourced listings exist, prioritize listing those items and avoid unsourced "
+                "wrap-up guidance\n"
+                "- If fewer than 3 concrete sourced items exist, state that specific listings are limited "
+                "and provide only sourced links/facts"
+            )
 
         return "\n\n".join(parts)
     

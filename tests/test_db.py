@@ -13,6 +13,7 @@ from episodic.db import (
     get_ancestry, set_head, get_head, get_descendants, delete_node,
     resolve_node_ref, get_recent_nodes, get_all_nodes
 )
+from episodic.db_migrations import ensure_runtime_schema
 
 class TestDatabase(unittest.TestCase):
     """Test the database operations."""
@@ -54,6 +55,14 @@ class TestDatabase(unittest.TestCase):
             c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='nodes'")
             self.assertIsNotNone(c.fetchone())
 
+    def test_initialize_db_has_source_type_column(self):
+        """New installations include nodes.source_type by default."""
+        with get_connection() as conn:
+            c = conn.cursor()
+            c.execute("PRAGMA table_info(nodes)")
+            columns = [row[1] for row in c.fetchall()]
+            self.assertIn("source_type", columns)
+
     def test_insert_node(self):
         """Test that a node can be inserted into the database."""
         # Insert a node
@@ -71,6 +80,35 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(node["id"], node_id)
         self.assertEqual(node["short_id"], short_id)
         self.assertIsNone(node["parent_id"])
+
+    def test_runtime_schema_guard_adds_source_type(self):
+        """Existing DBs without source_type are upgraded at runtime."""
+        # Simulate a legacy nodes table missing source_type
+        with get_connection() as conn:
+            c = conn.cursor()
+            c.execute("DROP TABLE IF EXISTS nodes")
+            c.execute("""
+                CREATE TABLE nodes (
+                    id TEXT PRIMARY KEY,
+                    parent_id TEXT,
+                    content TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    short_id TEXT UNIQUE,
+                    role TEXT,
+                    provider TEXT,
+                    model TEXT,
+                    is_meta_query BOOLEAN DEFAULT FALSE
+                )
+            """)
+            conn.commit()
+
+        ensure_runtime_schema()
+
+        with get_connection() as conn:
+            c = conn.cursor()
+            c.execute("PRAGMA table_info(nodes)")
+            columns = [row[1] for row in c.fetchall()]
+            self.assertIn("source_type", columns)
 
     def test_insert_node_with_parent(self):
         """Test that a node can be inserted with a parent."""

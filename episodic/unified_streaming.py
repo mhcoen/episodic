@@ -7,6 +7,7 @@ import sys
 import time
 import math
 import random
+import re
 from typing import Optional, Generator
 
 import typer
@@ -18,6 +19,16 @@ from episodic.llm import process_stream_response
 
 # Import debug_print from common utilities
 from episodic.debug_utils import debug_print
+
+
+def _strip_inline_source_citations_for_tts(text: str) -> str:
+    """Strip inline [Source N]-style citations from speech-only output."""
+    if not text:
+        return text
+
+    cleaned = re.sub(r"\[\s*sources?\s+[^\]]+\]", "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    return cleaned
 
 
 def _check_keyboard_interrupt() -> bool:
@@ -203,7 +214,9 @@ def unified_stream_response(
 
                 # Feed to voice TTS sentence buffer
                 if voice_sentence_buffer:
-                    voice_sentence_buffer.add(chunk_content)
+                    voice_sentence_buffer.add(
+                        _strip_inline_source_citations_for_tts(chunk_content)
+                    )
             
             # Process accumulated text into words
             # Find the last space or newline in the accumulated text

@@ -80,8 +80,6 @@ def generate_short_id(fallback=False):
             if candidate not in existing_ids:
                 return candidate
 
-        # If no 2-character IDs are available (very unlikely), fall back to longer IDs
-        logger.warning("No 2-character short IDs available, falling back to longer IDs")
         
         # Use standard characters for longer IDs
         for length in range(3, SHORT_ID_MAX_LENGTH + 1):

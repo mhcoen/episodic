@@ -23,8 +23,8 @@ class TestPublicPaths:
     def test_sse_is_public(self):
         assert "/sse" in PUBLIC_PATHS
 
-    def test_messages_is_public(self):
-        assert "/messages" in PUBLIC_PATHS
+    def test_messages_not_public(self):
+        assert "/messages" not in PUBLIC_PATHS
 
 
 class TestHelperFunctions:

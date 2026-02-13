@@ -199,7 +199,8 @@ def _sanitize_html(html: str) -> Tuple[str, List[str], int, bool]:
     # Remove elements with hidden inline styles
     hidden_count = 0
     for el in soup.find_all(True):
-        style = el.get("style", "")
+        attrs = getattr(el, "attrs", None) or {}
+        style = attrs.get("style", "")
         if style:
             is_hidden, reason = _is_hidden_style(style)
             if is_hidden:
@@ -234,7 +235,8 @@ def _sanitize_html(html: str) -> Tuple[str, List[str], int, bool]:
 
         # Remove disallowed attributes
         attrs_to_remove = []
-        for attr in list(el.attrs.keys()):
+        el_attrs = getattr(el, "attrs", None) or {}
+        for attr in list(el_attrs.keys()):
             attr_lower = attr.lower()
             # Keep href on <a> tags
             if tag_name == "a" and attr_lower == "href":
@@ -258,7 +260,12 @@ def _sanitize_html(html: str) -> Tuple[str, List[str], int, bool]:
                 attrs_to_remove.append(attr)
 
         for attr in attrs_to_remove:
-            del el[attr]
+            try:
+                if getattr(el, "attrs", None) and attr in el.attrs:
+                    del el[attr]
+            except Exception:
+                # Malformed tags can have non-dict attrs; ignore and continue sanitizing.
+                pass
 
         # Unwrap non-allowed tags (preserve inner content)
         if tag_name not in _ALLOWED_TAGS:

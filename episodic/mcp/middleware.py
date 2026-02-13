@@ -11,12 +11,13 @@ import sqlite3
 from typing import Optional
 
 from episodic.mcp.auth import validate_token, get_daily_cost
+from episodic.mcp.request_context import set_request_context, reset_request_context
 
 # Default rate limits
 DEFAULT_DAILY_COST_LIMIT = 10.0  # $10/day per client
 
 # Paths that skip authentication
-PUBLIC_PATHS = {"/health", "/sse", "/messages", "/messages/"}
+PUBLIC_PATHS = {"/health", "/sse", "/sse/"}
 
 
 def create_auth_middleware(db_path: str, daily_cost_limit: float = DEFAULT_DAILY_COST_LIMIT):
@@ -98,7 +99,15 @@ def create_auth_middleware(db_path: str, daily_cost_limit: float = DEFAULT_DAILY
             request.state.token_id = result["token_id"]
             request.state.scopes = result["scopes"]
 
-            return await call_next(request)
+            tokens = set_request_context(
+                client_id=result["client_id"],
+                token_id=result["token_id"],
+                scopes=result["scopes"],
+            )
+            try:
+                return await call_next(request)
+            finally:
+                reset_request_context(tokens)
 
     return AuthMiddleware
 

@@ -19,6 +19,8 @@ integration and web search synthesis (muse mode).
 | L7 | Provenance Tracking | Tag content provenance; prevent reuse of suspicious content across trust boundaries |
 | L8 | Rate Limiting | Per-client rate and cost limits to prevent abuse |
 | L9 | Request Binding | Message hash binding to prevent replay attacks |
+| L10 | OAuth Scope Progression | Incremental capability grants; no blanket access |
+| L11 | Audit Logging | Structured, tamper-evident logs of all security-relevant events |
 
 ## Muse Mode (Web Synthesis) Hardening
 

@@ -51,6 +51,8 @@ PARAM_MAPPING = {
     'web-search-extract-content': 'web_search_extract_content',
     'web-search-rate-limit': 'web_search_rate_limit',
     'web-search-cache-ttl': 'web_search_cache_ttl',
+    'web-search-bypass-cache-for-time-sensitive': 'web_search_bypass_cache_for_time_sensitive',
+    'web-search-time-sensitive-excluded-domains': 'web_search_time_sensitive_excluded_domains',
     'web-show-sources': 'web_show_sources',
     'web-show-raw': 'web_show_raw',
     'google-api-key': 'google_api_key',
@@ -81,6 +83,7 @@ SHORT_ALIASES = {
     'web.max_results': 'web_search_max_results',
     'web.rate_limit': 'web_search_rate_limit',
     'web.timeout': 'web_search_timeout',
+    'web.bypass_cache_time_sensitive': 'web_search_bypass_cache_for_time_sensitive',
     'web.synthesize': 'web_search_synthesize',
     'web.extract': 'web_search_extract_content',
     'web.show_urls': 'web_search_show_urls',
@@ -97,6 +100,7 @@ SHORT_ALIASES = {
     'web-extract': 'web_search_extract_content',
     'web-rate-limit': 'web_search_rate_limit',
     'web-cache-ttl': 'web_search_cache_duration',
+    'web-bypass-cache-time-sensitive': 'web_search_bypass_cache_for_time_sensitive',
     
     # RAG
     'rag': 'rag_enabled',

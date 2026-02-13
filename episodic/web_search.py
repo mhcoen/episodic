@@ -11,6 +11,7 @@ This module re-exports them for backward compatibility.
 import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
+from urllib.parse import urlparse
 
 import typer
 from episodic.config import config
@@ -110,6 +111,94 @@ class WebSearchManager:
         self._working_provider_cache = None
         self._working_provider_timestamp = None
         self._last_search_diagnostics: Dict[str, Any] = {}
+
+    @staticmethod
+    def _is_time_sensitive_query(query: str) -> bool:
+        """Detect queries that should prefer fresh event-oriented results."""
+        q = (query or "").lower()
+        if not q:
+            return False
+
+        time_markers = (
+            "this weekend", "weekend", "today", "tonight", "tomorrow",
+            "this week", "latest", "current", "happening now", "upcoming",
+        )
+        activity_markers = (
+            "things to do", "what to do", "events", "activities",
+            "concerts", "shows", "festival",
+        )
+        has_time = any(marker in q for marker in time_markers)
+        has_activity = any(marker in q for marker in activity_markers)
+        return has_time or has_activity
+
+    @staticmethod
+    def _extract_domain(url: str) -> str:
+        """Extract normalized hostname from URL."""
+        try:
+            return (urlparse(url).netloc or "").lower()
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _contains_any(text: str, needles: List[str]) -> bool:
+        t = (text or "").lower()
+        return any(n in t for n in needles)
+
+    def _apply_result_quality_controls(
+        self, query: str, results: List[SearchResult]
+    ) -> List[SearchResult]:
+        """Filter and rerank results for better Muse grounding quality."""
+        if not results:
+            return []
+
+        # Apply globally excluded domains first.
+        excluded = config.get("web_search_excluded_domains", []) or []
+        excluded = [d.lower() for d in excluded if isinstance(d, str) and d]
+        filtered = [
+            r for r in results
+            if not any(d in self._extract_domain(r.url) for d in excluded)
+        ]
+
+        if not filtered:
+            return []
+
+        if not self._is_time_sensitive_query(query):
+            return filtered
+
+        # Exclude known low-signal social/discovery pages for event/time-sensitive queries.
+        low_signal = config.get("web_search_time_sensitive_excluded_domains", []) or []
+        low_signal = [d.lower() for d in low_signal if isinstance(d, str) and d]
+        event_filtered = [
+            r for r in filtered
+            if not any(d in self._extract_domain(r.url) for d in low_signal)
+        ]
+        if event_filtered:
+            filtered = event_filtered
+
+        # Rerank toward event directories and explicitly time-sensitive pages.
+        url_terms = [
+            "eventbrite.com", "allevents.", "funcheap.com",
+            "/events", "this-weekend", "weekend", "calendar",
+        ]
+        text_terms = [
+            "this weekend", "today", "tonight", "tomorrow",
+            "events", "tickets", "festival", "concert",
+        ]
+
+        def score(result: SearchResult) -> int:
+            url = (result.url or "").lower()
+            title = (result.title or "").lower()
+            snippet = (result.snippet or "").lower()
+            score_val = 0
+            if self._contains_any(url, url_terms):
+                score_val += 3
+            if self._contains_any(title, text_terms):
+                score_val += 2
+            if self._contains_any(snippet, text_terms):
+                score_val += 1
+            return score_val
+
+        return sorted(filtered, key=score, reverse=True)
 
     def get_last_search_diagnostics(self) -> Dict[str, Any]:
         """Return diagnostics from the most recent search attempt."""
@@ -240,6 +329,7 @@ class WebSearchManager:
         if num_results is None:
             num_results = config.get('web_search_max_results', 5)
         verbose = config.get('debug') or debug_enabled('web') or debug_enabled('muse')
+        time_sensitive = self._is_time_sensitive_query(query)
 
         self._last_search_diagnostics = {
             "query": query,
@@ -248,7 +338,11 @@ class WebSearchManager:
         }
 
         # Check cache first
-        if use_cache:
+        bypass_cache = (
+            time_sensitive
+            and config.get("web_search_bypass_cache_for_time_sensitive", True)
+        )
+        if use_cache and not bypass_cache:
             cache_duration = config.get('web_search_cache_duration', 3600)
             cached = self.cache.get(query, cache_duration)
             if cached:
@@ -329,13 +423,20 @@ class WebSearchManager:
                 continue
 
             if results:
+                results = self._apply_result_quality_controls(query, results)
+                if not results:
+                    attempt["status"] = "filtered_empty"
+                    attempt["reason"] = "all results filtered by quality controls"
+                    self._last_search_diagnostics["providers_attempted"].append(attempt)
+                    continue
                 attempt["status"] = "ok"
                 attempt["result_count"] = len(results)
                 self._last_search_diagnostics["providers_attempted"].append(attempt)
                 self._last_search_diagnostics["success_provider"] = provider_name
                 # Success - cache and return
                 self.rate_limiter.record_search()
-                self.cache.set(query, results)
+                if not bypass_cache:
+                    self.cache.set(query, results)
 
                 # Cache this working provider
                 if config.get('web_search_fallback_enabled', True):
@@ -369,6 +470,7 @@ class WebSearchManager:
         """
         if num_results is None:
             num_results = config.get('web_search_max_results', 5)
+        time_sensitive = self._is_time_sensitive_query(query)
 
         self._last_search_diagnostics = {
             "query": query,
@@ -377,7 +479,11 @@ class WebSearchManager:
         }
 
         # Check cache first
-        if use_cache:
+        bypass_cache = (
+            time_sensitive
+            and config.get("web_search_bypass_cache_for_time_sensitive", True)
+        )
+        if use_cache and not bypass_cache:
             cache_duration = config.get('web_search_cache_duration', 3600)
             cached = self.cache.get(query, cache_duration)
             if cached:
@@ -457,7 +563,7 @@ class WebSearchManager:
                 previous_loop = None
                 had_previous_loop = False
                 try:
-                    previous_loop = asyncio.get_event_loop()
+                    previous_loop = asyncio.get_running_loop()
                     had_previous_loop = True
                 except RuntimeError:
                     pass
@@ -477,12 +583,19 @@ class WebSearchManager:
 
                 # If we got results, cache the provider and return
                 if results:
+                    results = self._apply_result_quality_controls(query, results)
+                    if not results:
+                        attempt["status"] = "filtered_empty"
+                        attempt["reason"] = "all results filtered by quality controls"
+                        self._last_search_diagnostics["providers_attempted"].append(attempt)
+                        continue
                     attempt["status"] = "ok"
                     attempt["result_count"] = len(results)
                     self._last_search_diagnostics["providers_attempted"].append(attempt)
                     self._last_search_diagnostics["success_provider"] = provider_name
                     self.rate_limiter.record_search()
-                    self.cache.set(query, results)
+                    if not bypass_cache:
+                        self.cache.set(query, results)
 
                     # Cache this working provider
                     if config.get('web_search_fallback_enabled', True):

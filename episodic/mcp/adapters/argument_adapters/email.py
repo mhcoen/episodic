@@ -30,8 +30,14 @@ class EmailSearchAdapter(ArgumentAdapter):
     ) -> Dict[str, Any]:
         # Build Gmail query string from structured args
         parts = []
-        if query_args.get("query"):
-            parts.append(query_args["query"])
+        raw_query = query_args.get("query", "")
+        if raw_query:
+            # Expand shorthand: bare "unread" → Gmail syntax "is:unread"
+            normalized = raw_query.strip().lower()
+            if normalized == "unread" or normalized == "is:unread":
+                parts.append("is:unread")
+            else:
+                parts.append(raw_query)
         if query_args.get("from_addr"):
             parts.append(f"from:{query_args['from_addr']}")
         if query_args.get("unread_only"):

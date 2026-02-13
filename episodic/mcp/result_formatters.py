@@ -13,6 +13,7 @@ formatter extracts structured data and produces display + speech text.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 from typing import Any, Dict, List, Optional, Tuple
@@ -94,14 +95,14 @@ def _format_emails(items: List[Any]) -> Tuple[str, str, List[Dict[str, Any]]]:
     n = len(emails)
     lines = [f"Found {n} email{'s' if n != 1 else ''}:\n"]
     for i, em in enumerate(emails, 1):
-        subj = em.get("subject", "(no subject)")
+        subj = html.unescape(em.get("subject", "(no subject)"))
         sender = _short_sender(em.get("from", ""))
         date = _short_date(em.get("date", ""))
-        snippet = em.get("snippet", "")
+        snippet = html.unescape(em.get("snippet", ""))
         if len(snippet) > 80:
             snippet = snippet[:77] + "..."
 
-        lines.append(f"  {i}. {subj}")
+        lines.append(f"  {i}. Subject: {subj}")
         lines.append(f"     From: {sender}  {date}")
         if snippet:
             lines.append(f"     {snippet}")
@@ -109,7 +110,7 @@ def _format_emails(items: List[Any]) -> Tuple[str, str, List[Dict[str, Any]]]:
     display = "\n".join(lines)
     speech = f"You have {n} email{'s' if n != 1 else ''}."
     if n <= 3:
-        subjects = [e.get("subject", "no subject") for e in emails]
+        subjects = [html.unescape(e.get("subject", "no subject")) for e in emails]
         speech += " " + ". ".join(subjects) + "."
     return display, speech, emails
 

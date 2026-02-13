@@ -62,6 +62,7 @@ def get_all_edges(conn=None) -> list[dict]:
                 "FROM kg_edges e "
                 "JOIN kg_assertions a ON e.assertion_id = a.assertion_id "
                 "WHERE a.status = 'active' "
+                "AND (a.quarantined = 0 OR a.quarantined IS NULL) "
                 "ORDER BY e.edge_id"
             )
             rows = []

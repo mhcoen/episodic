@@ -200,6 +200,8 @@ def run_batch(
     progress_callback: Optional[Callable] = None,
     dry_run: bool = False,
     db_path: str | None = None,
+    source_type: str = "user_input",
+    source_id: str = "",
 ) -> dict:
     """Run the extraction batch from the current high-water mark.
 
@@ -216,7 +218,26 @@ def run_batch(
     - dry_run: if True, extract and validate but do not apply
     - db_path: if set, extraction threads open connections to this DB
       instead of the production DB (used by eval harness)
+    - source_type: source type for L3 source gate check
+    - source_id: optional source identifier (e.g., client_id)
     """
+    from episodic.mcp.security.source_gate import (
+        check_extraction_allowed,
+        ExtractionPolicy,
+    )
+
+    gate = check_extraction_allowed(source_type, source_id)
+    if gate.policy == ExtractionPolicy.BLOCK:
+        return {
+            'nodes_processed': 0, 'patches_applied': 0,
+            'patches_rejected': 0, 'errors': [],
+            'hwm_before': 0, 'hwm_after': 0,
+            'node_classifications': {'question': 0, 'assertion': 0},
+            'nodes_qa_filtered': 0, 'edges_stripped_question_filter': 0,
+        }
+
+    is_quarantine = gate.policy == ExtractionPolicy.QUARANTINE
+
     with _use_conn(conn) as c:
         ensure_kg_schema(c)
 
@@ -470,6 +491,8 @@ def run_batch(
                     model_id=result['model_id'],
                     extraction_time_ms=result['extraction_time_ms'],
                     conn=c,
+                    quarantine=is_quarantine,
+                    source_origin=gate.source_origin,
                 )
                 summary['patches_applied'] += 1
                 summary['hwm_after'] = node_id

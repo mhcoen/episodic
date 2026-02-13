@@ -27,7 +27,9 @@ CREATE TABLE kg_assertions (
     polarity TEXT NOT NULL DEFAULT 'affirm',
     certainty TEXT NOT NULL DEFAULT 'explicit',
     status TEXT NOT NULL DEFAULT 'active',
-    tags TEXT NOT NULL DEFAULT '[]'
+    tags TEXT NOT NULL DEFAULT '[]',
+    quarantined INTEGER NOT NULL DEFAULT 0,
+    source_origin TEXT
 );
 
 CREATE TABLE kg_edges (

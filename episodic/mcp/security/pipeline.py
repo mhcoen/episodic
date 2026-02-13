@@ -9,6 +9,11 @@ from __future__ import annotations
 from typing import Optional
 
 from episodic.mcp.security.canary import detect_canary, generate_canary
+from episodic.mcp.security.source_gate import (
+    check_extraction_allowed,
+    ExtractionPolicy,
+    SourceGateResult,
+)
 from episodic.mcp.security.isolation import wrap_untrusted
 from episodic.mcp.security.outbound_dlp import OutboundDLP
 from episodic.mcp.security.policy_engine import PolicyEngine
@@ -211,3 +216,11 @@ class SecurityPipeline:
                 )
 
         return policy_result
+
+    def check_kg_extraction(
+        self,
+        source_type: str,
+        source_id: str = "",
+    ) -> SourceGateResult:
+        """Check if KG extraction is allowed for this source (Layer 3)."""
+        return check_extraction_allowed(source_type, source_id)

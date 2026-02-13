@@ -241,6 +241,7 @@ def retrieve_neighborhood(
             JOIN kg_entities o ON e.obj_entity_id = o.entity_id
             WHERE (e.subj_entity_id = ? OR e.obj_entity_id = ?)
               AND a.status = 'active'
+              AND (a.quarantined = 0 OR a.quarantined IS NULL)
               AND s.merged_into_entity_id IS NULL
               AND o.merged_into_entity_id IS NULL
             ORDER BY a.source_node_id DESC""",
@@ -300,7 +301,8 @@ def _query_edges_for(
                 JOIN kg_assertions a ON e.assertion_id = a.assertion_id
                 JOIN kg_entities o ON e.obj_entity_id = o.entity_id
                 WHERE e.subj_entity_id = ? AND e.predicate = ?
-                  AND a.status = 'active'""",
+                  AND a.status = 'active'
+                  AND (a.quarantined = 0 OR a.quarantined IS NULL)""",
                 (entity_id, predicate),
             ).fetchall()
         ]
@@ -374,7 +376,9 @@ def apply_closure_rules(
                JOIN kg_assertions a ON e.assertion_id = a.assertion_id
                JOIN kg_entities o ON e.obj_entity_id = o.entity_id
                WHERE e.subj_entity_id = ? AND e.predicate IN ('related_to','has')
-                 AND a.status='active' AND o.merged_into_entity_id IS NULL""",
+                 AND a.status='active'
+                 AND (a.quarantined = 0 OR a.quarantined IS NULL)
+                 AND o.merged_into_entity_id IS NULL""",
             (user_self_id,),
         ).fetchall()
     except sqlite3.OperationalError:

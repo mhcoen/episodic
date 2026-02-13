@@ -42,6 +42,12 @@ def kg_command(action: str = None, *args: str) -> None:
         kg_dupes()
     elif action == 'eval':
         kg_eval(list(args))
+    elif action == 'promote':
+        from episodic.commands.kg_quarantine import kg_promote
+        kg_promote(list(args))
+    elif action == 'quarantined':
+        from episodic.commands.kg_quarantine import kg_quarantined
+        kg_quarantined()
     elif action in ('explain', 'blame'):
         from episodic.commands import kg_explain
         (kg_explain.kg_explain_last if action == 'explain'
@@ -50,7 +56,8 @@ def kg_command(action: str = None, *args: str) -> None:
         typer.secho(f"Unknown KG action: {action}", fg=get_error_color())
         typer.secho(
             "Usage: /kg [status|entities|entity|edges|search|update|rebuild|"
-            "skip|patch|stats|probe|merge|dupes|deadlines|eval|explain|blame]",
+            "skip|patch|stats|probe|merge|dupes|deadlines|eval|explain|blame|"
+            "promote|quarantined]",
             fg=get_text_color(),
         )
 
@@ -586,6 +593,7 @@ def kg_deadlines() -> None:
             JOIN kg_assertions a ON e.assertion_id = a.assertion_id
             WHERE e.predicate IN ('deadline','scheduled_for','starts_at','ends_at','recurring')
               AND a.status = 'active'
+              AND (a.quarantined = 0 OR a.quarantined IS NULL)
               AND s.merged_into_entity_id IS NULL
               AND o.merged_into_entity_id IS NULL
             ORDER BY e.predicate, s.canonical_name
@@ -598,6 +606,7 @@ def kg_deadlines() -> None:
         typer.secho(
             f"  {subj} {pred} {obj}  (node {node_id})", fg=get_text_color(),
         )
+
 
 
 def kg_eval(args: List[str]) -> None:

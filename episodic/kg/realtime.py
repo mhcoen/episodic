@@ -7,7 +7,12 @@ import threading
 from episodic.debug_utils import debug_print
 
 
-def extract_node_async(node_uuid: str, content: str) -> None:
+def extract_node_async(
+    node_uuid: str,
+    content: str,
+    source_type: str = "user_input",
+    source_id: str = "",
+) -> None:
     """Fire-and-forget KG extraction for a single user node.
 
     Spawns a daemon thread. Follows the same pattern as
@@ -16,25 +21,44 @@ def extract_node_async(node_uuid: str, content: str) -> None:
     Args:
         node_uuid: The UUID string returned by insert_node()
         content: The user message text
+        source_type: Source type for L3 source gate check
+        source_id: Optional source identifier (e.g., client_id)
     """
     from episodic.config import config
     if not config.get('kg_realtime', False):
         return
 
+    from episodic.mcp.security.source_gate import (
+        check_extraction_allowed,
+        ExtractionPolicy,
+    )
+
+    gate = check_extraction_allowed(source_type, source_id)
+    if gate.policy == ExtractionPolicy.BLOCK:
+        debug_print(
+            f"KG realtime: blocked for source_type={source_type}",
+            category="kg",
+        )
+        return
+
     thread = threading.Thread(
         target=_extract_single_node,
-        args=(node_uuid, content),
+        args=(node_uuid, content, gate),
         daemon=True,
         name=f"kg-extract-{node_uuid[:8]}",
     )
     thread.start()
 
 
-def _extract_single_node(node_uuid: str, content: str) -> None:
+def _extract_single_node(node_uuid: str, content: str, gate=None) -> None:
     """Run the full extraction pipeline for one node.
 
     Gets its own DB connection (SQLite WAL mode is fine for this).
     Errors are logged but never propagate to the main thread.
+
+    Args:
+        gate: SourceGateResult from check_extraction_allowed(). If
+              gate.policy is QUARANTINE, assertions get quarantined.
     """
     try:
         from episodic.kg.db_kg import _use_conn
@@ -202,6 +226,12 @@ def _extract_single_node(node_uuid: str, content: str) -> None:
                 return
 
             # Apply
+            from episodic.mcp.security.source_gate import ExtractionPolicy
+
+            is_quarantine = (
+                gate is not None
+                and gate.policy == ExtractionPolicy.QUARANTINE
+            )
             apply_patch(
                 patch=patch,
                 node_id=node_id,
@@ -210,6 +240,8 @@ def _extract_single_node(node_uuid: str, content: str) -> None:
                 model_id=result['model_id'],
                 extraction_time_ms=result['extraction_time_ms'],
                 conn=conn,
+                quarantine=is_quarantine,
+                source_origin=gate.source_origin if gate else "",
             )
             _advance_hwm_if_contiguous(conn, node_id)
 

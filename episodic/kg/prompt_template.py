@@ -648,6 +648,7 @@ def _build_kg_neighborhood(
             f"WHERE (e.subj_entity_id IN ({placeholders}) "
             f"OR e.obj_entity_id IN ({placeholders})) "
             f"AND a.status = 'active' "
+            f"AND (a.quarantined = 0 OR a.quarantined IS NULL) "
             f"LIMIT 20",
             mentioned_eids + mentioned_eids
         ).fetchall()

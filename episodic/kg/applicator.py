@@ -16,6 +16,8 @@ def apply_patch(
     model_id: str,
     extraction_time_ms: int,
     conn=None,
+    quarantine: bool = False,
+    source_origin: str = "",
 ) -> dict:
     """Apply a validated patch to the KG tables in a single transaction.
 
@@ -63,16 +65,18 @@ def apply_patch(
 
             # Step 2: Insert assertions
             assertion_id_map: dict[str, int] = {}
+            q_val = 1 if quarantine else 0
             for a in patch.get('assertions', []):
                 tags_json = json.dumps(a.get('tags', []))
                 cursor = c.execute(
                     "INSERT INTO kg_assertions "
                     "(source_node_id, span_start, span_end, asserted_by, "
-                    "polarity, certainty, status, tags) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "polarity, certainty, status, tags, quarantined, "
+                    "source_origin) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (node_id, a['span_start'], a['span_end'],
                      a['asserted_by'], a['polarity'], a['certainty'],
-                     a['status'], tags_json)
+                     a['status'], tags_json, q_val, source_origin or None)
                 )
                 assertion_id_map[a['assertion_key']] = cursor.lastrowid
                 counts['assertions_created'] += 1

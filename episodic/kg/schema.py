@@ -96,6 +96,16 @@ CREATE TABLE IF NOT EXISTS kg_skiplist (
     reason TEXT,
     created_at REAL NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS kg_promotions (
+    promotion_id INTEGER PRIMARY KEY,
+    assertion_id INTEGER NOT NULL REFERENCES kg_assertions(assertion_id),
+    promoted_at REAL NOT NULL,
+    promoted_by TEXT NOT NULL DEFAULT 'cli_user',
+    source_origin TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_kg_promotions_assertion
+    ON kg_promotions(assertion_id);
 """
 
 SEED_USER_SELF_SQL = """
@@ -133,6 +143,8 @@ def ensure_kg_schema(conn=None):
         _migrate_edge_dedup(c)
         _migrate_predicate_check(c)
         _migrate_entity_merge(c)
+        _migrate_assertion_asserted_by(c)
+        _migrate_assertion_quarantine(c)
         c.commit()
 
 
@@ -244,6 +256,87 @@ def _migrate_entity_merge(conn):
         CREATE INDEX IF NOT EXISTS idx_kg_merges_merged
             ON kg_merges(merged_id);
     """)
+
+
+def _migrate_assertion_asserted_by(conn):
+    """Expand kg_assertions.asserted_by CHECK constraint.
+
+    Original: CHECK(asserted_by IN ('user'))
+    New: CHECK(asserted_by IN ('user','assistant','mcp_client','web','email','calendar','rag'))
+
+    Uses table-rebuild pattern (same as _migrate_predicate_check).
+    Idempotent: checks if old CHECK exists in table DDL.
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='kg_assertions'"
+    ).fetchone()
+    if not row:
+        return
+    ddl = row[0] or ''
+    # Only migrate if the old single-value CHECK is present
+    if "asserted_by IN ('user')" not in ddl:
+        return
+
+    # Check for quarantine columns — if they exist we must preserve them
+    has_quarantine = 'quarantined' in ddl
+    quarantine_cols = (
+        ", quarantined INTEGER NOT NULL DEFAULT 0, source_origin TEXT"
+        if has_quarantine else ""
+    )
+    quarantine_select = (
+        ", quarantined, source_origin" if has_quarantine else ""
+    )
+
+    conn.executescript(f"""
+        CREATE TABLE kg_assertions_new (
+            assertion_id INTEGER PRIMARY KEY,
+            source_node_id INTEGER NOT NULL,
+            span_start INTEGER NOT NULL,
+            span_end INTEGER NOT NULL,
+            asserted_by TEXT NOT NULL CHECK(asserted_by IN
+                ('user','assistant','mcp_client','web','email','calendar','rag')),
+            polarity TEXT NOT NULL CHECK(polarity IN ('affirm', 'negate')),
+            certainty TEXT NOT NULL CHECK(certainty IN ('explicit', 'hedged')),
+            status TEXT NOT NULL CHECK(status IN ('active')),
+            tags TEXT{quarantine_cols},
+            UNIQUE(source_node_id, span_start, span_end)
+        );
+        INSERT INTO kg_assertions_new
+            SELECT assertion_id, source_node_id, span_start, span_end,
+                   asserted_by, polarity, certainty, status, tags
+                   {quarantine_select}
+            FROM kg_assertions;
+        DROP TABLE kg_assertions;
+        ALTER TABLE kg_assertions_new RENAME TO kg_assertions;
+        CREATE INDEX IF NOT EXISTS idx_kg_assertions_node
+            ON kg_assertions(source_node_id);
+    """)
+
+
+def _migrate_assertion_quarantine(conn):
+    """Add quarantine columns to kg_assertions.
+
+    Adds: quarantined INTEGER NOT NULL DEFAULT 0, source_origin TEXT.
+    Creates partial index for efficient quarantine queries.
+    Idempotent: checks if column exists.
+    """
+    try:
+        conn.execute("SELECT quarantined FROM kg_assertions LIMIT 0")
+        return  # Already has column
+    except sqlite3.OperationalError:
+        pass
+
+    conn.execute(
+        "ALTER TABLE kg_assertions ADD COLUMN "
+        "quarantined INTEGER NOT NULL DEFAULT 0"
+    )
+    conn.execute(
+        "ALTER TABLE kg_assertions ADD COLUMN source_origin TEXT"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_kg_assertions_quarantined "
+        "ON kg_assertions(quarantined) WHERE quarantined = 1"
+    )
 
 
 def migrate_kg_schema(conn=None):

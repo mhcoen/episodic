@@ -8,6 +8,7 @@ from web pages, going beyond just search result snippets.
 from typing import Optional, Dict, Any
 from datetime import datetime
 import re
+import traceback
 
 import typer
 from episodic.config import config
@@ -121,6 +122,8 @@ class WebContentExtractor:
         except Exception as e:
             if config.get('debug') or debug_enabled('web') or debug_enabled('muse'):
                 typer.secho(f"\nFailed to extract from {url}: {type(e).__name__}: {e}", fg="red")
+                if debug_enabled('muse'):
+                    typer.secho(traceback.format_exc(limit=3).strip(), fg="yellow")
             return None
     
     def _extract_main_content(self, soup, url: str) -> str:
@@ -366,5 +369,10 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
             if "timeout" in str(e).lower():
                 typer.secho(f"⚠️  Timeout fetching {url.split('/')[2]}", fg="yellow")
             else:
-                typer.secho(f"⚠️  Failed to fetch {url.split('/')[2]}: {type(e).__name__}", fg="yellow")
+                typer.secho(
+                    f"⚠️  Failed to fetch {url.split('/')[2]}: {type(e).__name__}: {e}",
+                    fg="yellow",
+                )
+            if debug_enabled('muse'):
+                typer.secho(traceback.format_exc(limit=3).strip(), fg="yellow")
         return None

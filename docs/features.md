@@ -424,16 +424,16 @@ Episodic includes a built-in assistant with utility commands that work as slash 
 
 ### Calendar & Email (Google Workspace Plugin)
 
-Calendar and email use natural language extraction — describe what you want in plain English:
+Calendar and email use natural language extraction — describe what you want in plain English. These work as slash commands (`/cal`, `/email`) or as natural language in voice mode and chat:
 
-```bash
-/cal what's on my calendar tomorrow
-/cal schedule a meeting with Bob at 3pm
-/email check my unread
-/email draft to Jane about the report
+```
+What's on my calendar tomorrow?
+Schedule a meeting with Bob at 3pm
+Check my unread email
+Draft an email to Jane about the report
 ```
 
-Aliases: `/calendar`, `/mail`, `/gmail`. Requires `/mcp connect gsuite`.
+Slash command aliases: `/calendar`, `/mail`, `/gmail`. Requires `/mcp connect gsuite`.
 
 ### Voice Integration
 

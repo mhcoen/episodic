@@ -81,7 +81,9 @@ Supports arithmetic, percentages, and common math functions:
 
 ## Calendar & Email
 
-Calendar and email commands are provided by the Google Workspace plugin and use natural language extraction — you describe what you want in plain English.
+Calendar and email commands are provided by the Google Workspace plugin and use natural language extraction — you describe what you want in plain English. These work both as slash commands and as natural language (in voice mode or chat).
+
+### Slash Commands
 
 ```bash
 /cal <text>                  # Calendar query or action
@@ -90,16 +92,17 @@ Calendar and email commands are provided by the Google Workspace plugin and use 
 
 Aliases: `/calendar`, `/mail`, `/gmail`
 
-### Examples
+### Natural Language
 
-```bash
-/cal what's on my calendar tomorrow
-/cal schedule a meeting with Bob at 3pm
-/cal am I free Friday afternoon
+You don't need the slash prefix. These all work as plain text or speech:
 
-/email check my unread
-/email from Jane about the report
-/email draft to Bob about the project update
+```
+What's on my calendar tomorrow?
+Schedule a meeting with Bob at 3pm
+Am I free Friday afternoon?
+Check my unread email
+Email from Jane about the report
+Draft an email to Bob about the project update
 ```
 
 ### Setup

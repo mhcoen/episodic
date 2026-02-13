@@ -22,8 +22,8 @@ I originally wrote this to fill a gap I couldn't find addressed elsewhere. It ha
 ## ✨ Features
 
 - **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, 20+ providers, and custom local models
-- **🔗 Knowledge Graph** - Extracts structured knowledge from conversations in real-time and injects relevant facts into context at zero read-side LLM cost
 - **🧠 Intelligent Topic Detection** - Neural segmentation validated on academic benchmarks, with configurable granularity
+- **🔗 Knowledge Graph** - Extracts structured knowledge from conversations in real-time and injects relevant facts into context at zero read-side LLM cost
 - **🔄 Topic Reactivation** - Seamlessly resume previous topics with full context restoration
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
@@ -107,7 +107,7 @@ pip install -e .
 # Set up at least one provider:
 export OPENAI_API_KEY="sk-..."          # or
 export HUGGINGFACE_API_KEY="hf_..."     # or
-ollama pull phi4                         # fully local
+ollama pull phi4                        # fully local
 
 python -m episodic
 ```
@@ -129,8 +129,8 @@ The test suite covers the CLI, topic segmentation, knowledge graph (extraction, 
 
 ```bash
 pytest                        # full suite (~3200 tests)
-pytest tests/kg/               # knowledge graph tests only
-pytest tests/unit/             # unit tests only
+pytest tests/kg/              # knowledge graph tests only
+pytest tests/unit/            # unit tests only
 pytest -x --tb=short          # stop on first failure
 ```
 

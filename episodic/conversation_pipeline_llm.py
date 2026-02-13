@@ -124,13 +124,42 @@ def phase_message_augmentation(manager: "ConversationManager", ctx: "TurnContext
 
 def phase_llm_query(manager: "ConversationManager", ctx: "TurnContext") -> None:
     """Execute LLM query (muse-mode synthesis or regular query)."""
-    from episodic.config import config
+    import typer
 
-    # Check if we're in muse mode and have web context
-    if config.get("muse_mode") and ctx.web_context:
-        _phase_llm_muse(manager, ctx)
-    else:
-        _phase_llm_regular(manager, ctx)
+    from episodic.config import config
+    from episodic.debug_utils import debug_print
+
+    # Muse mode is fail-closed: if web search has no results, do not call LLM.
+    if config.get("muse_mode"):
+        if ctx.web_context:
+            _phase_llm_muse(manager, ctx)
+            return
+
+        error_info = None
+        if isinstance(ctx.context_debug, dict):
+            error_info = ctx.context_debug.get("web_search_error")
+
+        typer.echo("")
+        typer.secho("❌ Muse web search unavailable.", fg="yellow", bold=True)
+        if isinstance(error_info, dict):
+            details = error_info.get("details", [])
+            if details:
+                typer.secho("Tried: " + "; ".join(details[:3]), fg="yellow")
+            else:
+                typer.secho(error_info.get("summary", "No provider details available."), fg="yellow")
+        else:
+            typer.secho(
+                "All configured web providers failed or returned no results.",
+                fg="yellow",
+            )
+
+        typer.secho("No answer generated.", fg="yellow")
+        debug_print("Muse fail-closed: no web context available for synthesis", category="muse")
+        ctx.early_return = True
+        ctx.early_return_value = (None, None)
+        return
+
+    _phase_llm_regular(manager, ctx)
 
 
 def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
@@ -140,6 +169,7 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
     run before the response is displayed or stored (INV-MUSE-6, Erratum 1).
     """
     import typer
+    import uuid
 
     from episodic.benchmark import benchmark_resource
     from episodic.color_utils import secho_color
@@ -153,15 +183,16 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
     session_canary = None
     try:
         from episodic.mcp.security.canary import generate_canary
-        session_canary = generate_canary("muse_session")
+        canary_session_id = f"muse-{uuid.uuid4()}"
+        session_canary = generate_canary(canary_session_id)
     except Exception:
         debug_print("Could not generate session canary", category="security")
 
     # Debug: print conversation history
     if config.get("debug"):
-        debug_print(f"Muse mode: passing {len(ctx.messages)} messages to synthesis")
+        debug_print(f"Muse mode: passing {len(ctx.messages)} messages to synthesis", category="muse")
         for i, msg in enumerate(ctx.messages):
-            debug_print(f"  Message {i}: {msg['role']} - {msg['content'][:50]}...")
+            debug_print(f"  Message {i}: {msg['role']} - {msg['content'][:50]}...", category="muse")
 
     # Use web synthesis for muse mode
     try:
@@ -174,10 +205,10 @@ def _phase_llm_muse(manager: "ConversationManager", ctx: "TurnContext") -> None:
         )
 
         if config.get("debug"):
-            debug_print(f"Synthesis result type: {type(synthesis_result)}")
+            debug_print(f"Synthesis result type: {type(synthesis_result)}", category="muse")
             if isinstance(synthesis_result, dict):
-                debug_print(f"Synthesis dict keys: {synthesis_result.keys()}")
-            debug_print(f"Synthesis result: {str(synthesis_result)[:200]}")
+                debug_print(f"Synthesis dict keys: {synthesis_result.keys()}", category="muse")
+            debug_print(f"Synthesis result: {str(synthesis_result)[:200]}", category="muse")
     except Exception as e:
         typer.secho(f"\n\u274c Web synthesis error: {e}", fg=get_error_color())
         if config.get("debug"):

@@ -6,6 +6,8 @@ RAG integration and web search enhancement.
 """
 
 from typing import List, Dict, Any, Optional, Tuple
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 import typer
 from episodic.config import config
@@ -13,6 +15,7 @@ from episodic.configuration import get_system_color
 from episodic.color_utils import secho_color
 from episodic.db import get_ancestry
 from episodic.debug_utils import debug_print
+from episodic.debug_system import debug_enabled
 from episodic.benchmark import benchmark_resource
 
 
@@ -23,6 +26,7 @@ class ContextBuilder:
         """Initialize the context builder."""
         self.rag_context = None
         self.web_context = None
+        self.web_error_info = None
         self.topic_context = None
         self.kg_context = None
         self.last_assembly_debug = None  # Instrumentation from last assembly
@@ -65,6 +69,7 @@ class ContextBuilder:
 
         # Add web search context if in muse mode
         web_context = None
+        self.web_error_info = None
         if config.get("muse_mode"):
             web_context = self._add_web_context(user_input, model)
             self.web_context = web_context
@@ -227,6 +232,7 @@ class ContextBuilder:
 
         # Add web search context if in muse mode
         web_context = None
+        self.web_error_info = None
         if config.get("muse_mode"):
             web_context = self._add_web_context(user_input, model)
             self.web_context = web_context
@@ -236,6 +242,9 @@ class ContextBuilder:
         node_ids = debug_info.get("included_node_ids", [])
         if node_ids:
             messages = self._tag_web_derived_messages(messages, node_ids)
+
+        if self.web_error_info:
+            debug_info["web_search_error"] = self.web_error_info
 
         return messages, raw_messages, rag_context, web_context, debug_info
 
@@ -712,15 +721,17 @@ class ContextBuilder:
                 # Perform web search
                 typer.echo("")
                 secho_color("🌐 Searching the web...", fg=get_system_color())
-                
-                results = search_manager.search(user_input)
+
+                results = self._run_web_search_async(search_manager, user_input)
                 
                 if results:
                     secho_color(f"Found {len(results)} results", fg=get_system_color())
+                    debug_print(f"Web search returned {len(results)} result(s)", category="muse")
                     
                     # Extract content from top results
                     extracted_content = {}
                     extract_enabled = config.get('web_search_extract_content', True)
+                    debug_print(f"Web content extraction enabled={extract_enabled}", category="muse")
                     
                     if extract_enabled:
                         from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
@@ -728,7 +739,11 @@ class ContextBuilder:
 
                         def fix_search_url(url: str) -> str:
                             """Fix DuckDuckGo redirect URLs and ensure proper scheme."""
-                            if url.startswith('//duckduckgo.com/l/?uddg='):
+                            if (
+                                url.startswith('//duckduckgo.com/l/?uddg=')
+                                or url.startswith('https://duckduckgo.com/l/?uddg=')
+                                or url.startswith('http://duckduckgo.com/l/?uddg=')
+                            ):
                                 try:
                                     parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
                                     if 'uddg' in parsed:
@@ -747,6 +762,10 @@ class ContextBuilder:
                         for result in results[:max_pages]:
                             extract_url = fix_search_url(result.url)
                             url_map[extract_url] = result
+                        debug_print(
+                            f"Preparing extraction for {len(url_map)} page(s) (max_pages={max_pages})",
+                            category="muse",
+                        )
 
                         # Fetch in parallel with global timeout
                         global_timeout = config.get('web_extract_timeout', 8)
@@ -765,13 +784,24 @@ class ContextBuilder:
                                         content = future.result(timeout=0)  # Already complete
                                         if content and len(content) > 50:
                                             extracted_content[result.url] = content
+                                            debug_print(
+                                                f"Extracted {len(content)} chars from {result.url}",
+                                                category="muse",
+                                            )
+                                        elif debug_enabled("muse"):
+                                            debug_print(
+                                                f"No usable content extracted from {result.url}",
+                                                category="muse",
+                                            )
                                     except Exception as e:
-                                        if config.get('debug'):
-                                            debug_print(f"Extract error for {result.url}: {e}")
+                                        debug_print(f"Extract error for {result.url}: {e}", category="muse")
                             except FuturesTimeoutError:
                                 # Global timeout reached, use whatever we have
-                                if config.get('debug'):
-                                    debug_print(f"Web extract timeout after {global_timeout}s, got {len(extracted_content)} results")
+                                debug_print(
+                                    f"Web extract timeout after {global_timeout}s, "
+                                    f"got {len(extracted_content)} extracted page(s)",
+                                    category="muse",
+                                )
                     
                     # Build web context dictionary in the format expected by synthesize_web_response
                     web_context = {
@@ -787,18 +817,63 @@ class ContextBuilder:
                         'extracted_content': extracted_content
                     }
                     
-                    if config.get("debug"):
-                        debug_print(f"Added web context: {len(results)} results, {len(extracted_content)} extracted")
+                    debug_print(
+                        f"Added web context: results={len(results)} extracted={len(extracted_content)}",
+                        category="muse",
+                    )
                     
                     return web_context
                 else:
-                    secho_color("No web results found", fg=get_system_color())
+                    diagnostics = {}
+                    try:
+                        diagnostics = search_manager.get_last_search_diagnostics()
+                    except Exception:
+                        diagnostics = {}
+
+                    attempts = diagnostics.get("providers_attempted", [])
+                    detail_parts = []
+                    for entry in attempts:
+                        provider = entry.get("provider", "unknown")
+                        status = entry.get("status", "unknown")
+                        reason = entry.get("reason", "")
+                        if reason:
+                            detail_parts.append(f"{provider}: {status} ({reason})")
+                        else:
+                            detail_parts.append(f"{provider}: {status}")
+
+                    self.web_error_info = {
+                        "reason": "no_results",
+                        "summary": "Web search returned no results from configured providers.",
+                        "details": detail_parts,
+                    }
                     
         except Exception as e:
-            if config.get("debug"):
-                typer.echo(f"⚠️  Web search error: {e}")
+            self.web_error_info = {
+                "reason": "search_exception",
+                "summary": "Web search failed with an internal error.",
+                "details": [str(e)],
+            }
+            debug_print(f"Web search error: {e}", category="muse")
         
         return None
+
+    def _run_web_search_async(self, search_manager, query: str):
+        """Run search_async safely from sync code, including active event loops."""
+        try:
+            asyncio.get_running_loop()
+            has_running_loop = True
+        except RuntimeError:
+            has_running_loop = False
+
+        if has_running_loop:
+            # We are inside an active event loop (normal CLI path).
+            # Run the async search in a dedicated worker thread.
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                return executor.submit(
+                    lambda: asyncio.run(search_manager.search_async(query))
+                ).result()
+
+        return asyncio.run(search_manager.search_async(query))
     
     def track_rag_usage(self, assistant_node_id: str) -> None:
         """Track which RAG documents were used in the response."""

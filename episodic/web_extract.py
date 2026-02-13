@@ -85,7 +85,7 @@ class WebContentExtractor:
             async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=self.timeout)) as response:
                     if response.status != 200:
-                        if config.get('debug'):
+                        if config.get('debug') or debug_enabled('web') or debug_enabled('muse'):
                             typer.secho(f"\nHTTP {response.status} for {url}", fg="red")
                         return None
                     
@@ -119,7 +119,7 @@ class WebContentExtractor:
                     }
                     
         except Exception as e:
-            if config.get('debug'):
+            if config.get('debug') or debug_enabled('web') or debug_enabled('muse'):
                 typer.secho(f"\nFailed to extract from {url}: {type(e).__name__}: {e}", fg="red")
             return None
     
@@ -327,12 +327,12 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
             try:
                 response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
             except requests.RequestException as e:
-                if debug_enabled('web'):
+                if debug_enabled('web') or debug_enabled('muse'):
                     typer.secho(f"⚠️  Request failed for {url}: {type(e).__name__}", fg="yellow")
                 return None
         
         if response.status_code != 200:
-            if config.get('debug'):
+            if config.get('debug') or debug_enabled('web') or debug_enabled('muse'):
                 typer.secho(f"\nHTTP {response.status_code} for {url}", fg="red")
             return None
         
@@ -355,14 +355,14 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
             content = _normalize_text(content)
         
         # Debug: show what we got
-        if config.get('debug') and content:
+        if (config.get('debug') or debug_enabled('web') or debug_enabled('muse')) and content:
             typer.secho(f"\nExtracted {len(content)} chars from {url}", fg="yellow")
         
         return content if content and len(content) > 50 else None
         
     except Exception as e:
         # Show extraction failures only when web/muse debug is enabled.
-        if debug_enabled('web'):
+        if debug_enabled('web') or debug_enabled('muse'):
             if "timeout" in str(e).lower():
                 typer.secho(f"⚠️  Timeout fetching {url.split('/')[2]}", fg="yellow")
             else:

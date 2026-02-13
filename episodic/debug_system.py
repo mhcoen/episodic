@@ -18,6 +18,7 @@ class DebugSystem:
         'drift': 'Semantic drift calculations',
         'llm': 'LLM queries and responses',
         'rag': 'RAG search and indexing',
+        'muse': 'Muse mode (web retrieval, extraction, synthesis)',
         'web': 'Web search operations',
         'stream': 'Streaming output control',
         'format': 'Text formatting and display',

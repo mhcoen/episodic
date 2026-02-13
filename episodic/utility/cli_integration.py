@@ -760,6 +760,11 @@ def handle_voice_utterance(text: str) -> Optional[UtilityResult]:
     This is the integration point for voice/typed input that should be
     checked for utility commands before falling through to the LLM.
 
+    Order:
+    1. Extraction keyword gate (sub-millisecond). If plugin domains match,
+       try the LLM extraction pipeline before grammar parse.
+    2. Standard route() for core commands (timer, alarm, etc.) and MQL.
+
     Args:
         text: Raw user input
 
@@ -767,6 +772,11 @@ def handle_voice_utterance(text: str) -> Optional[UtilityResult]:
         UtilityResult if handled as utility, None to fall through to chat
     """
     global _last_result
+
+    # Try extraction for plugin domains BEFORE grammar parse
+    extraction_result = _try_extraction_for_voice(text)
+    if extraction_result is not None:
+        return extraction_result
 
     from ..routing import route, RouteTarget
     from ..routing.router import RuntimeState
@@ -795,6 +805,58 @@ def handle_voice_utterance(text: str) -> Optional[UtilityResult]:
 
     else:  # LLM fallback
         return None
+
+
+def _try_extraction_for_voice(text: str) -> Optional[UtilityResult]:
+    """Try extraction pipeline for plugin domains on a voice utterance.
+
+    Returns UtilityResult if extraction produced a dispatchable intent,
+    None to fall through to grammar parse.
+    """
+    try:
+        from episodic.mcp.extraction.gate import matched_domains
+        domains = matched_domains(text)
+        if not domains:
+            return None
+
+        import asyncio
+        from episodic.mcp.extraction import extract_intent, check_dispatchability
+        from episodic.mcp.extraction.prompt import get_intents_for_domains
+
+        intents = get_intents_for_domains(domains)
+
+        async def _extract():
+            return await extract_intent(
+                text,
+                matched_domains=domains,
+                contacts={},
+            )
+
+        try:
+            loop = asyncio.get_running_loop()
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, _extract())
+                result = future.result()
+        except RuntimeError:
+            result = asyncio.run(_extract())
+
+        verdict = check_dispatchability(result, intents)
+
+        if verdict.dispatchable and verdict.intent:
+            domain = verdict.intent.split(".")[0] if "." in verdict.intent else "unknown"
+            query = create_utility_query(
+                domain, verdict.intent,
+                args=verdict.args,
+                source="voice",
+                confidence=1.0,
+                raw_input=text,
+            )
+            return _execute_utility_query(query)
+    except Exception:
+        pass  # Extraction failed — fall through to grammar parse
+
+    return None
 
 
 def _execute_utility_query(query: UtilityQuery) -> Optional[UtilityResult]:

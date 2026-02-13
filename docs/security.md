@@ -9,7 +9,7 @@ integration and web search synthesis (muse mode).
 
 | Layer | Name | Purpose |
 |-------|------|---------|
-| L0 | Input Sanitization | Strip CSS-hidden elements, HTML comments, data attributes, SVG text; NFC normalize Unicode; remove zero-width characters |
+| L0 | Input Sanitization | Sanitize HTML (including e.g. hidden elements, comments, data attributes); NFC normalize Unicode; strip zero-width characters |
 | L1 | Content Isolation | Wrap untrusted content in `<untrusted_content>` tags with source attribution |
 | L2 | Action Gate | Require user confirmation before tool calls; escalate when web-derived content is present |
 | L3 | Source Gate | Filter KG extraction by provenance; quarantine triples from untrusted sources |
@@ -53,7 +53,7 @@ to all incoming tool calls. Key server-mode protections:
 - **Token authentication** — SHA-256 hash-only credential storage with
   rotation support. Plaintext is shown once on creation and never stored.
 - **Localhost binding** — Server binds to `127.0.0.1` by default.
-- **Cost limits** — Per-client daily cost limits (default $10/day).
+- **Cost limits** — Configurable per-client daily cost limits.
 - **Trace redaction** — Parameters containing keys, tokens, secrets, or
   passwords are automatically redacted in trace storage.
 - **Input validation** — Server-mode input passes through the full
@@ -70,8 +70,8 @@ All security features are enabled by default. Key configuration options:
 | `muse_escalation_gate` | `true` | Enhanced confirmation when web-derived context present |
 | `muse_kg_quarantine` | `true` | Quarantine KG triples from web synthesis |
 | `muse_rag_in_tool_context` | `false` | Include untrusted RAG chunks in tool-enabled context |
-| `muse_max_chars_per_source` | `2000` | Per-source character cap in synthesis prompt |
-| `muse_max_chars_total` | `12000` | Total character cap for all sources |
+| `muse_max_chars_per_source` | *(bounded)* | Per-source character cap in synthesis prompt |
+| `muse_max_chars_total` | *(bounded)* | Total character cap for all sources |
 
 ## Specifications
 

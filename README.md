@@ -28,6 +28,7 @@ I originally wrote this to fill a gap I couldn't find addressed elsewhere. It ha
 - **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
 - **📚 Knowledge Base (RAG)** - Index documents and search them during chats
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
+- **⏱️ Assistant Mode** - Timers, alarms, reminders, weather, news, calculator, notes, media playback, calendar, and email — all available via slash commands or natural voice
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📎 File References (@file)** - Attach local files directly in chat messages
@@ -119,6 +120,7 @@ python -m episodic
 - **[Features](docs/features.md)** - Feature documentation
 - **[CLI Reference](docs/cli-reference.md)** - All commands
 - **[Configuration](docs/configuration.md)** - Settings and options
+- **[Assistant](docs/assistant.md)** - Timers, alarms, weather, calendar, email
 - **[MCP Guide](docs/mcp-guide.md)** - MCP server and client setup
 
 ## 🧪 Testing

@@ -400,7 +400,51 @@ The Knowledge Graph automatically extracts entities and relationships from conve
 
 See the [User Guide](../USER_GUIDE.md#knowledge-graph) for full command reference and configuration.
 
-## 8. MCP Server (Model Context Protocol)
+## 8. Assistant Mode
+
+Episodic includes a built-in assistant with utility commands that work as slash commands and via natural voice.
+
+### Core Utilities
+
+| Command | Description |
+|---------|-------------|
+| `/time` | Current time |
+| `/timer <duration> [label]` | Set a timer (e.g., `/timer 5m coffee`) |
+| `/alarm <time> [label]` | Set an alarm (e.g., `/alarm 7am wake up`) |
+| `/remind <text> in/at <time>` | Set a reminder (e.g., `/remind call mom in 1h`) |
+| `/weather [location]` | Current weather (IP geolocation default) |
+| `/forecast [location]` | Weather forecast |
+| `/news [category]` | News headlines (general, tech, business, science, health, politics, world) |
+| `/calc <expression>` | Calculator with percentages and math functions |
+| `/note <text>` | Add or list notes |
+| `/play <station>` | Play radio (e.g., `/play npr`) |
+| `/status` | Show active timers, alarms, media state |
+| `/dnd [on\|off\|duration]` | Do not disturb mode |
+| `/cancel`, `/undo` | Cancel timers/alarms, undo last action |
+
+### Calendar & Email (Google Workspace Plugin)
+
+Calendar and email use natural language extraction — describe what you want in plain English:
+
+```bash
+/cal what's on my calendar tomorrow
+/cal schedule a meeting with Bob at 3pm
+/email check my unread
+/email draft to Jane about the report
+```
+
+Aliases: `/calendar`, `/mail`, `/gmail`. Requires `/mcp connect gsuite`.
+
+### Voice Integration
+
+All assistant commands work as natural speech in voice mode:
+- "Set a timer for five minutes"
+- "What's the weather like?"
+- "What's on my calendar tomorrow?"
+
+See [Assistant documentation](assistant.md) for full command reference and configuration.
+
+## 9. MCP Server (Model Context Protocol)
 
 Expose Episodic's conversation memory, knowledge base, and LLM capabilities to external AI clients (e.g., Claude Desktop, custom agents) via the Model Context Protocol.
 

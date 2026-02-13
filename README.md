@@ -32,7 +32,7 @@ I originally wrote this to fill a gap I couldn't find addressed elsewhere. It ha
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
 - **📎 File References (@file)** - Attach local files directly in chat messages
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
-- **🔌 MCP Server & Client** - Model Context Protocol server with token auth, traces, and cost limits; client mode for consuming external MCP tools
+- **🔌 MCP Server & Client** - Hardened Model Context Protocol with 12-layer security pipeline: token auth with rotation, input sanitization, DLP, provenance tracking, canary detection, rate limiting, replay-attack prevention, and structured audit logging
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
 
 If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation* ([arXiv:2512.17083](https://arxiv.org/abs/2512.17083)), see the [`paper/`](paper/) directory.

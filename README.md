@@ -23,18 +23,22 @@ I originally wrote this to fill a gap I couldn't find addressed elsewhere. It ha
 
 - **🤖 Universal LLM Interface** - Works with OpenAI, Anthropic, Google, Ollama, 20+ providers, and custom local models
 - **🧠 Intelligent Topic Detection** - Neural segmentation validated on academic benchmarks, with configurable granularity
-- **🔗 Knowledge Graph** - Extracts structured knowledge from conversations in real-time and injects relevant facts into context at zero read-side LLM cost
+- **🔗 Knowledge Graph** *(hardened)* - Extracts structured knowledge from conversations in real-time and injects relevant facts into context at zero read-side LLM cost
 - **🔄 Topic Reactivation** - Seamlessly resume previous topics with full context restoration
-- **🎭 Muse Mode** - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
-- **📚 Knowledge Base (RAG)** - Index documents and search them during chats
+- **🎭 Muse Mode** *(hardened)* - Perplexity-like web search with many providers (e.g., DuckDuckGo, Google, Brave, Searx)
+- **📚 Knowledge Base (RAG)** *(hardened)* - Index documents and search them during chats
 - **🎙️ Voice Mode** - Hands-free speech input and text-to-speech output
-- **⏱️ Assistant Mode** - Timers, alarms, reminders, weather, news, radio, calculator, notes, media playback, Google Calendar, and Gmail — all available via CLI or voice mode
+- **⏱️ Assistant Mode** *(hardened)* - Timers, alarms, reminders, weather, news, radio, calculator, notes, media playback, Google Calendar, and Gmail — all available via CLI or voice mode
 - **🔄 Local & Cloud Flexibility** - Easily switch between local (free, private) and cloud-based operation
 - **📓 Markdown Import/Export** - Save and resume conversations anytime
-- **📎 File References (@file)** - Attach local files directly in chat messages
+- **📎 File References (@file)** *(hardened)* - Attach local files directly in chat messages
 - **💰 Cost Tracking** - Real-time token usage and costs across all providers
-- **🔌 MCP Server & Client** - Hardened Model Context Protocol with 12-layer security pipeline: token auth with rotation, input sanitization, DLP, provenance tracking, canary detection, rate limiting, replay-attack prevention, and structured audit logging
+- **🔌 MCP Server & Client** *(hardened)* - Model Context Protocol with 12-layer security pipeline: token auth with rotation, input sanitization, DLP, provenance tracking, canary detection, rate limiting, replay-attack prevention, and structured audit logging
 - **🎨 Rich CLI** - Streaming responses, theme-based colors, tab completion
+
+### Security
+
+Every component that touches the outside world is hardened against prompt injection, data exfiltration, and content poisoning. Web search results, Google Calendar, Gmail, RAG document indexing, knowledge graph extraction, and MCP tool calls all pass through a defense-in-depth pipeline that applies input sanitization, content isolation, provenance tracking, canary detection, action gating, and rate limiting. Features marked *(hardened)* above are covered. See [Security Architecture](docs/security.md) for details. Note that perfect security is not achievable in any system, particularly one built on LLMs; these defenses significantly raise the bar but cannot guarantee absolute protection.
 
 If you are here regarding the paper *When F1 Fails: Granularity-Aware Evaluation for Dialogue Topic Segmentation* ([arXiv:2512.17083](https://arxiv.org/abs/2512.17083)), see the [`paper/`](paper/) directory.
 
@@ -122,13 +126,14 @@ python -m episodic
 - **[Configuration](docs/configuration.md)** - Settings and options
 - **[Assistant](docs/assistant.md)** - Timers, alarms, weather, calendar, email
 - **[MCP Guide](docs/mcp-guide.md)** - MCP server and client setup
+- **[Security](docs/security.md)** - Defense-in-depth security architecture
 
 ## 🧪 Testing
 
 The test suite covers the CLI, topic segmentation, knowledge graph (extraction, read-side, closure, ablation evaluation), RAG, persistence, determinism, and integration.
 
 ```bash
-pytest                        # full suite (~3200 tests)
+pytest                        # full suite (~4000 tests)
 pytest tests/kg/              # knowledge graph tests only
 pytest tests/unit/            # unit tests only
 pytest -x --tb=short          # stop on first failure

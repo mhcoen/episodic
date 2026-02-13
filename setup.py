@@ -42,6 +42,7 @@ setup(
             "black>=23.0.0",
             "flake8>=6.0.0",
             "mypy>=1.0.0",
+            "beautifulsoup4>=4.0.0",
         ],
         "all": [
             "beautifulsoup4>=4.0.0",

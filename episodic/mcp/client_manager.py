@@ -3,10 +3,14 @@ MCP client manager — orchestrates connections to multiple external MCP servers
 
 Provides namespaced tool access (server_id.tool_name), connection lifecycle
 management, and health checking across all configured servers.
+
+PluginConnectionManager bridges the plugin registry with the client manager,
+resolving env vars from plugin manifests and managing plugin state transitions.
 """
 
 import logging
-from typing import Dict, List, Optional
+import os
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -233,3 +237,163 @@ class MCPClientManager:
             sid for sid, client in self._clients.items()
             if client.is_connected
         ]
+
+
+class PluginConnectionManager:
+    """Bridges the plugin registry with the MCPClientManager.
+
+    Reads ServerManifest from plugin registrations, resolves environment
+    variables, and manages connect/disconnect with plugin state transitions.
+    """
+
+    def __init__(self, client_manager: Optional[MCPClientManager] = None) -> None:
+        self._client_manager = client_manager
+
+    @property
+    def client_manager(self) -> MCPClientManager:
+        if self._client_manager is None:
+            self._client_manager = MCPClientManager()
+        return self._client_manager
+
+    def _resolve_env(self, manifest: Any) -> Tuple[Dict[str, str], List[str]]:
+        """Resolve required env vars from config → process env.
+
+        Returns (resolved_env, missing_vars).
+        """
+        from episodic.config import config
+
+        resolved: Dict[str, str] = {}
+        missing: List[str] = []
+
+        for var in getattr(manifest, "env_vars", []):
+            # Check episodic config first, then process env
+            value = config.get(var) or config.get(var.lower()) or os.environ.get(var)
+            if value:
+                resolved[var] = str(value)
+            else:
+                missing.append(var)
+
+        return resolved, missing
+
+    def _build_server_config(self, manifest: Any, env: Dict[str, str]) -> dict:
+        """Build MCPClientManager server config from a ServerManifest."""
+        return {
+            "command": manifest.command,
+            "args": list(manifest.args),
+            "env": env,
+            "lifecycle": manifest.connect_policy or "manual",
+        }
+
+    async def connect_plugin(self, name: str) -> Tuple[bool, str]:
+        """Connect to a plugin's MCP server.
+
+        Resolves env from manifest, registers the server config with
+        the client manager, connects, and transitions plugin state.
+
+        Returns (success, message).
+        """
+        from episodic.mcp.plugins import get_plugin_registry, PluginState
+        registry = get_plugin_registry()
+
+        reg = registry.get(name)
+        if reg is None:
+            return False, f"Plugin '{name}' not found"
+
+        state = registry.get_state(name)
+        if state == PluginState.ACTIVE or state == PluginState.CONNECTED:
+            return True, f"Plugin '{name}' is already connected"
+
+        manifest = reg.manifest
+        env, missing = self._resolve_env(manifest)
+        if missing:
+            return False, f"Missing env vars: {', '.join(missing)}"
+
+        # Register server config with client manager
+        server_id = manifest.server_id
+        mgr = self.client_manager
+        mgr._server_configs[server_id] = self._build_server_config(manifest, env)
+
+        # Connect
+        try:
+            success = await mgr.connect(server_id)
+        except Exception as e:
+            return False, f"Connection failed: {e}"
+
+        if success:
+            # Transition plugin state
+            try:
+                registry.transition(name, PluginState.CONNECTED)
+            except ValueError:
+                pass  # Already in valid state
+            try:
+                registry.transition(name, PluginState.ACTIVE)
+            except ValueError:
+                pass
+
+            client = mgr.get_client(server_id)
+            tool_count = len(client.tools) if client else 0
+            return True, f"Connected ({tool_count} tools)"
+        else:
+            client = mgr.get_client(server_id)
+            err = getattr(client, "_last_error", "unknown error") if client else "unknown error"
+            return False, f"Failed to connect: {err}"
+
+    async def disconnect_plugin(self, name: str) -> Tuple[bool, str]:
+        """Disconnect a plugin's MCP server.
+
+        Returns (success, message).
+        """
+        from episodic.mcp.plugins import get_plugin_registry, PluginState
+        registry = get_plugin_registry()
+
+        reg = registry.get(name)
+        if reg is None:
+            return False, f"Plugin '{name}' not found"
+
+        server_id = reg.manifest.server_id
+        mgr = self.client_manager
+
+        try:
+            await mgr.disconnect(server_id)
+        except Exception as e:
+            return False, f"Disconnect failed: {e}"
+
+        # Transition plugin state
+        try:
+            registry.transition(name, PluginState.DISCONNECTED)
+        except ValueError:
+            pass  # State transition not valid, that's OK
+
+        return True, f"Disconnected from {name}"
+
+    def get_plugin_status(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get detailed status for a plugin."""
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+
+        reg = registry.get(name)
+        if reg is None:
+            return None
+
+        state = registry.get_state(name)
+        manifest = reg.manifest
+        server_id = manifest.server_id
+
+        mgr = self.client_manager
+        client = mgr.get_client(server_id) if server_id in mgr._server_configs else None
+
+        status: Dict[str, Any] = {
+            "name": name,
+            "state": state.value if state else "unknown",
+            "server_id": server_id,
+            "command": manifest.command,
+            "connect_policy": manifest.connect_policy,
+            "slash_commands": [sc.name for sc in reg.slash_commands],
+            "intent_count": len(reg.extraction_contribution.intents) if reg.extraction_contribution else 0,
+            "token_count": len(reg.tokens),
+            "grammar_rule_count": len(reg.grammar_rules),
+            "connected": client.is_connected if client else False,
+            "tool_count": len(client.tools) if client and client.is_connected else 0,
+        }
+
+        return status

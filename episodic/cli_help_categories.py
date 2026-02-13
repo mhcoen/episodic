@@ -506,6 +506,8 @@ def show_mcp_help():
         ("/mcp token rotate <id>", "Rotate: create new token, revoke old"),
         ("/mcp traces", "Show recent tool call audit log"),
         ("/mcp traces --tool <name>", "Filter traces by tool name"),
+        ("/mcp plugins", "List discovered plugins and their states"),
+        ("/mcp plugin <name>", "Show detailed plugin status"),
     ]
 
     # Tools

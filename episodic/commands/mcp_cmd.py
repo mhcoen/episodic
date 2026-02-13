@@ -68,10 +68,14 @@ def mcp_command(action: str = None, *args: str) -> None:
         mcp_disconnect(list(args))
     elif action == "tools":
         mcp_tools(list(args))
+    elif action == "plugins":
+        mcp_plugins()
+    elif action == "plugin":
+        mcp_plugin_status(list(args))
     else:
         typer.secho(f"Unknown MCP action: {action}", fg=get_error_color())
         typer.secho(
-            "Usage: /mcp [start|stop|status|token|traces|servers|connect|disconnect|tools]",
+            "Usage: /mcp [start|stop|status|token|traces|servers|connect|disconnect|tools|plugins|plugin]",
             fg=get_text_color(),
         )
 
@@ -575,3 +579,103 @@ def mcp_tools(args: List[str]) -> None:
             if len(desc) > 80:
                 desc = desc[:77] + "..."
             typer.secho(f"    {desc}", fg=get_text_color(), dim=True)
+
+
+# ---------------------------------------------------------------------------
+# Plugin management
+# ---------------------------------------------------------------------------
+
+_STATE_COLORS = {
+    "discovered": "yellow",
+    "registered": "cyan",
+    "connected": "green",
+    "active": "green",
+    "disconnected": "yellow",
+    "disabled": "red",
+}
+
+
+def mcp_plugins() -> None:
+    """List discovered plugins and their states."""
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        if not registry.initialized:
+            registry.register_all()
+    except ImportError:
+        typer.secho("Plugin registry not available.", fg=get_error_color())
+        return
+
+    names = registry.names()
+    if not names:
+        typer.secho("No plugins discovered.", fg=get_text_color())
+        return
+
+    states = registry.states()
+    typer.secho(
+        f"MCP Plugins ({len(names)}):",
+        fg=get_heading_color(), bold=True,
+    )
+    for name in sorted(names):
+        state = states[name]
+        color = _STATE_COLORS.get(state.value, get_text_color())
+        reg = registry.get(name)
+        cmds = ""
+        if reg and reg.slash_commands:
+            cmds = "  " + " ".join(sc.name for sc in reg.slash_commands)
+        typer.secho(
+            f"  {name:<15} {state.value:<14}{cmds}",
+            fg=color,
+        )
+
+    typer.echo()
+    typer.secho(
+        "Use /mcp plugin <name> for details, /mcp connect <server> to connect.",
+        fg=get_text_color(), dim=True,
+    )
+
+
+def mcp_plugin_status(args: List[str]) -> None:
+    """Show detailed status for a specific plugin."""
+    if not args:
+        typer.secho("Usage: /mcp plugin <name>", fg=get_error_color())
+        return
+
+    name = args[0]
+
+    try:
+        from episodic.mcp.client_manager import PluginConnectionManager
+        pcm = PluginConnectionManager(_get_client_manager())
+        status = pcm.get_plugin_status(name)
+    except ImportError:
+        typer.secho("Plugin system not available.", fg=get_error_color())
+        return
+
+    if status is None:
+        typer.secho(f"Plugin '{name}' not found.", fg=get_error_color())
+        return
+
+    color = _STATE_COLORS.get(status["state"], get_text_color())
+    typer.secho(
+        f"Plugin: {status['name']}",
+        fg=get_heading_color(), bold=True,
+    )
+    typer.secho(f"  State:          {status['state']}", fg=color)
+    typer.secho(f"  Server:         {status['server_id']}", fg=get_text_color())
+    typer.secho(f"  Command:        {status['command']}", fg=get_text_color())
+    typer.secho(f"  Policy:         {status['connect_policy']}", fg=get_text_color())
+    typer.secho(
+        f"  Slash commands: {', '.join(status['slash_commands']) or '(none)'}",
+        fg=get_text_color(),
+    )
+    typer.secho(f"  Intents:        {status['intent_count']}", fg=get_text_color())
+    typer.secho(f"  Tokens:         {status['token_count']}", fg=get_text_color())
+    typer.secho(f"  Grammar rules:  {status['grammar_rule_count']}", fg=get_text_color())
+
+    if status["connected"]:
+        typer.secho(
+            f"  Connected:      yes ({status['tool_count']} tools)",
+            fg=get_success_color(),
+        )
+    else:
+        typer.secho("  Connected:      no", fg=get_text_color(), dim=True)

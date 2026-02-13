@@ -86,3 +86,9 @@ class TestSourceGatePolicy:
             "user_indexed_email", source_id="sender@example.com"
         )
         assert result.source_origin == "mcp:sender@example.com"
+
+    def test_web_synthesis_quarantined(self):
+        """Muse-mode web-synthesized responses require quarantine."""
+        result = check_extraction_allowed("web_synthesis")
+        assert result.policy == ExtractionPolicy.QUARANTINE
+        assert "quarantine" in result.reason.lower()

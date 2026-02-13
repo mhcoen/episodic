@@ -561,6 +561,42 @@ def test_default_source_type_is_allow():
     assert result.policy == ExtractionPolicy.ALLOW
 
 
+def test_web_synthesis_quarantined_and_excluded():
+    """web_synthesis source type produces quarantined assertions excluded from context."""
+    conn = _make_db()
+
+    gate = check_extraction_allowed("web_synthesis")
+    assert gate.policy == ExtractionPolicy.QUARANTINE
+
+    entities = [{
+        'entity_key': 'e1',
+        'entity_type': 'person',
+        'canonical_key': 'person:muse_person',
+        'canonical_name': 'MusePerson',
+    }]
+    edges = [{
+        'subj_ref': 'e1',
+        'predicate': 'works_at',
+        'obj_ref': 'user:self',
+    }]
+    _insert_patch(conn, 1, entities, edges,
+                  quarantine=True, source_origin=gate.source_origin)
+
+    # Verify quarantined=1
+    row = conn.execute(
+        "SELECT quarantined, source_origin FROM kg_assertions"
+    ).fetchone()
+    assert row[0] == 1, "web_synthesis assertion should be quarantined"
+    assert row[1] == "web_synthesis"
+
+    # Verify excluded from context
+    eid = conn.execute(
+        "SELECT entity_id FROM kg_entities WHERE canonical_name = 'MusePerson'"
+    ).fetchone()[0]
+    facts = retrieve_neighborhood(eid, conn)
+    assert len(facts) == 0, "Quarantined web_synthesis edges should not appear in context"
+
+
 def test_apply_patch_default_no_quarantine():
     """apply_patch without quarantine param produces quarantined=0."""
     conn = _make_db()

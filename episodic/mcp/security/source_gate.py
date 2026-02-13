@@ -39,6 +39,8 @@ _SOURCE_POLICY = {
     # user_indexed_email: user explicitly asked to index email content
     "user_indexed_email":   ExtractionPolicy.QUARANTINE,
     "user_indexed_web":     ExtractionPolicy.QUARANTINE,
+    # web_synthesis: muse-mode responses shaped by untrusted web sources
+    "web_synthesis":        ExtractionPolicy.QUARANTINE,
 }
 
 

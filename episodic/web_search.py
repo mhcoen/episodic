@@ -11,6 +11,7 @@ This module re-exports them for backward compatibility.
 import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
+from urllib.parse import urlsplit, urlunsplit
 
 import typer
 from episodic.config import config
@@ -18,6 +19,7 @@ from episodic.configuration import (
     get_error_color, get_warning_color, get_success_color,
     get_info_color
 )
+from episodic.web_query_planner import plan_subqueries
 
 # Re-export provider classes and base types for backward compatibility.
 # External callers can continue to import from episodic.web_search.
@@ -108,6 +110,11 @@ class WebSearchManager:
         )
         self._working_provider_cache = None
         self._working_provider_timestamp = None
+        self._last_search_diagnostics: Dict[str, Any] = {}
+
+    def get_last_search_diagnostics(self) -> Dict[str, Any]:
+        """Return diagnostics from the most recent search attempt."""
+        return dict(self._last_search_diagnostics)
 
     def _get_configured_providers(self) -> List[WebSearchProvider]:
         """Get the configured search providers in order of preference."""
@@ -190,8 +197,9 @@ class WebSearchManager:
                                    provider: WebSearchProvider, provider_name: str) -> Optional[List[SearchResult]]:
         """Execute async search for a single provider."""
         try:
-            # Always show which provider we're using
-            typer.secho(f"\U0001f50d Searching with {provider_name}...", fg=get_info_color())
+            # Show provider attempts only in debug mode to reduce UI noise.
+            if config.get('debug'):
+                typer.secho(f"\U0001f50d Searching with {provider_name}...", fg=get_info_color())
 
             results = await provider.search(query, num_results)
 
@@ -216,6 +224,105 @@ class WebSearchManager:
 
         return None
 
+    @staticmethod
+    def _canonicalize_url(url: str) -> str:
+        """Normalize URL for deduplication across subqueries."""
+        try:
+            parts = urlsplit((url or "").strip())
+            netloc = parts.netloc.lower()
+            if netloc.startswith("www."):
+                netloc = netloc[4:]
+            path = parts.path.rstrip("/")
+            return urlunsplit((parts.scheme.lower(), netloc, path, "", ""))
+        except Exception:
+            return (url or "").strip().lower()
+
+    def _merge_results(self, result_sets: List[List[SearchResult]], limit: int) -> List[SearchResult]:
+        """Merge and deduplicate results from parallel subqueries."""
+        merged: List[SearchResult] = []
+        seen_urls = set()
+        for results in result_sets:
+            for result in results:
+                key = self._canonicalize_url(getattr(result, "url", ""))
+                if key and key in seen_urls:
+                    continue
+                if key:
+                    seen_urls.add(key)
+                merged.append(result)
+                if len(merged) >= limit:
+                    return merged
+        return merged
+
+    def _get_parallel_queries(self, query: str) -> List[str]:
+        """Build Muse subqueries for provider-internal parallel lookup."""
+        if not config.get("muse_mode", False):
+            return [query]
+        if not config.get("web_search_parallel_enabled", True):
+            return [query]
+        max_queries = config.get("web_search_parallel_queries", 3)
+        try:
+            planned = plan_subqueries(query, max_queries=max_queries)
+        except Exception:
+            planned = [query]
+        if not planned:
+            planned = [query]
+        if query not in planned:
+            planned.insert(0, query)
+        return planned[: max(1, int(max_queries))]
+
+    async def _search_provider_parallel_async(
+        self,
+        query: str,
+        num_results: int,
+        provider: WebSearchProvider,
+        provider_name: str,
+    ) -> tuple[List[SearchResult], Dict[str, Any]]:
+        """Run multiple related subqueries in parallel for a single provider."""
+        queries = self._get_parallel_queries(query)
+        if len(queries) <= 1:
+            results = await self._search_provider_async(query, num_results, provider, provider_name) or []
+            return results, {"subquery_count": 1}
+
+        max_concurrency = max(1, int(config.get("web_search_parallel_queries", 3)))
+        timeout_s = float(config.get("web_search_subquery_timeout", 5))
+        semaphore = asyncio.Semaphore(max_concurrency)
+        subquery_details: List[Dict[str, Any]] = []
+
+        async def run_one(subquery: str) -> List[SearchResult]:
+            async with semaphore:
+                try:
+                    if config.get("debug"):
+                        typer.secho(
+                            f"\U0001f50e {provider_name} subquery: {subquery}",
+                            fg=get_info_color(),
+                        )
+                    results = await asyncio.wait_for(
+                        provider.search(subquery, num_results),
+                        timeout=timeout_s,
+                    )
+                    count = len(results or [])
+                    subquery_details.append(
+                        {"query": subquery, "status": "ok" if count else "empty", "result_count": count}
+                    )
+                    return results or []
+                except asyncio.TimeoutError:
+                    subquery_details.append(
+                        {"query": subquery, "status": "timeout", "reason": f"timeout>{timeout_s}s"}
+                    )
+                    return []
+                except Exception as e:
+                    subquery_details.append(
+                        {"query": subquery, "status": "error", "reason": str(e)}
+                    )
+                    return []
+
+        result_sets = await asyncio.gather(*(run_one(subquery) for subquery in queries))
+        merged = self._merge_results(result_sets, limit=num_results)
+        return merged, {
+            "subquery_count": len(queries),
+            "subqueries": subquery_details,
+        }
+
     async def search_async(self, query: str, num_results: int = None,
                           use_cache: bool = True) -> List[SearchResult]:
         """
@@ -231,6 +338,12 @@ class WebSearchManager:
         """
         if num_results is None:
             num_results = config.get('web_search_max_results', 5)
+
+        self._last_search_diagnostics = {
+            "query": query,
+            "providers_attempted": [],
+            "success_provider": None,
+        }
 
         # Check cache first
         if use_cache:
@@ -272,9 +385,13 @@ class WebSearchManager:
                     typer.secho(f"\u26a0\ufe0f  Provider at index {i} is None, skipping", fg=get_warning_color())
                 continue
             provider_name = provider.__class__.__name__.replace('Provider', '')
+            attempt = {"provider": provider_name, "status": "unknown"}
 
             # Skip providers that aren't available (missing credentials)
             if not provider.is_available():
+                attempt["status"] = "skipped"
+                attempt["reason"] = "provider unavailable (missing dependencies or credentials)"
+                self._last_search_diagnostics["providers_attempted"].append(attempt)
                 # Always show when skipping a provider that was explicitly configured
                 if i == 0 or config.get('debug'):
                     # More specific message for different providers
@@ -290,7 +407,7 @@ class WebSearchManager:
                         )
                     elif provider_name == 'DuckDuckGo':
                         typer.secho(
-                            f"\u26a0\ufe0f  Skipping DuckDuckGo (requires: pip install aiohttp beautifulsoup4)",
+                            f"\u26a0\ufe0f  Skipping DuckDuckGo (requires: pip install ddgs)",
                             fg="yellow"
                         )
                     else:
@@ -301,9 +418,22 @@ class WebSearchManager:
                 continue
 
             # Try async search
-            results = await self._search_provider_async(query, num_results, provider, provider_name)
+            try:
+                results, parallel_meta = await self._search_provider_parallel_async(
+                    query, num_results, provider, provider_name
+                )
+                attempt.update(parallel_meta)
+            except Exception as e:
+                attempt["status"] = "error"
+                attempt["reason"] = str(e)
+                self._last_search_diagnostics["providers_attempted"].append(attempt)
+                continue
 
             if results:
+                attempt["status"] = "ok"
+                attempt["result_count"] = len(results)
+                self._last_search_diagnostics["providers_attempted"].append(attempt)
+                self._last_search_diagnostics["success_provider"] = provider_name
                 # Success - cache and return
                 self.rate_limiter.record_search()
                 self.cache.set(query, results)
@@ -318,8 +448,11 @@ class WebSearchManager:
 
                 return results
 
-        # No provider succeeded
-        typer.secho("\u26a0\ufe0f  All search providers failed", fg=get_error_color())
+            attempt["status"] = "empty"
+            attempt["reason"] = "provider returned no results"
+            self._last_search_diagnostics["providers_attempted"].append(attempt)
+
+        # No provider succeeded (details are in diagnostics)
         return []
 
     def search(self, query: str, num_results: int = None,
@@ -338,6 +471,12 @@ class WebSearchManager:
         if num_results is None:
             num_results = config.get('web_search_max_results', 5)
 
+        self._last_search_diagnostics = {
+            "query": query,
+            "providers_attempted": [],
+            "success_provider": None,
+        }
+
         # Check cache first
         if use_cache:
             cache_duration = config.get('web_search_cache_duration', 3600)
@@ -378,9 +517,13 @@ class WebSearchManager:
                     typer.secho(f"\u26a0\ufe0f  Provider at index {i} is None, skipping", fg=get_warning_color())
                 continue
             provider_name = provider.__class__.__name__.replace('Provider', '')
+            attempt = {"provider": provider_name, "status": "unknown"}
 
             # Skip providers that aren't available (missing credentials)
             if not provider.is_available():
+                attempt["status"] = "skipped"
+                attempt["reason"] = "provider unavailable (missing dependencies or credentials)"
+                self._last_search_diagnostics["providers_attempted"].append(attempt)
                 # Always show when skipping a provider that was explicitly configured
                 if i == 0 or config.get('debug'):
                     # More specific message for different providers
@@ -396,7 +539,7 @@ class WebSearchManager:
                         )
                     elif provider_name == 'DuckDuckGo':
                         typer.secho(
-                            f"\u26a0\ufe0f  Skipping DuckDuckGo (requires: pip install aiohttp beautifulsoup4)",
+                            f"\u26a0\ufe0f  Skipping DuckDuckGo (requires: pip install ddgs)",
                             fg="yellow"
                         )
                     else:
@@ -407,8 +550,9 @@ class WebSearchManager:
                 continue
 
             try:
-                # Always show which provider we're using
-                typer.secho(f"\U0001f50d Searching with {provider_name}...", fg=get_info_color())
+                # Show provider attempts only in debug mode to reduce UI noise.
+                if config.get('debug'):
+                    typer.secho(f"\U0001f50d Searching with {provider_name}...", fg=get_info_color())
 
                 # Run async search in sync context
                 previous_loop = None
@@ -434,6 +578,10 @@ class WebSearchManager:
 
                 # If we got results, cache the provider and return
                 if results:
+                    attempt["status"] = "ok"
+                    attempt["result_count"] = len(results)
+                    self._last_search_diagnostics["providers_attempted"].append(attempt)
+                    self._last_search_diagnostics["success_provider"] = provider_name
                     self.rate_limiter.record_search()
                     self.cache.set(query, results)
 
@@ -448,10 +596,16 @@ class WebSearchManager:
                     return results
 
                 # Empty results might be valid, but try next provider
+                attempt["status"] = "empty"
+                attempt["reason"] = "provider returned no results"
+                self._last_search_diagnostics["providers_attempted"].append(attempt)
                 if config.get('debug'):
                     typer.secho(f"{provider_name} returned no results", fg=get_warning_color())
 
             except Exception as e:
+                attempt["status"] = "error"
+                attempt["reason"] = str(e)
+                self._last_search_diagnostics["providers_attempted"].append(attempt)
                 # Always show errors for the primary provider
                 if i == 0 or config.get('debug'):
                     error_msg = str(e)
@@ -491,8 +645,7 @@ class WebSearchManager:
                         )
                     continue
 
-        # All providers failed
-        typer.secho("\u274c All search providers failed", fg=get_error_color())
+        # All providers failed (details are in diagnostics)
         return []
 
     def clear_cache(self):

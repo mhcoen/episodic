@@ -32,13 +32,12 @@ class MCPResolver:
     """
     Resolves abstract intent names to concrete MCP tool invocations.
 
-    Does NOT hardcode tool names. The mapping is populated at
-    tool-discovery time from the MCP tools/list response and
-    stored in config.
+    Consults the plugin registry for tool_map first, then falls back
+    to DEFAULT_INTENT_MAPPING for backward compatibility.
     """
 
     def __init__(self, mapping: Optional[Dict[str, Dict[str, Any]]] = None) -> None:
-        raw = mapping or DEFAULT_INTENT_MAPPING
+        raw = mapping or self._build_merged_mapping()
         self._mapping: Dict[str, MCPResolution] = {}
         for intent, info in raw.items():
             tool = info.get("tool")
@@ -52,6 +51,20 @@ class MCPResolver:
                 requires_auth_event=sensitivity != "read",
                 schema_fingerprint=info.get("schema_fingerprint", ""),
             )
+
+    @staticmethod
+    def _build_merged_mapping() -> Dict[str, Dict[str, Any]]:
+        """Build mapping from plugin registry, falling back to defaults."""
+        merged = dict(DEFAULT_INTENT_MAPPING)
+        try:
+            from episodic.mcp.plugins import get_plugin_registry
+            registry = get_plugin_registry()
+            for reg in registry.registered():
+                if reg.tool_map:
+                    merged.update(reg.tool_map)
+        except ImportError:
+            pass
+        return merged
 
     def resolve(self, command: str) -> Optional[MCPResolution]:
         """
@@ -309,6 +322,24 @@ def _update_context_from_parsed(
         ctx.update_drafts(dicts)
 
 
+def _resolve_adapter(command: str) -> Optional[Any]:
+    """Look up an argument adapter for a command.
+
+    Checks plugin registry adapter_map first, then falls back to
+    the static ARGUMENT_ADAPTERS dict.
+    """
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        for reg in registry.registered():
+            if command in reg.adapter_map:
+                return reg.adapter_map[command]
+    except ImportError:
+        pass
+    from .adapters import ARGUMENT_ADAPTERS
+    return ARGUMENT_ADAPTERS.get(command)
+
+
 async def dispatch_mcp(
     query: "UtilityQuery",
     resolution: MCPResolution,
@@ -395,9 +426,7 @@ async def dispatch_mcp(
         )
 
     try:
-        from .adapters import ARGUMENT_ADAPTERS
-
-        adapter_cls = ARGUMENT_ADAPTERS.get(query.command)
+        adapter_cls = _resolve_adapter(query.command)
         if adapter_cls:
             adapted_args = adapter_cls().adapt(query.args or {}, resolution)
         else:

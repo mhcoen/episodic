@@ -33,11 +33,54 @@ EMAIL_PHRASES: List[List[str]] = [
     ["check", "my", "mail"],
 ]
 
-# Domain registry: domain name -> (keywords, phrases)
-DOMAIN_REGISTRY: Dict[str, Tuple[FrozenSet[str], List[List[str]]]] = {
+# Core domain registry: domain name -> (keywords, phrases)
+_CORE_DOMAIN_REGISTRY: Dict[str, Tuple[FrozenSet[str], List[List[str]]]] = {
     "calendar": (CALENDAR_KEYWORDS, CALENDAR_PHRASES),
     "email": (EMAIL_KEYWORDS, EMAIL_PHRASES),
 }
+
+# Live registry, extended by plugins via register_plugin_domains()
+DOMAIN_REGISTRY: Dict[str, Tuple[FrozenSet[str], List[List[str]]]] = dict(
+    _CORE_DOMAIN_REGISTRY
+)
+
+_plugins_registered = False
+
+
+def register_plugin_domains() -> None:
+    """Extend DOMAIN_REGISTRY with new domains from plugin extraction contributions.
+
+    Only adds domains that are NOT already in the core registry.
+    Core domains (calendar, email) are already correctly defined and
+    should not be modified by plugin keywords (which may be a flat
+    merged list across multiple domains).
+
+    Idempotent — only runs once.
+    """
+    global _plugins_registered
+    if _plugins_registered:
+        return
+    _plugins_registered = True
+
+    try:
+        from episodic.mcp.plugins import get_plugin_registry
+        registry = get_plugin_registry()
+        for reg in registry.registered():
+            contrib = reg.extraction_contribution
+            if contrib is None:
+                continue
+            # Infer domains from intent names (e.g. "calendar.query" → "calendar")
+            for intent in contrib.intents:
+                if "." in intent.name:
+                    domain = intent.name.split(".")[0]
+                    if domain not in DOMAIN_REGISTRY:
+                        # New domain from plugin — add with all plugin keywords
+                        DOMAIN_REGISTRY[domain] = (
+                            frozenset(contrib.gate_keywords),
+                            list(contrib.gate_phrases),
+                        )
+    except ImportError:
+        pass
 
 # --- Plural/singular suffix normalization ---
 
@@ -117,6 +160,8 @@ def matched_domains(utterance: str) -> Set[str]:
     Returns a set of domain names (e.g. {"calendar", "email"}).
     Empty set means no extraction call needed.
     """
+    register_plugin_domains()
+
     if not utterance or not utterance.strip():
         return set()
 

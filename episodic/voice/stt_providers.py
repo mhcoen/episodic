@@ -300,14 +300,6 @@ class DeepgramProvider(BaseSTTProvider):
 
     def __init__(self, model: str = "nova-2"):
         self.model = model
-        self._client = None
-
-    def _get_client(self):
-        """Lazy load Deepgram client."""
-        if self._client is None:
-            from deepgram import DeepgramClient
-            self._client = DeepgramClient()
-        return self._client
 
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> Optional[str]:
         """Transcribe using Deepgram API."""
@@ -315,7 +307,10 @@ class DeepgramProvider(BaseSTTProvider):
             # Calculate audio duration for cost tracking
             duration_seconds = len(audio_data) / sample_rate
 
-            client = self._get_client()
+            # Fresh client each call — avoids stale connection errors
+            # from Deepgram closing idle HTTP connections between utterances
+            from deepgram import DeepgramClient
+            client = DeepgramClient()
             wav_bytes = _audio_to_wav_bytes(audio_data, sample_rate)
 
             response = client.listen.v1.media.transcribe_file(

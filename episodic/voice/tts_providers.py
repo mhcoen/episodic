@@ -285,27 +285,27 @@ class ElevenLabsProvider(BaseTTSProvider):
 
     def __init__(self, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):  # Rachel
         self.voice_id = voice_id
-        self._client = None
-
-    def _get_client(self):
-        """Lazy load ElevenLabs client."""
-        if self._client is None:
-            from elevenlabs.client import ElevenLabs
-            self._client = ElevenLabs()
-        return self._client
 
     def synthesize(self, text: str) -> Tuple[np.ndarray, int]:
         """Synthesize using ElevenLabs API."""
         try:
-            client = self._get_client()
+            import os
+            from elevenlabs.client import ElevenLabs
+            api_key = os.environ.get("ELEVEN_API_KEY")
+            if not api_key:
+                raise RuntimeError(
+                    "ELEVEN_API_KEY not set. Export it or add to your shell profile."
+                )
+            client = ElevenLabs(api_key=api_key)
 
-            audio_generator = client.generate(
+            audio_generator = client.text_to_speech.convert(
+                voice_id=self.voice_id,
                 text=text,
-                voice=self.voice_id,
-                model="eleven_monolingual_v1"
+                model_id="eleven_multilingual_v2",
+                output_format="pcm_22050",
             )
 
-            # Collect all audio chunks
+            # Collect all audio chunks (raw 16-bit PCM at 22050 Hz)
             audio_bytes = b"".join(audio_generator)
 
             # Track cost (pricing loaded from voice_pricing.json)
@@ -316,26 +316,14 @@ class ElevenLabsProvider(BaseTTSProvider):
             from episodic.llm_manager import llm_manager
             llm_manager.record_voice_tts(char_count, cost_usd)
 
-            # ElevenLabs returns MP3 by default, convert to numpy
-            # Using pydub for MP3 decoding
-            from pydub import AudioSegment
-            audio_segment = AudioSegment.from_mp3(io.BytesIO(audio_bytes))
-
-            # Convert to numpy float32
-            samples = np.array(audio_segment.get_array_of_samples())
-            if audio_segment.channels == 2:
-                samples = samples.reshape((-1, 2)).mean(axis=1)  # Mono mix
-
+            # Convert raw PCM int16 to float32
+            samples = np.frombuffer(audio_bytes, dtype=np.int16)
             audio_float = samples.astype(np.float32) / 32768.0
-            return audio_float, audio_segment.frame_rate
+            return audio_float, 22050
 
-        except ImportError as e:
-            if "elevenlabs" in str(e):
-                raise RuntimeError(
-                    "elevenlabs not installed. Run: pip install elevenlabs"
-                )
+        except ImportError:
             raise RuntimeError(
-                "pydub not installed (needed for MP3 decoding). Run: pip install pydub"
+                "elevenlabs not installed. Run: pip install elevenlabs"
             )
 
 

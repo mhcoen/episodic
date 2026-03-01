@@ -304,6 +304,12 @@ class VoiceModeManager:
         play_sleep_chime()
         self._set_state(VoiceState.IDLE)
 
+    @staticmethod
+    def _is_just_wake_word(text: str, wake_word: str) -> bool:
+        """Check if transcribed text is just the wake word (with minor noise)."""
+        cleaned = text.lower().strip().strip(".,!?")
+        return cleaned == wake_word or cleaned == f"hey {wake_word}"
+
     def is_sleep_command(self, text: str) -> bool:
         """Check if text is a command to go to sleep/idle mode."""
         sleep_phrases = [
@@ -356,6 +362,25 @@ class VoiceModeManager:
             text = stt.transcribe(audio, 16000)
 
             if text:
+                # If already listening and the user just said the wake word,
+                # acknowledge without sending to the LLM
+                wake_word = config.get("voice_wake_word", "computer").lower()
+                if self._is_just_wake_word(text, wake_word):
+                    import random
+                    responses = [
+                        "I'm listening.",
+                        "I'm here.",
+                        "I'm already listening.",
+                        "Go ahead.",
+                        "Yes?",
+                    ]
+                    typer.secho(f"🎤 {random.choice(responses)}", fg="green")
+                    self._cancel_idle_timer()
+                    self._start_idle_timer()
+                    self._transcription_event.set()
+                    self._set_state(VoiceState.LISTENING)
+                    return
+
                 self._transcription_result = text
 
                 # Clear interrupt flag - user has spoken, ready for new TTS

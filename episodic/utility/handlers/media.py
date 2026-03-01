@@ -55,7 +55,14 @@ def handle_media_play(
         if station:
             source = "radio"
         elif search_query:
-            source = "spotify"
+            # Check if query matches a radio station before defaulting to spotify
+            radio_adapter = adapter_registry.get_adapter("radio")
+            if radio_adapter and hasattr(radio_adapter, '_stations'):
+                if search_query.lower() in radio_adapter._stations:
+                    source = "radio"
+                    station = search_query
+            if not source:
+                source = "spotify"
         else:
             # Try to find any available media adapter
             for adapter in adapter_registry.list_adapters():

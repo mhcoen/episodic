@@ -58,6 +58,14 @@ def should_execute(query: UtilityQuery, confirm_mutations: bool = False) -> tupl
     """
     is_mutating = query.is_mutating()
 
+    # Low-risk commands: easily reversible (stop/pause undoes play, etc.)
+    _LOW_RISK_COMMANDS = {
+        "media_play", "media_pause", "media_resume", "media_stop",
+        "media_status", "volume_up", "volume_down", "volume_set",
+    }
+    if query.command in _LOW_RISK_COMMANDS and query.confidence >= 0.4:
+        return True, "low-risk media command"
+
     # High confidence: execute
     if query.confidence >= 0.9:
         return True, "high confidence"

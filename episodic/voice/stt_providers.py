@@ -98,6 +98,7 @@ def _is_hallucination(text: str) -> bool:
         "www.", "http", ".com", ".org", ".net",
         "subscribe", "channel", "video",
         "stay tuned", "we'll see you",
+        "for watching", "for listening",
         "engvid", "learn english",
         "copyright", "all rights reserved",
         "music", "♪", "♫",
@@ -112,8 +113,10 @@ def _is_hallucination(text: str) -> bool:
     hallucination_prefixes = [
         "thanks for watching",
         "thank you for watching",
+        "thank you so much for watching",
         "thanks for listening",
         "thank you for listening",
+        "thank you so much for listening",
         "see you next time",
         "see you in the next",
         "i'll see you",

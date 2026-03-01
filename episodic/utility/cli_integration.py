@@ -808,7 +808,11 @@ def handle_voice_utterance(text: str) -> Optional[UtilityResult]:
 
     elif result.target == RouteTarget.UTILITY:
         # Execute utility command
-        return _execute_utility_query(result.utility_query)
+        utility_result = _execute_utility_query(result.utility_query)
+        # If dispatcher rejected (low confidence fallback), let it fall through to LLM
+        if utility_result and utility_result.status == ResultStatus.FALLBACK:
+            return None
+        return utility_result
 
     elif result.target == RouteTarget.MQL:
         # Fall through to chat - MQL will be handled by chat

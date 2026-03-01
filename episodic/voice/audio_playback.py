@@ -294,7 +294,7 @@ def play_beep(frequency: float = 440.0, duration: float = 0.1, sample_rate: int 
 
 
 def play_chime(sample_rate: int = 44100):
-    """Play a pleasant two-tone chime."""
+    """Play a pleasant two-tone chime (ascending: C5 → E5)."""
     import sounddevice as sd
 
     duration = 0.15
@@ -315,6 +315,33 @@ def play_chime(sample_rate: int = 44100):
     combined[:len(wave1)] += wave1 * envelope
     combined[int(sample_rate * 0.1):int(sample_rate * 0.1) + len(wave2)] += wave2 * envelope
 
-    audio = (combined * 0.25).astype(np.float32)
+    audio = (combined * 0.175).astype(np.float32)
+    sd.play(audio, sample_rate)
+    sd.wait()
+
+
+def play_sleep_chime(sample_rate: int = 44100):
+    """Play a descending two-tone chime (E5 → C5) for going to sleep."""
+    import sounddevice as sd
+
+    duration = 0.15
+    t = np.linspace(0, duration, int(sample_rate * duration), False)
+
+    # Two notes (reversed from wake chime)
+    wave1 = np.sin(2 * np.pi * 659.25 * t)  # E5
+    wave2 = np.sin(2 * np.pi * 523.25 * t)  # C5
+
+    # Apply envelope
+    fade_samples = int(sample_rate * 0.02)
+    envelope = np.ones_like(wave1)
+    envelope[:fade_samples] = np.linspace(0, 1, fade_samples)
+    envelope[-fade_samples:] = np.linspace(1, 0, fade_samples)
+
+    # Combine with second note delayed
+    combined = np.zeros(int(sample_rate * 0.3))
+    combined[:len(wave1)] += wave1 * envelope
+    combined[int(sample_rate * 0.1):int(sample_rate * 0.1) + len(wave2)] += wave2 * envelope
+
+    audio = (combined * 0.175).astype(np.float32)
     sd.play(audio, sample_rate)
     sd.wait()

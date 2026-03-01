@@ -232,6 +232,8 @@ class VoiceModeManager:
             if config.get("voice_show_transcription", True):
                 typer.secho(f"💤 Idle - say \"{wake_word}\" to wake", fg="yellow")
                 sys.stdout.flush()
+            from episodic.voice.audio_playback import play_sleep_chime
+            play_sleep_chime()
             self._set_state(VoiceState.IDLE)
         elif self._state == VoiceState.PROCESSING:
             # Busy processing STT, try again later
@@ -298,6 +300,8 @@ class VoiceModeManager:
             typer.secho(f"😴 Going to sleep - say \"{wake_word}\" to wake", fg="yellow")
             sys.stdout.flush()
 
+        from episodic.voice.audio_playback import play_sleep_chime
+        play_sleep_chime()
         self._set_state(VoiceState.IDLE)
 
     def is_sleep_command(self, text: str) -> bool:

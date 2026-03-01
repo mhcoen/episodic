@@ -544,8 +544,9 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
 
     elif cmd == "play":
         if not args_str:
-            return UtilityResult.error("missing_query", "Usage: /play <station>")
-        query = create_utility_query(
+            query = create_utility_query("media", "media_status", source="cli")
+        else:
+            query = create_utility_query(
             "media", "media_play",
             args={"query": args_str, "source": "radio"},
             source="cli",

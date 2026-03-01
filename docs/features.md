@@ -81,7 +81,7 @@ Voice mode enables hands-free conversation with speech input and text-to-speech 
 |----------|------|-------|
 | `openai_whisper` (default) | ~$0.006/min | API, excellent accuracy |
 | `local_whisper` | Free | Uses faster-whisper, excellent on Apple Silicon |
-| `deepgram` | ~$0.008/min | Real-time streaming |
+| `deepgram` | ~$0.008/min | Real-time streaming, requires `DEEPGRAM_API_KEY` |
 
 ### TTS Providers
 
@@ -89,7 +89,9 @@ Voice mode enables hands-free conversation with speech input and text-to-speech 
 |----------|------|-------|
 | `openai_tts` (default) | ~$0.015/min | Good quality, steerable |
 | `local_piper` | Free | Fast, CPU-friendly |
-| `elevenlabs` | ~$0.20/1k chars | Highest quality |
+| `local_xtts` | Free | High quality (Coqui XTTS v2), slower initial load |
+| `elevenlabs` | ~$0.20/1k chars | Highest quality, requires `ELEVEN_API_KEY` |
+| `azure_neural` | ~$0.016/1k chars | Neural + DragonHD voices, requires `AZURE_SPEECH_KEY` |
 
 ### Commands
 

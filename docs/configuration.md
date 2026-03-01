@@ -265,6 +265,10 @@ Environment variables provide an alternative to CLI configuration, useful for au
 | `HUGGINGFACE_API_KEY` | Hugging Face API key |
 | `AZURE_API_KEY` | Azure OpenAI key |
 | `AZURE_API_BASE` | Azure OpenAI endpoint |
+| `DEEPGRAM_API_KEY` | Deepgram API key (for Deepgram STT provider) |
+| `ELEVEN_API_KEY` | ElevenLabs API key (for ElevenLabs TTS provider) |
+| `AZURE_SPEECH_KEY` | Azure Speech key (for Azure Neural TTS provider) |
+| `AZURE_SPEECH_REGION` | Azure Speech region (default: `eastus`) |
 | `PICOVOICE_ACCESS_KEY` | Picovoice access key (for wake word detection) |
 
 ### Web Search Provider Keys

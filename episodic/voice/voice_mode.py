@@ -207,7 +207,9 @@ class VoiceModeManager:
 
     def resume_idle_timer(self):
         """Resume the idle timer (call after LLM response completes)."""
-        if self._state not in (VoiceState.OFF, VoiceState.IDLE):
+        # Don't start timer if TTS is still playing — _on_playback_stop
+        # will start it when the last chunk finishes
+        if self._state not in (VoiceState.OFF, VoiceState.IDLE, VoiceState.SPEAKING):
             self._start_idle_timer()
 
     def _enter_idle(self):

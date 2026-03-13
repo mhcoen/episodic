@@ -9,12 +9,12 @@
         {
           "name": "gpt-4o-mini",
           "display_name": "GPT-4o Mini",
-          "type": "chat",
+          "type": "both",
           "parameters": "8B",
           "context_window": 128000,
           "pricing": {
             "input": 0.15,
-            "output": 0.60,
+            "output": 0.6,
             "unit": "per_1m_tokens",
             "last_updated": "2025-01-01"
           },
@@ -32,12 +32,15 @@
             "May struggle with complex reasoning",
             "Limited for specialized tasks"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
         },
         {
           "name": "gpt-4o",
           "display_name": "GPT-4o",
-          "type": "chat",
+          "type": "both",
           "parameters": "200B+",
           "context_window": 128000,
           "pricing": {
@@ -59,68 +62,79 @@
             "More expensive than mini models",
             "Superseded by GPT-5 for complex tasks"
           ],
-          "recommended_for": ["chat", "detection", "compression", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "compression",
+            "synthesis"
+          ]
         },
         {
-          "name": "o3",
-          "display_name": "o3 (Advanced Reasoning)",
-          "type": "chat",
+          "name": "gpt-4.1",
+          "display_name": "GPT-4.1",
+          "type": "both",
           "parameters": null,
-          "context_window": 200000,
+          "context_window": 1047576,
           "pricing": {
-            "input": 10.0,
-            "output": 40.0,
+            "input": 2.0,
+            "output": 8.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-06-10"
+            "last_updated": "2026-03-01"
           },
           "creator": "OpenAI",
           "released": "April 2025",
-          "description": "OpenAI's most advanced reasoning model. First o-series to 'think with images' - integrates visual information directly into reasoning chains. Can agentically use all ChatGPT tools (web search, Python, image generation). Makes 20% fewer major errors than o1 on difficult real-world tasks. Built with 10x the compute of o1.",
+          "description": "OpenAI's million-token context model. Excels at instruction following and tool calling with broad knowledge across domains. Major gains in coding and instruction following over GPT-4o. Low latency without reasoning overhead. Supports streaming, function calling, structured outputs, fine-tuning, and image input.",
           "strengths": [
-            "Thinks with images (visual reasoning)",
-            "Agentic tool use (web, Python, images)",
-            "20% fewer errors than o1",
-            "200K context, 100K output tokens"
+            "1M token context window",
+            "Superior instruction following",
+            "Strong tool/function calling",
+            "Fine-tuning and distillation support"
           ],
           "weaknesses": [
-            "Expensive ($10/$40 per 1M tokens)",
-            "Slower due to deep reasoning",
-            "Overkill for simple queries"
+            "No built-in reasoning step",
+            "32K max output tokens",
+            "Higher cost than mini/nano variants"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
-          "name": "o4-mini",
-          "display_name": "o4-mini (Reasoning)",
-          "type": "chat",
+          "name": "o3-pro",
+          "display_name": "o3-pro (Maximum Reasoning)",
+          "type": "both",
           "parameters": null,
           "context_window": 200000,
           "pricing": {
-            "input": 1.10,
-            "output": 4.40,
+            "input": 20.0,
+            "output": 80.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-04-16"
+            "last_updated": "2026-02-01"
           },
           "creator": "OpenAI",
-          "released": "April 2025",
-          "description": "Best-performing benchmarked model on AIME 2024/2025 math competitions. Achieves 93.4% on AIME 2024, 99.5% with Python tools. Remarkable performance for its size and cost - 10x cheaper than o3. Features visual reasoning ('thinks with images') and 200K context with 100K output tokens.",
+          "released": "February 2026",
+          "description": "o3 with significantly more compute for the hardest problems. Combines deep reasoning with long context and multimodal input. Accepts text and images, supports structured data and function calling. Recommended for tasks where maximum accuracy justifies the cost. Use background mode for long-running tasks.",
           "strengths": [
-            "93.4% AIME 2024 (best benchmarked)",
-            "99.5% AIME with Python tools",
-            "10x cheaper than o3",
-            "Visual reasoning capabilities"
+            "Maximum compute for hardest problems",
+            "200K context, 100K output",
+            "Multimodal (text + images)",
+            "Function calling and structured output"
           ],
           "weaknesses": [
-            "Slightly below o3 on PhD-level science",
-            "Still slower than GPT-4o",
-            "May overthink simple questions"
+            "Very expensive ($20/$80 per 1M tokens)",
+            "Slower - may need background mode",
+            "Overkill for most tasks"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         },
         {
           "name": "gpt-5",
           "display_name": "GPT-5",
-          "type": "chat",
+          "type": "both",
           "parameters": null,
           "context_window": 272000,
           "pricing": {
@@ -140,14 +154,78 @@
           ],
           "weaknesses": [
             "Higher cost than GPT-4o",
-            "Superseded by GPT-5.2"
+            "Superseded by GPT-5.4"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
+        },
+        {
+          "name": "gpt-5-mini",
+          "display_name": "GPT-5 Mini",
+          "type": "both",
+          "parameters": null,
+          "context_window": 400000,
+          "pricing": {
+            "input": 0.25,
+            "output": 2.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-03-01"
+          },
+          "creator": "OpenAI",
+          "released": "August 2025",
+          "description": "Faster, more cost-efficient version of GPT-5. 400K context with 128K output. Optimized for well-defined tasks and precise prompts. Supports reasoning tokens for lighter-weight reasoning. Great balance of GPT-5 capability at a fraction of the cost.",
+          "strengths": [
+            "5x cheaper input than GPT-5",
+            "400K context, 128K output",
+            "Reasoning token support",
+            "Good for well-defined tasks"
+          ],
+          "weaknesses": [
+            "Less capable than full GPT-5",
+            "Superseded by GPT-5.4 for complex tasks"
+          ],
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
+        },
+        {
+          "name": "gpt-5-nano",
+          "display_name": "GPT-5 Nano",
+          "type": "both",
+          "parameters": null,
+          "context_window": 400000,
+          "pricing": {
+            "input": 0.05,
+            "output": 0.4,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-03-01"
+          },
+          "creator": "OpenAI",
+          "released": "August 2025",
+          "description": "OpenAI's most cost-effective model at $0.05/$0.40 per million tokens. 400K context window with four reasoning levels. Ideal for high-volume classification, extraction, routing, and tasks where cost matters most. Part of the GPT-5 family with surprisingly strong capability for its price.",
+          "strengths": [
+            "Ultra-low cost ($0.05/$0.40)",
+            "400K context window",
+            "Four reasoning levels",
+            "High-volume ready"
+          ],
+          "weaknesses": [
+            "Least capable GPT-5 variant",
+            "Limited complex reasoning",
+            "Better for simple tasks"
+          ],
+          "recommended_for": [
+            "compression"
+          ]
         },
         {
           "name": "gpt-5.3-codex",
           "display_name": "GPT-5.3 Codex",
-          "type": "chat",
+          "type": "both",
           "parameters": null,
           "context_window": 400000,
           "pricing": {
@@ -171,12 +249,19 @@
             "API access not yet available",
             "Pricing estimated"
           ],
-          "recommended_for": ["synthesis"],
+          "recommended_for": [
+            "synthesis"
+          ],
           "reasoning": {
             "mechanism": "api_param",
             "params": {
               "reasoning_effort": {
-                "options": ["low", "medium", "high", "xhigh"],
+                "options": [
+                  "low",
+                  "medium",
+                  "high",
+                  "xhigh"
+                ],
                 "default": "medium"
               }
             }
@@ -185,18 +270,18 @@
         {
           "name": "gpt-5.2",
           "display_name": "GPT-5.2",
-          "type": "chat",
+          "type": "both",
           "parameters": null,
           "context_window": 272000,
           "pricing": {
-            "input": 1.25,
-            "output": 10.0,
+            "input": 1.75,
+            "output": 14.0,
             "unit": "per_1m_tokens",
-            "last_updated": "2025-12-04"
+            "last_updated": "2026-03-01"
           },
           "creator": "OpenAI",
           "released": "December 2025",
-          "description": "OpenAI's response to Gemini 3. Three variants: Instant (fast everyday), Thinking (deep work, 80% SWE-bench), Pro (most trustworthy). 93.2% GPQA Diamond (PhD-level), 40.3% FrontierMath SOTA. 38% fewer errors than predecessor. Exceptional at spreadsheets, presentations, complex UI, and multi-step projects.",
+          "description": "OpenAI's previous frontier model. Three variants: Instant (fast everyday), Thinking (deep work, 80% SWE-bench), Pro (most trustworthy). 93.2% GPQA Diamond (PhD-level), 40.3% FrontierMath SOTA. 38% fewer errors than GPT-5. Superseded by GPT-5.4 but still available at slightly lower cost per token efficiency.",
           "strengths": [
             "80% SWE-bench (Thinking variant)",
             "93.2% GPQA Diamond (Pro)",
@@ -204,19 +289,77 @@
             "Three variants for different needs"
           ],
           "weaknesses": [
-            "Pro variant more expensive",
-            "May be overkill for simple tasks"
+            "Superseded by GPT-5.4",
+            "Higher per-token cost than GPT-5.4 for same quality"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ],
           "reasoning": {
             "mechanism": "api_param",
             "params": {
               "reasoning_effort": {
-                "options": ["minimal", "low", "medium", "high"],
+                "options": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ],
                 "default": "medium"
               },
               "verbosity": {
-                "options": ["low", "medium", "high"],
+                "options": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "default": "medium"
+              }
+            }
+          }
+        },
+        {
+          "name": "gpt-5.4",
+          "display_name": "GPT-5.4",
+          "type": "both",
+          "parameters": null,
+          "context_window": 1050000,
+          "pricing": {
+            "input": 2.5,
+            "output": 15.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-03-05"
+          },
+          "creator": "OpenAI",
+          "released": "March 2026",
+          "description": "OpenAI's current flagship model. First general-purpose model with native computer use - can operate browsers via Playwright and issue mouse/keyboard commands from screenshots. 1M+ context (922K input, 128K output). 83% on professional work benchmarks, 33% fewer factual errors than GPT-5.2. Two variants: Thinking (deep reasoning) and Pro (maximum accuracy).",
+          "strengths": [
+            "Native computer use capability",
+            "1M context, 128K output",
+            "33% fewer errors than GPT-5.2",
+            "Thinking and Pro variants"
+          ],
+          "weaknesses": [
+            "Higher per-token cost",
+            "2x pricing for prompts >272K tokens",
+            "Computer use adds latency"
+          ],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "reasoning_effort": {
+                "options": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
                 "default": "medium"
               }
             }
@@ -232,7 +375,7 @@
           "display_name": "Claude Opus 4.6",
           "type": "both",
           "parameters": null,
-          "context_window": 200000,
+          "context_window": 1000000,
           "pricing": {
             "input": 5.0,
             "output": 25.0,
@@ -241,24 +384,33 @@
           },
           "creator": "Anthropic",
           "released": "February 2026",
-          "description": "Anthropic's most capable model. 128K max output (doubled from 4.5). Adaptive thinking replaces extended thinking with effort levels (low/medium/high/max). 68.8% ARC-AGI-2 (up from 37.6%), 65.4% Terminal-Bench 2.0, 72.7% OSWorld. 1M context available in beta. Compaction API for effectively infinite conversations.",
+          "description": "Anthropic's most capable model. 1M token context window (beta for tier 4+), 128K max output (doubled from 4.5). Adaptive thinking replaces extended thinking with effort levels (low/medium/high/max). 68.8% ARC-AGI-2 (up from 37.6%), 65.4% Terminal-Bench 2.0, 72.7% OSWorld. Compaction API for effectively infinite conversations. 76% needle-in-haystack at 1M tokens.",
           "strengths": [
             "68.8% ARC-AGI-2 (up from 37.6%)",
-            "128K max output tokens",
+            "1M context window, 128K output",
             "Adaptive thinking with effort control",
-            "1M context (beta), compaction API"
+            "Compaction API, agent teams"
           ],
           "weaknesses": [
             "Higher cost than Sonnet",
             "Prefilling removed (breaking change)"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ],
           "reasoning": {
             "mechanism": "api_param",
             "params": {
               "thinking": {
                 "type": "adaptive",
-                "effort_options": ["low", "medium", "high", "max"],
+                "effort_options": [
+                  "low",
+                  "medium",
+                  "high",
+                  "max"
+                ],
                 "default_effort": "high"
               }
             }
@@ -289,34 +441,11 @@
             "Superseded by Opus 4.6",
             "64K max output (vs 128K in 4.6)"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
-        },
-        {
-          "name": "claude-opus-4-1-20250805",
-          "display_name": "Claude Opus 4.1 (Legacy)",
-          "type": "both",
-          "parameters": null,
-          "context_window": 200000,
-          "pricing": {
-            "input": 15.0,
-            "output": 75.0,
-            "unit": "per_1m_tokens",
-            "last_updated": "2025-08-05"
-          },
-          "creator": "Anthropic",
-          "released": "August 2025",
-          "description": "Previous generation Opus, maintained for backwards compatibility. Superseded by Opus 4.5 which offers 3x better value at $5/$25 vs $15/$75 per million tokens. Use Opus 4.5 for new projects.",
-          "strengths": [
-            "Strong reasoning",
-            "200K context window",
-            "Proven reliability"
-          ],
-          "weaknesses": [
-            "3x more expensive than Opus 4.5",
-            "Superseded - use Opus 4.5",
-            "Legacy status"
-          ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "claude-sonnet-4-20250522",
@@ -343,7 +472,58 @@
             "Less capable than Opus",
             "Superseded by Sonnet 4.5"
           ],
-          "recommended_for": ["chat", "detection", "compression"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "compression"
+          ]
+        },
+        {
+          "name": "claude-sonnet-4-6",
+          "display_name": "Claude Sonnet 4.6",
+          "type": "both",
+          "parameters": "~300B",
+          "context_window": 1000000,
+          "pricing": {
+            "input": 3.0,
+            "output": 15.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-02-17"
+          },
+          "creator": "Anthropic",
+          "released": "February 2026",
+          "description": "Anthropic's best balance of capability and cost. 79.6% SWE-bench Verified, 72.5% OSWorld. Full upgrade across coding, computer use, long-context reasoning, agent planning, and knowledge work. 200K standard context (1M beta), 64K max output. Adaptive thinking with effort parameter. Preferred over Sonnet 4.5 in 70% of head-to-head comparisons and over Opus 4.5 in 59%.",
+          "strengths": [
+            "79.6% SWE-bench Verified",
+            "72.5% OSWorld",
+            "Adaptive thinking with effort control",
+            "Same price as Sonnet 4.5"
+          ],
+          "weaknesses": [
+            "Less capable than Opus 4.6 for hardest tasks",
+            "64K output (vs 128K for Opus 4.6)"
+          ],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "compression",
+            "synthesis"
+          ],
+          "reasoning": {
+            "mechanism": "api_param",
+            "params": {
+              "thinking": {
+                "type": "adaptive",
+                "effort_options": [
+                  "low",
+                  "medium",
+                  "high",
+                  "max"
+                ],
+                "default_effort": "medium"
+              }
+            }
+          }
         },
         {
           "name": "claude-sonnet-4-5-20250929",
@@ -359,17 +539,23 @@
           },
           "creator": "Anthropic",
           "released": "September 2025",
-          "description": "Anthropic's best for complex agents and coding. 77.2% SWE-bench Verified. Available with 200K standard or 1M beta context window. Highest intelligence across most tasks at the Sonnet price point. Recommended for most general-purpose applications.",
+          "description": "Previous Sonnet generation. 77.2% SWE-bench Verified. Available with 200K standard or 1M beta context window. Superseded by Sonnet 4.6 which users preferred in 70% of comparisons.",
           "strengths": [
             "77.2% SWE-bench Verified",
             "1M context window (beta)",
             "Best for agents and coding",
-            "Same price as Sonnet 4"
+            "Same price as Sonnet 4.6"
           ],
           "weaknesses": [
+            "Superseded by Sonnet 4.6",
             "Less capable than Opus for hardest tasks"
           ],
-          "recommended_for": ["chat", "detection", "compression", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "compression",
+            "synthesis"
+          ]
         },
         {
           "name": "claude-haiku-4-5-20251001",
@@ -396,7 +582,10 @@
             "Less capable than Sonnet/Opus",
             "May struggle with hardest reasoning"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
         }
       ]
     },
@@ -425,10 +614,15 @@
             "Enhanced security/prompt injection"
           ],
           "weaknesses": [
+            "Superseded by Gemini 3.1 Pro",
             "Higher latency in Deep Think mode",
             "More expensive than Flash"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "gemini-2.5-flash",
@@ -437,8 +631,8 @@
           "parameters": null,
           "context_window": 1048576,
           "pricing": {
-            "input": 0.30,
-            "output": 2.50,
+            "input": 0.3,
+            "output": 2.5,
             "unit": "per_1m_tokens",
             "last_updated": "2025-12-04"
           },
@@ -455,7 +649,103 @@
             "Less capable than Pro",
             "Thinking mode adds latency"
           ],
-          "recommended_for": ["chat", "compression", "detection"]
+          "recommended_for": [
+            "chat",
+            "compression",
+            "detection"
+          ]
+        },
+        {
+          "name": "gemini-3.1-pro",
+          "display_name": "Gemini 3.1 Pro",
+          "type": "both",
+          "parameters": null,
+          "context_window": 1048576,
+          "pricing": {
+            "input": 2.0,
+            "output": 12.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-02-19",
+            "_note": "2x input ($4) and 1.5x output ($18) for prompts >200K tokens"
+          },
+          "creator": "Google",
+          "released": "February 2026",
+          "description": "Google's current flagship model. 77.1% ARC-AGI-2 (up from 31.1%), 94.3% GPQA Diamond, #1 on 12 of 18 tracked benchmarks. 1M context with 65K output. Addresses previous Gemini 3 Pro truncation issues. Excels at complex problem-solving, long-horizon agentic workflows, and native multimodal code generation. Supports text, vision, audio, function calling, and structured output.",
+          "strengths": [
+            "77.1% ARC-AGI-2 (from 31.1%)",
+            "94.3% GPQA Diamond",
+            "#1 on 12/18 benchmarks",
+            "1M context, 65K output"
+          ],
+          "weaknesses": [
+            "2x/1.5x pricing for >200K prompts",
+            "Higher latency for complex reasoning"
+          ],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
+        },
+        {
+          "name": "gemini-3-flash",
+          "display_name": "Gemini 3 Flash",
+          "type": "both",
+          "parameters": null,
+          "context_window": 1048576,
+          "pricing": {
+            "input": 0.5,
+            "output": 3.0,
+            "unit": "per_1m_tokens",
+            "last_updated": "2025-12-17"
+          },
+          "creator": "Google",
+          "released": "December 2025",
+          "description": "Combines Gemini 3 Pro reasoning with Flash-line efficiency. Default model in Gemini app. 81.2% MMMU-Pro. Features thinking_level parameter (minimal/low/medium/high) for balancing quality, latency, and cost. Context caching for 90% cost reductions. Near-Pro reasoning at a fraction of the cost.",
+          "strengths": [
+            "81.2% MMMU-Pro (SOTA)",
+            "Configurable thinking levels",
+            "Context caching (90% savings)",
+            "1M context, 65K output"
+          ],
+          "weaknesses": [
+            "Less capable than Pro variants",
+            "Higher thinking adds latency"
+          ],
+          "recommended_for": [
+            "chat",
+            "compression",
+            "detection"
+          ]
+        },
+        {
+          "name": "gemini-3.1-flash-lite",
+          "display_name": "Gemini 3.1 Flash-Lite",
+          "type": "both",
+          "parameters": null,
+          "context_window": 1048576,
+          "pricing": {
+            "input": 0.25,
+            "output": 1.5,
+            "unit": "per_1m_tokens",
+            "last_updated": "2026-03-03"
+          },
+          "creator": "Google",
+          "released": "March 2026",
+          "description": "Google's most cost-efficient model. $0.25/$1.50 per million tokens. 1M context window. Optimized for high-volume, cost-sensitive applications. Good for classification, extraction, and simple generation tasks where speed and cost matter more than maximum capability.",
+          "strengths": [
+            "Ultra-low cost ($0.25/$1.50)",
+            "1M context window",
+            "Fast inference",
+            "Good for high-volume tasks"
+          ],
+          "weaknesses": [
+            "Least capable Gemini 3.x",
+            "Limited complex reasoning"
+          ],
+          "recommended_for": [
+            "compression"
+          ]
         },
         {
           "name": "gemini-2.5-flash-lite",
@@ -464,8 +754,8 @@
           "parameters": null,
           "context_window": 1048576,
           "pricing": {
-            "input": 0.10,
-            "output": 0.40,
+            "input": 0.1,
+            "output": 0.4,
             "unit": "per_1m_tokens",
             "last_updated": "2025-12-04"
           },
@@ -483,7 +773,9 @@
             "Limited complex reasoning",
             "Better for simple tasks"
           ],
-          "recommended_for": ["compression"]
+          "recommended_for": [
+            "compression"
+          ]
         }
       ]
     },
@@ -509,7 +801,10 @@
             "Superseded by Llama 4",
             "70B needs good hardware"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "llama4-scout",
@@ -531,7 +826,10 @@
             "Less capable than Maverick",
             "Newer model, less battle-tested"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "mistral:instruct",
@@ -551,7 +849,9 @@
             "Less conversational",
             "Limited by 7B size"
           ],
-          "recommended_for": ["compression"]
+          "recommended_for": [
+            "compression"
+          ]
         },
         {
           "name": "mistral-nemo",
@@ -573,7 +873,10 @@
             "Needs more RAM than 7B",
             "April 2024 knowledge cutoff"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "mistral-nemo:instruct",
@@ -595,7 +898,10 @@
             "Less conversational",
             "Instruction-focused"
           ],
-          "recommended_for": ["detection", "compression"]
+          "recommended_for": [
+            "detection",
+            "compression"
+          ]
         },
         {
           "name": "phi4",
@@ -616,7 +922,11 @@
             "Smaller context than larger models",
             "Less general knowledge"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "deepseek-r1",
@@ -637,7 +947,10 @@
             "Slower due to reasoning traces",
             "Full model needs good hardware"
           ],
-          "recommended_for": ["detection", "synthesis"],
+          "recommended_for": [
+            "detection",
+            "synthesis"
+          ],
           "reasoning": {
             "mechanism": "inherent",
             "always_on": true,
@@ -665,12 +978,19 @@
             "Large model needs good hardware",
             "Slower in thinking mode"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ],
           "reasoning": {
             "mechanism": "api_param",
             "params": {
               "enable_thinking": {
-                "options": [true, false],
+                "options": [
+                  true,
+                  false
+                ],
                 "default": false
               }
             }
@@ -697,10 +1017,17 @@
             "Slightly lower accuracy without reasoning",
             "New architecture may have quirks"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"],
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ],
           "reasoning": {
             "mechanism": "system_prompt_tag",
-            "tags": {"on": "/think", "off": "/no_think"},
+            "tags": {
+              "on": "/think",
+              "off": "/no_think"
+            },
             "default": "on",
             "placement": "end_of_system"
           }
@@ -726,12 +1053,18 @@
             "Optimized for code tasks",
             "May overthink simple queries"
           ],
-          "recommended_for": ["synthesis", "detection"],
+          "recommended_for": [
+            "synthesis",
+            "detection"
+          ],
           "reasoning": {
             "mechanism": "api_param",
             "params": {
               "think": {
-                "options": [true, false],
+                "options": [
+                  true,
+                  false
+                ],
                 "default": true
               }
             },
@@ -756,12 +1089,18 @@
           "weaknesses": [
             "Newer, less battle-tested"
           ],
-          "recommended_for": ["chat", "detection"],
+          "recommended_for": [
+            "chat",
+            "detection"
+          ],
           "reasoning": {
             "mechanism": "api_param",
             "params": {
               "think": {
-                "options": [true, false],
+                "options": [
+                  true,
+                  false
+                ],
                 "default": true
               }
             },
@@ -786,7 +1125,10 @@
           "weaknesses": [
             "Superseded by Qwen 3 for coding"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "qwen2.5:7b",
@@ -807,7 +1149,10 @@
           "weaknesses": [
             "Limited by 7B size"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
         },
         {
           "name": "qwen2.5:14b",
@@ -829,7 +1174,10 @@
             "Needs 32GB+ RAM",
             "Slower than 7B"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "qwen2.5:32b",
@@ -851,7 +1199,11 @@
             "Needs 64GB+ RAM",
             "Slower inference"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "gemma2",
@@ -872,7 +1224,9 @@
             "8K context (smaller than competitors)",
             "Superseded by Gemma 3"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "gemma2:2b",
@@ -894,7 +1248,9 @@
             "Limited by 2B size",
             "8K context only"
           ],
-          "recommended_for": ["compression"]
+          "recommended_for": [
+            "compression"
+          ]
         },
         {
           "name": "gemma2:9b",
@@ -916,7 +1272,10 @@
             "8K context limitation",
             "Less capable than 27B"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "codellama",
@@ -939,7 +1298,9 @@
             "Superseded by Qwen3-Coder",
             "Base model (not chat)"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         },
         {
           "name": "starcoder2",
@@ -962,7 +1323,9 @@
             "Base model (not chat)",
             "Superseded by newer coders"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         },
         {
           "name": "deepseek-coder",
@@ -985,7 +1348,9 @@
             "16K context limitation",
             "Base model (not chat)"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         }
       ]
     },
@@ -1015,7 +1380,11 @@
             "Legacy model (use 4.5)",
             "Small markup over direct"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "openrouter/google/gemini-2.5-pro",
@@ -1034,7 +1403,11 @@
             "Small routing markup",
             "May lag direct releases"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "openrouter/deepseek/deepseek-r1",
@@ -1052,7 +1425,10 @@
             "Slower due to reasoning",
             "May have occasional latency"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": [
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "openrouter/deepseek/deepseek-chat-v3",
@@ -1070,7 +1446,9 @@
             "May have availability variance",
             "Superseded by V3.1"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "openrouter/meta-llama/llama-4-scout:free",
@@ -1091,7 +1469,9 @@
             "Lower priority than paid",
             "Less capable than Maverick"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "openrouter/meta-llama/llama-4-maverick:free",
@@ -1111,7 +1491,10 @@
             "Rate limited",
             "May have queue times"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "openrouter/meta-llama/llama-3.1-70b-instruct",
@@ -1131,7 +1514,10 @@
             "Superseded by 3.3 and 4",
             "Less capable than newer"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "openrouter/meta-llama/llama-3.1-405b-instruct",
@@ -1152,7 +1538,10 @@
             "Slower inference (405B)",
             "Superseded by Llama 4 MoE"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": [
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "openrouter/meta-llama/llama-3.3-70b-instruct",
@@ -1171,7 +1560,10 @@
           "weaknesses": [
             "Superseded by Llama 4"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "openrouter/mistralai/mistral-nemo",
@@ -1190,7 +1582,10 @@
           "weaknesses": [
             "Limited by 12B size"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
         },
         {
           "name": "openrouter/moonshotai/kimi-k2",
@@ -1210,7 +1605,10 @@
             "Less known in West",
             "Availability may vary"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "openrouter/mistralai/mixtral-8x7b-instruct",
@@ -1230,7 +1628,10 @@
             "32K context (smaller)",
             "Superseded by newer MoE"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
         },
         {
           "name": "openrouter/mistralai/mistral-large-2",
@@ -1250,7 +1651,11 @@
             "Higher cost than MoE",
             "Dense model (more compute)"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "openrouter/qwen/qwen-2.5-72b-instruct",
@@ -1269,7 +1674,10 @@
           "weaknesses": [
             "Superseded by Qwen 3"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "openrouter/qwen/qwen-2.5-coder-32b-instruct",
@@ -1289,7 +1697,9 @@
             "Superseded by Qwen3-Coder",
             "Code-specialized only"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         },
         {
           "name": "openrouter/google/gemma-2-27b-it",
@@ -1309,7 +1719,9 @@
             "8K context only",
             "Superseded by Gemma 3"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "openrouter/x-ai/grok-2",
@@ -1328,7 +1740,9 @@
             "Style may be too casual",
             "Less polished than Claude/GPT"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         }
       ]
     },
@@ -1354,7 +1768,9 @@
             "Rate limited",
             "Superseded by 3.2/3.3"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "huggingface/meta-llama/Llama-3.2-3B-Instruct",
@@ -1375,7 +1791,9 @@
             "3B size limitations",
             "Rate limited"
           ],
-          "recommended_for": ["compression"]
+          "recommended_for": [
+            "compression"
+          ]
         },
         {
           "name": "huggingface/meta-llama/Llama-3.3-70B-Instruct",
@@ -1396,7 +1814,11 @@
             "Rate limited",
             "Superseded by Llama 4"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "huggingface/meta-llama/Llama-4-Scout",
@@ -1417,7 +1839,9 @@
             "Rate limited",
             "Less capable than Maverick"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "huggingface/meta-llama/Llama-4-Maverick",
@@ -1438,7 +1862,11 @@
             "Rate limited",
             "Queue times possible"
           ],
-          "recommended_for": ["chat", "detection", "synthesis"]
+          "recommended_for": [
+            "chat",
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "huggingface/mistralai/Mistral-Small-3.1",
@@ -1459,7 +1887,10 @@
             "Limited by 7B size",
             "HuggingFace rate limits"
           ],
-          "recommended_for": ["chat", "compression"]
+          "recommended_for": [
+            "chat",
+            "compression"
+          ]
         },
         {
           "name": "huggingface/mistralai/Mixtral-8x7B-Instruct-v0.1",
@@ -1480,7 +1911,10 @@
             "Superseded by newer MoE",
             "Rate limited"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "huggingface/deepseek-ai/DeepSeek-R1-0528",
@@ -1500,7 +1934,10 @@
             "Slow (reasoning traces)",
             "Rate limited"
           ],
-          "recommended_for": ["detection", "synthesis"]
+          "recommended_for": [
+            "detection",
+            "synthesis"
+          ]
         },
         {
           "name": "huggingface/Qwen/Qwen2.5-72B-Instruct",
@@ -1521,7 +1958,10 @@
             "Superseded by Qwen 3",
             "Rate limited"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "huggingface/google/gemma-2-27b-it",
@@ -1542,7 +1982,9 @@
             "8K context only",
             "Rate limited"
           ],
-          "recommended_for": ["chat"]
+          "recommended_for": [
+            "chat"
+          ]
         },
         {
           "name": "huggingface/deepseek-ai/DeepSeek-V3",
@@ -1563,7 +2005,10 @@
             "Superseded by V3.1",
             "Rate limited"
           ],
-          "recommended_for": ["chat", "detection"]
+          "recommended_for": [
+            "chat",
+            "detection"
+          ]
         },
         {
           "name": "huggingface/bigcode/starcoder2-15b",
@@ -1585,7 +2030,9 @@
             "Base model (not chat)",
             "Superseded by newer coders"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         },
         {
           "name": "huggingface/meta-llama/Llama-3.3-70B",
@@ -1607,7 +2054,9 @@
             "Requires careful prompting",
             "HuggingFace rate limits"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         },
         {
           "name": "huggingface/mistralai/Mistral-7B-v0.3",
@@ -1627,7 +2076,9 @@
             "Base model (not chat)",
             "HuggingFace rate limits"
           ],
-          "recommended_for": ["synthesis"]
+          "recommended_for": [
+            "synthesis"
+          ]
         }
       ]
     },
@@ -1654,7 +2105,9 @@
             "Requires PyTorch",
             "Limited to boundary detection"
           ],
-          "recommended_for": ["detection"]
+          "recommended_for": [
+            "detection"
+          ]
         }
       ]
     }

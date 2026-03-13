@@ -482,8 +482,11 @@ def handle_utility_command(cmd: str, args_str: str) -> Optional[UtilityResult]:
             # List alarms
             query = create_utility_query("alarm", "alarm_list", source="cli")
         else:
+            # Validate time before creating query (avoids hitting scheduler/DB)
+            alarm_time = _parse_time(args[0], user_tz)
+            if alarm_time is None:
+                return UtilityResult.error("invalid_time", f"Could not parse time: {args[0]}")
             # First arg is time, rest is label
-            # Pass the raw time string - handler will parse it
             label = " ".join(args[1:]) if len(args) > 1 else None
             query = create_utility_query(
                 "alarm", "alarm_set",

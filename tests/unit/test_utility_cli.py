@@ -214,11 +214,11 @@ class TestHandleUtilityCommand:
         assert result.status == ResultStatus.ERROR
         assert "expression" in result.error_message.lower()
 
-    def test_play_missing_query(self):
-        """Play without query returns error (before scheduler needed)."""
+    def test_play_missing_query_shows_status(self):
+        """Play without query shows playback status."""
         result = handle_utility_command("play", "")
         assert result is not None
-        assert result.status == ResultStatus.ERROR
+        assert result.status == ResultStatus.OK
 
     def test_unknown_command(self):
         """Unknown command returns None."""

@@ -79,15 +79,21 @@ class AsyncCompressionManager:
             if config.get('debug'):
                 typer.echo("🛑 Background compression worker stopped")
     
-    def queue_compression(self, start_node_id: str, end_node_id: str, 
-                         topic_name: str, priority: int = 5):
-        """Queue a topic segment for compression."""
+    def queue_compression(self, start_node_id: str, end_node_id: str,
+                         topic_name: str, priority: int = 5) -> bool:
+        """Queue a topic segment for compression. Returns True if queued."""
         job = CompressionJob(start_node_id, end_node_id, topic_name, priority)
         self.compression_queue.put((job.priority, job))
         self.stats['queue_size'] = self.compression_queue.qsize()
-        
+
+        # Start the worker lazily so queued jobs are actually processed rather
+        # than sitting in the queue forever (start_auto_compression was never
+        # called anywhere).
+        self.start()
+
         if config.get('debug'):
             typer.echo(f"📥 Queued compression job for topic '{topic_name}'")
+        return True
     
     def _compression_worker(self):
         """Background worker that processes compression jobs."""
@@ -318,10 +324,14 @@ def stop_auto_compression():
     compression_manager.stop()
 
 
-def queue_topic_for_compression(start_node_id: str, end_node_id: str, 
-                               topic_name: str, priority: int = 5):
-    """Queue a topic segment for background compression."""
+def queue_topic_for_compression(start_node_id: str, end_node_id: str,
+                               topic_name: str, priority: int = 5) -> bool:
+    """Queue a topic segment for background compression.
+
+    Returns True if the job was queued, False if auto-compression is disabled.
+    """
     if config.get('auto_compress_topics', True):
-        compression_manager.queue_compression(
+        return compression_manager.queue_compression(
             start_node_id, end_node_id, topic_name, priority
         )
+    return False

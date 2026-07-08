@@ -392,6 +392,20 @@ def main(
     from episodic.utility.cli_integration import shutdown_utility_services
     shutdown_utility_services()
 
+    # Stop the background compression worker if it was started.
+    try:
+        from episodic.compression import stop_auto_compression
+        stop_auto_compression()
+    except Exception:
+        pass
+
+    # Tear down voice mode (audio streams, wake-word handle, idle timer).
+    try:
+        from episodic.voice.voice_mode import cleanup_voice_mode
+        cleanup_voice_mode()
+    except Exception:
+        pass
+
     # Clean up database connections on exit
     from episodic.db_connection import close_pool
     close_pool()

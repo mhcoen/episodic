@@ -154,47 +154,53 @@ class AudioPlayerImpl:
 
         self.stop()  # Stop any current playback
 
+        # Fresh event for THIS playback. A previous thread that outlived the
+        # join in stop() keeps its own (already-set) event, so restarting can't
+        # accidentally un-stop it into an unstoppable infinite loop.
+        stop_event = threading.Event()
+        self._stop_event = stop_event
         self._loop = loop
-        self._stop_event.clear()
         self._playing = True
 
         self._thread = threading.Thread(
             target=self._play_thread,
-            args=(path,),
+            args=(path, loop, stop_event),
             daemon=True,
         )
         self._thread.start()
 
-    def _play_thread(self, path: Path) -> None:
+    def _play_thread(self, path: Path, loop: bool, stop_event: threading.Event) -> None:
         """Background thread for audio playback."""
         if self._pygame_available:
-            self._play_pygame(path)
+            self._play_pygame(path, loop, stop_event)
         else:
-            self._play_system(path)
+            self._play_system(path, loop, stop_event)
 
-        self._playing = False
+        # Only clear the shared flag if we're still the current playback.
+        if self._stop_event is stop_event:
+            self._playing = False
 
-    def _play_pygame(self, path: Path) -> None:
+    def _play_pygame(self, path: Path, loop: bool, stop_event: threading.Event) -> None:
         """Play using pygame mixer."""
         try:
             import pygame
 
             pygame.mixer.music.load(str(path))
 
-            if self._loop:
+            if loop:
                 pygame.mixer.music.play(loops=-1)
             else:
                 pygame.mixer.music.play()
 
             # Wait for completion or stop
-            while pygame.mixer.music.get_busy() and not self._stop_event.is_set():
+            while pygame.mixer.music.get_busy() and not stop_event.is_set():
                 pygame.time.Clock().tick(10)
 
         except Exception:
             # Fallback to system audio on error
-            self._play_system(path)
+            self._play_system(path, loop, stop_event)
 
-    def _play_system(self, path: Path) -> None:
+    def _play_system(self, path: Path, loop: bool, stop_event: threading.Event) -> None:
         """Play using system audio commands."""
         system = platform.system()
 
@@ -202,7 +208,7 @@ class AudioPlayerImpl:
             if system == "Darwin":  # macOS
                 # afplay supports looping with -1 flag, but we'll handle looping ourselves
                 while True:
-                    if self._stop_event.is_set():
+                    if stop_event.is_set():
                         break
                     proc = subprocess.Popen(
                         ["afplay", str(path)],
@@ -211,30 +217,30 @@ class AudioPlayerImpl:
                     )
                     # Wait for completion or stop
                     while proc.poll() is None:
-                        if self._stop_event.is_set():
+                        if stop_event.is_set():
                             proc.terminate()
                             break
-                        self._stop_event.wait(timeout=0.1)
+                        stop_event.wait(timeout=0.1)
 
-                    if not self._loop:
+                    if not loop:
                         break
 
             elif system == "Windows":
                 import winsound
                 flags = winsound.SND_FILENAME
-                if self._loop:
+                if loop:
                     flags |= winsound.SND_LOOP | winsound.SND_ASYNC
 
                 while True:
-                    if self._stop_event.is_set():
+                    if stop_event.is_set():
                         break
                     winsound.PlaySound(str(path), flags)
-                    if not self._loop:
+                    if not loop:
                         break
 
             else:  # Linux
                 while True:
-                    if self._stop_event.is_set():
+                    if stop_event.is_set():
                         break
                     proc = subprocess.Popen(
                         ["aplay", str(path)],
@@ -242,12 +248,12 @@ class AudioPlayerImpl:
                         stderr=subprocess.DEVNULL,
                     )
                     while proc.poll() is None:
-                        if self._stop_event.is_set():
+                        if stop_event.is_set():
                             proc.terminate()
                             break
-                        self._stop_event.wait(timeout=0.1)
+                        stop_event.wait(timeout=0.1)
 
-                    if not self._loop:
+                    if not loop:
                         break
 
         except Exception:

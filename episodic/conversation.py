@@ -569,8 +569,10 @@ class ConversationManager:
                 debug_print(f"Current:  {curr_content}{'...' if len(current_user.get('content', '')) > 80 else ''}", indent=True)
                 
                 # Show embedding cache efficiency
-                cache_size = calc.get_cache_size()
-                debug_print(f"Embedding cache: {cache_size} entries", indent=True)
+                calc = self.get_drift_calculator()
+                if calc:
+                    cache_size = calc.get_cache_size()
+                    debug_print(f"Embedding cache: {cache_size} entries", indent=True)
             
         except Exception as e:
             # If drift calculation fails, silently continue (don't disrupt conversation flow)

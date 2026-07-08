@@ -192,49 +192,41 @@ def get_connection():
         connection.row_factory = sqlite3.Row
         try:
             yield connection
+            # Commit on the success path so a commit failure (disk full,
+            # SQLITE_BUSY) propagates instead of being silently swallowed,
+            # which would let callers keep return values for rolled-back writes.
+            connection.commit()
         except Exception:
-            connection.rollback()
-            connection.close()
+            try:
+                connection.rollback()
+            except Exception:
+                pass
             raise
         finally:
-            try:
-                connection.commit()
-            except Exception:
-                try:
-                    connection.rollback()
-                except Exception:
-                    logger.debug("Failed to rollback transaction during cleanup")
-            finally:
-                connection.close()
+            connection.close()
         return
-    
+
     # Use connection pool
     pool = _get_pool()
     connection = None
-    
+
     try:
         connection = pool.get_connection()
         yield connection
+        # Commit on the success path; a failing commit must reach the caller.
+        connection.commit()
     except Exception:
-        # If an exception occurs, rollback and re-raise
+        # Body error OR commit failure: rollback and re-raise.
         if connection:
             try:
                 connection.rollback()
-            except:
+            except Exception:
                 pass
         raise
     finally:
-        # Return connection to pool
+        # Return connection to pool regardless of outcome.
         if connection:
-            try:
-                connection.commit()
-            except Exception:
-                try:
-                    connection.rollback()
-                except Exception:
-                    logger.debug("Failed to rollback transaction during cleanup")
-            finally:
-                pool.return_connection(connection)
+            pool.return_connection(connection)
 
 
 def database_exists():

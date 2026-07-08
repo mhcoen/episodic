@@ -90,6 +90,17 @@ def handle_chat_message(user_input: str) -> None:
         if config.get("debug"):
             import traceback
             typer.secho(traceback.format_exc(), fg="red")
+        # Resync the in-memory conversation tip to the DB head. A mid-turn
+        # failure can leave the DB head advanced (a node was inserted) while
+        # manager.current_node_id still points at the previous node; the next
+        # message would then insert against a stale parent and fork the DAG.
+        try:
+            from episodic.db_nodes import get_head
+            head = get_head()
+            if head and conversation_manager:
+                conversation_manager.set_current_node_id(head)
+        except Exception:
+            pass
 
 
 async def _async_talk_loop() -> None:

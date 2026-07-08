@@ -62,55 +62,50 @@ class AncestryStrategy:
         # Note: get_ancestry uses its own connection internally
         conversation_chain = get_ancestry(user_node_id)
 
-        # conversation_chain is from oldest to newest, we want newest first for filtering
-        reversed_chain = list(reversed(conversation_chain))
+        # Newest-first, non-empty nodes only.
+        nodes_desc = [
+            n for n in reversed(conversation_chain)
+            if (n.get("content") or "").strip()
+        ]
 
-        # Count exchanges (user + assistant pairs)
-        exchange_count = 0
-        last_role = None
-        filtered_messages = []
+        # Assemble context = the current user message + up to context_depth
+        # complete (assistant, user) exchanges before it. Counting exchanges
+        # on completion (not on the boundary) is what makes depth=N yield N
+        # prior exchanges rather than N-1.
+        filtered_desc = []  # newest-first
 
-        for node in reversed_chain:
-            # Skip empty messages
-            content = node.get("content")
-            if not content or not content.strip():
-                continue
+        idx = 0
+        # Current turn: the trailing user message(s) that have no answer yet.
+        if idx < len(nodes_desc) and nodes_desc[idx].get("role") == "user":
+            filtered_desc.append(nodes_desc[idx])
+            idx += 1
 
-            node_id = node.get("id")
-            current_role = node.get("role")
-
-            # Track when we complete an exchange
-            if last_role == "assistant" and current_role == "user":
-                exchange_count += 1
-
-            # Stop if we've collected enough exchanges
-            if exchange_count >= context_depth:
+        # Prior exchanges: assistant then user, going backward.
+        exchanges = 0
+        while idx + 1 < len(nodes_desc) and exchanges < context_depth:
+            asst = nodes_desc[idx]
+            usr = nodes_desc[idx + 1]
+            if asst.get("role") == "assistant" and usr.get("role") == "user":
+                filtered_desc.append(asst)
+                filtered_desc.append(usr)
+                idx += 2
+                exchanges += 1
+            else:
                 break
 
-            # Add the message to our filtered list
-            filtered_messages.append({
-                "role": current_role,
-                "content": content,
-                "_node_id": node_id,
-            })
-            included_node_ids.append(node_id)
+        # Chronological order (oldest to newest).
+        filtered_desc.reverse()
 
-            last_role = current_role
+        # Safety net: never start on an assistant message (some providers
+        # reject histories that don't begin with a user turn).
+        while filtered_desc and filtered_desc[0].get("role") != "user":
+            filtered_desc.pop(0)
 
-        # Reverse back to chronological order (oldest to newest)
-        filtered_messages.reverse()
-        included_node_ids.reverse()
-
-        # Always ensure we have an even number of messages (complete exchanges)
-        if len(filtered_messages) % 2 != 0 and len(filtered_messages) > 1:
-            # Remove the oldest message if we have an odd number
-            filtered_messages.pop(0)
-            included_node_ids.pop(0)
-
-        # Ensure we start with a user message
-        while filtered_messages and filtered_messages[0]["role"] != "user":
-            filtered_messages.pop(0)
-            included_node_ids.pop(0)
+        filtered_messages = [
+            {"role": n.get("role"), "content": n.get("content"), "_node_id": n.get("id")}
+            for n in filtered_desc
+        ]
+        included_node_ids = [n.get("id") for n in filtered_desc]
 
         # Keep the internal _node_id marker on each message so downstream
         # security tagging (INV-MUSE-3) can identify web-derived content by

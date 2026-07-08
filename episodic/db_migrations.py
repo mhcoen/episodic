@@ -227,22 +227,46 @@ def migrate_to_short_ids():
         if 'short_id' not in columns:
             # Add the column
             c.execute("ALTER TABLE nodes ADD COLUMN short_id TEXT")
-            
+
             # Generate short IDs for existing nodes
             c.execute("SELECT id FROM nodes WHERE short_id IS NULL")
             nodes_to_update = c.fetchall()
-            
+
+            # Assign unique short ids IN-PROCESS. generate_short_id() probes a
+            # different pooled connection whose snapshot can't see the updates
+            # we're making here (uncommitted), so it would hand out the same
+            # candidate for every node and the UNIQUE index below would fail.
+            from episodic.db_ids import _random_short_id
+            from episodic.configuration import SHORT_ID_MAX_LENGTH
+
+            c.execute("SELECT short_id FROM nodes WHERE short_id IS NOT NULL")
+            assigned = {r[0] for r in c.fetchall() if r[0]}
+
+            def _unique_short_id() -> str:
+                for length in range(2, SHORT_ID_MAX_LENGTH + 1):
+                    for _ in range(500):
+                        cand = _random_short_id(length)
+                        if cand not in assigned:
+                            return cand
+                # Space exhausted (huge legacy DB): fall back to a guaranteed
+                # unique sentinel.
+                i = len(assigned)
+                while f"m{i}" in assigned:
+                    i += 1
+                return f"m{i}"
+
             for (node_id,) in nodes_to_update:
-                short_id = generate_short_id()
+                short_id = _unique_short_id()
+                assigned.add(short_id)
                 c.execute("UPDATE nodes SET short_id = ? WHERE id = ?", (short_id, node_id))
-            
+
             # Create unique index
             try:
                 c.execute("CREATE UNIQUE INDEX idx_nodes_short_id_unique ON nodes(short_id)")
             except sqlite3.OperationalError:
                 # Index might already exist
                 pass
-                
+
             conn.commit()
             logger.info(f"Migrated {len(nodes_to_update)} nodes to have short IDs")
 

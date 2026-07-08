@@ -256,6 +256,20 @@ class TestDeleteNode:
         deleted = db_nodes.delete_node("nonexistent-id")
         assert deleted == 0
 
+    def test_delete_head_via_short_id_updates_head(self, temp_database):
+        """Deleting the head by its short_id still repairs the head pointer
+        (regression: get_head returns the full id, so a short_id compare used
+        to skip the repair and leave state.head_id dangling)."""
+        parent_id, _ = db_nodes.insert_node("Parent")
+        child_id, child_short = db_nodes.insert_node("Child", parent_id=parent_id)
+
+        assert db_nodes.get_head() == child_id
+        deleted = db_nodes.delete_node(child_short)  # delete via short_id
+        assert deleted == 1
+        assert db_nodes.get_node(child_id) is None
+        # Head must be repaired to the parent, not left pointing at a dead row.
+        assert db_nodes.get_head() == parent_id
+
 
 class TestResolveNodeRef:
     """Test node reference resolution."""

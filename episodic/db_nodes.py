@@ -32,41 +32,39 @@ def insert_node(content, parent_id=None, role=None, provider=None, model=None, i
         source_type: Content provenance ('chat' or 'web_synthesis')
     """
     node_id = str(uuid.uuid4())
-    short_id = None
-    retries = 0
 
-    while retries < max_retries:
+    for attempt in range(max_retries):
+        # The final attempt uses the collision-proof fallback id so a run of
+        # short-id collisions actually resolves to an insert instead of
+        # exhausting the loop and raising with the fallback id unused.
+        short_id = generate_short_id(fallback=(attempt == max_retries - 1))
         try:
-            short_id = generate_short_id()
-
             with get_connection() as conn:
                 c = conn.cursor()
                 c.execute("""
                     INSERT INTO nodes (id, short_id, parent_id, content, role, provider, model, is_meta_query, source_type)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (node_id, short_id, parent_id, content, role, provider, model, is_meta_query, source_type))
-                
+
                 # Update head to point to this new node
                 c.execute("UPDATE state SET head_id = ? WHERE name = 'head'", (node_id,))
-                
+
                 return node_id, short_id
-                
+
         except sqlite3.IntegrityError as e:
             if "UNIQUE constraint failed: nodes.short_id" in str(e):
-                retries += 1
-                logger.warning(f"Short ID collision for {short_id}, retrying... ({retries}/{max_retries})")
-                if retries >= max_retries:
-                    # Use fallback ID generation
-                    short_id = generate_short_id(fallback=True)
-                    logger.warning(f"Max retries reached, using fallback ID: {short_id}")
+                logger.warning(
+                    f"Short ID collision for {short_id}, retrying... "
+                    f"({attempt + 1}/{max_retries})"
+                )
                 continue
             else:
                 raise
         except Exception as e:
             logger.error(f"Unexpected error in insert_node: {e}")
             raise
-            
-    # This should never be reached due to fallback, but just in case
+
+    # Reached only if even the fallback id collided (astronomically unlikely).
     raise RuntimeError(f"Failed to insert node after {max_retries} retries")
 
 
@@ -248,24 +246,31 @@ def delete_node(node_id):
     """
     with get_connection() as conn:
         c = conn.cursor()
-        
+
+        # Resolve the ref (full id OR short_id) to the canonical id up front, so
+        # head detection compares against the same value the delete removes.
+        # Otherwise deleting the head via its short_id leaves state.head_id
+        # dangling (get_head() returns the full id, which won't equal a short_id).
+        node = get_node(node_id)
+        if node is None:
+            return 0
+        full_id = node['id']
+
         # First, check if this node has children
-        children = get_children(node_id)
-        
+        children = get_children(full_id)
+
         if children:
             # If it has children, we need to handle them
             # For now, we'll prevent deletion of nodes with children
-            raise ValueError(f"Cannot delete node {node_id} because it has {len(children)} children")
-        
+            raise ValueError(f"Cannot delete node {full_id} because it has {len(children)} children")
+
         # If this was the head node, update head to its parent
         # Must check this BEFORE deleting the node
-        is_head = get_head() == node_id
-        if is_head:
-            node = get_node(node_id)
-            parent_id = node.get('parent_id') if node else None
-        
+        is_head = get_head() == full_id
+        parent_id = node.get('parent_id') if is_head else None
+
         # Delete the node
-        c.execute("DELETE FROM nodes WHERE id = ? OR short_id = ?", (node_id, node_id))
+        c.execute("DELETE FROM nodes WHERE id = ?", (full_id,))
         deleted_count = c.rowcount
         
         # Update head if necessary

@@ -1,6 +1,16 @@
 from unittest.mock import patch
 
+import pytest
+
 from episodic.web_extract import fetch_page_content_sync, _is_usable_extracted_content
+
+
+@pytest.fixture(autouse=True)
+def _allow_fetch(monkeypatch):
+    # These tests exercise the fetch/extract logic with a mocked HTTP layer.
+    # The SSRF guard (covered by test_web_extract_ssrf.py) does live DNS and
+    # would reject the non-resolving example hosts before the mock runs.
+    monkeypatch.setattr("episodic.web_extract._is_safe_public_url", lambda url: True)
 
 
 def test_fetch_failure_silent_when_web_debug_off():

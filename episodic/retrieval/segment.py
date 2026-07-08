@@ -53,23 +53,51 @@ def get_node(conn: sqlite3.Connection, node_id: str) -> Optional[Dict]:
     return dict(row) if row else None
 
 
-def build_ancestry_map(conn: sqlite3.Connection, end_id: str) -> Dict[str, Optional[str]]:
+def build_ancestry_map(
+    conn: sqlite3.Connection,
+    end_id: str,
+    stop_at: Optional[str] = None,
+) -> Dict[str, Optional[str]]:
     """
-    Build ancestry map from end_id to root in single recursive CTE.
-    
+    Build ancestry map from end_id toward root in a single recursive CTE.
+
+    Args:
+        end_id: Node to walk ancestry from (newest).
+        stop_at: If given, stop recursing once this node is reached, so the
+            map spans only end_id..stop_at instead of end_id..root. Used to
+            bound per-segment work to the segment length rather than the full
+            conversation depth (avoids an O(topics x conversation) hot path).
+            If stop_at is not actually an ancestor of end_id, the walk falls
+            back to reaching root, matching the unbounded behavior.
+
     Returns:
-        Dict mapping node_id -> parent_id for all ancestors
+        Dict mapping node_id -> parent_id for the walked ancestors.
     """
     cursor = conn.cursor()
-    cursor.execute("""
-        WITH RECURSIVE ancestors AS (
-            SELECT id, parent_id FROM nodes WHERE id = ?
-            UNION ALL
-            SELECT n.id, n.parent_id FROM nodes n
-            JOIN ancestors a ON n.id = a.parent_id
-        )
-        SELECT id, parent_id FROM ancestors
-    """, (end_id,))
+    if stop_at is not None:
+        # Don't expand past stop_at: when the current ancestor IS stop_at, the
+        # recursive term is filtered out, so stop_at is included but its parent
+        # is not fetched.
+        cursor.execute("""
+            WITH RECURSIVE ancestors AS (
+                SELECT id, parent_id FROM nodes WHERE id = ?
+                UNION ALL
+                SELECT n.id, n.parent_id FROM nodes n
+                JOIN ancestors a ON n.id = a.parent_id
+                WHERE a.id != ?
+            )
+            SELECT id, parent_id FROM ancestors
+        """, (end_id, stop_at))
+    else:
+        cursor.execute("""
+            WITH RECURSIVE ancestors AS (
+                SELECT id, parent_id FROM nodes WHERE id = ?
+                UNION ALL
+                SELECT n.id, n.parent_id FROM nodes n
+                JOIN ancestors a ON n.id = a.parent_id
+            )
+            SELECT id, parent_id FROM ancestors
+        """, (end_id,))
     return {row['id']: row['parent_id'] for row in cursor.fetchall()}
 
 
@@ -90,7 +118,10 @@ def compute_segment_nodes(
         return [], set()
     
     start_id = topic['start_node_id']
-    ancestry_map = build_ancestry_map(conn, effective_end)
+    # Bound the walk to this segment (effective_end..start_id) instead of
+    # walking all the way to the DAG root — segment membership only needs the
+    # ancestry between start and end.
+    ancestry_map = build_ancestry_map(conn, effective_end, stop_at=start_id)
     
     nodes = []
     current_id = effective_end

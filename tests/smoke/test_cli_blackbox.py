@@ -15,6 +15,15 @@ import sys
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _no_background_refresh(monkeypatch):
+    # Stop the spawned CLI from starting background news/weather refresh
+    # threads that make live HTTP calls and print fetch tracebacks to stderr
+    # (the source of this suite's nondeterministic failures). subprocess.run
+    # here inherits os.environ, so setting it in the parent is enough.
+    monkeypatch.setenv("EPISODIC_NO_BACKGROUND_REFRESH", "1")
+
+
 class TestCLIStarts:
     """Tests that the CLI starts and responds to basic commands."""
 

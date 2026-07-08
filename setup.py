@@ -62,5 +62,7 @@ setup(
     keywords="episodic, llm, conversation, memory, rag, ai, chatbot",
     url="https://github.com/mhcoen/episodic",
     license="Apache-2.0",
-    python_requires=">=3.8",
+    # numpy 2.x and current chromadb require a modern interpreter; the old
+    # ">=3.8" floor was not actually installable.
+    python_requires=">=3.11",
 )

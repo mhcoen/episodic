@@ -17,6 +17,9 @@ import pytest
 
 # Strip SOCKS proxy to allow LLM calls
 ENV = {k: v for k, v in os.environ.items() if k.upper() not in ("ALL_PROXY", "all_proxy")}
+# Don't spawn background news/weather refresh threads (live HTTP → flaky stderr
+# tracebacks). On-demand weather/news commands are unaffected.
+ENV["EPISODIC_NO_BACKGROUND_REFRESH"] = "1"
 
 TIMEOUT = 30  # seconds
 

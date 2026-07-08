@@ -367,9 +367,12 @@ def main(
     # Display welcome
     display_welcome()
 
-    # Start the data refresh scheduler for background provider updates
-    from episodic.utility.cli_integration import start_data_refresh_scheduler
-    start_data_refresh_scheduler()
+    # Start the data refresh scheduler for background provider updates.
+    # Skippable so tests (and offline runs) don't spawn threads that make live
+    # news/weather HTTP calls and print fetch tracebacks to stderr.
+    if os.environ.get("EPISODIC_NO_BACKGROUND_REFRESH", "").lower() not in ("1", "true", "yes"):
+        from episodic.utility.cli_integration import start_data_refresh_scheduler
+        start_data_refresh_scheduler()
 
     # Start the task scheduler eagerly so alarms/timers persisted by a
     # previous session are restored and can actually fire.

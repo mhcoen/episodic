@@ -136,3 +136,7 @@ paper/cache
 AGENTS.md
 paper/experiments/f1_variant_analysis/archived/
 pytest-of-*/
+
+# Leaked pytest temp homes (tests/conftest.py mkdtemp prefixes)
+episodic_test_*/
+.ruff_cache/

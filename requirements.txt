@@ -322,7 +322,6 @@ python-socketio==5.13.0
 pyttsx3==2.99
 pyvis==0.3.2
 pywebview==5.4
-PyYAML==6.0.2
 referencing==0.36.2
 regex==2024.11.6
 requests==2.32.4
@@ -387,3 +386,16 @@ yarl==1.20.1
 zipp==3.23.0
 zopfli==0.2.3.post1
 zstandard==0.23.0
+
+# Declared in setup.py install_requires but previously missing here, so a
+# `pip install -r requirements.txt` environment could not run the app
+# (voice stack + networkx + dateparser).
+networkx==3.6.1
+dateparser==1.2.2
+sounddevice==0.5.5
+webrtcvad==2.0.10
+pvporcupine==4.0.1
+pydub==0.25.1
+azure-cognitiveservices-speech==1.47.0
+elevenlabs==2.33.1
+deepgram-sdk==5.3.2

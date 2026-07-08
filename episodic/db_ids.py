@@ -37,71 +37,74 @@ def base36_encode(number):
     return result
 
 
+# Readable-ish letters for the shortest IDs; broader charset for longer ones.
+_SHORT_ID_LETTERS = "abcdefghijklmnopqrstuvwxyz"
+
+# Bounded random attempts per length. Independent of table size — the point
+# is to avoid the old O(N) "load every short_id" scan on the per-insert hot
+# path. A candidate is probed against the unique index (O(log N)); collisions
+# just move on. Once a length's space fills up we escalate to the next length.
+_ATTEMPTS_PER_LENGTH = {2: 40, 3: 400}
+_DEFAULT_ATTEMPTS = 400
+
+# sqlite error fragments that mean the nodes.short_id column isn't there yet.
+_MISSING_COLUMN_MARKERS = ("no such column", "no such table")
+
+
+def _random_short_id(length):
+    """Build a random short_id of the given length."""
+    charset = _SHORT_ID_LETTERS if length <= 2 else ID_CHARSET
+    return ''.join(
+        charset[uuid.uuid4().int % len(charset)]
+        for _ in range(length)
+    )
+
+
 def generate_short_id(fallback=False):
     """
-    Generate a 2-character short ID.
+    Generate a short ID that is free at generation time.
+
+    Probes candidate IDs against the unique index instead of loading every
+    existing short_id, so this stays O(log N) per probe on the per-insert hot
+    path rather than O(N) per call. Uniqueness is ultimately guaranteed by the
+    UNIQUE constraint on nodes.short_id plus insert_node's collision retry;
+    randomized candidates keep concurrent writers from colliding in lockstep.
     """
     with get_connection() as conn:
         c = conn.cursor()
 
-        # Check if the short_id column exists in the nodes table
-        c.execute("PRAGMA table_info(nodes)")
-        columns = [column[1] for column in c.fetchall()]
-        if 'short_id' not in columns:
-            # If the column doesn't exist, return None
-            return None
-
-        # Step 1: Get existing short IDs
-        c.execute("SELECT short_id FROM nodes WHERE short_id IS NOT NULL")
-        existing_ids = set(row[0] for row in c.fetchall() if row[0])
-
-        # Define available characters for the first and second positions
-        vowels = 'aeiou'
-        consonants = 'bcdfghjklmnpqrstvwxyz'
-        all_letters = vowels + consonants
-        
-        # For two-character IDs, try alternating patterns first
-        def generate_candidates():
-            # First pass: consonant-vowel pattern for readability
-            for first in consonants:
-                for second in vowels:
-                    yield first + second
-            # Second pass: vowel-consonant pattern
-            for first in vowels:
-                for second in consonants:
-                    yield first + second
-            # Third pass: all two-letter combinations
-            for first in all_letters:
-                for second in all_letters:
-                    yield first + second
-                    
-        # Try two-character IDs first
-        for candidate in generate_candidates():
-            if candidate not in existing_ids:
-                return candidate
-
-        
-        # Use standard characters for longer IDs
-        for length in range(3, SHORT_ID_MAX_LENGTH + 1):
-            # For each length, try random generation a reasonable number of times
-            for _ in range(1000):
-                # Use a more varied character set for longer IDs
-                candidate = ''.join(
-                    ID_CHARSET[int(uuid.uuid4().int % len(ID_CHARSET))] 
-                    for _ in range(length)
-                )
-                if candidate not in existing_ids:
+        for length in range(2, SHORT_ID_MAX_LENGTH + 1):
+            attempts = _ATTEMPTS_PER_LENGTH.get(length, _DEFAULT_ATTEMPTS)
+            for _ in range(attempts):
+                candidate = _random_short_id(length)
+                try:
+                    c.execute(
+                        "SELECT 1 FROM nodes WHERE short_id = ? LIMIT 1",
+                        (candidate,),
+                    )
+                except Exception as e:
+                    # Legacy contract: no short_id column (or no nodes table)
+                    # means "can't assign a short id" → None. Any other error
+                    # is real and must propagate.
+                    msg = str(e).lower()
+                    if any(marker in msg for marker in _MISSING_COLUMN_MARKERS):
+                        return None
+                    raise
+                if c.fetchone() is None:
                     return candidate
-        
-        # Final fallback: generate a unique ID with timestamp
+
+        # Space at every length is saturated (very large DB). Fall back to a
+        # timestamped ID that is effectively collision-proof.
         if fallback:
             import time
             timestamp = base36_encode(int(time.time() * 1000000))
             random_suffix = ''.join(
-                ID_CHARSET[int(uuid.uuid4().int % len(ID_CHARSET))] 
+                ID_CHARSET[uuid.uuid4().int % len(ID_CHARSET)]
                 for _ in range(FALLBACK_ID_LENGTH - len(timestamp))
             )
             return f"{timestamp}_{random_suffix}"
-        
-        # Should never reach here in practice
-        raise RuntimeError("Unable to generate a unique short ID")
+
+        # Non-fallback caller and no free candidate found: return a best-effort
+        # random candidate at max length. The UNIQUE constraint + insert retry
+        # remain the correctness backstop.
+        return _random_short_id(SHORT_ID_MAX_LENGTH)

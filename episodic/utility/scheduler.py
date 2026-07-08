@@ -8,6 +8,7 @@ Uses monotonic time for scheduling correctness, wall time for display.
 """
 
 import heapq
+import logging
 import threading
 import time
 import uuid
@@ -18,6 +19,8 @@ from datetime import datetime, timedelta
 from enum import Enum, auto
 from typing import Callable, Dict, List, Optional, Union
 from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
 
 
 class TaskType(Enum):
@@ -93,6 +96,10 @@ class Scheduler:
     Supports pause/resume for timers, DND mode, and recurrence.
     """
 
+    # A missed task is still fired if it is less than this late; anything
+    # staler is cleaned up (or rolled forward, if recurring) on load.
+    STALE_GRACE_S = 300
+
     def __init__(
         self,
         conn: Optional[sqlite3.Connection] = None,
@@ -100,6 +107,12 @@ class Scheduler:
     ):
         self._conn = conn
         self._user_tz = user_tz
+
+        # Rebuilds callbacks for tasks restored from persistence
+        # (closures cannot be persisted). Set before start().
+        self._callback_factory: Optional[
+            Callable[["ScheduledTask"], Optional[Callable[[], "TaskResult"]]]
+        ] = None
 
         # Task storage
         self._queue: List[ScheduledTask] = []  # heapq
@@ -353,47 +366,62 @@ class Scheduler:
 
     def _run(self) -> None:
         """Main scheduler loop."""
-        while not self._stop_event.is_set():
-            now_mono = time.monotonic()
+        try:
+            while not self._stop_event.is_set():
+                try:
+                    self._run_once()
+                except Exception:
+                    # A single bad task or DB hiccup must not kill the
+                    # thread — every pending alarm/timer depends on it.
+                    logger.exception("Scheduler loop error (continuing)")
 
-            with self._lock:
-                if not self._queue:
-                    # No tasks, wait and check again
-                    pass
-                else:
-                    # Check if next task is ready
-                    while self._queue:
-                        next_task = self._queue[0]
+                # Wait for next check (or until stop)
+                self._stop_event.wait(timeout=0.5)
+        finally:
+            # Reflect reality if the thread exits for any reason,
+            # so is_running() doesn't report a dead thread as alive.
+            self._running = False
 
-                        # Check if task was cancelled
-                        if next_task.id not in self._tasks:
-                            heapq.heappop(self._queue)
-                            continue
+    def _run_once(self) -> None:
+        """Pop all due tasks, then execute their callbacks outside the lock."""
+        now_mono = time.monotonic()
+        now_wall = datetime.now(ZoneInfo(self._user_tz))
+        due: List[ScheduledTask] = []
 
-                        # Check if paused
-                        task = self._tasks[next_task.id]
-                        if task.paused_remaining is not None:
-                            heapq.heappop(self._queue)
-                            continue
+        with self._lock:
+            while self._queue:
+                next_task = self._queue[0]
 
-                        wait_time = task.next_run_monotonic - now_mono
+                # Check if task was cancelled
+                if next_task.id not in self._tasks:
+                    heapq.heappop(self._queue)
+                    continue
 
-                        if wait_time > 0:
-                            break  # Not ready yet
+                # Check if paused
+                task = self._tasks[next_task.id]
+                if task.paused_remaining is not None:
+                    heapq.heappop(self._queue)
+                    continue
 
-                        # Pop and execute
-                        heapq.heappop(self._queue)
-                        task = self._tasks.pop(next_task.id, None)
+                # Due by monotonic deadline, or by wall clock — monotonic
+                # time does not advance during system sleep, so wall time
+                # is authoritative after a wake.
+                mono_due = task.next_run_monotonic - now_mono <= 0
+                next_wall = task.next_run_wall
+                if next_wall.tzinfo is None:
+                    next_wall = next_wall.replace(tzinfo=ZoneInfo(self._user_tz))
+                if not mono_due and next_wall > now_wall:
+                    break  # Not ready yet
 
-                        if task is not None:
-                            # Execute outside lock
-                            self._execute_task(task)
+                heapq.heappop(self._queue)
+                task = self._tasks.pop(next_task.id, None)
+                if task is not None:
+                    due.append(task)
 
-                        # Update now_mono for next iteration
-                        now_mono = time.monotonic()
-
-            # Wait for next check (1 second or until stop)
-            self._stop_event.wait(timeout=0.5)
+        # Execute outside the lock so slow callbacks (audio, TTS, DB)
+        # don't block add_task/cancel_task/list_pending on other threads.
+        for task in due:
+            self._execute_task(task)
 
     def _execute_task(self, task: ScheduledTask) -> None:
         """Execute a task callback."""
@@ -402,8 +430,13 @@ class Scheduler:
             self._handle_suppressed(task)
             return
 
-        # Execute callback
         if task.callback is None:
+            # No callback (e.g. restored task whose owner couldn't be
+            # rebuilt). Still notify and clean up — otherwise the
+            # persisted row would silently re-fire on every startup.
+            self._handle_result(
+                task, TaskResult(status=TaskStatus.COMPLETED, output=task.label)
+            )
             return
 
         try:
@@ -448,18 +481,18 @@ class Scheduler:
         if self._conn and task.task_type != TaskType.REFRESH:
             self._delete_persisted_task(task.id)
 
-        # Handle recurrence
+        # Handle recurrence. The task keeps its ID across occurrences so
+        # external references (e.g. alarms.task_id) stay valid for cancel.
         if result.reschedule_at:
             task.next_run_wall = result.reschedule_at
             task.next_run_monotonic = self._wall_to_monotonic(result.reschedule_at)
-            task.id = str(uuid.uuid4())  # New ID for recurring instance
             self.add_task(task)
         elif task.recurrence:
-            next_time = self._compute_next_recurrence(task)
+            now = datetime.now(ZoneInfo(self._user_tz))
+            next_time = self._roll_forward(task, now)
             if next_time:
                 task.next_run_wall = next_time
                 task.next_run_monotonic = self._wall_to_monotonic(next_time)
-                task.id = str(uuid.uuid4())
                 self.add_task(task)
 
         # Handle routine chaining
@@ -484,38 +517,48 @@ class Scheduler:
     # =========================================================================
 
     def _persist_task(self, task: ScheduledTask) -> None:
-        """Persist task to SQLite."""
+        """Persist task to SQLite. Persistence failures are logged, not
+        raised — a task that can't be persisted should still run this
+        session, and a DB error must never kill the scheduler thread."""
         if self._conn is None:
             return
 
-        cursor = self._conn.cursor()
-        cursor.execute("""
-            INSERT OR REPLACE INTO scheduled_tasks
-            (id, task_type, priority, next_run_ts, reference_id, label, dnd_override,
-             duration_s, paused_remaining, recurrence_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            task.id,
-            task.task_type.name,
-            task.priority,
-            int(task.next_run_wall.timestamp()),
-            task.reference_id,
-            task.label,
-            1 if task.dnd_override else 0,
-            task.duration_s,
-            task.paused_remaining,
-            json.dumps(task.recurrence) if task.recurrence else None,
-        ))
-        self._conn.commit()
+        try:
+            with self._lock:
+                cursor = self._conn.cursor()
+                cursor.execute("""
+                    INSERT OR REPLACE INTO scheduled_tasks
+                    (id, task_type, priority, next_run_ts, reference_id, label, dnd_override,
+                     duration_s, paused_remaining, recurrence_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    task.id,
+                    task.task_type.name,
+                    task.priority,
+                    int(task.next_run_wall.timestamp()),
+                    task.reference_id,
+                    task.label,
+                    1 if task.dnd_override else 0,
+                    task.duration_s,
+                    task.paused_remaining,
+                    json.dumps(task.recurrence) if task.recurrence else None,
+                ))
+                self._conn.commit()
+        except Exception:
+            logger.exception("Failed to persist task %s", task.id)
 
     def _delete_persisted_task(self, task_id: str) -> None:
-        """Delete task from SQLite."""
+        """Delete task from SQLite (failures logged, not raised)."""
         if self._conn is None:
             return
 
-        cursor = self._conn.cursor()
-        cursor.execute("DELETE FROM scheduled_tasks WHERE id = ?", (task_id,))
-        self._conn.commit()
+        try:
+            with self._lock:
+                cursor = self._conn.cursor()
+                cursor.execute("DELETE FROM scheduled_tasks WHERE id = ?", (task_id,))
+                self._conn.commit()
+        except Exception:
+            logger.exception("Failed to delete persisted task %s", task_id)
 
     def _load_persisted_tasks(self) -> None:
         """Load tasks from SQLite on startup."""
@@ -542,22 +585,11 @@ class Scheduler:
 
             next_run_wall = datetime.fromtimestamp(next_run_ts, tz=ZoneInfo(self._user_tz))
 
-            # Handle missed tasks
-            if next_run_wall < now and paused_remaining is None:
-                # Task was missed - execute immediately or skip based on type
-                if task_type in (TaskType.ALARM, TaskType.TIMER):
-                    # Execute immediately
-                    next_run_wall = now
-                else:
-                    # Skip missed refresh/routine tasks
-                    self._delete_persisted_task(task_id)
-                    continue
-
             task = ScheduledTask(
                 id=task_id,
                 task_type=task_type,
                 priority=priority,
-                next_run_monotonic=self._wall_to_monotonic(next_run_wall),
+                next_run_monotonic=0.0,  # set below, after missed-task handling
                 next_run_wall=next_run_wall,
                 created_at=now,  # Approximate
                 reference_id=reference_id,
@@ -568,22 +600,61 @@ class Scheduler:
                 recurrence=json.loads(recurrence_json) if recurrence_json else None,
             )
 
-            # Callback will be set by the handler that owns this task type
+            # Handle missed tasks
+            if next_run_wall < now and paused_remaining is None:
+                late_s = (now - next_run_wall).total_seconds()
+                fireable = task_type in (
+                    TaskType.ALARM, TaskType.TIMER, TaskType.REMINDER
+                )
+
+                if fireable and late_s <= self.STALE_GRACE_S:
+                    # Recently missed — fire now
+                    task.next_run_wall = now
+                elif task.recurrence:
+                    # Too stale for this occurrence — schedule the next one
+                    rolled = self._roll_forward(task, now)
+                    if rolled is None:
+                        self._delete_persisted_task(task_id)
+                        continue
+                    task.next_run_wall = rolled
+                    self._persist_task(task)
+                else:
+                    # Too stale to fire — clean up so it doesn't haunt
+                    # every subsequent startup
+                    self._delete_persisted_task(task_id)
+                    if task_type == TaskType.TIMER and reference_id:
+                        self._update_timer_status(reference_id, "expired")
+                    continue
+
+            task.next_run_monotonic = self._wall_to_monotonic(task.next_run_wall)
+
+            # Closures can't be persisted; rebuild the callback so restored
+            # tasks actually ring instead of firing silently.
+            if self._callback_factory is not None:
+                try:
+                    task.callback = self._callback_factory(task)
+                except Exception:
+                    logger.exception("Failed to rebuild callback for task %s", task_id)
+
             self._tasks[task.id] = task
             if paused_remaining is None:
                 heapq.heappush(self._queue, task)
 
     def _update_timer_status(self, timer_id: str, status: str) -> None:
-        """Update timer status in database."""
+        """Update timer status in database (failures logged, not raised)."""
         if self._conn is None:
             return
 
-        cursor = self._conn.cursor()
-        cursor.execute(
-            "UPDATE timers SET status = ? WHERE id = ?",
-            (status, timer_id)
-        )
-        self._conn.commit()
+        try:
+            with self._lock:
+                cursor = self._conn.cursor()
+                cursor.execute(
+                    "UPDATE timers SET status = ? WHERE id = ?",
+                    (status, timer_id)
+                )
+                self._conn.commit()
+        except Exception:
+            logger.exception("Failed to update timer %s status", timer_id)
 
     # =========================================================================
     # Time Utilities
@@ -597,6 +668,23 @@ class Scheduler:
 
         delta = (wall_time - now).total_seconds()
         return time.monotonic() + delta
+
+    def _roll_forward(self, task: ScheduledTask, now: datetime) -> Optional[datetime]:
+        """Advance a recurring task's wall time to its first future
+        occurrence, skipping any occurrences missed while the process was
+        down or the system was asleep (avoids a catch-up refire storm)."""
+        original_wall = task.next_run_wall
+        try:
+            for _ in range(10000):
+                next_time = self._compute_next_recurrence(task)
+                if next_time is None:
+                    return None
+                if next_time > now:
+                    return next_time
+                task.next_run_wall = next_time
+            return None
+        finally:
+            task.next_run_wall = original_wall
 
     def _compute_next_recurrence(self, task: ScheduledTask) -> Optional[datetime]:
         """Compute next occurrence for recurring task."""

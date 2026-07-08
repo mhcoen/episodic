@@ -360,6 +360,11 @@ def main(
     from episodic.utility.cli_integration import start_data_refresh_scheduler
     start_data_refresh_scheduler()
 
+    # Start the task scheduler eagerly so alarms/timers persisted by a
+    # previous session are restored and can actually fire.
+    from episodic.utility.cli_integration import get_scheduler
+    get_scheduler()
+
     # Start the main talk loop
     talk_loop()
     

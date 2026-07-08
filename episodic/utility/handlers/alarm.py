@@ -417,9 +417,14 @@ def handle_alarm_cancel(
             "No active alarm found"
         )
 
-    # Cancel in scheduler
+    # Cancel in scheduler. Fall back to the alarm's reference id in case
+    # the stored task_id is stale (e.g. a recurring alarm persisted before
+    # task IDs became stable across occurrences).
+    cancelled = False
     if alarm.get("task_id"):
-        scheduler.cancel_task(alarm["task_id"])
+        cancelled = scheduler.cancel_task(alarm["task_id"])
+    if not cancelled:
+        scheduler.cancel_by_reference(alarm["id"])
 
     # Delete from database
     if conn:

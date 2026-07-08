@@ -600,5 +600,268 @@ class TestDNDIntegration:
         assert tasks[0].dnd_override is True
 
 
+class TestSchedulerRobustness:
+    """Tests for scheduler thread survival, persistence restore, and
+    recurrence/cancel behavior."""
+
+    @pytest.fixture
+    def threaded_db(self):
+        """Connection usable from the scheduler thread (matches production,
+        which creates the scheduler's dedicated connection this way)."""
+        conn = sqlite3.connect(":memory:", check_same_thread=False)
+        conn.executescript("""
+            CREATE TABLE timers (
+                id TEXT PRIMARY KEY, duration_s INTEGER NOT NULL, label TEXT,
+                status TEXT NOT NULL DEFAULT 'active', created_ts INTEGER NOT NULL,
+                expires_ts INTEGER NOT NULL, task_id TEXT
+            );
+            CREATE TABLE scheduled_tasks (
+                id TEXT PRIMARY KEY, task_type TEXT NOT NULL, priority INTEGER NOT NULL,
+                next_run_ts INTEGER NOT NULL, reference_id TEXT, label TEXT,
+                dnd_override INTEGER NOT NULL DEFAULT 0, duration_s INTEGER,
+                paused_remaining REAL, recurrence_json TEXT
+            );
+        """)
+        conn.commit()
+        yield conn
+        conn.close()
+
+    def _wait_for(self, predicate, timeout=5.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if predicate():
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_loop_survives_callback_error(self, threaded_db):
+        """A raising callback must not kill the scheduler thread."""
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched.start()
+        try:
+            def bad_callback():
+                raise sqlite3.ProgrammingError("boom")
+
+            sched.add_task(create_timer_task(duration_s=0, callback=bad_callback))
+
+            fired = []
+            sched.add_task(create_timer_task(
+                duration_s=1,
+                callback=lambda: fired.append(1) or TaskResult(status=TaskStatus.COMPLETED),
+            ))
+
+            assert self._wait_for(lambda: fired)
+            assert sched._thread.is_alive()
+            assert sched.is_running()
+        finally:
+            sched.stop()
+
+    def test_loop_survives_closed_connection(self, threaded_db):
+        """A dead DB connection must not kill the thread; tasks still fire."""
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched.start()
+        try:
+            threaded_db.close()
+
+            fired = []
+            sched.add_task(create_timer_task(
+                duration_s=0,
+                callback=lambda: fired.append(1) or TaskResult(status=TaskStatus.COMPLETED),
+            ))
+
+            assert self._wait_for(lambda: fired)
+            assert sched._thread.is_alive()
+        finally:
+            sched.stop()
+
+    def test_recurring_task_keeps_id(self, threaded_db):
+        """Recurring tasks keep their ID across occurrences so external
+        references (alarms.task_id) stay valid for cancellation."""
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+
+        task = create_alarm_task(
+            alarm_time=datetime.now(ZoneInfo("America/Chicago")) - timedelta(seconds=1),
+            callback=lambda: TaskResult(status=TaskStatus.COMPLETED),
+            reference_id="alarm-ref",
+            recurrence="FREQ=DAILY",
+        )
+        original_id = task.id
+        sched.add_task(task)
+
+        # Fire it the way the loop does: pop, then execute
+        sched._tasks.pop(task.id)
+        sched._execute_task(task)
+
+        # Rescheduled under the same ID
+        assert sched.get_task(original_id) is not None
+        assert sched.cancel_task(original_id) is True
+        assert sched.get_task(original_id) is None
+
+    def test_cancel_by_reference_after_recurrence(self, threaded_db):
+        """Even with a stale task_id, cancel_by_reference finds the task."""
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+
+        task = create_alarm_task(
+            alarm_time=datetime.now(ZoneInfo("America/Chicago")) - timedelta(seconds=1),
+            callback=lambda: TaskResult(status=TaskStatus.COMPLETED),
+            reference_id="alarm-ref",
+            recurrence="FREQ=DAILY",
+        )
+        sched.add_task(task)
+        sched._tasks.pop(task.id)
+        sched._execute_task(task)
+
+        assert sched.cancel_by_reference("alarm-ref") is True
+        assert sched.list_pending(TaskType.ALARM) == []
+
+    def test_restore_rebuilds_callbacks(self, threaded_db):
+        """Tasks restored from persistence get callbacks via the factory."""
+        now = datetime.now(ZoneInfo("America/Chicago"))
+        threaded_db.execute(
+            "INSERT INTO scheduled_tasks (id, task_type, priority, next_run_ts, reference_id, label) "
+            "VALUES ('t1', 'ALARM', 1, ?, 'alarm-1', 'wake up')",
+            (int((now + timedelta(hours=1)).timestamp()),),
+        )
+        threaded_db.commit()
+
+        rebuilt = []
+
+        def factory(task):
+            rebuilt.append(task.id)
+            return lambda: TaskResult(status=TaskStatus.COMPLETED)
+
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched._callback_factory = factory
+        sched._load_persisted_tasks()
+
+        assert rebuilt == ["t1"]
+        assert sched.get_task("t1").callback is not None
+
+    def test_restore_fires_recently_missed_task(self, threaded_db):
+        """A task missed by less than the grace window fires on load."""
+        now = datetime.now(ZoneInfo("America/Chicago"))
+        threaded_db.execute(
+            "INSERT INTO scheduled_tasks (id, task_type, priority, next_run_ts) "
+            "VALUES ('t1', 'TIMER', 1, ?)",
+            (int((now - timedelta(seconds=30)).timestamp()),),
+        )
+        threaded_db.commit()
+
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched._load_persisted_tasks()
+
+        task = sched.get_task("t1")
+        assert task is not None
+        assert task.next_run_monotonic <= time.monotonic() + 1
+
+    def test_restore_drops_stale_oneshot(self, threaded_db):
+        """A one-shot task missed by more than the grace window is cleaned
+        up instead of firing at startup (and forever after)."""
+        now = datetime.now(ZoneInfo("America/Chicago"))
+        threaded_db.execute(
+            "INSERT INTO scheduled_tasks (id, task_type, priority, next_run_ts, reference_id) "
+            "VALUES ('t1', 'TIMER', 1, ?, 'timer-1')",
+            (int((now - timedelta(hours=3)).timestamp()),),
+        )
+        threaded_db.execute(
+            "INSERT INTO timers (id, duration_s, status, created_ts, expires_ts) "
+            "VALUES ('timer-1', 60, 'active', 0, 0)"
+        )
+        threaded_db.commit()
+
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched._load_persisted_tasks()
+
+        assert sched.get_task("t1") is None
+        rows = threaded_db.execute("SELECT COUNT(*) FROM scheduled_tasks").fetchone()
+        assert rows[0] == 0
+        status = threaded_db.execute(
+            "SELECT status FROM timers WHERE id = 'timer-1'"
+        ).fetchone()
+        assert status[0] == "expired"
+
+    def test_restore_rolls_forward_stale_recurring(self, threaded_db):
+        """A stale recurring task is scheduled at its next future occurrence,
+        not fired immediately for every missed occurrence."""
+        import json as _json
+        now = datetime.now(ZoneInfo("America/Chicago"))
+        threaded_db.execute(
+            "INSERT INTO scheduled_tasks (id, task_type, priority, next_run_ts, recurrence_json) "
+            "VALUES ('t1', 'ALARM', 1, ?, ?)",
+            (int((now - timedelta(hours=30)).timestamp()), _json.dumps("FREQ=DAILY")),
+        )
+        threaded_db.commit()
+
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched._load_persisted_tasks()
+
+        task = sched.get_task("t1")
+        assert task is not None
+        assert task.next_run_wall > now
+        assert task.next_run_wall < now + timedelta(days=1)
+
+    def test_callbackless_task_notifies_and_cleans_up(self, threaded_db):
+        """A task with no callback still notifies and deletes its row rather
+        than silently re-firing on every startup."""
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        notified = []
+        sched._on_task_fire = lambda task, result: notified.append(task.id)
+
+        task = create_timer_task(duration_s=0, callback=None, reference_id="timer-1")
+        sched.add_task(task)
+        sched._tasks.pop(task.id)
+        sched._execute_task(task)
+
+        assert notified == [task.id]
+        rows = threaded_db.execute("SELECT COUNT(*) FROM scheduled_tasks").fetchone()
+        assert rows[0] == 0
+
+    def test_wall_clock_due_after_sleep(self, threaded_db):
+        """A task whose monotonic deadline is far off but whose wall time
+        has passed (system slept) still fires."""
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+
+        fired = []
+        task = create_timer_task(
+            duration_s=3600,
+            callback=lambda: fired.append(1) or TaskResult(status=TaskStatus.COMPLETED),
+        )
+        # Simulate 1h of sleep: wall deadline passed, monotonic didn't advance
+        task.next_run_wall = datetime.now(ZoneInfo("America/Chicago")) - timedelta(seconds=1)
+        sched.add_task(task)
+
+        sched._run_once()
+        assert fired == [1]
+
+    def test_slow_callback_does_not_hold_lock(self, threaded_db):
+        """Callbacks execute outside the scheduler lock, so other threads
+        can add/cancel/list while a slow callback (e.g. TTS) runs."""
+        import threading
+
+        sched = Scheduler(conn=threaded_db, user_tz="America/Chicago")
+        sched.start()
+        try:
+            started = threading.Event()
+            release = threading.Event()
+
+            def slow_callback():
+                started.set()
+                release.wait(timeout=5)
+                return TaskResult(status=TaskStatus.COMPLETED)
+
+            sched.add_task(create_timer_task(duration_s=0, callback=slow_callback))
+            assert started.wait(timeout=5)
+
+            # While the callback runs, the lock must be free
+            acquired = sched._lock.acquire(timeout=1)
+            if acquired:
+                sched._lock.release()
+            release.set()
+            assert acquired
+        finally:
+            release.set()
+            sched.stop()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

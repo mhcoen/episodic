@@ -85,8 +85,69 @@ def get_scheduler() -> Scheduler:
 
         _scheduler = Scheduler(conn=conn, user_tz=user_tz)
         _scheduler._on_task_fire = _handle_task_fire
+        # Must be set before start(): start() loads persisted tasks, and
+        # restored tasks need their callbacks rebuilt to ring/update DB rows
+        _scheduler._callback_factory = _restore_task_callback
         _scheduler.start()
     return _scheduler
+
+
+def _restore_task_callback(task):
+    """Rebuild the callback for a task restored from persistence.
+
+    Closures can't be persisted, so tasks loaded on startup arrive without
+    callbacks. Rebuild the same behavior the original handler closures
+    provide: play the sound and update the owning DB row. Display and TTS
+    are handled by _handle_task_fire via the scheduler's _on_task_fire hook.
+    """
+    from .scheduler import TaskType, TaskStatus, TaskResult
+
+    if task.task_type == TaskType.ALARM:
+        def alarm_callback() -> TaskResult:
+            get_audio_player().play_alarm(task.label)
+            return TaskResult(
+                status=TaskStatus.COMPLETED,
+                output=task.label or "Alarm",
+                side_effects=["alarm_fired", task.reference_id],
+            )
+        return alarm_callback
+
+    if task.task_type == TaskType.TIMER:
+        def timer_callback() -> TaskResult:
+            get_audio_player().play_timer(task.label)
+            if task.reference_id:
+                try:
+                    from ..db_connection import get_connection
+                    from .handlers.timer import _update_timer_status
+                    with get_connection() as fresh_conn:
+                        _update_timer_status(fresh_conn, task.reference_id, "expired")
+                except Exception:
+                    pass
+            return TaskResult(
+                status=TaskStatus.COMPLETED,
+                output=f"{task.label} timer done" if task.label else "Timer done",
+                side_effects=["timer_expired", task.reference_id],
+            )
+        return timer_callback
+
+    if task.task_type == TaskType.REMINDER:
+        def reminder_callback() -> TaskResult:
+            if task.reference_id:
+                try:
+                    from ..db_connection import get_connection
+                    from .handlers.reminders import _disable_reminder
+                    with get_connection() as fresh_conn:
+                        _disable_reminder(fresh_conn, task.reference_id)
+                except Exception:
+                    pass
+            return TaskResult(
+                status=TaskStatus.COMPLETED,
+                output=f"Reminder: {task.label}" if task.label else "Reminder",
+                side_effects=["reminder_fired", task.reference_id],
+            )
+        return reminder_callback
+
+    return None
 
 
 def _handle_task_fire(task, result) -> None:
@@ -1001,13 +1062,15 @@ def shutdown_utility_services() -> None:
         _data_refresh_scheduler = None
 
     if _scheduler is not None:
-        # Close the scheduler's dedicated connection
+        # Stop (join) the scheduler thread BEFORE closing its dedicated
+        # connection — a task firing after the close would hit a closed
+        # database and kill the thread mid-flight.
+        _scheduler.stop()
         if _scheduler._conn is not None:
             try:
                 _scheduler._conn.close()
             except Exception:
                 pass
-        _scheduler.stop()
         _scheduler = None
 
     if _audio_player is not None:

@@ -18,6 +18,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_kg_entities_canonical_key
     ON kg_entities(canonical_key) WHERE canonical_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_kg_entities_type_name
     ON kg_entities(entity_type, canonical_name);
+-- Bare canonical_name lookups (_entity_id_by_name, per-turn closure path)
+-- can't use the composite index above (leading column is entity_type).
+CREATE INDEX IF NOT EXISTS idx_kg_entities_name
+    ON kg_entities(canonical_name);
 
 CREATE TABLE IF NOT EXISTS kg_entity_aliases (
     alias_id INTEGER PRIMARY KEY,
@@ -64,6 +68,8 @@ CREATE TABLE IF NOT EXISTS kg_mentions (
     confidence REAL NOT NULL,
     UNIQUE(node_id, span_start, span_end)
 );
+-- Merge reassigns mentions by entity_id; without this it table-scans.
+CREATE INDEX IF NOT EXISTS idx_kg_mentions_entity ON kg_mentions(entity_id);
 
 CREATE TABLE IF NOT EXISTS kg_patches (
     patch_id INTEGER PRIMARY KEY,

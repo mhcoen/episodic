@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 
+from episodic.config import config
 from episodic.db_connection import get_connection
 from episodic.recall.resume_cues import has_resume_cues
 from episodic.recall.topic_aliases import compute_alias_score, get_topic_aliases_batch
@@ -90,16 +91,31 @@ def _get_topic_info(conn: sqlite3.Connection, start_node_id: str) -> Optional[Di
     return None
 
 
-def _get_all_topic_centroids(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
-    """Get all topics with their centroid information."""
+def _get_dormant_topic_centroids(
+    conn: sqlite3.Connection,
+    current_turn_idx: int,
+    active_topic_start_node_id: Optional[str],
+    dormancy_min: int,
+    limit: int,
+) -> List[Dict[str, Any]]:
+    """Get up to `limit` most-recently-active DORMANT topics with centroids.
+
+    The dormancy filter and the recency bound are pushed into SQL (indexed by
+    idx_topic_centroids_turn) so this stays O(limit) per turn instead of
+    scanning every topic centroid as the topic count grows.
+    """
+    cutoff = current_turn_idx - dormancy_min
     cursor = conn.execute("""
         SELECT t.name, t.start_node_id, t.end_node_id,
                tc.centroid_medoid_exchange_id, tc.exchange_count, tc.last_active_turn_idx
         FROM topics t
-        LEFT JOIN topic_centroids tc ON t.start_node_id = tc.start_node_id
+        JOIN topic_centroids tc ON t.start_node_id = tc.start_node_id
         WHERE tc.centroid_medoid_exchange_id IS NOT NULL
+          AND tc.last_active_turn_idx <= ?
+          AND (? IS NULL OR t.start_node_id != ?)
         ORDER BY tc.last_active_turn_idx DESC
-    """)
+        LIMIT ?
+    """, (cutoff, active_topic_start_node_id, active_topic_start_node_id, limit))
 
     topics = []
     for row in cursor.fetchall():
@@ -582,22 +598,27 @@ def probe_reactivation(
         current_turn_idx = _get_current_turn_idx(c)
         debug_info['current_turn_idx'] = current_turn_idx
 
-        # Get all topics with centroids
-        all_topics = _get_all_topic_centroids(c)
-        if not all_topics:
-            debug_info['exit_reason'] = 'no_topics_with_centroids'
+        # Get the most-recently-active dormant topics with centroids. The
+        # dormancy filter and recency bound are applied in SQL so the per-turn
+        # cost is O(limit), not O(total topics).
+        max_candidates = config.get('reactivation_max_candidates', 50)
+        candidates = _get_dormant_topic_centroids(
+            c, current_turn_idx, active_topic_start_node_id,
+            DORMANCY_MIN, max_candidates,
+        )
+        if not candidates:
+            debug_info['exit_reason'] = 'no_dormant_topics'
             return ReactivationDecision(action="CONTINUE", debug=debug_info)
 
-        debug_info['total_topics'] = len(all_topics)
+        debug_info['total_topics'] = len(candidates)
 
-        # Filter for dormant topics (inactive for >= DORMANCY_MIN turns)
+        # Attach dormancy for downstream ranking/debug (filters already applied
+        # in SQL; recompute defensively).
         dormant_topics = []
-        for topic in all_topics:
+        for topic in candidates:
             dormancy = current_turn_idx - topic['last_active_turn_idx']
-            # Skip active topic
             if topic['start_node_id'] == active_topic_start_node_id:
                 continue
-            # Skip recently active topics
             if dormancy < DORMANCY_MIN:
                 continue
             topic['dormancy'] = dormancy

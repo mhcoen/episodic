@@ -112,9 +112,12 @@ class AncestryStrategy:
             filtered_messages.pop(0)
             included_node_ids.pop(0)
 
-        # Build final messages list (strip internal _node_id)
+        # Keep the internal _node_id marker on each message so downstream
+        # security tagging (INV-MUSE-3) can identify web-derived content by
+        # node id regardless of later system-message insertions. The caller
+        # (ContextBuilder.build_context_full) strips it before the LLM call.
         messages = [
-            {"role": msg["role"], "content": msg["content"]}
+            {"role": msg["role"], "content": msg["content"], "_node_id": msg["_node_id"]}
             for msg in filtered_messages
         ]
 

@@ -266,11 +266,14 @@ def build_recency_budgeted(
             recency_debug.setdefault("dropped_by_budget", []).append(user_node_id)
             continue
 
-        # Add user message
+        # Add user message. The _node_id marker lets downstream security
+        # tagging (INV-MUSE-3) match web-derived content by node id; it is
+        # stripped before the LLM call in build_context_full.
         if user_content:
             recency_messages.append({
                 "role": "user",
-                "content": user_content
+                "content": user_content,
+                "_node_id": user_node_id,
             })
             if user_node_id:
                 recency_node_ids.append(user_node_id)
@@ -279,7 +282,8 @@ def build_recency_budgeted(
         if asst_content:
             recency_messages.append({
                 "role": "assistant",
-                "content": asst_content
+                "content": asst_content,
+                "_node_id": asst_node_id,
             })
             if asst_node_id:
                 recency_node_ids.append(asst_node_id)

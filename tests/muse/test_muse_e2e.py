@@ -76,7 +76,7 @@ class TestMuseE2E:
         builder = ContextBuilder()
         config.set("mcp_servers", {"test": {"url": "http://test"}})
 
-        messages = [{"role": "assistant", "content": "web synthesis result"}]
+        messages = [{"role": "assistant", "content": "web synthesis result", "_node_id": node_id}]
         tagged = builder._tag_web_derived_messages(messages, [node_id])
 
         # Web-derived content should be tagged

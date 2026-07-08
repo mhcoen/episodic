@@ -1050,14 +1050,18 @@ class TestVerificationAudit:
 
     def test_fail_fast_invariant_enforced(self):
         """
-        Immediate Code Change Verification:
-        validate_assembly raises ValueError when enable_relevance_truncation=True
-        but anchor_indices is None or empty.
+        validate_assembly raises ValueError when relevance truncation would
+        actually run (assembly is over cap) but anchor_indices is None/empty.
+        The check fires at the point of truncation, not merely when the
+        feature is enabled, so under-cap turns are unaffected (see
+        test_no_fail_fast_when_under_cap).
         """
+        # Messages must exceed the cap so truncation is actually attempted.
+        big = "word " * 500
         messages = [
             {"role": "system", "content": "System prompt"},
-            {"role": "user", "content": "Hello"},
-            {"role": "assistant", "content": "Hi there!"},
+            {"role": "user", "content": big},
+            {"role": "assistant", "content": big},
             {"role": "user", "content": "Query"},
         ]
         budget = TokenBudget(full_cap=500, overhead_reserve=50)
@@ -1084,6 +1088,30 @@ class TestVerificationAudit:
                 emit_event=False
             )
         assert "anchor_indices" in str(exc_info.value)
+
+    def test_no_fail_fast_when_under_cap(self):
+        """
+        Enabling relevance truncation must NOT crash an under-cap turn, even
+        without anchor_indices. This is the regression guard for the config
+        bug where /set enable_relevance_truncation true broke every turn.
+        """
+        messages = [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there!"},
+            {"role": "user", "content": "Query"},
+        ]
+        budget = TokenBudget(full_cap=500, overhead_reserve=50)
+
+        # Small assembly, well under cap → truncation never runs → no raise.
+        result = validate_assembly(
+            messages, budget,
+            enable_relevance_truncation=True,
+            current_query="Query",
+            anchor_indices=None,
+            emit_event=False
+        )
+        assert result.valid
 
     def test_no_fail_fast_when_truncation_disabled(self):
         """

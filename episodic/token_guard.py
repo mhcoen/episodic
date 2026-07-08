@@ -410,13 +410,6 @@ def validate_assembly(
     if enable_relevance_truncation is None:
         enable_relevance_truncation = config.get("enable_relevance_truncation", False)
 
-    # Fail-fast: relevance truncation requires anchor_indices for priority enforcement
-    if enable_relevance_truncation and (anchor_indices is None or len(anchor_indices) == 0):
-        raise ValueError(
-            "enable_relevance_truncation=True requires anchor_indices to be provided and non-empty. "
-            "Without anchor_indices, anchor priority cannot be enforced during truncation."
-        )
-
     effective_cap = budget.full_cap - budget.overhead_reserve
     if original_tokens <= effective_cap:
         if emit_event:
@@ -437,6 +430,14 @@ def validate_assembly(
 
     # Phase 2: Relevance-aware truncation (runs before legacy drop policy)
     if enable_relevance_truncation and apply_drops and current_tokens > target:
+        # Fail-fast: relevance truncation requires anchor_indices for priority
+        # enforcement. Checked here (not before the under-cap early return) so
+        # merely enabling the feature doesn't crash every under-cap turn.
+        if anchor_indices is None or len(anchor_indices) == 0:
+            raise ValueError(
+                "enable_relevance_truncation=True requires anchor_indices to be provided and non-empty. "
+                "Without anchor_indices, anchor priority cannot be enforced during truncation."
+            )
         try:
             from episodic.truncation import truncate_by_relevance
 

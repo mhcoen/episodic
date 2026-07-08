@@ -143,9 +143,61 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
     if param in PARAM_HANDLERS:
         PARAM_HANDLERS[param](value)
     else:
-        # Generic string parameter
-        config.set(param, value)
-        typer.secho(f"✅ Set {param} = {value}", fg=get_system_color())
+        # Generic parameter with no dedicated handler. Coerce the raw CLI
+        # string to the right type first — otherwise a boolean param set to
+        # "false" would be stored as the (always-truthy) string "false".
+        coerced = _coerce_generic_value(param, value)
+        config.set(param, coerced)
+        typer.secho(f"✅ Set {param} = {coerced}", fg=get_system_color())
+
+
+def _coerce_generic_value(param: str, value: str):
+    """Coerce a raw ``/set`` string to the appropriate type for a parameter
+    that has no dedicated handler.
+
+    Priority:
+    1. If the param has a template default, match that type. This is what
+       turns ``/set enable_relevance_truncation false`` into the bool
+       ``False`` instead of the truthy string ``"false"``.
+    2. Otherwise infer from the literal, mirroring the env-var coercion in
+       ``Config.get`` so a value behaves the same whether it arrives from the
+       environment or from ``/set`` (fixes params like ``skip_llm_response``
+       and ``enable_memory_rag`` that aren't listed in the template).
+    """
+    defaults = config.get_template_defaults()
+    if param in defaults:
+        default = defaults[param]
+        # bool must be checked before int — bool is a subclass of int.
+        if isinstance(default, bool):
+            return _str2bool(value)
+        if isinstance(default, int):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+        if isinstance(default, float):
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return value
+        # Non-numeric template default (str/list/dict/None): leave as string.
+        return value
+
+    # No template entry — infer from the literal.
+    lowered = str(value).strip().lower()
+    if lowered in ('true', 'yes', 'on'):
+        return True
+    if lowered in ('false', 'no', 'off'):
+        return False
+    try:
+        return float(value) if '.' in value else int(value)
+    except (ValueError, TypeError):
+        return value
+
+
+def _str2bool(value: str) -> bool:
+    """Interpret a CLI string as a boolean (matches handle_boolean_param)."""
+    return str(value).strip().lower() in ('true', '1', 'yes', 'on')
 
 
 def verify():

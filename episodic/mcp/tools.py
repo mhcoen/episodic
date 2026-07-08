@@ -45,20 +45,50 @@ def _get_db_connection() -> sqlite3.Connection:
 
 
 def _trace_call(tool_name, client_id, parameters, fn):
-    """Run fn inside a trace_tool_call context, or fall back to plain call."""
+    """Run fn inside a trace_tool_call context.
+
+    fn() is executed EXACTLY ONCE. Only failures in the trace machinery
+    (import, DB connection, context setup) fall back to an untraced call — a
+    failure inside fn() itself must propagate, not trigger a second execution
+    (which would double an LLM call or a document index).
+    """
+    import sys
+
+    conn = None
+    cm = None
+    ctx = None
     try:
         from episodic.mcp.trace import trace_tool_call
         conn = _get_db_connection()
-        try:
-            with trace_tool_call(conn, tool_name, client_id, parameters) as ctx:
-                result = fn()
-                ctx["output"] = result
-            return result
-        finally:
-            conn.close()
+        cm = trace_tool_call(conn, tool_name, client_id, parameters)
+        ctx = cm.__enter__()
     except Exception:
-        # If tracing fails (DB issue, etc.), still run the tool
+        # Trace setup failed — run the tool once, untraced.
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
         return fn()
+
+    # Trace context is active; run fn exactly once.
+    try:
+        result = fn()
+        ctx["output"] = result
+    except Exception:
+        cm.__exit__(*sys.exc_info())
+        try:
+            conn.close()
+        except Exception:
+            pass
+        raise
+    else:
+        cm.__exit__(None, None, None)
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return result
 
 
 # ===================================================================

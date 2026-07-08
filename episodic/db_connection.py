@@ -63,103 +63,134 @@ def get_db_path():
 
 
 class ConnectionPool:
-    """Simple connection pool for SQLite connections."""
-    
+    """Bounded connection pool for SQLite connections.
+
+    Connections are created with check_same_thread=False so a pooled
+    connection can be validly used from a background thread (access is
+    serialized by checkout — one caller holds a connection at a time — and
+    WAL mode handles the write locking). `_total` tracks the number of live
+    connections (idle in the queue + checked out) and is the single source of
+    truth for the pool_size limit, so idle connections are never double-counted
+    (the old qsize()+len(connection_info) test saturated the pool and caused
+    spurious 30s timeouts). Discarded connections are always closed.
+    """
+
     def __init__(self, db_path: str, pool_size: int = POOL_SIZE):
         self.db_path = db_path
         self.pool_size = pool_size
         self.pool = queue.Queue(maxsize=pool_size)
         self.lock = threading.Lock()
-        self.connection_info = {}  # Track connection creation time
-        
+        self.connection_info = {}  # id(conn) -> created_time, for live conns
+        self._total = 0            # live connections (idle + checked out)
+
     def _create_connection(self) -> sqlite3.Connection:
-        """Create a new database connection."""
-        conn = sqlite3.connect(self.db_path)
-        # Enable dict-like row access
+        """Create a new database connection (caller has reserved a slot)."""
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        # Enable WAL mode for better concurrency
         try:
             conn.execute("PRAGMA journal_mode=WAL")
         except sqlite3.OperationalError:
             logger.debug("Could not set WAL mode (database might be locked)")
+        self.connection_info[id(conn)] = time.time()
         return conn
-        
-    def get_connection(self, timeout: float = POOL_TIMEOUT) -> Optional[sqlite3.Connection]:
-        """Get a connection from the pool."""
+
+    def _is_usable(self, conn: sqlite3.Connection) -> bool:
+        created = self.connection_info.get(id(conn), 0)
+        if time.time() - created > CONNECTION_MAX_AGE:
+            return False
         try:
-            # Try to get an existing connection
-            conn = self.pool.get(block=False)
-            
-            # Check if connection is still valid and not too old
-            created_time = self.connection_info.get(id(conn), 0)
-            if time.time() - created_time > CONNECTION_MAX_AGE:
-                # Connection is too old, close it and create a new one
-                try:
-                    conn.close()
-                except:
-                    pass
-                conn = self._create_connection()
-                self.connection_info[id(conn)] = time.time()
-                
-            # Test the connection
+            conn.execute("SELECT 1")
+            return True
+        except Exception:
+            return False
+
+    def _discard(self, conn: sqlite3.Connection) -> None:
+        """Close and untrack a connection. Caller adjusts _total."""
+        self.connection_info.pop(id(conn), None)
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    def get_connection(self, timeout: float = POOL_TIMEOUT) -> Optional[sqlite3.Connection]:
+        """Get a connection from the pool, creating or waiting as needed."""
+        deadline = time.time() + timeout
+        while True:
+            # 1. Reuse an idle connection if one is usable.
             try:
-                conn.execute("SELECT 1")
-            except:
-                # Connection is dead, create a new one
-                conn = self._create_connection()
-                self.connection_info[id(conn)] = time.time()
-                
-            return conn
-            
-        except queue.Empty:
-            # No connections available, create a new one if under limit
-            with self.lock:
-                if self.pool.qsize() + len(self.connection_info) < self.pool_size:
-                    conn = self._create_connection()
-                    self.connection_info[id(conn)] = time.time()
-                    return conn
-                    
-            # Wait for a connection to become available
-            try:
-                conn = self.pool.get(block=True, timeout=timeout)
-                # Validate connection as above
-                try:
-                    conn.execute("SELECT 1")
-                except:
-                    conn = self._create_connection()
-                    self.connection_info[id(conn)] = time.time()
-                return conn
+                conn = self.pool.get(block=False)
             except queue.Empty:
-                raise TimeoutError(f"Could not get database connection within {timeout} seconds")
-                
+                conn = None
+            if conn is not None:
+                if self._is_usable(conn):
+                    return conn
+                with self.lock:
+                    self._total -= 1
+                self._discard(conn)
+                continue
+
+            # 2. Create a new connection if under the limit.
+            with self.lock:
+                if self._total < self.pool_size:
+                    self._total += 1
+                    reserved = True
+                else:
+                    reserved = False
+            if reserved:
+                try:
+                    return self._create_connection()
+                except Exception:
+                    with self.lock:
+                        self._total -= 1
+                    raise
+
+            # 3. At capacity — wait for a returned connection.
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Could not get database connection within {timeout} seconds")
+            try:
+                conn = self.pool.get(block=True, timeout=remaining)
+            except queue.Empty:
+                raise TimeoutError(
+                    f"Could not get database connection within {timeout} seconds")
+            if self._is_usable(conn):
+                return conn
+            with self.lock:
+                self._total -= 1
+            self._discard(conn)
+            # loop and retry
+
     def return_connection(self, conn: sqlite3.Connection):
         """Return a connection to the pool."""
         if conn is None:
             return
-            
         try:
-            # Reset the connection state
             conn.rollback()
-            # Return to pool if there's space
+        except Exception:
+            pass
+        try:
             self.pool.put(conn, block=False)
         except queue.Full:
-            # Pool is full, close the connection
-            try:
-                conn.close()
-            except:
-                pass
-            # Remove from tracking
-            self.connection_info.pop(id(conn), None)
-            
+            # No room to keep it idle — close and untrack.
+            with self.lock:
+                self._total -= 1
+            self._discard(conn)
+
     def close_all(self):
-        """Close all connections in the pool."""
-        while not self.pool.empty():
+        """Close all idle connections and reset accounting."""
+        while True:
             try:
                 conn = self.pool.get(block=False)
+            except queue.Empty:
+                break
+            try:
                 conn.close()
-            except:
+            except Exception:
                 pass
         self.connection_info.clear()
+        with self.lock:
+            self._total = 0
 
 
 def _get_pool() -> ConnectionPool:

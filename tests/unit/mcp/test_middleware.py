@@ -15,13 +15,16 @@ from episodic.mcp.middleware import (
 
 
 class TestPublicPaths:
-    """Verify public paths include health and SSE endpoints."""
+    """Only the health check is public; everything else requires a token."""
 
     def test_health_is_public(self):
         assert "/health" in PUBLIC_PATHS
 
-    def test_sse_is_public(self):
-        assert "/sse" in PUBLIC_PATHS
+    def test_sse_requires_auth(self):
+        # The SSE stream endpoint must NOT be public, or unauthenticated
+        # clients could open/exhaust event streams.
+        assert "/sse" not in PUBLIC_PATHS
+        assert "/sse/" not in PUBLIC_PATHS
 
     def test_messages_not_public(self):
         assert "/messages" not in PUBLIC_PATHS

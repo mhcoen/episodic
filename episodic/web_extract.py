@@ -7,8 +7,11 @@ from web pages, going beyond just search result snippets.
 
 from typing import Optional, Dict, Any
 from datetime import datetime
+import ipaddress
 import re
+import socket
 import traceback
+from urllib.parse import urlparse
 
 import typer
 from episodic.config import config
@@ -21,6 +24,64 @@ _EXTRACT_PLACEHOLDERS = {
     "weather information not found on page.",
     "could not extract article content.",
 }
+
+# Hosts we intentionally fetch with relaxed TLS (some weather CDNs have broken
+# chains). Matched against the parsed hostname — NOT a substring of the URL —
+# so an attacker URL like http://evil.example/?ref=weather.com can't opt in.
+_RELAXED_TLS_HOSTS = ("accuweather.com", "weather.com", "weather.gov")
+
+
+def _hostname_matches(url: str, domains) -> bool:
+    """True if the URL's hostname equals or is a subdomain of any domain."""
+    try:
+        host = (urlparse(url).hostname or "").lower().rstrip(".")
+    except Exception:
+        return False
+    if not host:
+        return False
+    return any(host == d or host.endswith("." + d) for d in domains)
+
+
+def _is_safe_public_url(url: str) -> bool:
+    """SSRF guard for LLM/search-derived URLs.
+
+    Rejects non-http(s) schemes and hosts that resolve to loopback,
+    link-local (incl. cloud metadata 169.254.169.254), private, or otherwise
+    reserved addresses. Note: this validates the initial URL; a server-side
+    redirect to an internal host is a residual risk (DNS rebinding / redirect
+    TOCTOU) not covered here.
+    """
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = parsed.hostname
+    if not host:
+        return False
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except (socket.gaierror, UnicodeError, ValueError, OSError):
+        return False
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            return False
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return False
+    return True
+
+
+def _reject_unsafe_url(url: str) -> bool:
+    """Log and return True if the URL must not be fetched (SSRF guard)."""
+    if _is_safe_public_url(url):
+        return False
+    debug_print(f"Refusing to fetch non-public/unsafe URL: {url}", category="security")
+    return True
 
 
 def _sanitize_soup(soup, url: str):
@@ -110,7 +171,10 @@ class WebContentExtractor:
             from bs4 import BeautifulSoup
         except ImportError:
             return None
-        
+
+        if _reject_unsafe_url(url):
+            return None
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -124,8 +188,8 @@ class WebContentExtractor:
             # Create connector with relaxed SSL for weather sites that might have cert issues
             import ssl
             ssl_context = ssl.create_default_context()
-            # Only relax SSL for known problematic sites
-            if any(domain in url for domain in ['accuweather.com', 'weather.com', 'weather.gov']):
+            # Only relax SSL for known problematic sites (matched on hostname).
+            if _hostname_matches(url, _RELAXED_TLS_HOSTS):
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
             
@@ -360,7 +424,10 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
         import urllib3
     except ImportError:
         return None
-    
+
+    if _reject_unsafe_url(url):
+        return None
+
     # Suppress SSL warnings for weather sites
     warnings.filterwarnings('ignore', category=urllib3.exceptions.InsecureRequestWarning)
     
@@ -374,8 +441,8 @@ def fetch_page_content_sync(url: str) -> Optional[str]:
     }
     
     try:
-        # For weather sites, disable SSL verification
-        verify_ssl = not any(domain in url for domain in ['accuweather.com', 'weather.com', 'weather.gov'])
+        # For known weather hosts, disable SSL verification (hostname match).
+        verify_ssl = not _hostname_matches(url, _RELAXED_TLS_HOSTS)
         
         # Make request with suppressed warnings
         with warnings.catch_warnings():

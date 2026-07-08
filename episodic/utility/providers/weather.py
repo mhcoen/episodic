@@ -245,16 +245,17 @@ class WeatherProvider(DataProvider):
         return ip_location
 
     def _get_location_from_ip(self) -> Optional[str]:
-        """Get location from IP address using ip-api.com."""
+        """Get coarse location from IP address over HTTPS (keyless free tier)."""
         import urllib.request
         import json
 
         try:
-            url = "http://ip-api.com/json/?fields=city,region,country"
+            # HTTPS so an on-path observer can't read/forge the coarse location.
+            url = "https://ipapi.co/json/"
             with urllib.request.urlopen(url, timeout=5) as response:
                 data = json.loads(response.read().decode())
                 if data.get("city"):
-                    region = data.get("region", "")
+                    region = data.get("region_code") or data.get("region", "")
                     if region:
                         return f"{data['city']}, {region}"
                     return data["city"]

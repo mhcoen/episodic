@@ -110,7 +110,8 @@ def set(param: Optional[str] = None, value: Optional[str] = None):
             current_value = config.get(normalized, "Not set")
             display_name = get_short_name(normalized) or get_display_name(normalized)
             typer.secho(f"{display_name}: ", fg=get_system_color(), nl=False)
-            typer.secho(f"{current_value}", fg=get_text_color(), bold=True)
+            typer.secho(f"{_mask_if_secret(normalized, current_value)}",
+                        fg=get_text_color(), bold=True)
             # Show description from CONFIG_DOCS (authoritative source)
             from episodic.config_defaults import CONFIG_DOCS
             description = CONFIG_DOCS.get(normalized) or get_param_description(display_name)
@@ -198,6 +199,27 @@ def _coerce_generic_value(param: str, value: str):
 def _str2bool(value: str) -> bool:
     """Interpret a CLI string as a boolean (matches handle_boolean_param)."""
     return str(value).strip().lower() in ('true', '1', 'yes', 'on')
+
+
+_SECRET_PARAM_MARKERS = ('_api_key', 'api_key', 'secret', 'token', 'password',
+                         'access_key', 'credential')
+
+
+def _is_secret_param(name: str) -> bool:
+    lname = (name or '').lower()
+    return any(marker in lname for marker in _SECRET_PARAM_MARKERS)
+
+
+def _mask_if_secret(name: str, value):
+    """Mask secret-looking config values for display (show last 4 chars)."""
+    if not _is_secret_param(name):
+        return value
+    if value is None or value == "Not set" or value == "":
+        return value
+    s = str(value)
+    if len(s) <= 4:
+        return "****"
+    return "****" + s[-4:]
 
 
 def verify():

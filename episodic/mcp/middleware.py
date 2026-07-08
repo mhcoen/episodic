@@ -16,8 +16,11 @@ from episodic.mcp.request_context import set_request_context, reset_request_cont
 # Default rate limits
 DEFAULT_DAILY_COST_LIMIT = 10.0  # $10/day per client
 
-# Paths that skip authentication
-PUBLIC_PATHS = {"/health", "/sse", "/sse/"}
+# Paths that skip authentication. Only the health check is public; the SSE
+# stream endpoint requires a token like every other endpoint, so an
+# unauthenticated client cannot open (and exhaust) event streams. The MCP SSE
+# client sends the Bearer token on the /sse GET in the standard auth flow.
+PUBLIC_PATHS = {"/health"}
 
 
 def create_auth_middleware(db_path: str, daily_cost_limit: float = DEFAULT_DAILY_COST_LIMIT):

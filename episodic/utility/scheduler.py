@@ -23,70 +23,12 @@ from zoneinfo import ZoneInfo
 logger = logging.getLogger(__name__)
 
 
-class TaskType(Enum):
-    """Types of scheduled tasks."""
-    ALARM = auto()
-    TIMER = auto()
-    REMINDER = auto()
-    REFRESH = auto()
-    ROUTINE_STEP = auto()
-    SYSTEM = auto()
-
-
-class TaskStatus(Enum):
-    """Status of a scheduled task."""
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
-    FAILED = "failed"
-    PAUSED = "paused"
-
-
-@dataclass
-class TaskResult:
-    """Result from task callback execution."""
-    status: TaskStatus
-    output: Optional[str] = None
-    error: Optional[str] = None
-    reschedule_at: Optional[datetime] = None
-    next_task: Optional["ScheduledTask"] = None
-    side_effects: Optional[List[str]] = None
-
-
-@dataclass
-class ScheduledTask:
-    """A task scheduled for future execution."""
-    id: str
-    task_type: TaskType
-    priority: int  # 0=highest (stop), 1=alarms/timers, 2=reminders, 3=routines, 4=refresh
-
-    # Timing
-    next_run_monotonic: float
-    next_run_wall: datetime
-    created_at: datetime
-
-    # Execution
-    callback: Optional[Callable[[], TaskResult]] = None
-    reference_id: Optional[str] = None  # FK to alarms/timers/reminders table
-
-    # Recurrence
-    recurrence: Optional[Union[str, int]] = None  # RRULE string or interval seconds
-
-    # Metadata
-    label: Optional[str] = None
-    dnd_override: bool = False
-
-    # Timer-specific
-    duration_s: Optional[int] = None  # Original duration for timers
-    paused_remaining: Optional[float] = None  # Remaining time when paused
-
-    def __lt__(self, other: "ScheduledTask") -> bool:
-        """Comparison for heapq (earliest first, then by priority)."""
-        if self.next_run_monotonic != other.next_run_monotonic:
-            return self.next_run_monotonic < other.next_run_monotonic
-        return self.priority < other.priority
-
+from episodic.utility.scheduler_types import (  # noqa: F401  (re-exported)
+    TaskType, TaskStatus, TaskResult, ScheduledTask,
+)
+from episodic.utility.scheduler_tasks import (  # noqa: F401  (re-exported)
+    create_timer_task, create_alarm_task, create_reminder_task,
+)
 
 class Scheduler:
     """
@@ -711,91 +653,3 @@ class Scheduler:
         return None
 
 
-# =========================================================================
-# Task Factory Functions
-# =========================================================================
-
-def create_timer_task(
-    duration_s: int,
-    label: Optional[str] = None,
-    callback: Optional[Callable[[], TaskResult]] = None,
-    reference_id: Optional[str] = None,
-    user_tz: str = "America/Chicago",
-) -> ScheduledTask:
-    """Create a timer task."""
-    now = datetime.now(ZoneInfo(user_tz))
-
-    return ScheduledTask(
-        id=str(uuid.uuid4()),
-        task_type=TaskType.TIMER,
-        priority=1,
-        next_run_monotonic=time.monotonic() + duration_s,
-        next_run_wall=now + timedelta(seconds=duration_s),
-        created_at=now,
-        callback=callback,
-        reference_id=reference_id,
-        label=label,
-        duration_s=duration_s,
-    )
-
-
-def create_alarm_task(
-    alarm_time: datetime,
-    label: Optional[str] = None,
-    callback: Optional[Callable[[], TaskResult]] = None,
-    reference_id: Optional[str] = None,
-    dnd_override: bool = False,
-    recurrence: Optional[str] = None,
-    user_tz: str = "America/Chicago",
-) -> ScheduledTask:
-    """Create an alarm task."""
-    now = datetime.now(ZoneInfo(user_tz))
-
-    # Ensure alarm_time has timezone
-    if alarm_time.tzinfo is None:
-        alarm_time = alarm_time.replace(tzinfo=ZoneInfo(user_tz))
-
-    # Calculate monotonic time
-    delta = (alarm_time - now).total_seconds()
-
-    return ScheduledTask(
-        id=str(uuid.uuid4()),
-        task_type=TaskType.ALARM,
-        priority=1,
-        next_run_monotonic=time.monotonic() + delta,
-        next_run_wall=alarm_time,
-        created_at=now,
-        callback=callback,
-        reference_id=reference_id,
-        label=label,
-        dnd_override=dnd_override,
-        recurrence=recurrence,
-    )
-
-
-def create_reminder_task(
-    remind_time: datetime,
-    text: str,
-    callback: Optional[Callable[[], TaskResult]] = None,
-    reference_id: Optional[str] = None,
-    user_tz: str = "America/Chicago",
-) -> ScheduledTask:
-    """Create a reminder task."""
-    now = datetime.now(ZoneInfo(user_tz))
-
-    if remind_time.tzinfo is None:
-        remind_time = remind_time.replace(tzinfo=ZoneInfo(user_tz))
-
-    delta = (remind_time - now).total_seconds()
-
-    return ScheduledTask(
-        id=str(uuid.uuid4()),
-        task_type=TaskType.REMINDER,
-        priority=2,
-        next_run_monotonic=time.monotonic() + delta,
-        next_run_wall=remind_time,
-        created_at=now,
-        callback=callback,
-        reference_id=reference_id,
-        label=text,
-    )

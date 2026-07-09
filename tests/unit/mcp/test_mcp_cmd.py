@@ -97,27 +97,27 @@ class TestMcpCommand:
 class TestMcpTokenRouting:
     """Tests for mcp_token subcommand routing."""
 
-    @patch("episodic.commands.mcp_cmd.mcp_token_list")
+    @patch("episodic.commands.mcp_token_cmds.mcp_token_list")
     def test_no_args_shows_list(self, mock_list):
         mcp_token([])
         mock_list.assert_called_once()
 
-    @patch("episodic.commands.mcp_cmd.mcp_token_list")
+    @patch("episodic.commands.mcp_token_cmds.mcp_token_list")
     def test_list_subcommand(self, mock_list):
         mcp_token(["list"])
         mock_list.assert_called_once()
 
-    @patch("episodic.commands.mcp_cmd.mcp_token_create")
+    @patch("episodic.commands.mcp_token_cmds.mcp_token_create")
     def test_create_subcommand(self, mock_create):
         mcp_token(["create", "my-client"])
         mock_create.assert_called_once_with(["my-client"])
 
-    @patch("episodic.commands.mcp_cmd.mcp_token_revoke")
+    @patch("episodic.commands.mcp_token_cmds.mcp_token_revoke")
     def test_revoke_subcommand(self, mock_revoke):
         mcp_token(["revoke", "some-id"])
         mock_revoke.assert_called_once_with(["some-id"])
 
-    @patch("episodic.commands.mcp_cmd.mcp_token_rotate")
+    @patch("episodic.commands.mcp_token_cmds.mcp_token_rotate")
     def test_rotate_subcommand(self, mock_rotate):
         mcp_token(["rotate", "some-id", "--grace", "60"])
         mock_rotate.assert_called_once_with(["some-id", "--grace", "60"])
@@ -141,7 +141,7 @@ class TestMcpTokenCreateIntegration:
         def get_conn():
             return sqlite3.connect(db_path)
 
-        with patch("episodic.commands.mcp_cmd._get_db_connection", side_effect=get_conn):
+        with patch("episodic.commands.mcp_token_cmds._get_db_connection", side_effect=get_conn):
             yield db_path
 
     def test_create_and_list(self, mock_db, capsys):

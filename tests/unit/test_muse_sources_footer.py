@@ -62,7 +62,7 @@ def test_select_muse_source_urls_all_relevant_dedupes(monkeypatch):
 
 
 def test_format_clickable_url_plain_when_not_tty(monkeypatch):
-    from episodic import conversation_pipeline_llm as llm_pipeline
+    from episodic import conversation_pipeline_muse as llm_pipeline
 
     class _Stdout:
         @staticmethod
@@ -74,7 +74,7 @@ def test_format_clickable_url_plain_when_not_tty(monkeypatch):
 
 
 def test_format_clickable_url_osc8_when_tty(monkeypatch):
-    from episodic import conversation_pipeline_llm as llm_pipeline
+    from episodic import conversation_pipeline_muse as llm_pipeline
 
     class _Stdout:
         @staticmethod
@@ -91,7 +91,7 @@ def test_format_clickable_url_osc8_when_tty(monkeypatch):
 
 
 def test_format_clickable_url_respects_opt_out(monkeypatch):
-    from episodic import conversation_pipeline_llm as llm_pipeline
+    from episodic import conversation_pipeline_muse as llm_pipeline
 
     class _Stdout:
         @staticmethod
@@ -106,7 +106,7 @@ def test_format_clickable_url_respects_opt_out(monkeypatch):
 
 
 def test_format_clickable_url_plain_on_apple_terminal(monkeypatch):
-    from episodic import conversation_pipeline_llm as llm_pipeline
+    from episodic import conversation_pipeline_muse as llm_pipeline
 
     class _Stdout:
         @staticmethod

@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import episodic.voice.voice_mode as vm
+import episodic.voice.voice_infra as vinfra
 from episodic.voice.voice_mode import VoiceModeManager, VoiceState
 
 
@@ -23,8 +24,11 @@ class FakeConfig:
 
 @pytest.fixture
 def cfg(monkeypatch):
+    # The manager's methods are split across voice_mode and voice_infra, each
+    # of which binds its own `config` name; patch both so overrides take.
     fake = FakeConfig()
     monkeypatch.setattr(vm, "config", fake)
+    monkeypatch.setattr(vinfra, "config", fake)
     return fake
 
 
